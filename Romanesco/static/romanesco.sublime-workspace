@@ -1,0 +1,2485 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"play",
+				"playOnLoad"
+			],
+			[
+				"cons",
+				"constructor"
+			],
+			[
+				"initi",
+				"initializeAnimation"
+			],
+			[
+				"rotati",
+				"rotationSpeed"
+			],
+			[
+				"class",
+				"className"
+			],
+			[
+				"B",
+				"BooleanField"
+			],
+			[
+				"spe",
+				"specialKey"
+			],
+			[
+				"center",
+				"centerByDefault"
+			],
+			[
+				"sc",
+				"scriptName"
+			],
+			[
+				"exi",
+				"exists"
+			],
+			[
+				"add",
+				"addTool"
+			],
+			[
+				"save",
+				"saveChanges"
+			],
+			[
+				"item",
+				"itemsOutsideLimit"
+			],
+			[
+				"sele",
+				"selected"
+			],
+			[
+				"pint",
+				"pinterestModalJ"
+			],
+			[
+				"modal",
+				"modal"
+			],
+			[
+				"emtp",
+				"emptyTwitterDiv"
+			],
+			[
+				"roman",
+				"romanesc"
+			],
+			[
+				"publi",
+				"publishOnFacebook"
+			],
+			[
+				"obje",
+				"object_type"
+			],
+			[
+				"hie",
+				"hide"
+			],
+			[
+				"type",
+				"object_type"
+			],
+			[
+				"romanesco",
+				"romanesco_alert"
+			],
+			[
+				"thro",
+				"throw"
+			],
+			[
+				"contr",
+				"constructor"
+			],
+			[
+				"enti",
+				"entireArea"
+			],
+			[
+				"me",
+				"media"
+			],
+			[
+				"sprite",
+				"spriteName"
+			],
+			[
+				"max",
+				"maxSpeed"
+			],
+			[
+				"pla",
+				"plays"
+			],
+			[
+				"stroke",
+				"strokeColor"
+			],
+			[
+				"bufferO",
+				"bufferOnLoad"
+			],
+			[
+				"buffer",
+				"bufferOnError"
+			],
+			[
+				"url",
+				"urlList"
+			],
+			[
+				"buffe",
+				"bufferList"
+			],
+			[
+				"loa",
+				"loadCount"
+			],
+			[
+				"buff",
+				"bufferList"
+			],
+			[
+				"load",
+				"loader"
+			],
+			[
+				"re",
+				"request"
+			],
+			[
+				"deco",
+				"decodeAudioData"
+			],
+			[
+				"cont",
+				"context"
+			],
+			[
+				"array",
+				"arraybuffer"
+			],
+			[
+				"call",
+				"callback"
+			],
+			[
+				"acti",
+				"activate"
+			],
+			[
+				"controlPa",
+				"controlPathLength"
+			],
+			[
+				"contorlPa",
+				"controlPathLength"
+			],
+			[
+				"star",
+				"startLoadingBar"
+			],
+			[
+				"loadin",
+				"loadingBar"
+			],
+			[
+				"loadi",
+				"loadingBar"
+			],
+			[
+				"lo",
+				"location"
+			],
+			[
+				"par",
+				"parameters"
+			],
+			[
+				"delta",
+				"delta"
+			],
+			[
+				"selec",
+				"selected"
+			],
+			[
+				"upda",
+				"update"
+			],
+			[
+				"update",
+				"updateCar"
+			],
+			[
+				"window",
+				"windowJ"
+			],
+			[
+				"code",
+				"codeEditor"
+			],
+			[
+				"back",
+				"background-color"
+			],
+			[
+				"mar",
+				"margin-right"
+			],
+			[
+				"ma",
+				"margin-bottom"
+			],
+			[
+				"margin",
+				"margin-bottom"
+			],
+			[
+				"romane",
+				"romanescoCode"
+			],
+			[
+				"op",
+				"Option"
+			],
+			[
+				"obj",
+				"object_type"
+			],
+			[
+				"move",
+				"moveBy"
+			],
+			[
+				"def",
+				"default"
+			],
+			[
+				"trans",
+				"transform"
+			],
+			[
+				"con",
+				"console"
+			],
+			[
+				"log",
+				"logMessage"
+			],
+			[
+				"erro",
+				"error"
+			],
+			[
+				"error",
+				"errorMessage"
+			],
+			[
+				"tre",
+				"true"
+			],
+			[
+				"new",
+				"newView"
+			],
+			[
+				"resti",
+				"restrictedAreaPath"
+			],
+			[
+				"res",
+				"restrictedArea"
+			],
+			[
+				"ret",
+				"restrictedArea"
+			],
+			[
+				"disabl",
+				"disableToolbar"
+			],
+			[
+				"ta",
+				"target"
+			],
+			[
+				"web",
+				"website"
+			],
+			[
+				"check",
+				"checked"
+			],
+			[
+				"select",
+				"selectBegin"
+			],
+			[
+				"mouse",
+				"mousedown"
+			],
+			[
+				"lock",
+				"locked"
+			],
+			[
+				"loc",
+				"locked"
+			],
+			[
+				"us",
+				"username"
+			],
+			[
+				"side",
+				"sidebarJ"
+			],
+			[
+				"can",
+				"canvasJ"
+			],
+			[
+				"req",
+				"required"
+			],
+			[
+				"segm",
+				"segment"
+			],
+			[
+				"profil",
+				"profil_image"
+			],
+			[
+				"de",
+				"default"
+			],
+			[
+				"data-",
+				"data-google-id"
+			],
+			[
+				"user",
+				"userGoogleId"
+			],
+			[
+				"val",
+				"value"
+			],
+			[
+				"get",
+				"getSnap"
+			],
+			[
+				"romanes",
+				"romanesco_alert"
+			],
+			[
+				"im",
+				"imgJ"
+			],
+			[
+				"sv",
+				"svgGroup"
+			],
+			[
+				"canva",
+				"canvasTemp"
+			],
+			[
+				"control",
+				"controlPath"
+			],
+			[
+				"rec",
+				"rectangle"
+			],
+			[
+				"desele",
+				"deselected"
+			],
+			[
+				"dr",
+				"drawing"
+			],
+			[
+				"it",
+				"itemsToSave"
+			],
+			[
+				"remov",
+				"remove"
+			],
+			[
+				"daa",
+				"dataURL"
+			],
+			[
+				"download",
+				"downloadPNG"
+			],
+			[
+				"button",
+				"buttonJ"
+			],
+			[
+				"middl",
+				"middlePoint"
+			],
+			[
+				"la",
+				"lastPoint"
+			],
+			[
+				"snap",
+				"snap2D"
+			],
+			[
+				"clone",
+				"clonePk"
+			],
+			[
+				"text",
+				"textarea"
+			],
+			[
+				"selected",
+				"selectedItems"
+			],
+			[
+				"sp",
+				"specialKey"
+			],
+			[
+				"grou",
+				"group"
+			],
+			[
+				"desel",
+				"deselectAll"
+			],
+			[
+				"del",
+				"deselectAll"
+			],
+			[
+				"swi",
+				"switch"
+			],
+			[
+				"padd",
+				"padding"
+			],
+			[
+				"cen",
+				"center"
+			],
+			[
+				"cent",
+				"centerY"
+			],
+			[
+				"dta",
+				"data"
+			],
+			[
+				"selection",
+				"selectionRectangle"
+			],
+			[
+				"contro",
+				"controlPath"
+			],
+			[
+				"inti",
+				"initializeController"
+			],
+			[
+				"init",
+				"initialize"
+			],
+			[
+				"exc",
+				"exceptLast"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/index.html",
+			"settings":
+			{
+				"buffer_size": 38479,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/urls.py",
+			"settings":
+			{
+				"buffer_size": 684,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "less/styles.less",
+			"settings":
+			{
+				"buffer_size": 22340,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "less/flexbox.less",
+			"settings":
+			{
+				"buffer_size": 3460,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/ajax.py",
+			"settings":
+			{
+				"buffer_size": 17773,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/ajax.coffee",
+			"settings":
+			{
+				"buffer_size": 16150,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/sockets.py",
+			"settings":
+			{
+				"buffer_size": 10963,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/models.py",
+			"settings":
+			{
+				"buffer_size": 4566,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/settings.py",
+			"settings":
+			{
+				"buffer_size": 8036,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/path.coffee",
+			"settings":
+			{
+				"buffer_size": 68373,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "\nclass FaceShape extends RShape\n	@Shape = paper.Path.Rectangle\n	@rname = 'Face generator'\n	# @iconUrl = 'static/icons/inversed/spiral.png'\n	# @iconAlt = 'spiral'\n	@rdescription = \"Face generator, inspired by weird faces study by Matthias Dörfelt aka mokafolio.\"\n\n	@parameters: ()->\n		parameters = super()\n\n		parameters['Parameters'] ?= {} \n		parameters['Parameters'].minRadius =\n			type: 'slider'\n			label: 'Minimum radius'\n			min: 0\n			max: 100\n			default: 0\n		parameters['Parameters'].nTurns =\n			type: 'slider'\n			label: 'Number of turns'\n			min: 1 \n			max: 50\n			default: 10\n		parameters['Parameters'].nSides =\n			type: 'slider'\n			label: 'Sides'\n			min: 3\n			max: 100\n			default: 50\n\n		return parameters\n\n	createShape: ()->\n		@headShape = @addPath(new Path.Ellipse(@rectangle.expand(-20,-10)))\n		\n		@headShape.flatten(50)\n		for segment in @headShape.segments\n			segment.point.x += Math.random()*20\n			segment.point.y += Math.random()*5\n			segment.handleIn += Math.random()*5\n			segment.handleOut += Math.random()*5\n		\n		@headShape.smooth()\n		\n		nozeShape = Math.random()\n		\n		center = @rectangle.center\n		width = @rectangle.width\n		height = @rectangle.height\n		\n		rangeRandMM = (min, max)->\n			return min + (max-min)*Math.random()\n		\n		rangeRandC = (center, amplitude)->\n			return center + amplitude*(Math.random()-0.5)\n		\n		# noze\n		if nozeShape < 0.333	# two nostrils\n			deltaX = 0.1*width + Math.random()*10\n			x = center.x - deltaX\n			y = center.y + rangeRandC(0, 5)\n			position = center.add(x, y)\n			size = new Size(Math.random()*5, Math.random()*5)\n			nozeLeft = @addPath(new Path.Ellipse(position, size))\n			position += 2*deltaX\n			size = new Size(Math.random()*5, Math.random()*5)\n			nozeRight = @addPath(new Path.Ellipse(position, size))\n		else if nozeShape < 0.666 	# noze toward left\n			noze = @addPath()\n			noze.add(center)\n			noze.add(center.add(Math.random()*15, Math.random()*5))\n			if Math.random()>0.5\n			    noze.add(center.add(Math.random()*20, Math.random()*5))\n			noze.add(center.add(0, rangeRandMM(5,10)))\n			noze.smooth()\n		else				 	# noze toward right\n			noze = @addPath()\n			noze.add(center)\n			noze.add(center.add(-Math.random()*15, Math.random()*5))\n			if Math.random()>0.5\n			    noze.add(center.add(-Math.random()*20, Math.random()*5))\n			noze.add(center.add(0, rangeRandMM(15,20)))\n			noze.smooth()\n		\n		# eyes\n		deltaX = rangeRandC(0.2*width, 0.1*width*Math.random())\n		x = center.x - deltaX\n		y = @rectangle.top + width/3 + rangeRandC(0, 10)\n		position = new Point(x, y)\n		size = new Size(Math.max(Math.random()*30,deltaX), Math.random()*30)\n		eyeLeft = @addPath(new Path.Ellipse(position, size))\n		position.x += 2*deltaX\n		\n		size.width *= 0.5+Math.random()\n		size.height *= 0.5+Math.random()\n		eyeRight = @addPath(new Path.Ellipse(position, size))\n		\n		eyeRight.position.x += rangeRandC(0, 5)\n		eyeLeft.position.x += rangeRandC(0, 5)\n		\n		for i in [1 .. eyeLeft.segments.length-1]\n			eyeLeft.segments[i].point.x += Math.random()*3\n			eyeLeft.segments[i].point.y += Math.random()*3	\n			eyeRight.segments[i].point.x += Math.random()*3\n			eyeRight.segments[i].point.y += Math.random()*3	\n        \n        # mouth\n        mouth = @addPath()\n        mouth.add()\n        \n        return\n\n",
+			"settings":
+			{
+				"buffer_size": 3222,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/pathSources.coffee",
+			"settings":
+			{
+				"buffer_size": 15751,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/socket.coffee",
+			"settings":
+			{
+				"buffer_size": 5937,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/tools.coffee",
+			"settings":
+			{
+				"buffer_size": 25016,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/coordinateSystems.coffee",
+			"settings":
+			{
+				"buffer_size": 2231,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/div.coffee",
+			"settings":
+			{
+				"buffer_size": 41082,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/views.py",
+			"settings":
+			{
+				"buffer_size": 23345,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/global.coffee",
+			"settings":
+			{
+				"buffer_size": 9040,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
+			"settings":
+			{
+				"buffer_size": 3897,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/run.py",
+			"settings":
+			{
+				"buffer_size": 1240,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/lock.coffee",
+			"settings":
+			{
+				"buffer_size": 5276,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/main.coffee",
+			"settings":
+			{
+				"buffer_size": 23175,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/editor.coffee",
+			"settings":
+			{
+				"buffer_size": 10467,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test2.html",
+			"settings":
+			{
+				"buffer_size": 1946,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/facebook.coffee",
+			"settings":
+			{
+				"buffer_size": 3299,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/options.coffee",
+			"settings":
+			{
+				"buffer_size": 18662,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 392.0,
+		"selected_items":
+		[
+			[
+				"glo",
+				"View: Toggle Open Files in Side Bar"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"tool",
+				"View: Toggle Open Files in Side Bar"
+			],
+			[
+				"instl",
+				"Package Control: Install Package"
+			],
+			[
+				"inst",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 449.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404' + 'e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/urls.py",
+		"/Users/Arthur/Projects/euphony-mapping/lib/MIDI.js/MIDI.Player.js",
+		"/Users/Arthur/Libraries/web/euphony-master/lib/MIDI.js/MIDI.Player.js",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/templates/socialaccount/signup.html",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/templates/account/login.html",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/templates/socialaccount/snippets/login_extra.html",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/templates/socialaccount/connections.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/account/email_confirm.html",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/templates/base.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/socket.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/tools.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/coordinateSystems.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/div.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/views.py",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/global.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/lock.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/main.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/less/styles.less",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/templates/openid/login.html",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/templates/openid/base.html",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/templates/socialaccount/base.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/account/signup.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/account/base.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/account/login.html",
+		"/Users/Arthur/Libraries/web/bootstrap-3.2.0/docs/examples/signin/index.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/load.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/icons/logo.svg",
+		"/Users/Arthur/Libraries/Turbulenz/SDK/0.28.0/samples/jslib/draw2d.js",
+		"/Users/Arthur/Libraries/Turbulenz/SDK/0.28.0/samples/jslib/canvas.js",
+		"/Users/Arthur/Libraries/Turbulenz/SDK/0.28.0/samples/2dcanvas.canvas.js",
+		"/Users/Arthur/Libraries/Turbulenz/SDK/0.28.0/samples/2dcanvas.canvas.release.html",
+		"/Users/Arthur/Libraries/Turbulenz/SDK/0.28.0/samples/draw2d.canvas.release.html",
+		"/Users/Arthur/Libraries/Turbulenz/SDK/0.28.0/samples/physics_benchmark.canvas.release.html",
+		"/Users/Arthur/Libraries/web/MIDI.js/build/MIDI.js",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/utils.py",
+		"/Users/Arthur/Libraries/web/bootstrap-3.2.0/docs/examples/signin/signin.css",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/account/loginBckp.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/static/css/styles.css",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/static/styles.css",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/styles.css",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/static/css/style.css",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/accountBckp/base.html",
+		"/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test1.html",
+		"/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test2.html",
+		"/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/deps.yaml",
+		"/Users/Arthur/Libraries/web/turbulenz_engine/tools/Makefile",
+		"/Users/Arthur/Libraries/web/turbulenz_engine/manage.py",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/js/main.js",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/allauth/urls.py",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/less/flexbox.less",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/libs/ZeroClipboard/ZeroClipboard.min.js",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/libs/ZeroClipboard.min.js",
+		"/Users/Arthur/Projects/project-curry/.gitmodules",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/transformBox.paper",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/transformBox2.paper",
+		"/Users/Arthur/Library/Application Support/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/Users/Arthur/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/item.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/ajax.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/options.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/index.html",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/ajax.py",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/models.py",
+		"/Users/Arthur/Projects/romanesco/Romanesco/draw/sockets.py",
+		"/Users/Arthur/Projects/reflect/reflect/run.py",
+		"/Applications/Sublime Text.app/Contents/MacOS/changelog.txt",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/romanesco.sublime-workspace",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/path.coffee",
+		"/Users/Arthur/Libraries/web/Harmony/Harmony.html",
+		"/Users/Arthur/Libraries/web/harmony.js",
+		"/Users/Arthur/Libraries/web/Harmony/Harmony_files/ga.js",
+		"/Users/Arthur/Projects/reflect/reflect/static/coffee/app.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/css/styles.css",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/libs/paper/paper-full.js",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/libs/paper/paper-fullOld.js",
+		"/Users/Arthur/Projects/reflect/reflect/graph/sockets.py",
+		"/Users/Arthur/Projects/romanesco/lib/python2.7/site-packages/socketio/namespace.py",
+		"/Users/Arthur/Projects/reflect/reflect/reflect/settings.py",
+		"/Users/Arthur/Projects/reflect/reflect/graph/views.py",
+		"/Users/Arthur/Projects/reflect/reflect/static/reflect.sublime-workspace",
+		"/Users/Arthur/Projects/of_v0.8.4_osx_release/apps/LaSophisteApps/Ondes/bin/data/shaders/sines2.frag",
+		"/Users/Arthur/Projects/of_v0.8.4_osx_release/apps/LaSophisteApps/Ondes/bin/data/shaders/sines3.frag",
+		"/Users/Arthur/Projects/of_v0.8.4_osx_release/apps/LaSophisteApps/Ondes/bin/data/shaders/sines4.frag",
+		"/Users/Arthur/Projects/of_v0.8.4_osx_release/apps/LaSophisteApps/Ondes/bin/data/shaders/sines1.frag",
+		"/Users/Arthur/Library/Application Support/Sublime Text 3/Packages/User/Default (OSX).sublime-keymap",
+		"/Users/Arthur/Library/Application Support/Sublime Text 3/Packages/Default/Default (OSX).sublime-keymap",
+		"/Users/Arthur/Projects/particles/coffee/main 3.coffee",
+		"/Users/Arthur/Projects/of_v0.8.3_osx_release/apps7.4/La Sophiste Apps/GraFX/bin/data/scripts/midiGraphX.lua",
+		"/Users/Arthur/Projects/particles/coffee/main 2.coffee",
+		"/Users/Arthur/Projects/of_v0.8.3_osx_release/apps7.4/La Sophiste Apps/GraFX/bin/data/scripts/midiExample.lua",
+		"/Users/Arthur/Projects/particles/index.html",
+		"/Users/Arthur/Projects/reflect/reflect/manage.py",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/libs/dat.gui.js",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/styles.less",
+		"/Users/Arthur/Projects/reflect/reflect/static/coffee/global.coffee",
+		"/Users/Arthur/Libraries/web/bootstrap-3.2.0/docs/examples/cover/index.html",
+		"/Users/Arthur/Libraries/web/index.html",
+		"/Users/Arthur/Libraries/web/bootstrap-3.2.0/docs/examples/blog/index.html",
+		"/Users/Arthur/Libraries/web/bg-splitter-master/index.html",
+		"/Users/Arthur/Libraries/web/bg-splitter-master/css/style.css",
+		"/Users/Arthur/Libraries/web/bg-splitter-master/css/splitter.css",
+		"/Users/Arthur/Libraries/web/ui-layout-master/demo/index.html",
+		"/Users/Arthur/Libraries/web/ui-layout-master/demo/minmax.html",
+		"/Users/Arthur/Libraries/web/ui-layout-master/demo/demo.html",
+		"/Users/Arthur/Projects/reflect/reflect/graph/templates/index.html",
+		"/Users/Arthur/Projects/reflect/reflect/static/styles.sass",
+		"/Users/Arthur/Projects/of_v0.8.3_osx_release/docs/projectgenerator.md",
+		"/Users/Arthur/Projects/of_v0.8.3_osx_release/docs/osx.md",
+		"/Users/Arthur/Projects/reflect/reflect/static/templates/reflect-branch.html",
+		"/Users/Arthur/Projects/romanesco/.gitignore",
+		"/Users/Arthur/Projects/Evolution/evolution-server/package.json",
+		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/evolutionController.coffee",
+		"/Users/Arthur/Projects/Evolution/evolution/coffee/evolution.coffee",
+		"/Users/Arthur/Projects/Evolution/evolution/coffee/main.coffee",
+		"/Users/Arthur/Projects/Evolution/evolution/coffee/utils.coffee",
+		"/Users/Arthur/Projects/Evolution/evolution/coffee/ioService.coffee",
+		"/Users/Arthur/Projects/Evolution/evolution/less/styles.less",
+		"/Users/Arthur/Projects/Evolution/evolution/index.html",
+		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/index.coffee",
+		"/Users/Arthur/Projects/Evolution/evolution/.gitignore",
+		"/Users/Arthur/Projects/Evolution/evolution-server/.gitignore",
+		"/Users/Arthur/Projects/Evolution/evolution-server/gitignore",
+		"/Users/Arthur/Projects/Evolution/evolution/coffee/Utils.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/facebook.coffee",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/js/options.js",
+		"/Users/Arthur/Projects/romanesco/Romanesco/static/js/path.js"
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+			"",
+			"div.coffee",
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"emit",
+			"emit\n",
+			"emit",
+			"hasattr",
+			"event.target",
+			"exportJSON",
+			"animate",
+			"animte",
+			"originalName",
+			"isTool",
+			"addTool",
+			"initializeControlPath",
+			"specialKey",
+			"scriptName",
+			"className",
+			"addTool",
+			"runScript",
+			"console.log",
+			"Dajaxice",
+			"ajaxPost",
+			"dajaxice",
+			"MIDDLEWARE_CLASSES",
+			"django_ajax",
+			"loadSite",
+			"return simplejson.dumps(",
+			"return simplejson.dumps( {",
+			"loadSite",
+			"Dajaxice",
+			"comme",
+			"dajaxice",
+			"@ajax",
+			"@dajaxice_register",
+			"dajaxice",
+			"daja",
+			"®",
+			"romanescoin",
+			"toFixed",
+			"default:",
+			"Artwork made in Romanesco",
+			"alue",
+			"copyDataUrl",
+			"@modalJ.modal('hide')",
+			"publishOnTwitter",
+			"temporary",
+			"61b2fd1e.ngrok.com",
+			"checkbox",
+			"save",
+			"pin1",
+			"screensho",
+			"random",
+			"New tool",
+			"align",
+			".align",
+			"align",
+			"distri",
+			"png",
+			".input-group-addon",
+			"divModalSiteName",
+			"'lock'",
+			"!= \"lock\"",
+			"!= 'lock'",
+			"!= \"",
+			"!= '",
+			"!= 'lock'",
+			"'lock'",
+			"car",
+			"getArea",
+			"@shape",
+			"submit",
+			"init",
+			"tool",
+			"tool-btn",
+			"noteOff",
+			"source.noteOff",
+			"source.di",
+			"g.currentGame",
+			"g.currentCheckpoint",
+			"remove:",
+			"new PathToo",
+			"tool",
+			"'lock'",
+			"rotation",
+			"@rotation",
+			"constructor: (@date=null, @data=null, @pk=null, points=null) ->",
+			"@rotation",
+			"create",
+			"addPath:",
+			"addPath",
+			"throw",
+			"website",
+			"lock",
+			"clone()",
+			".form-control",
+			"RMoveTo",
+			"modalSubmit",
+			"@request",
+			"init",
+			"mCustomScrollbar",
+			"static",
+			"img",
+			"mCustomScrollbar",
+			"scroll",
+			"updateItemControllers",
+			"parameterControllers",
+			" = controller",
+			".controller",
+			"controller",
+			"g.sidebarHandleJ",
+			"scroll",
+			"loadingBar",
+			"mousedown",
+			"loadingBar",
+			"stopDrawin",
+			" t = @",
+			"t = @",
+			"drawUpdate",
+			"normalize",
+			"initLoadingBar",
+			"@stopDrawing",
+			"draw(",
+			"normalize",
+			"focus",
+			"oadingBar",
+			"initLoadingBar",
+			"path = @addPath",
+			"rasterize",
+			"new Worker",
+			"initlo"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"return",
+			"# return simplejson.dumps(",
+			"# return simplejson.dumps( { ",
+			"#@dajaxice_register\n@ajax",
+			"@currentCheckpoint",
+			"loadingBarJ",
+			"loadingContainerJ",
+			"rname",
+			"rDivModal",
+			"divModal",
+			"'Move'",
+			"event = g.snap",
+			"->",
+			"@drawing",
+			".getBounds()",
+			"xMax",
+			"yMax",
+			"xMin",
+			"yMin",
+			"yMax",
+			"xMax",
+			"yMin",
+			"xMin",
+			"getBounds()",
+			"@getBounds()",
+			"delete g.currentPaths[from]",
+			"delete g.currentPaths[g.me]",
+			"CodeTool",
+			"pushRequestBtnJ",
+			"typeaheadFontEngine",
+			"@hover-blue",
+			"@sidebar-dark-background-color",
+			"@hover-purple",
+			"@sidebar-background-color",
+			"romanesco-ui",
+			"messageBoxJ",
+			"group",
+			"[]",
+			"handleGroup",
+			"handle",
+			"updateSpeed",
+			"simplified",
+			"simplify:",
+			"drawEnd",
+			"drawUpdate",
+			"drawBegin",
+			"initializeDrawing",
+			"initDraw",
+			"draw",
+			"event",
+			"point = event.point",
+			"parameterChanged",
+			"loadPath",
+			"point, event, ",
+			"",
+			"(point, event)",
+			"compoundPath",
+			"shape",
+			"PrecisePath",
+			"@smoothPoint",
+			"'Move'",
+			"point",
+			"chatRoom",
+			"chatRoomJ",
+			"super(@date, @data, @pk, points)",
+			"constructor: (@date=null, @data=null, @pk=null, points=null)",
+			"constructor: (@date=null, @data=null, @pk=null)",
+			"'input'",
+			"initModal",
+			"@controlPath.strokeWidth = 0",
+			"@controlPath.strokeWidth = if not @controlPath.selected then 0 else 5 ",
+			"save",
+			"boxFromRectangle",
+			"super()",
+			"data",
+			"g.checkError",
+			"event.point.y",
+			"event.point.x",
+			"@dragOffset",
+			"@draggedHandleJ",
+			"userAction",
+			"from==g.me",
+			"g.items",
+			"g.currentPaths[from]",
+			"updateTransform",
+			"b",
+			"r",
+			"t",
+			"l",
+			"b",
+			"r",
+			"t",
+			"l",
+			"viewBounds",
+			"view",
+			"@data",
+			"@data.strokeWidth",
+			"@data.strokeColor",
+			"@data.fillColor",
+			"cursorName",
+			"static 'icons/inversed/",
+			"static 'icons/",
+			"static 'icons/inversed/",
+			"', '",
+			", ",
+			"",
+			"g.socket",
+			"organization",
+			"branch.relativePos.x",
+			"branch.relativePos.y",
+			"updateBranches",
+			"update",
+			"columnNumber",
+			"proposition",
+			"",
+			":"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 5,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/index.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 38479,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								37315,
+								37319
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 10977.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/urls.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 684,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								202,
+								202
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 15,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "less/styles.less",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 22340,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								20013,
+								20013
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/LESS/LESS.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 19,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "less/flexbox.less",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3460,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/LESS/LESS.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 23,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/ajax.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 17773,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1570,
+								1570
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 492.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "coffee/ajax.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 16150,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								930,
+								930
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/sockets.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 10963,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4676,
+								4676
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1492.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/models.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4566,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3878,
+								3878
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1287.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/settings.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8036,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								6974,
+								6982
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 2821.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 16,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "coffee/path.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 68373,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4199,
+								4199
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1887.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3222,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"auto_name": "",
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 20,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "coffee/pathSources.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 15751,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								14179,
+								14179
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 8937.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 11,
+					"type": "text"
+				},
+				{
+					"buffer": 12,
+					"file": "coffee/socket.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5937,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								5453,
+								5453
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 2187.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 13,
+					"file": "coffee/tools.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 25016,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								7416,
+								7416
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 4381.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 14,
+					"file": "coffee/coordinateSystems.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2231,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 22,
+					"type": "text"
+				},
+				{
+					"buffer": 15,
+					"file": "coffee/div.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 41082,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 16,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/views.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 23345,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								239,
+								239
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 14,
+					"type": "text"
+				},
+				{
+					"buffer": 17,
+					"file": "coffee/global.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9040,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								6288,
+								6288
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 2946.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 18,
+					"file": "/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3897,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3580,
+								3621
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 13,
+					"type": "text"
+				},
+				{
+					"buffer": 19,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/run.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1240,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								375,
+								375
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 17,
+					"type": "text"
+				},
+				{
+					"buffer": 20,
+					"file": "coffee/lock.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5276,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 21,
+					"type": "text"
+				},
+				{
+					"buffer": 21,
+					"file": "coffee/main.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 23175,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								21712,
+								21712
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 11035.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 22,
+					"file": "coffee/editor.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 10467,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								9522,
+								9522
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 3605.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 23,
+					"file": "/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test2.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1946,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1348,
+								1348
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 24,
+					"type": "text"
+				},
+				{
+					"buffer": 24,
+					"file": "coffee/facebook.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3299,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2088,
+								2088
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 25,
+					"type": "text"
+				},
+				{
+					"buffer": 25,
+					"file": "coffee/options.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 18662,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								15779,
+								15779
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 18,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 25.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 100.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"project": "romanesco.sublime-project",
+	"replace":
+	{
+		"height": 64.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"aja",
+				"~/Projects/romanesco/Romanesco/static/coffee/ajax.coffee"
+			],
+			[
+				"tools",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"path",
+				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
+			],
+			[
+				"div",
+				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+			],
+			[
+				"main",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"sock",
+				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
+			],
+			[
+				"glob",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"soc",
+				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
+			],
+			[
+				"so",
+				"~/Projects/romanesco/Romanesco/draw/sockets.py"
+			],
+			[
+				"glo",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"globa",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"pa",
+				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
+			],
+			[
+				"edi",
+				"~/Projects/romanesco/Romanesco/static/coffee/editor.coffee"
+			],
+			[
+				"model",
+				"~/Projects/romanesco/Romanesco/draw/models.py"
+			],
+			[
+				"edit",
+				"~/Projects/romanesco/Romanesco/static/coffee/editor.coffee"
+			],
+			[
+				"",
+				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
+			],
+			[
+				"sourc",
+				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
+			],
+			[
+				"inde",
+				"~/Projects/romanesco/Romanesco/draw/templates/index.html"
+			],
+			[
+				"mode",
+				"~/Projects/romanesco/Romanesco/draw/models.py"
+			],
+			[
+				"models",
+				"~/Projects/romanesco/Romanesco/draw/models.py"
+			],
+			[
+				"aa",
+				"~/Projects/romanesco/Romanesco/static/coffee/ajax.coffee"
+			],
+			[
+				"gl",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"tool",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"tol",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"mai",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"index",
+				"~/Libraries/web/decode-audio-data-gh-pages/index.html"
+			],
+			[
+				"ind",
+				"~/Projects/romanesco/Romanesco/draw/templates/index.html"
+			],
+			[
+				"vie",
+				"~/Projects/romanesco/Romanesco/draw/views.py"
+			],
+			[
+				"url",
+				"~/Projects/romanesco/Romanesco/draw/urls.py"
+			],
+			[
+				"view",
+				"~/Projects/romanesco/Romanesco/draw/views.py"
+			],
+			[
+				"setting",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"setti",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"ett",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"sett",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"run",
+				"~/Projects/romanesco/Romanesco/run.py"
+			],
+			[
+				"pat",
+				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
+			],
+			[
+				"opti",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"sty",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"too",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"edito",
+				"~/Projects/romanesco/Romanesco/static/coffee/editor.coffee"
+			],
+			[
+				"ajax",
+				"~/Projects/romanesco/Romanesco/static/coffee/ajax.coffee"
+			],
+			[
+				"a",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"di",
+				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+			],
+			[
+				"dov",
+				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+			],
+			[
+				"styles",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"aj",
+				"~/Projects/romanesco/Romanesco/static/coffee/ajax.coffee"
+			],
+			[
+				"mo",
+				"~/Projects/romanesco/Romanesco/draw/models.py"
+			],
+			[
+				"tols",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"in",
+				"~/Projects/romanesco/Romanesco/draw/templates/index.html"
+			],
+			[
+				"op",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"opt",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"styl",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"glba",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"source",
+				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
+			],
+			[
+				"patj",
+				"~/Projects/romanesco/Romanesco/static/coffee/ajax.coffee"
+			],
+			[
+				"st",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"style",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"amin",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"ed",
+				"~/Projects/romanesco/Romanesco/static/coffee/editor.coffee"
+			],
+			[
+				"gloab",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"global",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"d",
+				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+			],
+			[
+				"optio",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"vei",
+				"~/Projects/romanesco/Romanesco/draw/views.py"
+			],
+			[
+				"mod",
+				"~/Projects/romanesco/Romanesco/draw/models.py"
+			],
+			[
+				"maion",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"se",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"fac",
+				"~/Projects/romanesco/Romanesco/static/coffee/facebook.coffee"
+			],
+			[
+				"s",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"fa",
+				"~/Projects/romanesco/Romanesco/static/coffee/facebook.coffee"
+			],
+			[
+				"tooo",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"coo",
+				"~/Projects/romanesco/Romanesco/static/coffee/coordinateSystems.coffee"
+			],
+			[
+				"corr",
+				"~/Projects/romanesco/Romanesco/draw/models.py"
+			],
+			[
+				"to",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"option",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"min",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"ine",
+				"~/Projects/romanesco/Romanesco/draw/templates/index.html"
+			],
+			[
+				"dv",
+				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+			],
+			[
+				"opto",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"otp",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"toools",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"pta",
+				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
+			],
+			[
+				"pah",
+				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
+			],
+			[
+				"py",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"fiv",
+				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+			],
+			[
+				"lo",
+				"~/Projects/romanesco/Romanesco/static/coffee/lock.coffee"
+			],
+			[
+				"ajaxp",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"m",
+				"~/Projects/romanesco/Romanesco/draw/models.py"
+			],
+			[
+				"ajax.",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"sou",
+				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
+			],
+			[
+				"sour",
+				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
+			],
+			[
+				"man",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"mi",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"stl",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"p",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"less",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"les",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"ma",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"t",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"maio",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"tyl",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"socket",
+				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
+			],
+			[
+				"socke",
+				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
+			],
+			[
+				"options",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"otio",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"l",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"socek",
+				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
+			],
+			[
+				"otpin",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"otpion",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"path.",
+				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
+			],
+			[
+				"ajax.py",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"ajax.p",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"ajax.co",
+				"~/Projects/romanesco/Romanesco/static/coffee/ajax.coffee"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": false,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

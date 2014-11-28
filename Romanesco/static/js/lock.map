@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "lock.js",
+  "sourceRoot": "..",
+  "sources": [
+    "coffee/lock.coffee"
+  ],
+  "names": [],
+  "mappings": ";AA0VU;AAAA;AAAA"
+}
