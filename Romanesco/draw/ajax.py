@@ -46,7 +46,6 @@ def load(request, areasToLoad):
 	bpks = []
 
 	start = time.time()
-
 	for area in areasToLoad:
 				
 		tlX = area['pos']['x']
@@ -378,7 +377,7 @@ def saveImage(request, image):
 
 	imageData = re.search(r'base64,(.*)', image).group(1)
 	
-	imagePath = 'static/images/' + request.user.username + '/'
+	imagePath = 'media/images/' + request.user.username + '/'
 	
 	try:
 		os.mkdir(imagePath)

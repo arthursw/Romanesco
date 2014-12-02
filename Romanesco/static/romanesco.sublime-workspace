@@ -4,16 +4,20 @@
 		"selected_items":
 		[
 			[
+				"initi",
+				"initialize"
+			],
+			[
+				"ras",
+				"rasterize"
+			],
+			[
 				"play",
 				"playOnLoad"
 			],
 			[
 				"cons",
 				"constructor"
-			],
-			[
-				"initi",
-				"initializeAnimation"
 			],
 			[
 				"rotati",
@@ -510,10 +514,6 @@
 			[
 				"init",
 				"initialize"
-			],
-			[
-				"exc",
-				"exceptLast"
 			]
 		]
 	},
@@ -523,7 +523,7 @@
 			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/index.html",
 			"settings":
 			{
-				"buffer_size": 38479,
+				"buffer_size": 38689,
 				"line_ending": "Unix"
 			}
 		},
@@ -539,8 +539,27 @@
 			"file": "less/styles.less",
 			"settings":
 			{
-				"buffer_size": 22340,
+				"buffer_size": 22347,
 				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "/*\nErrno::ENOENT: No such file or directory - styles.sass\n\nBacktrace:\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/plugin/compiler.rb:474:in `read'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/plugin/compiler.rb:474:in `update_stylesheet'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/plugin/compiler.rb:214:in `block in update_stylesheets'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/plugin/compiler.rb:208:in `each'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/plugin/compiler.rb:208:in `update_stylesheets'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/plugin/compiler.rb:291:in `watch'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/plugin.rb:108:in `method_missing'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/exec.rb:509:in `watch_or_update'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/exec.rb:346:in `process_result'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/exec.rb:43:in `parse'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/lib/sass/exec.rb:22:in `parse!'\n/Library/Ruby/Gems/2.0.0/gems/sass-3.3.14/bin/sass:13:in `<top (required)>'\n/usr/bin/sass:23:in `load'\n/usr/bin/sass:23:in `<main>'\n*/\nbody:before {\n  white-space: pre;\n  font-family: monospace;\n  content: \"Errno::ENOENT: No such file or directory - styles.sass\"; }\n",
+			"file": "styles.css",
+			"file_size": -1,
+			"file_write_time": -1,
+			"settings":
+			{
+				"buffer_size": 1290,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/.gitignore",
+			"settings":
+			{
+				"buffer_size": 761,
+				"line_ending": "Unix"
 			}
 		},
 		{
@@ -555,7 +574,7 @@
 			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/ajax.py",
 			"settings":
 			{
-				"buffer_size": 17773,
+				"buffer_size": 17686,
 				"line_ending": "Unix"
 			}
 		},
@@ -571,7 +590,7 @@
 			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/sockets.py",
 			"settings":
 			{
-				"buffer_size": 10963,
+				"buffer_size": 11068,
 				"line_ending": "Unix"
 			}
 		},
@@ -587,20 +606,30 @@
 			"file": "/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/settings.py",
 			"settings":
 			{
-				"buffer_size": 8036,
+				"buffer_size": 8081,
 				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "Searching 27 files for \"cursor\"\n\n/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/index.html:\n  218                        <ul class=\"tool-list\">\n  219                          <ul class=\"edit-list\">\n  220:                           <li data-type=\"Move\" data-cursor=\"hand\"><img src=\"{% static 'images/icons/inverted/hand.png' %}\" alt=\"hand\"></li>\n  221:                           <li data-type=\"Select\"><img src=\"{% static 'images/icons/inverted/cursor.png' %}\" alt=\"cursor\"></li>\n  222                            <!-- <li data-type=\"editCurve\"><img src=\"{% static 'images/icons/inverted/editCurve.png' %}\" alt=\"editCurve\"></li> -->\n  223                            <li data-type=\"Screenshot\"><img src=\"{% static 'images/icons/inverted/screenshot.png' %}\" alt=\"screenshot\"></li>\n  ...\n  227                            <li data-type=\"Text\"><img src=\"{% static 'images/icons/inverted/text.png' %}\" alt=\"text\"></li>\n  228                            <li data-type=\"Media\"><img src=\"{% static 'images/icons/inverted/image.png' %}\" alt=\"image\"></li>\n  229:                           <li data-type=\"Lock\" data-cursor=\"key\"><img src=\"{% static 'images/icons/inverted/lock.png' %}\" alt=\"key\"></li>\n  230:                           <!-- <li data-type=\"Link\" data-cursor=\"link\"><img src=\"{% static 'images/icons/inverted/link.png' %}\" alt=\"link\"></li> -->\n  231                            <li data-type=\"Car\"><img src=\"{% static 'images/icons/inverted/car.png' %}\" alt=\"car\"></li>\n  232                          </ul>\n  ...\n  252                        <ul id=\"sortable2\" class=\"favorite-tool-list tool-list connectedSortable\">\n  253                          <li data-type=\"Precise path\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/editCurve.png' %}\" alt=\"editCurve\"></li>\n  254:                         <li data-type=\"Rectangle\" data-cursor=\"rectangle\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/rectangle.png' %}\" alt=\"rectangle\"></li>\n  255:                         <li data-type=\"Spiral\" data-cursor=\"spiral\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/spiral.png' %}\" alt=\"spiral\"></li>\n  256                          <!-- <li data-type=\"Checkpoint\"><span class=\"short-name\">Ch.</span><span class=\"tool-name\">Checkpoint</span></li> -->\n  257                        </ul>\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/div.coffee:\n  884  						return\n  885  \n  886: 					input.on 'typeahead:cursorchanged', ()->\n  887  						inputValue = input.val()\n  888  						return\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/path.coffee:\n   11  	@rname = 'Pen'\n   12  	@rdescription = \"The classic and basic pen tool\"\n   13: 	@cursorPosition = { x: 24, y: 0 }\n   14: 	@cursorDefault = \"crosshair\"\n   15  \n   16  	@hitOptions =\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/tools.coffee:\n    7  		return {}\n    8  \n    9: 	constructor: (@name, @cursorPosition = { x: 0, y: 0 }, @cursorDefault=\"default\") ->\n   10  		g.tools[@name] = @\n   11  \n   12  		@btnJ ?= g.toolsJ.find('li[data-type=\"'+@name+'\"]')\n   13  \n   14: 		@cursorName = @btnJ.attr(\"data-cursor\")\n   15  		@btnJ.click( () => @select() )\n   16  \n   ..\n   46  		g.deselectAll()\n   47  \n   48: 		if @cursorName?\n   49: 			g.stageJ.css('cursor', 'url(static/images/cursors/'+@cursorName+'.png) '+@cursorPosition.x+' '+@cursorPosition.y+','+@cursorDefault)\n   50  		else\n   51: 			g.stageJ.css('cursor', @cursorDefault)\n   52  		\n   53  		g.updateParameters( { tool: constructor, item: selectedItem }, differentTool)\n   ..\n  377  		@btnJ = g.toolsJ.find('li[data-type=\"'+@name+'\"]')\n  378  \n  379: 		# <li data-type=\"Spiral\" data-cursor=\"spiral\"><img src=\"{% static 'icons/inverted/spiral.png' %}\" alt=\"spiral\"></li>		\n  380  		# todo: put this part in PathTool?\n  381  		if @btnJ.length==0\n  382  			@btnJ = $(\"<li>\")\n  383  			@btnJ.attr(\"data-type\", @name)\n  384: 			# @btnJ.attr(\"data-cursor\", @cursorDefault)\n  385  			@btnJ.attr(\"alt\", @name)\n  386  			\n  ...\n  407  		@btnJ.addClass(\"tool-btn\")\n  408  		\n  409: 		super(@RPath.rname, @RPath.cursorPosition, @RPath.cursorDefault, @RPath.options)\n  410  		\n  411  		return\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/less/styles.less:\n  143  \n  144  	&.moveTool {\n  145: 		cursor: url(images/hand.png) 32 32, move;\n  146  \n  147  		.custom-div {\n  148: 			cursor: url(images/hand.png) 32 32, move;\n  149  			textarea, .handle, .content {\n  150: 				cursor: url(images/hand.png) 32 32, move;\n  151  				.vendor(user-select, text);\n  152  			}\n  ...\n  175  	.link, .lock {\n  176  		border: dotted 2px #428bca;\n  177: 		cursor: pointer;\n  178  		position: absolute;\n  179  		background-color: rgba(111, 84, 153, 0);\n  ...\n  197  		// border-radius: 5px;\n  198  		padding: 20px;\n  199: 		cursor: pointer;\n  200  		overflow: hidden;\n  201  \n  ...\n  371  		}\n  372  		&.website {\n  373: 			cursor: url(images/hand.png) 32 32, move;\n  374  		}\n  375  	}\n  ...\n  518  \n  519  	li.tool-btn {\n  520: 		cursor: pointer;\n  521  		padding: 6px;\n  522  		&:hover {\n  ...\n  561  \n  562  			// li {\n  563: 			// 	cursor: pointer;\n  564  			// 	float: left;\n  565  			// 	padding: 10px;\n  ...\n  580  \n  581  		li.tool-btn, ul li {\n  582: 			cursor: pointer;\n  583  			float: left;\n  584  			padding: 10px;\n  ...\n  745  		clear: both;\n  746  		padding-left: 100px;\n  747: 		.tt-cursor {\n  748  			background-color: #1ed36f;\n  749  		}\n  ...\n  809  				line-height: 24px;\n  810  \n  811: 				&.tt-cursor {\n  812  					color: #fff;\n  813  					background-color: #0097cf;\n  ...\n  959  				border-bottom-width: 1px;\n  960  				box-sizing: border-box;\n  961: 				cursor: pointer;\n  962  				color: rgb(238, 238, 238);\n  963  				font-family: 'Lucida Grande', sans-serif;\n  ...\n 1014  			border-bottom-width: 1px;\n 1015  			box-sizing: border-box;\n 1016: 			cursor: pointer;\n 1017  			color: rgb(238, 238, 238);\n 1018  			font-family: 'Lucida Grande', sans-serif;\n ....\n 1104  		right: 0;\n 1105  		width: 10px;\n 1106: 		cursor: e-resize;\n 1107  	}\n 1108  \n\n42 matches across 5 files\n",
+			"settings":
+			{
+				"buffer_size": 6055,
+				"line_ending": "Unix",
+				"name": "Find Results",
+				"scratch": true
 			}
 		},
 		{
 			"file": "coffee/path.coffee",
 			"settings":
 			{
-				"buffer_size": 68373,
+				"buffer_size": 67509,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"contents": "\nclass FaceShape extends RShape\n	@Shape = paper.Path.Rectangle\n	@rname = 'Face generator'\n	# @iconUrl = 'static/icons/inversed/spiral.png'\n	# @iconAlt = 'spiral'\n	@rdescription = \"Face generator, inspired by weird faces study by Matthias Dörfelt aka mokafolio.\"\n\n	@parameters: ()->\n		parameters = super()\n\n		parameters['Parameters'] ?= {} \n		parameters['Parameters'].minRadius =\n			type: 'slider'\n			label: 'Minimum radius'\n			min: 0\n			max: 100\n			default: 0\n		parameters['Parameters'].nTurns =\n			type: 'slider'\n			label: 'Number of turns'\n			min: 1 \n			max: 50\n			default: 10\n		parameters['Parameters'].nSides =\n			type: 'slider'\n			label: 'Sides'\n			min: 3\n			max: 100\n			default: 50\n\n		return parameters\n\n	createShape: ()->\n		@headShape = @addPath(new Path.Ellipse(@rectangle.expand(-20,-10)))\n		\n		@headShape.flatten(50)\n		for segment in @headShape.segments\n			segment.point.x += Math.random()*20\n			segment.point.y += Math.random()*5\n			segment.handleIn += Math.random()*5\n			segment.handleOut += Math.random()*5\n		\n		@headShape.smooth()\n		\n		nozeShape = Math.random()\n		\n		center = @rectangle.center\n		width = @rectangle.width\n		height = @rectangle.height\n		\n		rangeRandMM = (min, max)->\n			return min + (max-min)*Math.random()\n		\n		rangeRandC = (center, amplitude)->\n			return center + amplitude*(Math.random()-0.5)\n		\n		# noze\n		if nozeShape < 0.333	# two nostrils\n			deltaX = 0.1*width + Math.random()*10\n			x = center.x - deltaX\n			y = center.y + rangeRandC(0, 5)\n			position = center.add(x, y)\n			size = new Size(Math.random()*5, Math.random()*5)\n			nozeLeft = @addPath(new Path.Ellipse(position, size))\n			position += 2*deltaX\n			size = new Size(Math.random()*5, Math.random()*5)\n			nozeRight = @addPath(new Path.Ellipse(position, size))\n		else if nozeShape < 0.666 	# noze toward left\n			noze = @addPath()\n			noze.add(center)\n			noze.add(center.add(Math.random()*15, Math.random()*5))\n			if Math.random()>0.5\n			    noze.add(center.add(Math.random()*20, Math.random()*5))\n			noze.add(center.add(0, rangeRandMM(5,10)))\n			noze.smooth()\n		else				 	# noze toward right\n			noze = @addPath()\n			noze.add(center)\n			noze.add(center.add(-Math.random()*15, Math.random()*5))\n			if Math.random()>0.5\n			    noze.add(center.add(-Math.random()*20, Math.random()*5))\n			noze.add(center.add(0, rangeRandMM(15,20)))\n			noze.smooth()\n		\n		# eyes\n		deltaX = rangeRandC(0.2*width, 0.1*width*Math.random())\n		x = center.x - deltaX\n		y = @rectangle.top + width/3 + rangeRandC(0, 10)\n		position = new Point(x, y)\n		size = new Size(Math.max(Math.random()*30,deltaX), Math.random()*30)\n		eyeLeft = @addPath(new Path.Ellipse(position, size))\n		position.x += 2*deltaX\n		\n		size.width *= 0.5+Math.random()\n		size.height *= 0.5+Math.random()\n		eyeRight = @addPath(new Path.Ellipse(position, size))\n		\n		eyeRight.position.x += rangeRandC(0, 5)\n		eyeLeft.position.x += rangeRandC(0, 5)\n		\n		for i in [1 .. eyeLeft.segments.length-1]\n			eyeLeft.segments[i].point.x += Math.random()*3\n			eyeLeft.segments[i].point.y += Math.random()*3	\n			eyeRight.segments[i].point.x += Math.random()*3\n			eyeRight.segments[i].point.y += Math.random()*3	\n        \n        # mouth\n        mouth = @addPath()\n        mouth.add()\n        \n        return\n\n",
+			"contents": "\nclass FaceShape extends RShape\n	@Shape = paper.Path.Rectangle\n	@rname = 'Face generator'\n	# @iconUrl = 'static/icons/inverted/spiral.png'\n	# @iconAlt = 'spiral'\n	@rdescription = \"Face generator, inspired by weird faces study by Matthias Dörfelt aka mokafolio.\"\n\n	@parameters: ()->\n		parameters = super()\n\n		parameters['Parameters'] ?= {} \n		parameters['Parameters'].minRadius =\n			type: 'slider'\n			label: 'Minimum radius'\n			min: 0\n			max: 100\n			default: 0\n		parameters['Parameters'].nTurns =\n			type: 'slider'\n			label: 'Number of turns'\n			min: 1 \n			max: 50\n			default: 10\n		parameters['Parameters'].nSides =\n			type: 'slider'\n			label: 'Sides'\n			min: 3\n			max: 100\n			default: 50\n\n		return parameters\n\n	createShape: ()->\n		@headShape = @addPath(new Path.Ellipse(@rectangle.expand(-20,-10)))\n		\n		@headShape.flatten(50)\n		for segment in @headShape.segments\n			segment.point.x += Math.random()*20\n			segment.point.y += Math.random()*5\n			segment.handleIn += Math.random()*5\n			segment.handleOut += Math.random()*5\n		\n		@headShape.smooth()\n		\n		nozeShape = Math.random()\n		\n		center = @rectangle.center\n		width = @rectangle.width\n		height = @rectangle.height\n		\n		rangeRandMM = (min, max)->\n			return min + (max-min)*Math.random()\n		\n		rangeRandC = (center, amplitude)->\n			return center + amplitude*(Math.random()-0.5)\n		\n		# noze\n		if nozeShape < 0.333	# two nostrils\n			deltaX = 0.1*width + Math.random()*10\n			x = center.x - deltaX\n			y = center.y + rangeRandC(0, 5)\n			position = center.add(x, y)\n			size = new Size(Math.random()*5, Math.random()*5)\n			nozeLeft = @addPath(new Path.Ellipse(position, size))\n			position += 2*deltaX\n			size = new Size(Math.random()*5, Math.random()*5)\n			nozeRight = @addPath(new Path.Ellipse(position, size))\n		else if nozeShape < 0.666 	# noze toward left\n			noze = @addPath()\n			noze.add(center)\n			noze.add(center.add(Math.random()*15, Math.random()*5))\n			if Math.random()>0.5\n			    noze.add(center.add(Math.random()*20, Math.random()*5))\n			noze.add(center.add(0, rangeRandMM(5,10)))\n			noze.smooth()\n		else				 	# noze toward right\n			noze = @addPath()\n			noze.add(center)\n			noze.add(center.add(-Math.random()*15, Math.random()*5))\n			if Math.random()>0.5\n			    noze.add(center.add(-Math.random()*20, Math.random()*5))\n			noze.add(center.add(0, rangeRandMM(15,20)))\n			noze.smooth()\n		\n		# eyes\n		deltaX = rangeRandC(0.2*width, 0.1*width*Math.random())\n		x = center.x - deltaX\n		y = @rectangle.top + width/3 + rangeRandC(0, 10)\n		position = new Point(x, y)\n		size = new Size(Math.max(Math.random()*30,deltaX), Math.random()*30)\n		eyeLeft = @addPath(new Path.Ellipse(position, size))\n		position.x += 2*deltaX\n		\n		size.width *= 0.5+Math.random()\n		size.height *= 0.5+Math.random()\n		eyeRight = @addPath(new Path.Ellipse(position, size))\n		\n		eyeRight.position.x += rangeRandC(0, 5)\n		eyeLeft.position.x += rangeRandC(0, 5)\n		\n		for i in [1 .. eyeLeft.segments.length-1]\n			eyeLeft.segments[i].point.x += Math.random()*3\n			eyeLeft.segments[i].point.y += Math.random()*3	\n			eyeRight.segments[i].point.x += Math.random()*3\n			eyeRight.segments[i].point.y += Math.random()*3	\n        \n        # mouth\n        mouth = @addPath()\n        mouth.add()\n        \n        return\n\n",
 			"settings":
 			{
 				"buffer_size": 3222,
@@ -619,7 +648,7 @@
 			"file": "coffee/socket.coffee",
 			"settings":
 			{
-				"buffer_size": 5937,
+				"buffer_size": 5867,
 				"line_ending": "Unix"
 			}
 		},
@@ -627,7 +656,7 @@
 			"file": "coffee/tools.coffee",
 			"settings":
 			{
-				"buffer_size": 25016,
+				"buffer_size": 24953,
 				"line_ending": "Unix"
 			}
 		},
@@ -635,7 +664,7 @@
 			"file": "coffee/coordinateSystems.coffee",
 			"settings":
 			{
-				"buffer_size": 2231,
+				"buffer_size": 2205,
 				"line_ending": "Unix"
 			}
 		},
@@ -643,7 +672,7 @@
 			"file": "coffee/div.coffee",
 			"settings":
 			{
-				"buffer_size": 41082,
+				"buffer_size": 40964,
 				"line_ending": "Unix"
 			}
 		},
@@ -691,7 +720,7 @@
 			"file": "coffee/main.coffee",
 			"settings":
 			{
-				"buffer_size": 23175,
+				"buffer_size": 23262,
 				"line_ending": "Unix"
 			}
 		},
@@ -715,7 +744,7 @@
 			"file": "coffee/facebook.coffee",
 			"settings":
 			{
-				"buffer_size": 3299,
+				"buffer_size": 3222,
 				"line_ending": "Unix"
 			}
 		},
@@ -723,7 +752,7 @@
 			"file": "coffee/options.coffee",
 			"settings":
 			{
-				"buffer_size": 18662,
+				"buffer_size": 19050,
 				"line_ending": "Unix"
 			}
 		}
@@ -776,6 +805,22 @@
 	},
 	"file_history":
 	[
+		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/index.coffee",
+		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/EvolutionCommons.coffee",
+		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/evolutionController.coffee",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanescoBckp/gunicorn_config.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/gunicorn_config.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/Romanesco/urls.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/help.txt",
+		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/nginx.conf",
+		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/sites-available/romanesco",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/run.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/Romanesco/settings.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/gunicorn_config.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/etc/opt/help.txt",
+		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/sites-available/Find help to work with nginx, unicorn and django h",
+		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/sites-available/default",
+		"/Users/Arthur/Projects/secret_key.txt",
 		"/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
 		"/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/urls.py",
 		"/Users/Arthur/Projects/euphony-mapping/lib/MIDI.js/MIDI.Player.js",
@@ -887,23 +932,7 @@
 		"/Users/Arthur/Projects/of_v0.8.3_osx_release/docs/projectgenerator.md",
 		"/Users/Arthur/Projects/of_v0.8.3_osx_release/docs/osx.md",
 		"/Users/Arthur/Projects/reflect/reflect/static/templates/reflect-branch.html",
-		"/Users/Arthur/Projects/romanesco/.gitignore",
-		"/Users/Arthur/Projects/Evolution/evolution-server/package.json",
-		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/evolutionController.coffee",
-		"/Users/Arthur/Projects/Evolution/evolution/coffee/evolution.coffee",
-		"/Users/Arthur/Projects/Evolution/evolution/coffee/main.coffee",
-		"/Users/Arthur/Projects/Evolution/evolution/coffee/utils.coffee",
-		"/Users/Arthur/Projects/Evolution/evolution/coffee/ioService.coffee",
-		"/Users/Arthur/Projects/Evolution/evolution/less/styles.less",
-		"/Users/Arthur/Projects/Evolution/evolution/index.html",
-		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/index.coffee",
-		"/Users/Arthur/Projects/Evolution/evolution/.gitignore",
-		"/Users/Arthur/Projects/Evolution/evolution-server/.gitignore",
-		"/Users/Arthur/Projects/Evolution/evolution-server/gitignore",
-		"/Users/Arthur/Projects/Evolution/evolution/coffee/Utils.coffee",
-		"/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/facebook.coffee",
-		"/Users/Arthur/Projects/romanesco/Romanesco/static/js/options.js",
-		"/Users/Arthur/Projects/romanesco/Romanesco/static/js/path.js"
+		"/Users/Arthur/Projects/romanesco/.gitignore"
 	],
 	"find":
 	{
@@ -924,6 +953,67 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"wsgi",
+			"access_log",
+			"include",
+			"worker_processes",
+			"proxy_pass",
+			"client_body_timeout",
+			"client_body_buffer_size",
+			"DEBUG",
+			"/icons/logo",
+			"/icons/inverted",
+			"/icons/",
+			"static/icons/",
+			"images/hand",
+			"cursor",
+			"icons/cursor",
+			"cursor",
+			"inversed",
+			"cursor",
+			"icons/",
+			"icons",
+			"static/images",
+			"CSRF_COOKIE_SECURE",
+			"EMAIL",
+			"switch",
+			"switches",
+			"todo",
+			"updateType",
+			"defferedE",
+			"data.smooth",
+			"smooth",
+			".offset",
+			"controlPathOffset",
+			"controlPathLength",
+			"length",
+			"cost",
+			"setValue",
+			"todo",
+			"locked",
+			"border-radius: 5px",
+			"border-radius: 0px",
+			"todo",
+			"self.room",
+			"todo",
+			"tofo",
+			"todo",
+			"count",
+			"todo",
+			"g.previousTool",
+			"initTools",
+			"g.previousTool",
+			"g.paths",
+			"paths",
+			"debug",
+			"rasterize",
+			"overlaps",
+			"pathOverlapsTwoPlanets",
+			"prepareUpdate",
+			"You can not create nor update a line in between two planets, this is not yet supported.",
+			"intersect",
+			"escape",
+			"param",
 			"emit",
 			"emit\n",
 			"emit",
@@ -990,75 +1080,19 @@
 			"!= 'lock'",
 			"'lock'",
 			"car",
-			"getArea",
-			"@shape",
-			"submit",
-			"init",
-			"tool",
-			"tool-btn",
-			"noteOff",
-			"source.noteOff",
-			"source.di",
-			"g.currentGame",
-			"g.currentCheckpoint",
-			"remove:",
-			"new PathToo",
-			"tool",
-			"'lock'",
-			"rotation",
-			"@rotation",
-			"constructor: (@date=null, @data=null, @pk=null, points=null) ->",
-			"@rotation",
-			"create",
-			"addPath:",
-			"addPath",
-			"throw",
-			"website",
-			"lock",
-			"clone()",
-			".form-control",
-			"RMoveTo",
-			"modalSubmit",
-			"@request",
-			"init",
-			"mCustomScrollbar",
-			"static",
-			"img",
-			"mCustomScrollbar",
-			"scroll",
-			"updateItemControllers",
-			"parameterControllers",
-			" = controller",
-			".controller",
-			"controller",
-			"g.sidebarHandleJ",
-			"scroll",
-			"loadingBar",
-			"mousedown",
-			"loadingBar",
-			"stopDrawin",
-			" t = @",
-			"t = @",
-			"drawUpdate",
-			"normalize",
-			"initLoadingBar",
-			"@stopDrawing",
-			"draw(",
-			"normalize",
-			"focus",
-			"oadingBar",
-			"initLoadingBar",
-			"path = @addPath",
-			"rasterize",
-			"new Worker",
-			"initlo"
+			"getArea"
 		],
 		"highlight": true,
 		"in_selection": false,
-		"preserve_case": false,
+		"preserve_case": true,
 		"regex": false,
 		"replace_history":
 		[
+			"/images/icons/inverted",
+			"images/cursors/hand",
+			"inverted",
+			"images/icons/",
+			"offset",
 			"return",
 			"# return simplejson.dumps(",
 			"# return simplejson.dumps( { ",
@@ -1185,7 +1219,7 @@
 	"groups":
 	[
 		{
-			"selected": 5,
+			"selected": 22,
 			"sheets":
 			[
 				{
@@ -1194,15 +1228,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 38479,
+						"buffer_size": 38689,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								37315,
-								37319
+								4815,
+								4826
 							]
 						],
 						"settings":
@@ -1212,10 +1246,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 10977.0,
+						"translation.y": 1561.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 12,
+					"stack_index": 3,
 					"type": "text"
 				},
 				{
@@ -1243,7 +1277,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 15,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
@@ -1252,15 +1286,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 22340,
+						"buffer_size": 22347,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								20013,
-								20013
+								2163,
+								2152
 							]
 						],
 						"settings":
@@ -1269,14 +1303,70 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 1768.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 19,
+					"stack_index": 11,
 					"type": "text"
 				},
 				{
 					"buffer": 3,
+					"file": "styles.css",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1290,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/CSS/CSS.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 13,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/Users/Arthur/Projects/romanesco/.gitignore",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 761,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								729,
+								729
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 102.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
 					"file": "less/flexbox.less",
 					"semi_transient": false,
 					"settings":
@@ -1302,24 +1392,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 23,
+					"stack_index": 27,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 6,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/ajax.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 17773,
+						"buffer_size": 17686,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1570,
-								1570
+								12811,
+								12811
 							]
 						],
 						"settings":
@@ -1328,14 +1418,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 492.0,
+						"translation.y": 5454.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
-					"buffer": 5,
+					"buffer": 7,
 					"file": "coffee/ajax.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1347,8 +1437,8 @@
 						"selection":
 						[
 							[
-								930,
-								930
+								664,
+								664
 							]
 						],
 						"settings":
@@ -1360,24 +1450,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 21,
 					"type": "text"
 				},
 				{
-					"buffer": 6,
+					"buffer": 8,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/sockets.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 10963,
+						"buffer_size": 11068,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4676,
-								4676
+								3305,
+								3305
 							]
 						],
 						"settings":
@@ -1387,14 +1477,14 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1492.0,
+						"translation.y": 1108.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 7,
+					"stack_index": 16,
 					"type": "text"
 				},
 				{
-					"buffer": 7,
+					"buffer": 9,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/models.py",
 					"semi_transient": false,
 					"settings":
@@ -1417,27 +1507,27 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1287.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 10,
+					"stack_index": 24,
 					"type": "text"
 				},
 				{
-					"buffer": 8,
+					"buffer": 10,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/settings.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 8036,
+						"buffer_size": 8081,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								6974,
-								6982
+								4685,
+								4685
 							]
 						],
 						"settings":
@@ -1447,27 +1537,237 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 2821.0,
+						"translation.y": 1546.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 16,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 9,
+					"buffer": 11,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6055,
+						"regions":
+						{
+							"match":
+							{
+								"flags": 112,
+								"regions":
+								[
+									[
+										268,
+										274
+									],
+									[
+										455,
+										461
+									],
+									[
+										476,
+										482
+									],
+									[
+										1112,
+										1118
+									],
+									[
+										1262,
+										1268
+									],
+									[
+										1849,
+										1855
+									],
+									[
+										2028,
+										2034
+									],
+									[
+										2453,
+										2459
+									],
+									[
+										2692,
+										2698
+									],
+									[
+										2734,
+										2740
+									],
+									[
+										2921,
+										2927
+									],
+									[
+										2955,
+										2961
+									],
+									[
+										3098,
+										3104
+									],
+									[
+										3128,
+										3134
+									],
+									[
+										3237,
+										3243
+									],
+									[
+										3273,
+										3279
+									],
+									[
+										3301,
+										3307
+									],
+									[
+										3312,
+										3318
+									],
+									[
+										3333,
+										3339
+									],
+									[
+										3355,
+										3361
+									],
+									[
+										3377,
+										3383
+									],
+									[
+										3430,
+										3436
+									],
+									[
+										3440,
+										3446
+									],
+									[
+										3665,
+										3671
+									],
+									[
+										3924,
+										3930
+									],
+									[
+										3934,
+										3940
+									],
+									[
+										4083,
+										4089
+									],
+									[
+										4106,
+										4112
+									],
+									[
+										4270,
+										4276
+									],
+									[
+										4353,
+										4359
+									],
+									[
+										4446,
+										4452
+									],
+									[
+										4614,
+										4620
+									],
+									[
+										4781,
+										4787
+									],
+									[
+										4881,
+										4887
+									],
+									[
+										4989,
+										4995
+									],
+									[
+										5094,
+										5100
+									],
+									[
+										5221,
+										5227
+									],
+									[
+										5357,
+										5363
+									],
+									[
+										5474,
+										5480
+									],
+									[
+										5636,
+										5642
+									],
+									[
+										5830,
+										5836
+									],
+									[
+										5992,
+										5998
+									]
+								],
+								"scope": ""
+							}
+						},
+						"selection":
+						[
+							[
+								4272,
+								4272
+							]
+						],
+						"settings":
+						{
+							"detect_indentation": false,
+							"line_numbers": false,
+							"output_tag": 1,
+							"result_base_dir": "",
+							"result_file_regex": "^([A-Za-z\\\\/<].*):$",
+							"result_line_regex": "^ +([0-9]+):",
+							"scroll_past_end": true,
+							"syntax": "Packages/Default/Find Results.hidden-tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 950.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 14,
+					"type": "text"
+				},
+				{
+					"buffer": 12,
 					"file": "coffee/path.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 68373,
+						"buffer_size": 67509,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4199,
-								4199
+								41941,
+								41956
 							]
 						],
 						"settings":
@@ -1476,14 +1776,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 1887.0,
+						"translation.y": 20694.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 10,
 					"type": "text"
 				},
 				{
-					"buffer": 10,
+					"buffer": 13,
 					"semi_transient": false,
 					"settings":
 					{
@@ -1494,8 +1794,8 @@
 						"selection":
 						[
 							[
-								0,
-								0
+								709,
+								709
 							]
 						],
 						"settings":
@@ -1508,11 +1808,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 20,
+					"stack_index": 15,
 					"type": "text"
 				},
 				{
-					"buffer": 11,
+					"buffer": 14,
 					"file": "coffee/pathSources.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1533,28 +1833,28 @@
 							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
 							"translate_tabs_to_spaces": false
 						},
-						"translation.x": 0.0,
-						"translation.y": 8937.0,
+						"translation.x": -0.0,
+						"translation.y": 8713.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 11,
+					"stack_index": 7,
 					"type": "text"
 				},
 				{
-					"buffer": 12,
+					"buffer": 15,
 					"file": "coffee/socket.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 5937,
+						"buffer_size": 5867,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								5453,
-								5453
+								3971,
+								3971
 							]
 						],
 						"settings":
@@ -1563,56 +1863,56 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 2187.0,
+						"translation.y": 1554.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 17,
+					"type": "text"
+				},
+				{
+					"buffer": 16,
+					"file": "coffee/tools.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 24953,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								758,
+								758
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 336.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 6,
 					"type": "text"
 				},
 				{
-					"buffer": 13,
-					"file": "coffee/tools.coffee",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 25016,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								7416,
-								7416
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 4381.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 14,
+					"buffer": 17,
 					"file": "coffee/coordinateSystems.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2231,
+						"buffer_size": 2205,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								909,
+								909
 							]
 						],
 						"settings":
@@ -1621,27 +1921,27 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 91.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 22,
+					"stack_index": 19,
 					"type": "text"
 				},
 				{
-					"buffer": 15,
+					"buffer": 18,
 					"file": "coffee/div.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 41082,
+						"buffer_size": 40964,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								1209,
+								1209
 							]
 						],
 						"settings":
@@ -1653,11 +1953,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 9,
 					"type": "text"
 				},
 				{
-					"buffer": 16,
+					"buffer": 19,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/views.py",
 					"semi_transient": false,
 					"settings":
@@ -1675,17 +1975,18 @@
 						],
 						"settings":
 						{
-							"syntax": "Packages/Python/Python.tmLanguage"
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 14,
+					"stack_index": 25,
 					"type": "text"
 				},
 				{
-					"buffer": 17,
+					"buffer": 20,
 					"file": "coffee/global.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1707,14 +2008,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 2946.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 8,
+					"stack_index": 22,
 					"type": "text"
 				},
 				{
-					"buffer": 18,
+					"buffer": 21,
 					"file": "/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
 					"semi_transient": false,
 					"settings":
@@ -1726,8 +2027,8 @@
 						"selection":
 						[
 							[
-								3580,
-								3621
+								3591,
+								3594
 							]
 						],
 						"settings":
@@ -1737,14 +2038,14 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 1227.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 13,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
-					"buffer": 19,
+					"buffer": 22,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/run.py",
 					"semi_transient": false,
 					"settings":
@@ -1756,8 +2057,8 @@
 						"selection":
 						[
 							[
-								375,
-								375
+								801,
+								801
 							]
 						],
 						"settings":
@@ -1768,11 +2069,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 17,
+					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 20,
+					"buffer": 23,
 					"file": "coffee/lock.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1796,24 +2097,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 21,
+					"stack_index": 26,
 					"type": "text"
 				},
 				{
-					"buffer": 21,
+					"buffer": 24,
 					"file": "coffee/main.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 23175,
+						"buffer_size": 23262,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								21712,
-								21712
+								251,
+								251
 							]
 						],
 						"settings":
@@ -1822,14 +2123,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 11035.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 5,
+					"stack_index": 8,
 					"type": "text"
 				},
 				{
-					"buffer": 22,
+					"buffer": 25,
 					"file": "coffee/editor.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1851,14 +2152,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 3605.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 9,
+					"stack_index": 23,
 					"type": "text"
 				},
 				{
-					"buffer": 23,
+					"buffer": 26,
 					"file": "/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test2.html",
 					"semi_transient": false,
 					"settings":
@@ -1884,24 +2185,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 24,
+					"stack_index": 28,
 					"type": "text"
 				},
 				{
-					"buffer": 24,
+					"buffer": 27,
 					"file": "coffee/facebook.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3299,
+						"buffer_size": 3222,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2088,
-								2088
+								809,
+								809
 							]
 						],
 						"settings":
@@ -1913,24 +2214,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 25,
+					"stack_index": 20,
 					"type": "text"
 				},
 				{
-					"buffer": 25,
+					"buffer": 28,
 					"file": "coffee/options.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 18662,
+						"buffer_size": 19050,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								15779,
-								15779
+								1422,
+								1422
 							]
 						],
 						"settings":
@@ -1939,7 +2240,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 546.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 18,
@@ -1999,40 +2300,100 @@
 		"selected_items":
 		[
 			[
-				"aja",
-				"~/Projects/romanesco/Romanesco/static/coffee/ajax.coffee"
+				"sett",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
 			],
 			[
-				"tools",
-				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+				"aja",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"inde",
+				"~/Projects/romanesco/Romanesco/draw/templates/index.html"
+			],
+			[
+				"",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
 			],
 			[
 				"path",
-				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
-			],
-			[
-				"div",
-				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
 			],
 			[
 				"main",
 				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
 			],
 			[
+				"div",
+				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+			],
+			[
+				"styl",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"sty",
+				"~/Projects/romanesco/Romanesco/static/less/styles.less"
+			],
+			[
+				"tools",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"index",
+				"~/Libraries/web/decode-audio-data-gh-pages/index.html"
+			],
+			[
+				"settin",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"run",
+				"~/Projects/romanesco/Romanesco/run.py"
+			],
+			[
 				"sock",
-				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
+				"~/Projects/romanesco/Romanesco/draw/sockets.py"
 			],
 			[
-				"glob",
-				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+				"opt",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
 			],
 			[
-				"soc",
+				"otp",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"mai",
+				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
+			],
+			[
+				"pat",
+				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
+			],
+			[
+				"socke",
 				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
 			],
 			[
 				"so",
 				"~/Projects/romanesco/Romanesco/draw/sockets.py"
+			],
+			[
+				"fac",
+				"~/Projects/romanesco/Romanesco/static/coffee/facebook.coffee"
+			],
+			[
+				"opti",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"soc",
+				"~/Projects/romanesco/Romanesco/draw/sockets.py"
+			],
+			[
+				"glob",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
 			],
 			[
 				"glo",
@@ -2059,16 +2420,8 @@
 				"~/Projects/romanesco/Romanesco/static/coffee/editor.coffee"
 			],
 			[
-				"",
-				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
-			],
-			[
 				"sourc",
 				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
-			],
-			[
-				"inde",
-				"~/Projects/romanesco/Romanesco/draw/templates/index.html"
 			],
 			[
 				"mode",
@@ -2093,14 +2446,6 @@
 			[
 				"tol",
 				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
-			],
-			[
-				"mai",
-				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
-			],
-			[
-				"index",
-				"~/Libraries/web/decode-audio-data-gh-pages/index.html"
 			],
 			[
 				"ind",
@@ -2129,26 +2474,6 @@
 			[
 				"ett",
 				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
-			],
-			[
-				"sett",
-				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
-			],
-			[
-				"run",
-				"~/Projects/romanesco/Romanesco/run.py"
-			],
-			[
-				"pat",
-				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
-			],
-			[
-				"opti",
-				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
-			],
-			[
-				"sty",
-				"~/Projects/romanesco/Romanesco/static/less/styles.less"
 			],
 			[
 				"too",
@@ -2197,14 +2522,6 @@
 			[
 				"op",
 				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
-			],
-			[
-				"opt",
-				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
-			],
-			[
-				"styl",
-				"~/Projects/romanesco/Romanesco/static/less/styles.less"
 			],
 			[
 				"glba",
@@ -2267,10 +2584,6 @@
 				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
 			],
 			[
-				"fac",
-				"~/Projects/romanesco/Romanesco/static/coffee/facebook.coffee"
-			],
-			[
 				"s",
 				"~/Projects/romanesco/Romanesco/static/less/styles.less"
 			],
@@ -2312,10 +2625,6 @@
 			],
 			[
 				"opto",
-				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
-			],
-			[
-				"otp",
 				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
 			],
 			[
@@ -2407,10 +2716,6 @@
 				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
 			],
 			[
-				"socke",
-				"~/Projects/romanesco/Romanesco/static/coffee/socket.coffee"
-			],
-			[
 				"options",
 				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
 			],
@@ -2463,11 +2768,11 @@
 	},
 	"select_symbol":
 	{
-		"height": 0.0,
+		"height": 392.0,
 		"selected_items":
 		[
 		],
-		"width": 0.0
+		"width": 392.0
 	},
 	"selected_group": 0,
 	"settings":

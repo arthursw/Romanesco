@@ -154,6 +154,7 @@ INSTALLED_APPS = (
     'paypal.standard.ipn',
     # 'django_extensions',
     'south',
+    # 'socketio_runserver',
 )
 
 # A sample logging configuration. The only tangible logging
