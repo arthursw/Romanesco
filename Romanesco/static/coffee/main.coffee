@@ -605,6 +605,12 @@ init = ()->
 	g.fastModeOn = false
 	# g.globalMaskJ = $("#globalMask")
 	# g.globalMaskJ.hide()
+	
+	Dajaxice.setup( 'default_exception_callback': (error)-> 
+		console.log 'Dajaxice error!'
+		romanesco_alert "Connection error", "error"
+		return
+	)
 
 	if navigator.appVersion.indexOf("Win")!=-1 then g.OSName = "Windows"
 	if navigator.appVersion.indexOf("Mac")!=-1 then g.OSName = "MacOS"
