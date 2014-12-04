@@ -227,6 +227,7 @@ class RSound
 		if not @buffer? 
 			@playOnLoad = time
 			return
+		if @isPlaying then return
 		@source = @context.createBufferSource()
 		@source.buffer = @buffer
 		@source.connect(@context.destination)
@@ -236,6 +237,10 @@ class RSound
 		@gainNode.connect(@context.destination)
 		@gainNode.gain.value = @volume
 		@source.start(time)
+		@isPlaying = true
+		@source.onended = ()=>
+			@isPlaying = false
+			return
 		return
 
 	setLoopStart: (start)->

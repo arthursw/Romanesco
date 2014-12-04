@@ -319,6 +319,9 @@
         this.playOnLoad = time;
         return;
       }
+      if (this.isPlaying) {
+        return;
+      }
       this.source = this.context.createBufferSource();
       this.source.buffer = this.buffer;
       this.source.connect(this.context.destination);
@@ -328,6 +331,12 @@
       this.gainNode.connect(this.context.destination);
       this.gainNode.gain.value = this.volume;
       this.source.start(time);
+      this.isPlaying = true;
+      this.source.onended = (function(_this) {
+        return function() {
+          _this.isPlaying = false;
+        };
+      })(this);
     };
 
     RSound.prototype.setLoopStart = function(start) {

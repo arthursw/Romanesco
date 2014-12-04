@@ -144,6 +144,23 @@ class CarTool extends RTool
 					value: '0'
 					addController: true
 					onChange: ()-> return
+				volume:
+					type: 'slider'
+					label: 'Volume'
+					value: 1
+					min: 0
+					max: 10
+					onChange: (value)->
+						if g.selectedTool.constructor.name == "CarTool"
+							if value>0
+								if not g.sound.isPlaying 
+									g.sound.play()
+									g.sound.setLoopStart(3.26)
+									g.sound.setLoopEnd(5.22)
+								g.sound.setVolume(0.1*value)
+							else
+								g.sound.stop()
+						return
 		return parameters
 
 	constructor: () -> 

@@ -592,6 +592,12 @@
     g.cars = {};
     g.fastMode = false;
     g.fastModeOn = false;
+    Dajaxice.setup({
+      'default_exception_callback': function(error) {
+        console.log('Dajaxice error!');
+        romanesco_alert("Connection error", "error");
+      }
+    });
     if (navigator.appVersion.indexOf("Win") !== -1) {
       g.OSName = "Windows";
     }
