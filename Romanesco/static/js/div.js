@@ -1559,7 +1559,7 @@
     };
 
     RText.prototype.setFontEffect = function(fontEffect, update) {
-      var className, _i, _len, _ref;
+      var className, i;
       if (update == null) {
         update = true;
       }
@@ -1567,12 +1567,13 @@
         return;
       }
       g.addFont(this.data.fontFamily, fontEffect);
-      _ref = this.contentJ[0].classList;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        className = _ref[_i];
+      i = this.contentJ[0].classList.length - 1;
+      while (i >= 0) {
+        className = this.contentJ[0].classList[i];
         if (className.indexOf("font-effect-") >= 0) {
           this.contentJ.removeClass(className);
         }
+        i--;
       }
       g.loadFonts();
       this.contentJ.addClass("font-effect-" + fontEffect);

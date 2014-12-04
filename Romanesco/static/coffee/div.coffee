@@ -1103,9 +1103,12 @@ class RText extends RDiv
 
 		g.addFont(@data.fontFamily, fontEffect)
 
-		for className in @contentJ[0].classList
+		i = @contentJ[0].classList.length-1
+		while i>=0
+			className = @contentJ[0].classList[i]
 			if className.indexOf("font-effect-")>=0
 				@contentJ.removeClass(className)
+			i--
 
 		g.loadFonts()
 		
