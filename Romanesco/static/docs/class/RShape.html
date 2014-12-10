@@ -35,6 +35,13 @@
           </td>
         </tr>
       </table>
+      <h2>Overview</h2>
+      <div class='docstring'>
+  <p>An RShape is defined by a rectangle in which the drawing should be included
+during the creation, the user draw the rectangle with the mouse</p>
+</div>
+<div class='tags'>
+</div>
       <h2>Direct Known Subclasses</h2>
       <p class='children'>
         <a href='../class/RectangleShape.html'>RectangleShape</a>
@@ -103,17 +110,6 @@
       <ul class='summary'>
   <li>
     <span class='signature'>
-      <a href='#getBounds-dynamic'>
-        #
-(void)
-<b>getBounds</b><span>()</span>
-      </a>
-    </span>
-    <span class='desc'>
-    </span>
-  </li>
-  <li>
-    <span class='signature'>
       <a href='#loadPath-dynamic'>
         #
 (void)
@@ -121,6 +117,13 @@
       </a>
     </span>
     <span class='desc'>
+      redefine <a href='../class/RPath.html#loadPath-dynamic'>RPath#loadPath</a> <ul>
+<li>load the shape rectangle from @data.rectangle</li>
+<li>initialize the control path</li>
+<li>draw</li>
+<li>check that the points in the database correspond to the new control path</li>
+</ul>
+
     </span>
   </li>
   <li>
@@ -132,6 +135,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/RPath.html#moveBy-dynamic'>RPath#moveBy</a> + update rectangle position 
     </span>
   </li>
   <li>
@@ -143,6 +147,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/RPath.html#moveTo-dynamic'>RPath#moveTo</a> + update rectangle position 
     </span>
   </li>
   <li>
@@ -154,6 +159,8 @@
       </a>
     </span>
     <span class='desc'>
+      redefine <a href='../class/RPath.html#updateSelectionRectangle-dynamic'>RPath#updateSelectionRectangle</a> the selection rectangle is slightly different for a shape since it is never reset (rotation and scale are stored in database)
+
     </span>
   </li>
   <li>
@@ -165,6 +172,13 @@
       </a>
     </span>
     <span class='desc'>
+      redefine <a href='../class/RPath.html#selectUpdate-dynamic'>RPath#selectUpdate</a> depending on the selected item, selectUpdate will:
+<ul>
+<li>rotate the group,</li>
+<li>scale the group,</li>
+<li>or move the group.</li>
+</ul>
+
     </span>
   </li>
   <li>
@@ -176,6 +190,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload {RPath.pathWidth} 
     </span>
   </li>
   <li>
@@ -187,6 +202,8 @@
       </a>
     </span>
     <span class='desc'>
+      <p>draw the shape the drawing logic goes here
+this is the main method that developer will redefine</p>
     </span>
   </li>
   <li>
@@ -198,6 +215,8 @@
       </a>
     </span>
     <span class='desc'>
+      redefine <a href='../class/RPath.html#draw-dynamic'>RPath#draw</a> initialize the drawing and draw the shape
+
     </span>
   </li>
   <li>
@@ -209,6 +228,8 @@
       </a>
     </span>
     <span class='desc'>
+      initialize the control path create the rectangle from the two points and create the control path
+
     </span>
   </li>
   <li>
@@ -220,6 +241,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/RPath.html#createBegin-dynamic'>RPath#createBegin</a> + initialize the control path and draw 
     </span>
   </li>
   <li>
@@ -231,6 +253,8 @@
       </a>
     </span>
     <span class='desc'>
+      redefine <a href='../class/RPath.html#createUpdate-dynamic'>RPath#createUpdate</a>:  initialize the control path and draw
+
     </span>
   </li>
   <li>
@@ -242,6 +266,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/RPath.html#createEnd-dynamic'>RPath#createEnd</a> + initialize the control path and draw 
     </span>
   </li>
   <li>
@@ -253,6 +278,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/RPath.html#getData-dynamic'>RPath#getData</a> and add rectangle to @data 
     </span>
   </li>
 </ul>
@@ -315,22 +341,23 @@
       <h2>Instance Method Details</h2>
       <div class='methods'>
   <div class='method_details'>
-    <p class='signature' id='getBounds-dynamic'>
-      #
-(void)
-<b>getBounds</b><span>()</span>
-      <br>
-    </p>
-    
-  </div>
-  <div class='method_details'>
     <p class='signature' id='loadPath-dynamic'>
       #
 (void)
 <b>loadPath</b><span>(points)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>redefine <a href='../class/RPath.html#loadPath-dynamic'>RPath#loadPath</a></p><ul>
+<li>load the shape rectangle from @data.rectangle</li>
+<li>initialize the control path</li>
+<li>draw</li>
+<li>check that the points in the database correspond to the new control path</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='moveBy-dynamic'>
@@ -339,7 +366,11 @@
 <b>moveBy</b><span>(delta)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/RPath.html#moveBy-dynamic'>RPath#moveBy</a> + update rectangle position</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='moveTo-dynamic'>
@@ -348,7 +379,11 @@
 <b>moveTo</b><span>(position)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/RPath.html#moveTo-dynamic'>RPath#moveTo</a> + update rectangle position</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='updateSelectionRectangle-dynamic'>
@@ -357,7 +392,12 @@
 <b>updateSelectionRectangle</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>redefine <a href='../class/RPath.html#updateSelectionRectangle-dynamic'>RPath#updateSelectionRectangle</a>
+the selection rectangle is slightly different for a shape since it is never reset (rotation and scale are stored in database)</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='selectUpdate-dynamic'>
@@ -366,7 +406,41 @@
 <b>selectUpdate</b><span>(event, userAction = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>redefine <a href='../class/RPath.html#selectUpdate-dynamic'>RPath#selectUpdate</a>
+depending on the selected item, selectUpdate will:</p><ul>
+<li>rotate the group,</li>
+<li>scale the group,</li>
+<li>or move the group.
+the shape is redrawn when scaled or rotated</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>event</span>
+      <span class='type'>
+        (
+          <tt>Paper event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the mouse event </span>
+    </li>
+    <li>
+      <span class='name'>userAction</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether this is an action from <em>g.me</em> or another user </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='pathWidth-dynamic'>
@@ -375,7 +449,11 @@
 <b>pathWidth</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload {RPath.pathWidth}</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='createShape-dynamic'>
@@ -384,7 +462,13 @@
 <b>createShape</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>draw the shape
+the drawing logic goes here
+this is the main method that developer will redefine</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='draw-dynamic'>
@@ -393,7 +477,12 @@
 <b>draw</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>redefine <a href='../class/RPath.html#draw-dynamic'>RPath#draw</a>
+initialize the drawing and draw the shape</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='initializeControlPath-dynamic'>
@@ -402,7 +491,65 @@
 <b>initializeControlPath</b><span>(pointA, pointB, shift, specialKey, load)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>initialize the control path
+create the rectangle from the two points and create the control path</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>pointA</span>
+      <span class='type'>
+        (
+          <tt>Paper point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the top left or bottom right corner of the rectangle </span>
+    </li>
+    <li>
+      <span class='name'>pointB</span>
+      <span class='type'>
+        (
+          <tt>Paper point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the top left or bottom right corner of the rectangle (opposite of point A) </span>
+    </li>
+    <li>
+      <span class='name'>shift</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether shift is pressed </span>
+    </li>
+    <li>
+      <span class='name'>specialKey</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether the special key is pressed (command on a mac, control otherwise) </span>
+    </li>
+    <li>
+      <span class='name'>load</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether the shape is being loaded </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='createBegin-dynamic'>
@@ -411,7 +558,11 @@
 <b>createBegin</b><span>(point, event, loading)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/RPath.html#createBegin-dynamic'>RPath#createBegin</a> + initialize the control path and draw</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='createUpdate-dynamic'>
@@ -420,7 +571,12 @@
 <b>createUpdate</b><span>(point, event, loading)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>redefine <a href='../class/RPath.html#createUpdate-dynamic'>RPath#createUpdate</a>: 
+initialize the control path and draw</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='createEnd-dynamic'>
@@ -429,7 +585,11 @@
 <b>createEnd</b><span>(point, event, loading)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/RPath.html#createEnd-dynamic'>RPath#createEnd</a> + initialize the control path and draw</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='getData-dynamic'>
@@ -438,12 +598,16 @@
 <b>getData</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/RPath.html#getData-dynamic'>RPath#getData</a> and add rectangle to @data</p>
+</div>
+<div class='tags'>
+</div>
   </div>
 </div>
     </div>
     <div id='footer'>
-  December 10, 14 11:28:38 by
+  December 10, 14 20:42:34 by
   <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
     Codo
   </a>

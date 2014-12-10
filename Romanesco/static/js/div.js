@@ -767,7 +767,7 @@
           this.modalJ.find('.checkbox.restrict-area').hide();
           this.modalJ.find('.checkbox.disable-toolbar').hide();
           this.modalJ.find('.url-name-group').hide();
-          this.modalJ.find('.name-group').show();
+          this.modalJ.find('.name-group').hide();
           this.modalJ.find('.url-group').hide();
           this.modalJ.find('.message-group').show();
           cost = 2 * area / 1000;
@@ -810,7 +810,7 @@
       if (div == null) {
         div = null;
       }
-      return RLock.__super__.constructor.initModal.call(this, this.object_type, rectangle, div);
+      RLock.__super__.constructor.initModal.call(this, this.object_type, rectangle, div);
     };
 
     RLock.parameters = function() {
@@ -868,6 +868,7 @@
         this.updateBackgroundMode(true);
       }
       g.locks.push(this);
+      return;
     }
 
     RLock.prototype.drag = function(event, userAction) {
@@ -877,7 +878,9 @@
       }
       RLock.__super__.drag.call(this, event, userAction);
       if (!$(event.target).hasClass('lock-content')) {
-        return (_ref = this.contentJ) != null ? _ref.popover('hide') : void 0;
+        if ((_ref = this.contentJ) != null) {
+          _ref.popover('hide');
+        }
       }
     };
 
@@ -921,12 +924,12 @@
       if ((_ref = this.contentJ) != null) {
         _ref.popover('hide');
       }
-      return RLock.__super__["delete"].call(this);
+      RLock.__super__["delete"].call(this);
     };
 
     RLock.prototype.update = function() {
       this.contentJ.attr('data-content', this.message);
-      return RLock.__super__.update.call(this);
+      RLock.__super__.update.call(this);
     };
 
     RLock.prototype.selectBegin = function(event, userAction) {
@@ -941,7 +944,7 @@
         this.select();
         return;
       }
-      return RLock.__super__.selectBegin.call(this, event, userAction);
+      RLock.__super__.selectBegin.call(this, event, userAction);
     };
 
     RLock.prototype.selectUpdate = function(event, userAction) {
@@ -951,7 +954,7 @@
       if ((userAction && this.owner !== g.me) || this.data.backgroundMode) {
         return;
       }
-      return RLock.__super__.selectUpdate.call(this, event, userAction);
+      RLock.__super__.selectUpdate.call(this, event, userAction);
     };
 
     RLock.prototype.selectEnd = function(event, userAction) {
@@ -961,7 +964,7 @@
       if ((userAction && this.owner !== g.me) || this.data.backgroundMode) {
         return;
       }
-      return RLock.__super__.selectEnd.call(this, event, userAction);
+      RLock.__super__.selectEnd.call(this, event, userAction);
     };
 
     RLock.prototype.updateBackgroundMode = function(value) {
@@ -985,7 +988,7 @@
       } else {
         this.divJ.show();
       }
-      return view.draw();
+      view.draw();
     };
 
     RLock.prototype.parameterChanged = function(update) {
@@ -996,7 +999,7 @@
         case 'backgroundMode':
           this.updateBackgroundMode();
       }
-      return RLock.__super__.parameterChanged.call(this, update);
+      RLock.__super__.parameterChanged.call(this, update);
     };
 
     return RLock;
@@ -1030,6 +1033,7 @@
       if (this.owner !== g.me) {
         this.divJ.addClass("website");
       }
+      return;
     }
 
     RWebsite.prototype.enableInteraction = function() {
@@ -1067,6 +1071,7 @@
       this.divJ.addClass("video-game");
       this.currentCheckpoint = -1;
       this.checkpoints = [];
+      return;
     }
 
     RVideoGame.prototype.getData = function() {
@@ -1149,6 +1154,7 @@
       this.setPopover();
       this.linkJ = $('<a href="' + this.url + '"></a>');
       this.contentJ.append(this.linkJ);
+      return;
     }
 
     RLink.prototype.setPopover = function() {
@@ -1167,14 +1173,14 @@
       }
       this.contentJ.popover(popoverOptions);
       this.contentJ.addClass("link-content");
-      return this.popover = this.contentJ.data('bs.popover');
+      this.popover = this.contentJ.data('bs.popover');
     };
 
     RLink.prototype.update = function() {
       this.contentJ.attr('data-title', this.name);
       this.contentJ.attr('data-content', this.message);
       this.linkJ.attr("href", this.url);
-      return RLink.__super__.update.call(this);
+      RLink.__super__.update.call(this);
     };
 
     RLink.prototype.updateBackgroundMode = function(value) {};
@@ -1376,7 +1382,7 @@
       this.modalJ.find('.message-group').show();
       this.modalJ.find('#divModalTypeSelector').hide();
       this.modalJ.find('.checkbox.restrict-area').hide();
-      return this.modalJ.find('.checkbox.disable-toolbar').hide();
+      this.modalJ.find('.checkbox.disable-toolbar').hide();
     };
 
     RText.initModal = function(rectangle, div) {
@@ -1386,7 +1392,7 @@
       if (div == null) {
         div = null;
       }
-      return RText.__super__.constructor.initModal.call(this, this.object_type, rectangle, div);
+      RText.__super__.constructor.initModal.call(this, this.object_type, rectangle, div);
     };
 
     function RText(position, size, owner, pk, locked, message, data) {
@@ -1428,12 +1434,13 @@
       if ((this.data != null) && Object.keys(this.data).length > 0) {
         this.setFont(false);
       }
+      return;
     }
 
     RText.prototype.textChanged = function(event) {
       this.message = this.contentJ.val();
       g.chatSocket.emit("parameter change", g.me, this.pk, "message", this.message);
-      return g.defferedExecution(this.update, this.pk, 1000);
+      g.defferedExecution(this.update, this.pk, 1000);
     };
 
     RText.prototype.setFontFamily = function(fontFamily, update) {
@@ -1517,7 +1524,7 @@
           this.data.fontStyle.align = value;
       }
       this.setFontStyle(true);
-      return g.chatSocket.emit("parameter change", g.me, this.pk, "fontStyle", this.data.fontStyle);
+      g.chatSocket.emit("parameter change", g.me, this.pk, "fontStyle", this.data.fontStyle);
     };
 
     RText.prototype.setFontStyle = function(update) {
@@ -1607,7 +1614,7 @@
       this.setFontFamily(this.data.fontFamily, update);
       this.setFontSize(this.data.fontSize, update);
       this.setFontEffect(this.data.effect, update);
-      return this.setFontColor(this.data.fontColor, update);
+      this.setFontColor(this.data.fontColor, update);
     };
 
     RText.prototype.parameterChanged = function(update) {
@@ -1628,7 +1635,7 @@
         default:
           this.setFont(false);
       }
-      return RText.__super__.parameterChanged.call(this, update);
+      RText.__super__.parameterChanged.call(this, update);
     };
 
     RText.prototype.getData = function() {
@@ -1642,7 +1649,7 @@
       if (this.contentJ.hasClass("selected")) {
         return;
       }
-      return RText.__super__["delete"].call(this);
+      RText.__super__["delete"].call(this);
     };
 
     return RText;
@@ -1698,7 +1705,7 @@
       this.modalJ.find('.message-group').hide();
       this.modalJ.find('#divModalTypeSelector').hide();
       this.modalJ.find('.checkbox.restrict-area').hide();
-      return this.modalJ.find('.checkbox.disable-toolbar').hide();
+      this.modalJ.find('.checkbox.disable-toolbar').hide();
     };
 
     RMedia.initModal = function(rectangle, div) {
@@ -1708,7 +1715,7 @@
       if (div == null) {
         div = null;
       }
-      return RMedia.__super__.constructor.initModal.call(this, this.object_type, rectangle, div);
+      RMedia.__super__.constructor.initModal.call(this, this.object_type, rectangle, div);
     };
 
     function RMedia(position, size, owner, pk, locked, url, data) {
@@ -1730,6 +1737,7 @@
         this.urlChanged(this.url, false);
       }
       this.sizeChanged = false;
+      return;
     }
 
     RMedia.prototype.resize = function(event, userAction) {
@@ -1744,7 +1752,9 @@
       this.sizeChanged = true;
       width = this.divJ.width();
       height = this.divJ.height();
-      return (_ref = this.contentJ) != null ? _ref.find("iframe").attr("width", width).attr("height", height) : void 0;
+      if ((_ref = this.contentJ) != null) {
+        _ref.find("iframe").attr("width", width).attr("height", height);
+      }
     };
 
     RMedia.prototype.dragFinished = function(userAction) {
@@ -1755,12 +1765,12 @@
         this.urlChanged(this.url, false);
       }
       this.sizeChanged = false;
-      return RMedia.__super__.dragFinished.call(this, userAction);
+      RMedia.__super__.dragFinished.call(this, userAction);
     };
 
     RMedia.prototype.toggleFitImage = function() {
       if (this.isImage != null) {
-        return this.contentJ.toggleClass("fit-image", this.data.fitImage);
+        this.contentJ.toggleClass("fit-image", this.data.fitImage);
       }
     };
 
@@ -1800,7 +1810,7 @@
         return function() {
           if (!timedOut) {
             clearTimeout(timer);
-            return _this.loadMedia('error');
+            _this.loadMedia('error');
           }
         };
       })(this);
@@ -1814,10 +1824,10 @@
               _ref.remove();
             }
           }
-          return _this.loadMedia('success');
+          _this.loadMedia('success');
         };
       })(this);
-      return image.src = this.url;
+      image.src = this.url;
     };
 
     RMedia.prototype.loadMedia = function(imageLoadResult) {
@@ -1844,7 +1854,7 @@
         }
       }
       this.contentJ.insertBefore(this.maskJ);
-      return this.setCss();
+      this.setCss();
     };
 
     RMedia.prototype.urlChanged = function(url, updateDiv) {
@@ -1862,7 +1872,7 @@
         if ((g.me != null) && datFolder.name !== 'General') {
           g.chatSocket.emit("parameter change", g.me, item.pk, name, value);
         }
-        return this.update();
+        this.update();
       }
     };
 
@@ -1870,7 +1880,9 @@
       var height, width, _ref;
       width = this.divJ.width();
       height = this.divJ.height();
-      return (_ref = this.contentJ) != null ? _ref.find("iframe").attr("width", width).attr("height", height) : void 0;
+      if ((_ref = this.contentJ) != null) {
+        _ref.find("iframe").attr("width", width).attr("height", height);
+      }
     };
 
     RMedia.prototype.getData = function() {

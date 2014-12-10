@@ -7,7 +7,7 @@
 # There are different RDivs, with different content:
 # - RLocks (RLock, RLink, RWebsite and RVideoGame): @see RLock
 #     they define areas which can only be modified by a single user (the on who created the RLock); all RItems in the area is the property of this user
-# - RText: a textarea to write some text. The text can have any google font, any effect, but all text of an RText have the same formating.
+# - RText: a textarea to write some text. The text can have any google font, any effect, but the whole text has the same formating.
 # - RMedia: an image, video or any content inside an iframe (can be a [shadertoy](https://www.shadertoy.com/))
 # - RSelectionRectangle: a special div just to defined a selection rectangle, user by {ScreenshotTool}
 #
@@ -721,6 +721,23 @@ class RSelectionRectangle extends RDiv
 
 # RLock are locked area which can only be modified by their author 
 # all RItems on the area are also locked, and can be unlocked if the user drags them outside the div
+#
+# There are different RLocks:
+# - RLock: a simple RLock which just locks the area and the items underneath, and displays a popover with a message when the user clicks on it
+# - RLink: extends RLock but works as a link: the one who clicks on it is redirected to the website
+# - RWebsite:
+#    - extends RLock and provide the author a special website adresse 
+#    - the owner of the site can choose a few options: "restrict area" and "hide toolbar"
+#    - a user going to a site with the "restricted area" option can not go outside the area
+#    - the tool bar will be hidden to users navigating to site with the "hide toolbar" option
+# - RVideogame:
+#    - a video game is an area which can interact with other RItems (very experimental)
+#    - video games are always loaded entirely (the whole area is loaded at the same time with its items)
+#
+# an RLock can be set in background mode ({RLock#updateBackgroundMode}):
+# - this hide the jQuery div and display a equivalent rectangle on the paper project instead (named controlPath in the code)
+# - it is usefull to add and edit items on the area
+#
 class RLock extends RDiv
 
 	@modalTitle = "Lock an area"
@@ -770,7 +787,7 @@ class RLock extends RDiv
 				@modalJ.find('.checkbox.restrict-area').hide()
 				@modalJ.find('.checkbox.disable-toolbar').hide()
 				@modalJ.find('.url-name-group').hide()
-				@modalJ.find('.name-group').show()
+				@modalJ.find('.name-group').hide()
 				@modalJ.find('.url-group').hide()
 				@modalJ.find('.message-group').show()
 				cost = 2*area/1000
@@ -788,16 +805,18 @@ class RLock extends RDiv
 				return true
 		return false
 
-	# @param rectangle [Paper point] the point to test
-	# @return [Boolean] true if the point is in the div, false otherwise
+	# @param rectangle [Paper Rectangle] the rectangle to test
+	# @return [Boolean] true if the rectangle intersects the div, false otherwise
 	@intersectRect: (rectangle)->
 		for lock in g.locks
 			if lock.getBounds().intersects(new Rectangle(rectangle)) and g.me != lock.owner
 				return true
 		return false
 
+	# initialize modal with object_type
 	@initModal: (rectangle=null, div=null)->
 		super(@object_type, rectangle, div)
+		return
 
 	@parameters: ()->
 
@@ -829,26 +848,37 @@ class RLock extends RDiv
 			@disableInteraction()
 		if @owner==g.me then @updateBackgroundMode(true)
 		g.locks.push(@)
+		return
 
+	# overload {RDiv#drag}
+	# hide popover on drag
 	drag: (event, userAction=true) =>
 		super(event, userAction)
 		if not $(event.target).hasClass('lock-content')
 			@contentJ?.popover('hide')
+		return
 
+	# overload {RDiv#resize}
+	# hide popover on resize
 	resize: (event, userAction=true) =>
 		super(event, userAction)
 		@contentJ?.popover('hide')
 
+	# overload {RDiv#select}
+	# can not select a lock which the user does not own
 	select: () =>
 		if @owner != g.me then return
 		super()
 		return
 
+	# overload {RDiv#deselect}
+	# put lock to background mode
 	deselect: () =>
 		@contentJ?.popover('hide')
 		@updateBackgroundMode(true)
 		super()
 
+	# overload {RDiv#remove} and remove lock from g.locks
 	remove: () ->
 		g.locks.splice(g.locks.indexOf(@),1)
 		super()
@@ -856,14 +886,20 @@ class RLock extends RDiv
 		@controlPath = null
 		return
 
+	# overload {RDiv#remove} and hide the popover
 	delete: () ->
 		@contentJ?.popover('hide')
 		super()
+		return
 
+	# overload {RDiv#update}
 	update: () ->
 		@contentJ.attr('data-content', @message)
 		super()
+		return
 
+	# overload {RDiv#selectBegin}
+	# unset background mode before selecting the lock
 	selectBegin: (event, userAction=true) =>
 		if userAction and @owner != g.me then return
 		if @data.backgroundMode
@@ -871,15 +907,26 @@ class RLock extends RDiv
 			@select()
 			return
 		super(event, userAction)
+		return
 	
+	# overload {RDiv#selectUpdate}
+	# do nothing if in background mode
 	selectUpdate: (event, userAction=true) =>
 		if (userAction and @owner != g.me) or @data.backgroundMode then return
 		super(event, userAction)
+		return
 	
+	# overload {RDiv#selectEnd}
+	# do nothing if in background mode
 	selectEnd: (event, userAction=true) =>
 		if (userAction and @owner != g.me) or @data.backgroundMode then return
 		super(event, userAction)
+		return
 
+	# set/unset background mode
+	# - in background mode: hide the jQuery div @divJ and display a equivalent rectangle on the paper project instead (@controlPath)
+	# - usefull to add and edit items on the area
+	# @param value [Boolean] whether to set or unset the background mode
 	updateBackgroundMode: (value)->
 		if @owner != g.me then return
 		if value? then @data.backgroundMode = value
@@ -894,12 +941,16 @@ class RLock extends RDiv
 		else
 			@divJ.show()
 		view.draw()
+		return
 
+	# overload {RDiv#parameterChanged}
+	# update background mode
 	parameterChanged: (update=true)->
 		switch @changed
 			when 'backgroundMode'
 				@updateBackgroundMode()
 		super(update)
+		return
 
 	# updateAll: (x, y, width, height, name, message, url, fillColor, strokeColor, strokeWidth) ->
 	# 	super(x, y, width, height, name, message, url, fillColor, strokeColor, strokeWidth)
@@ -908,10 +959,17 @@ class RLock extends RDiv
 		
 @RLock = RLock
 
+# RWebsite:
+#  - extends RLock and provide the author a special website adresse 
+#  - the owner of the site can choose a few options: "restrict area" and "hide toolbar"
+#  - a user going to a site with the "restricted area" option can not go outside the area
+#  - the tool bar will be hidden to users navigating to site with the "hide toolbar" option
 class RWebsite extends RLock
 
 	@object_type = 'website'
 
+	# overload {RDiv#constructor}
+	# the mouse interaction is modified to enable user navigation (the user can scroll the view by dragging on the website area)
 	constructor: (@position, @size, @owner, @pk, @message, @data) ->
 		super(@position, @size, @owner, @pk, @message, false, @data)
 		@maskJ.mousedown (event)->
@@ -922,18 +980,26 @@ class RWebsite extends RLock
 			return
 		if @owner != g.me
 			@divJ.addClass("website")
+		return
 
-	# can not enable interaction if not owner and is website
+	# todo: remove
+	# can not enable interaction if the user not owner and is website
 	enableInteraction: () ->
 		@maskJ.hide()
 		return
 
 @RWebsite = RWebsite
 
+# RVideogame:
+# - a video game is an area which can interact with other RItems (very experimental)
+# - video games are always loaded entirely (the whole area is loaded at the same time with its items)
+# this a default videogame class which must be redefined in custom scripts
 class RVideoGame extends RLock
 
 	@object_type = 'video-game'
 
+	# overload {RDiv#constructor}
+	# the mouse interaction is modified to enable user navigation (the user can scroll the view by dragging on the videogame area)
 	constructor: (@position, @size, @owner, @pk, @message, @data) ->
 		super(@position, @size, @owner, @pk, @message, false, @data)
 		@maskJ.mousedown (event)->
@@ -945,20 +1011,28 @@ class RVideoGame extends RLock
 		@divJ.addClass("video-game")
 		@currentCheckpoint = -1
 		@checkpoints = []
-		
+		return
+	
+	# overload {RDiv#getData} + set data.loadEntireArea to true (we want videogames to load entirely)
 	getData: ()->
 		data = super()
 		data.loadEntireArea = true
 		return data
 
+	# todo: remove
+	# redefine {RLock#enableInteraction}
 	enableInteraction: () ->
 		@maskJ.hide()
 		return
 
+	# initialize the video game gui (does nothing for now)
 	initGUI: ()->
 		console.log "Gui init"
 		return
 
+	# update game machanics: 
+	# called at each frame (currently by the tool event, but should move to main.coffee in the onFrame event)
+	# @param tool [RTool] the car tool to get the car position
 	updateGame: (tool)->
 		for checkpoint in @checkpoints
 			if checkpoint.contains(tool.car.position)
@@ -973,6 +1047,7 @@ class RVideoGame extends RLock
 					@finishGame()
 		return
 
+	# ends the game: called when user passes the last checkpoint!
 	finishGame: ()->
 		time = (Date.now() - @startTime)/1000
 		romanesco_alert "You won ! Your time is: " + time.toFixed(2) + " seconds.", "success"
@@ -982,6 +1057,7 @@ class RVideoGame extends RLock
 @RVideoGame = RVideoGame
 
 # todo: make the link enabled even with the move tool?
+# RLink: extends RLock but works as a link: the one who clicks on it is redirected to the website
 class RLink extends RLock
 
 	@modalTitle = "Insert a hyperlink"
@@ -993,13 +1069,19 @@ class RLink extends RLock
 		delete parameters['Lock']
 		return parameters
 
+	# overload {RLock#constructor}
+	# add the link tag with the url
 	constructor: (@position, @size, @owner, @pk, @message, @name, @url, @data) ->
 		super(@position, @size, @owner, @pk, @message, false, @data)
 		@divJ.addClass("link")
 		@setPopover()
 		@linkJ = $('<a href="' + @url + '"></a>')
 		@contentJ.append(@linkJ)
+		return
 
+	# set popover for the link
+	# called by the constructor
+	# the popover displays the site name, and a custom message (the information that the user gives when creating the RLink)
 	setPopover: ()->
 		popoverOptions = { placement:'auto top', trigger:'hover' }
 
@@ -1013,13 +1095,19 @@ class RLink extends RLock
 		@contentJ.popover(popoverOptions)
 		@contentJ.addClass("link-content")
 		@popover = @contentJ.data('bs.popover')
+		return
 
+	# overload {RLock#update} 
+	# also update the name, message and url
 	update: () ->
 		@contentJ.attr('data-title', @name)
 		@contentJ.attr('data-content', @message)
 		@linkJ.attr("href", @url)
 		super()
+		return
 
+	# redefine {RLock#updateBackgroundMode}
+	# an RLink can not be in background mode (for now)
 	updateBackgroundMode: (value)->
 		return
 
@@ -1030,12 +1118,15 @@ class RLink extends RLock
 
 @RLink = RLink
 
+# RText: a textarea to write some text. 
+# The text can have any google font, any effect, but all the text has the same formating.
 class RText extends RDiv
 
 	@modalTitle = "Insert some text"
 	@modalTitleUpdate = "Modify your text"
 	@object_type = 'text'
 
+	# parameters of the RText highly customize the gui (add functionnalities like font selector, etc.)
 	@parameters: ()->
 
 		parameters = super()
@@ -1155,6 +1246,7 @@ class RText extends RDiv
 
 		return parameters
 
+	# overload {RDiv#initFields}
 	@initFields: ()->
 		@modalJ.find('.url-name-group').hide()
 		@modalJ.find('.name-group').hide()
@@ -1163,13 +1255,18 @@ class RText extends RDiv
 		@modalJ.find('#divModalTypeSelector').hide()
 		@modalJ.find('.checkbox.restrict-area').hide()
 		@modalJ.find('.checkbox.disable-toolbar').hide()
+		return
 
+	# overload {RDiv#initModal}
 	@initModal: (rectangle=null, div=null)->
 		super(@object_type, rectangle, div)
+		return
 
 	# @save: (rectangle)->
 	# 	super(rectangle, @object_type)
 
+	# overload {RDiv#constructor}
+	# initialize mouse event listeners to be able to select and edit text, bind key event listener to @textChanged
 	constructor: (@position, @size, @owner, @pk, @locked, @message='', @data) ->
 		super(@position, @size, @owner, @pk, @locked and @owner != g.me, @data)
 
@@ -1183,7 +1280,6 @@ class RText extends RDiv
 			# @contentJ.attr("readonly", "true")
 			message = @message
 			@contentJ[0].addEventListener("input", (()-> this.value = message), false)
-    
 		
 		@setCss()
 
@@ -1196,12 +1292,25 @@ class RText extends RDiv
 
 		if @data? and Object.keys(@data).length>0
 			@setFont(false)
+		return
 
+	# called whenever the text is changed:
+	# emit the new text to websocket
+	# update the RText in 1 second (deffered execution)
+	# @param event [jQuery Event] the key event
 	textChanged: (event) =>
 		@message = @contentJ.val()
 		g.chatSocket.emit( "parameter change", g.me, @pk, "message", @message)
 		g.defferedExecution(@update, @pk, 1000)
-		
+		return
+	
+	# set the font family for the text
+	# - check font validity
+	# - add font to the page header (in a script tag, this will load the font)
+	# - update css
+	# - update RText if *update*
+	# @param fontFamily [String] the name of the font family
+	# @param update [Boolean] whether to update the RText
 	setFontFamily: (fontFamily, update=true)->
 		if not fontFamily? then return
 
@@ -1227,6 +1336,11 @@ class RText extends RDiv
 		return
 
 	# only called when user modifies GUI
+	# add/remove (toggle) the font style of the text defined by *value*
+	# if *value* is 'justify', 'left', 'right' or 'center', the text is aligned as the *value* (the previous value is ignored, no toggle)
+	# this only modifies @data, the css will be modified in {RText#setFontStyle}
+	# eit the change on websocket
+	# @param value [String] the style to toggle, can be 'underline', 'overline', 'line-through', 'italic', 'bold', 'justify', 'left', 'right' or 'center'
 	changeFontStyle: (value)=>
 
 		if not value? then return
@@ -1235,7 +1349,7 @@ class RText extends RDiv
 			return
 		
 		@data.fontStyle ?= {}
-		@data.fontStyle.decoration ?=  ''
+		@data.fontStyle.decoration ?= ''
 
 		switch value
 			when 'underline'
@@ -1263,7 +1377,11 @@ class RText extends RDiv
 		# only called when user modifies GUI
 		@setFontStyle(true)
 		g.chatSocket.emit( "parameter change", g.me, @pk, "fontStyle", @data.fontStyle)
+		return
 
+	# set the font style of the text (update the css)
+	# called by {RText#changeFontStyle}
+	# @param update [Boolean] (optional) whether to update the RText
 	setFontStyle: (update=true)->
 		if @data.fontStyle?.italic?
 			@contentJ.css( "font-style": if @data.fontStyle.italic then "italic" else "normal")
@@ -1277,6 +1395,9 @@ class RText extends RDiv
 			@update()
 		return
 
+	# set the font size of the text (update @data and the css)
+	# @param fontSize [Number] the new font size
+	# @param update [Boolean] (optional) whether to update the RText
 	setFontSize: (fontSize, update=true)->
 		if not fontSize? then return
 		@data.fontSize = fontSize
@@ -1285,6 +1406,9 @@ class RText extends RDiv
 			@update()
 		return
 
+	# set the font effect of the text, only one effect can be applied at the same time (for now)
+	# @param fontEffect [String] the new font effect
+	# @param update [Boolean] (optional) whether to update the RText
 	setFontEffect: (fontEffect, update=true)->
 		if not fontEffect? then return
 
@@ -1304,18 +1428,26 @@ class RText extends RDiv
 			@update()
 		return
 
+	# set the font color of the text, update css
+	# @param fontColor [String] the new font color
+	# @param update [Boolean] (optional) whether to update the RText
 	setFontColor: (fontColor, update=true)->
 		@contentJ.css( "color": fontColor ? 'black')
 		return
 
+	# update font to match the styles, effects and colors in @data
+	# @param update [Boolean] (optional) whether to update the RText
 	setFont: (update=true)->
 		@setFontStyle(update)
 		@setFontFamily(@data.fontFamily, update)
 		@setFontSize(@data.fontSize, update)
 		@setFontEffect(@data.effect, update)
 		@setFontColor(@data.fontColor, update)
+		return
 	
 	# update = false when called by parameter.onChange from websocket
+	# overload {RDiv#parameterChanged}
+	# update text content and font styles, effects and colors
 	parameterChanged: (update=true)->
 		if not update and @data.message?
 			@contentJ.val(@data.message)
@@ -1325,16 +1457,22 @@ class RText extends RDiv
 			else
 				@setFont(false)
 		super(update)
+		return
 
+	# overload {RDiv#getData}
+	# copy @data and add @data.message
 	getData: ()->
 		data = jQuery.extend({},@data)
 		delete data.message
 		return data
 
+	# overload {RDiv#delete}
+	# do not delete RText if we are editing the text (the delete key is used to delete the text)
 	delete: () ->
 		if @contentJ.hasClass("selected")
 			return
 		super()
+		return
 
 	# updateAll: (x, y, width, height, name, message, url, fillColor, strokeColor, strokeWidth) ->
 	# 	super(x, y, width, height, name, message, url, fillColor, strokeColor, strokeWidth)
@@ -1344,6 +1482,15 @@ class RText extends RDiv
 
 # todo: remove @url? duplicated in @data.url or remove data.url
 # todo: websocket the url change
+
+# RMedia holds an image, video or any content inside an iframe (can be a [shadertoy](https://www.shadertoy.com/))
+# The first attempt is to load the media as an image:
+# - if it succeeds, the image is embedded as a simple image tag, 
+#   and can be either be fit (proportion are kept) or resized (dimensions will be the same as RMedia) in the RMedia 
+#   (the user can modify this in the gui with the 'fit image' button)
+# - if it fails, RMedia checks if the url start with 'iframe'
+#   if it does, the iframe is embedded as is (this enables to embed shadertoys for example)
+# - otherwise RMedia tries to embed it with jquery oembed (this enable to embed youtube and vimeo videos just with the video link)
 class RMedia extends RDiv
 
 	@modalTitle = "Insert a media"
@@ -1370,6 +1517,7 @@ class RMedia extends RDiv
 
 		return parameters
 
+	# overload {RDiv#initFields}
 	@initFields: ()->
 		@modalJ.find('.url-name-group').hide()
 		@modalJ.find('.name-group').hide()
@@ -1378,17 +1526,26 @@ class RMedia extends RDiv
 		@modalJ.find('#divModalTypeSelector').hide()
 		@modalJ.find('.checkbox.restrict-area').hide()
 		@modalJ.find('.checkbox.disable-toolbar').hide()
+		return
 
+	# overload {RDiv#initModal}
 	@initModal: (rectangle=null, div=null)->
 		super(@object_type, rectangle, div)
+		return
 
+	# overload {RDiv#constructor}
+	# initialize the url, load the media if any (when the RMedia is loaded)
 	constructor: (@position, @size, @owner, @pk, @locked, @url='', @data) ->
 		super(@position, @size, @owner, @pk, @locked and @owner != g.me, @data)
 		@data.url = @url
 		if url? and url.length>0
 			@urlChanged(@url, false)
 		@sizeChanged = false
+		return
 
+	# overload {RDiv#resize}
+	# reload media on resize, to make sure the media is properly fitted to the RMedia
+	# this should be relatively fast since it is likely to be cached
 	resize: (event, userAction=true) =>
 		super(event, userAction)
 		if @isImage?
@@ -1397,12 +1554,16 @@ class RMedia extends RDiv
 		width = @divJ.width()
 		height = @divJ.height()
 		@contentJ?.find("iframe").attr("width",width).attr("height",height)
+		return
 
+	# overload {RDiv#dragFinished}
+	# call {RMedia#urlChanged} if the size has changed (the RMedia has been resized)
 	dragFinished: (userAction=true) =>
 		if @sizeChanged
 			@urlChanged(@url, false)
 		@sizeChanged = false
 		super(userAction)
+		return
 
 	# update: () ->
 	# 	@urlChanged(@url, false) # todo: <- chek if necessary
@@ -1412,17 +1573,23 @@ class RMedia extends RDiv
 	# 	super(x, y, width, height, name, message, url, fillColor, strokeColor, strokeWidth)
 	# 	@urlChanged(@url, false)
 
+	# called when user clicks in the "fit image" button in the gui
+	# toggle the 'fit-image' class to fit (proportion are kept) or resize (dimensions will be the same as RMedia) the image in the RMedia 
 	toggleFitImage: ()->
 		if @isImage?
 			@contentJ.toggleClass("fit-image", @data.fitImage)
+		return
 
+	# overload {RDiv#parameterChanged}
 	# update = false when called by parameter.onChange from websocket
+	# toggle fit image if required
 	parameterChanged: (update=true)->
 		switch @changed
 			when 'fitImage'
 				@toggleFitImage()
 		super(update)
 
+	# return [Boolean] true if the url ends with an image extension: "jpeg", "jpg", "gif" or "png" 
 	hasImageUrlExt: (url)->
 		exts = [ "jpeg", "jpg", "gif", "png" ]
 		ext = url.substring(url.lastIndexOf(".")+1)
@@ -1430,6 +1597,10 @@ class RMedia extends RDiv
 			return true
 		return false
 
+	# try to load the url as an image: and call {RMedia#loadMedia} with the following string:
+	# - 'success' if it succeeds
+	# - 'error' if it fails
+	# - 'timeout' if there was no response for 1 seconds (wait 5 seconds if the url as an image extension since it is likely that it will succeed)
 	checkIsImage: ()->
 		timedOut = false
 		timeout = if @hasImageUrlExt(@url) then 5000 else 1000
@@ -1443,14 +1614,20 @@ class RMedia extends RDiv
 			if not timedOut
 				clearTimeout(timer)
 				@loadMedia('error')
+			return
 		image.onload = ()=>
 			if not timedOut
 				clearTimeout(timer)
 			else
 				@contentJ?.remove()
 			@loadMedia('success')
+			return
 		image.src = @url
+		return
 
+	# embed the media in the div (this will load it) and update css
+	# called by {RMedia#checkIsImage}
+	# @param imageLoadResult [String] the result of the image load test: 'success', 'error' or 'timeout'
 	loadMedia: (imageLoadResult)=>
 		if imageLoadResult == 'success'
 			@contentJ = $('<img class="content image" src="'+@url+'" alt="'+@url+'"">')
@@ -1459,7 +1636,7 @@ class RMedia extends RDiv
 		else
 			# @contentJ = $(@url.replace("http://", ""))
 			@contentJ = $(@url.substring(7))
-			if @contentJ.is('iframe')
+			if @contentJ.is('iframe') 	# if 'url' starts with 'iframe', the user wants to integrate an iframe, not embed using jquery oembed
 				@contentJ.attr('width', @divJ.width())
 				@contentJ.attr('height', @divJ.height())
 			else
@@ -1468,9 +1645,14 @@ class RMedia extends RDiv
 		@contentJ.insertBefore(@maskJ)
 
 		@setCss()
+		return
 
-	# todo: called too many times when div is resized
-	# maybe it was because update called urlChanged:
+	# bug?: called many times when div is resized, maybe because update called urlChanged
+
+	# remove the RMedia content and embed the media from *url*
+	# update the RMedia if *updateDiv*
+	# @param url [String] the url of the media to embed
+	# @param updateDiv [Boolean] whether to update the RMedia
 	urlChanged: (url, updateDiv=false) =>
 		console.log 'urlChanged, updateDiv: ' + updateDiv + ', ' + @pk
 		@url = url
@@ -1485,13 +1667,18 @@ class RMedia extends RDiv
 		if updateDiv
 			if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
 			@update()
+		return
 
+	# set the size of the iframe to fit the size of the media once the media is loaded
+	# called when the media embedded with jquery oembed is loaded
 	afterEmbed: ()=>
 		width = @divJ.width()
 		height = @divJ.height()
 		@contentJ?.find("iframe").attr("width",width).attr("height",height)
+		return
 
-
+	# overload {RDiv#getData}
+	# delete data.url since we already save it in the url field in database
 	getData: ()->
 		data = jQuery.extend({}, @data)
 		delete data.url

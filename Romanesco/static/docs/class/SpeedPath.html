@@ -35,6 +35,19 @@
           </td>
         </tr>
       </table>
+      <h2>Overview</h2>
+      <div class='docstring'>
+  <p>SpeedPath extends PrecisePath to add speed functionnalities: </p><ul>
+<li>the speed at which the user has drawn the path is stored and has influence on the drawing,</li>
+<li>the speed values are displayed as normals of the path, and can be edited thanks to handles,</li>
+<li>when the user drags a handle, it will also influence surrounding speed values depending on how far from the normal the user drags the handle (with a gaussian attenuation)</li>
+<li>the speed path and handles are added to a speed group, which is added to the main group</li>
+<li>the speed group can be shown or hidden through the folder &#39;Edit curve&#39; in the gui</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
       <h2>Direct Known Subclasses</h2>
       <p class='children'>
         <a href='../class/RollerPath.html'>RollerPath</a>
@@ -122,6 +135,7 @@
       </a>
     </span>
     <span class='desc'>
+      overloads <a href='../class/PrecisePath.html#loadPath-dynamic'>PrecisePath#loadPath</a> 
     </span>
   </li>
   <li>
@@ -133,6 +147,7 @@
       </a>
     </span>
     <span class='desc'>
+      redefine <a href='../class/PrecisePath.html#checkUpdateDrawing-dynamic'>PrecisePath#checkUpdateDrawing</a> to update speed while drawing 
     </span>
   </li>
   <li>
@@ -144,7 +159,8 @@
       </a>
     </span>
     <span class='desc'>
-      todo: better handle lock area 
+      todo: better handle lock area overload <a href='../class/PrecisePath.html#createBegin-dynamic'>PrecisePath#createBegin</a> and add speed initialization
+
     </span>
   </li>
   <li>
@@ -156,6 +172,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/PrecisePath.html#createEnd-dynamic'>PrecisePath#createEnd</a> and add speed initialization 
     </span>
   </li>
   <li>
@@ -167,6 +184,9 @@
       </a>
     </span>
     <span class='desc'>
+      <p>compute the speed (deduced from the space between each point of the control path) the speed values are sampeled on regular intervals along the control path (same machanism as the drawing points)
+the distance between each sample is defined in @constructor.speedStep
+an average speed must be computed at each sample</p>
     </span>
   </li>
   <li>
@@ -178,17 +198,23 @@
       </a>
     </span>
     <span class='desc'>
+      update the speed group (curve and handles to visualize and edit the speeds) 
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#speedAt-dynamic'>
         #
-(void)
+(Number)
 <b>speedAt</b><span>(offset)</span>
       </a>
     </span>
     <span class='desc'>
+      get the speed at <em>offset</em> <ul>
+<li>the value is interpolated from the two closest speed values</li>
+<li>if speeds are not computed yet: return half of the max speed</li>
+</ul>
+
     </span>
   </li>
   <li>
@@ -200,6 +226,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/PrecisePath.html#draw-dynamic'>PrecisePath#draw</a> and add speed update when <em>loading</em> is false 
     </span>
   </li>
   <li>
@@ -211,7 +238,7 @@
       </a>
     </span>
     <span class='desc'>
-      todo: change get data, do not return stringified version 
+      overload <a href='../class/PrecisePath.html#getData-dynamic'>PrecisePath#getData</a> and adds the speeds in @data.speeds (unused speed values are not stored) 
     </span>
   </li>
   <li>
@@ -223,6 +250,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/PrecisePath.html#select-dynamic'>PrecisePath#select</a>, update speeds and show speed group 
     </span>
   </li>
   <li>
@@ -234,6 +262,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/PrecisePath.html#deselect-dynamic'>PrecisePath#deselect</a> and hide speed group 
     </span>
   </li>
   <li>
@@ -245,6 +274,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/PrecisePath.html#initSelection-dynamic'>PrecisePath#initSelection</a> but add the possibility to select speed handles 
     </span>
   </li>
   <li>
@@ -256,6 +286,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/PrecisePath.html#selectUpdate-dynamic'>PrecisePath#selectUpdate</a> but add the possibility to modify speed handles 
     </span>
   </li>
   <li>
@@ -267,6 +298,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/PrecisePath.html#selectEnd-dynamic'>PrecisePath#selectEnd</a> and reset speed handles 
     </span>
   </li>
   <li>
@@ -278,6 +310,7 @@
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/PrecisePath.html#remove-dynamic'>PrecisePath#remove</a> and remove speed group 
     </span>
   </li>
 </ul>
@@ -372,7 +405,11 @@
 <b>loadPath</b><span>(points)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overloads <a href='../class/PrecisePath.html#loadPath-dynamic'>PrecisePath#loadPath</a></p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='checkUpdateDrawing-dynamic'>
@@ -381,7 +418,11 @@
 <b>checkUpdateDrawing</b><span>(event)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>redefine <a href='../class/PrecisePath.html#checkUpdateDrawing-dynamic'>PrecisePath#checkUpdateDrawing</a> to update speed while drawing</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='createBegin-dynamic'>
@@ -391,7 +432,8 @@
       <br>
     </p>
     <div class='docstring'>
-  <p>todo: better handle lock area</p>
+  <p>todo: better handle lock area
+overload <a href='../class/PrecisePath.html#createBegin-dynamic'>PrecisePath#createBegin</a> and add speed initialization</p>
 </div>
 <div class='tags'>
 </div>
@@ -403,7 +445,11 @@
 <b>createEnd</b><span>(point, event, loading = false)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/PrecisePath.html#createEnd-dynamic'>PrecisePath#createEnd</a> and add speed initialization</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='computeSpeed-dynamic'>
@@ -412,7 +458,14 @@
 <b>computeSpeed</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>compute the speed (deduced from the space between each point of the control path)
+the speed values are sampeled on regular intervals along the control path (same machanism as the drawing points)
+the distance between each sample is defined in @constructor.speedStep
+an average speed must be computed at each sample</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='updateSpeed-dynamic'>
@@ -421,16 +474,52 @@
 <b>updateSpeed</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>update the speed group (curve and handles to visualize and edit the speeds)</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='speedAt-dynamic'>
       #
-(void)
+(Number)
 <b>speedAt</b><span>(offset)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>get the speed at <em>offset</em></p><ul>
+<li>the value is interpolated from the two closest speed values</li>
+<li>if speeds are not computed yet: return half of the max speed</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>offset</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the offset along the control path at which getting the speed </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Number</tt>
+      )
+      &mdash;
+      <span class='desc'>the computed speed: </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='draw-dynamic'>
@@ -439,7 +528,11 @@
 <b>draw</b><span>(simplified = false, loading = false)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/PrecisePath.html#draw-dynamic'>PrecisePath#draw</a> and add speed update when <em>loading</em> is false</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='getData-dynamic'>
@@ -449,7 +542,7 @@
       <br>
     </p>
     <div class='docstring'>
-  <p>todo: change get data, do not return stringified version</p>
+  <p>overload <a href='../class/PrecisePath.html#getData-dynamic'>PrecisePath#getData</a> and adds the speeds in @data.speeds (unused speed values are not stored)</p>
 </div>
 <div class='tags'>
 </div>
@@ -461,7 +554,11 @@
 <b>select</b><span>(updateOptions = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/PrecisePath.html#select-dynamic'>PrecisePath#select</a>, update speeds and show speed group</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='deselect-dynamic'>
@@ -470,7 +567,11 @@
 <b>deselect</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/PrecisePath.html#deselect-dynamic'>PrecisePath#deselect</a> and hide speed group</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='initSelection-dynamic'>
@@ -479,7 +580,11 @@
 <b>initSelection</b><span>(event, hitResult, userAction = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/PrecisePath.html#initSelection-dynamic'>PrecisePath#initSelection</a> but add the possibility to select speed handles</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='selectUpdate-dynamic'>
@@ -488,7 +593,11 @@
 <b>selectUpdate</b><span>(event, userAction = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/PrecisePath.html#selectUpdate-dynamic'>PrecisePath#selectUpdate</a> but add the possibility to modify speed handles</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='selectEnd-dynamic'>
@@ -497,7 +606,11 @@
 <b>selectEnd</b><span>(event, userAction = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/PrecisePath.html#selectEnd-dynamic'>PrecisePath#selectEnd</a> and reset speed handles</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='remove-dynamic'>
@@ -506,12 +619,16 @@
 <b>remove</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/PrecisePath.html#remove-dynamic'>PrecisePath#remove</a> and remove speed group</p>
+</div>
+<div class='tags'>
+</div>
   </div>
 </div>
     </div>
     <div id='footer'>
-  December 10, 14 11:28:38 by
+  December 10, 14 20:42:34 by
   <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
     Codo
   </a>

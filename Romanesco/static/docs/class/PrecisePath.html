@@ -62,11 +62,12 @@ a more complexe precise path would also be function of the normal and the tangen
 <li>drawBegin() called to initialize the drawing</li>
 <li>drawUpdate() called at each update</li>
 <li>drawEnd() called at the end onf the drawing</li>
-</ul><p>There are two creation modes:</p><ul>
+</ul><p>There are two cases where precise path is created:</p><ul>
 <li>when the user creates the path with the mouse:<ul>
 <li>each time a new point is added to the control path:
-drawUpdate() is called to fit the drawing along the control path until <em>offset</em> (the length of the drawing) equals the control path length (minus the remaining)
-this process takes place in <a href='../class/PrecisePath.html#checkUpdateDrawing-dynamic'>PrecisePath#checkUpdateDrawing</a> (it is overloaded by {SpeedPath.checkUpdateDrawing})</li>
+drawUpdate() is called to fit the drawing along the control path until <em>offset</em> (the length of the drawing) equals the control path length (minus the remaining step)
+this process takes place in <a href='../class/PrecisePath.html#checkUpdateDrawing-dynamic'>PrecisePath#checkUpdateDrawing</a> (it is overridden by {SpeedPath.checkUpdateDrawing})
+it is part of the createBegin/Update/End() process</li>
 </ul>
 </li>
 <li>when the path is loaded (or the control path is complete before the drawing):<ul>
@@ -74,11 +75,8 @@ this process takes place in <a href='../class/PrecisePath.html#checkUpdateDrawin
 <li>drawUpdate() is called in a loop to fit the whole control path at once, in <a href='../class/PrecisePath.html#draw-dynamic'>PrecisePath#draw</a></li>
 </ul>
 </li>
-</ul><p>When the user creates the control path:</p><ul>
-<li>each time a new point is added to the control path (giving a new segment linking to the previous point) drawUpdate() is called to fit the drawing along the control path until the length of the drawing </li>
-</ul><p>During the path creation, when a new point is added to the control path (giving a new segment linking to the previous point)
-drawUpdate() is called to fit the drawing along the control path until the length of the drawing </p><p>When the user is creating a path, drawUpdate() is called as soon as a new point is added to the control path (giving a new segment linking to the previous point).</p><p>It is determined how many steps can be fitted in the new segment (taking into account the previous )
-drawUpdate() is called when the user adds a point to the control path</p>
+</ul>
+
 </div>
 <div class='tags'>
 </div>
@@ -168,7 +166,8 @@ drawUpdate() is called when the user adds a point to the control path</p>
       </a>
     </span>
     <span class='desc'>
-      load control path from @data.points and check if <em>points</em> fit to the created control path 
+      redefine <a href='../class/RPath.html#loadPath-dynamic'>RPath#loadPath</a> load control path from @data.points and check if <em>points</em> fit to the created control path
+
     </span>
   </li>
   <li>
@@ -180,7 +179,7 @@ drawUpdate() is called when the user adds a point to the control path</p>
       </a>
     </span>
     <span class='desc'>
-      overload hit test to test not only on the selection rectangle, but also on the control path 
+      redefine hit test to test not only on the selection rectangle, but also on the control path 
     </span>
   </li>
   <li>
@@ -204,7 +203,7 @@ drawUpdate() is called when the user adds a point to the control path</p>
       </a>
     </span>
     <span class='desc'>
-      default drawBegin function, will be overloaded by children PrecisePath 
+      default drawBegin function, will be redefined by children PrecisePath 
     </span>
   </li>
   <li>
@@ -216,7 +215,7 @@ drawUpdate() is called when the user adds a point to the control path</p>
       </a>
     </span>
     <span class='desc'>
-      default drawUpdate function, will be overloaded by children PrecisePath 
+      default drawUpdate function, will be redefined by children PrecisePath 
     </span>
   </li>
   <li>
@@ -228,7 +227,7 @@ drawUpdate() is called when the user adds a point to the control path</p>
       </a>
     </span>
     <span class='desc'>
-      default drawEnd function, will be overloaded by children PrecisePath 
+      default drawEnd function, will be redefined by children PrecisePath 
     </span>
   </li>
   <li>
@@ -444,6 +443,12 @@ the shape is a circle if point is &#39;smooth&#39;, a square if point is a &#39;
       </a>
     </span>
     <span class='desc'>
+      redefine <a href='../class/RPath.html#initSelection-dynamic'>RPath#initSelection</a> Same functionnalities as <a href='../class/RPath.html#initSelection-dynamic'>RPath#initSelection</a> (determine which action to perform depending on the the <em>hitResult</em>) but:
+<ul>
+<li>adds handle selection initialization, and highlight selected points if any</li>
+<li>properly initialize transformation (rotation and scale) for PrecisePath</li>
+</ul>
+
     </span>
   </li>
   <li>
@@ -456,7 +461,16 @@ the shape is a circle if point is &#39;smooth&#39;, a square if point is a &#39;
     </span>
     <span class='desc'>
       <p>segment.rtype == null or &#39;smooth&#39;: handles are aligned, and have the same length if shit segment.rtype == &#39;corner&#39;: handles are not equal
-segment.rtype == &#39;point&#39;: no handles</p>
+segment.rtype == &#39;point&#39;: no handles
+redefine <a href='../class/RPath.html#selectUpdate-dynamic'>RPath#selectUpdate</a>
+depending on the selected item, selectUpdate will:</p><ul>
+move the selected handle,
+<li>move the selected point,</li>
+<li>rotate the group,</li>
+<li>scale the group,</li>
+<li>or move the group.</li>
+</ul>
+
     </span>
   </li>
   <li>
@@ -468,6 +482,7 @@ segment.rtype == &#39;point&#39;: no handles</p>
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/RPath.html#selectUpdate-dynamic'>RPath#selectUpdate</a> 
     </span>
   </li>
   <li>
@@ -479,6 +494,7 @@ segment.rtype == &#39;point&#39;: no handles</p>
       </a>
     </span>
     <span class='desc'>
+      smooth the point of <em>segment</em>, i.e. 
     </span>
   </li>
   <li>
@@ -490,6 +506,13 @@ segment.rtype == &#39;point&#39;: no handles</p>
       </a>
     </span>
     <span class='desc'>
+      double click event handler:  if we click on a point:
+<ul>
+<li>roll over the three point modes (a &#39;smooth&#39; point will become &#39;corner&#39;, a &#39;corner&#39; will become &#39;point&#39;, and a &#39;point&#39; will be deleted)
+else if we clicked on the control path:</li>
+<li>create a point at <em>event</em> position</li>
+</ul>
+
     </span>
   </li>
   <li>
@@ -501,6 +524,7 @@ segment.rtype == &#39;point&#39;: no handles</p>
       </a>
     </span>
     <span class='desc'>
+      delete the point of <em>segment</em> (from curve) and delete curve if there are no points anymore 
     </span>
   </li>
   <li>
@@ -512,6 +536,8 @@ segment.rtype == &#39;point&#39;: no handles</p>
       </a>
     </span>
     <span class='desc'>
+      delete the selected point (from curve) and delete curve if there are no points anymore emit the action to websocket
+
     </span>
   </li>
   <li>
@@ -523,6 +549,11 @@ segment.rtype == &#39;point&#39;: no handles</p>
       </a>
     </span>
     <span class='desc'>
+      <ul> set selected point mode to <em>value</em>: &#39;smooth&#39;, &#39;corner&#39; or &#39;point&#39;
+<li>update the selected point highlight </li>
+<li>emit action to websocket</li>
+</ul>
+
     </span>
   </li>
   <li>
@@ -534,6 +565,8 @@ segment.rtype == &#39;point&#39;: no handles</p>
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/RPath.html#parameterChanged-dynamic'>RPath#parameterChanged</a>, but update the control path state if &#39;smooth&#39; was changed called when a parameter is changed
+
     </span>
   </li>
   <li>
@@ -545,6 +578,7 @@ segment.rtype == &#39;point&#39;: no handles</p>
       </a>
     </span>
     <span class='desc'>
+      overload <a href='../class/RPath.html#remove-dynamic'>RPath#remove</a>, but in addition: remove the selected point highlight and the canvas raster 
     </span>
   </li>
 </ul>
@@ -638,7 +672,8 @@ segment.rtype == &#39;point&#39;: no handles</p>
       <br>
     </p>
     <div class='docstring'>
-  <p>load control path from @data.points and check if <em>points</em> fit to the created control path</p>
+  <p>redefine <a href='../class/RPath.html#loadPath-dynamic'>RPath#loadPath</a>
+load control path from @data.points and check if <em>points</em> fit to the created control path</p>
 </div>
 <div class='tags'>
 </div>
@@ -651,7 +686,7 @@ segment.rtype == &#39;point&#39;: no handles</p>
       <br>
     </p>
     <div class='docstring'>
-  <p>overload hit test to test not only on the selection rectangle, but also on the control path</p>
+  <p>redefine hit test to test not only on the selection rectangle, but also on the control path</p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -713,7 +748,7 @@ segment.rtype == &#39;point&#39;: no handles</p>
       <br>
     </p>
     <div class='docstring'>
-  <p>default drawBegin function, will be overloaded by children PrecisePath</p>
+  <p>default drawBegin function, will be redefined by children PrecisePath</p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -739,7 +774,7 @@ segment.rtype == &#39;point&#39;: no handles</p>
       <br>
     </p>
     <div class='docstring'>
-  <p>default drawUpdate function, will be overloaded by children PrecisePath</p>
+  <p>default drawUpdate function, will be redefined by children PrecisePath</p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -765,7 +800,7 @@ segment.rtype == &#39;point&#39;: no handles</p>
       <br>
     </p>
     <div class='docstring'>
-  <p>default drawEnd function, will be overloaded by children PrecisePath</p>
+  <p>default drawEnd function, will be redefined by children PrecisePath</p>
 </div>
 <div class='tags'>
 </div>
@@ -1185,7 +1220,16 @@ the shape is a circle if point is &#39;smooth&#39;, a square if point is a &#39;
 <b>initSelection</b><span>(event, hitResult, userAction = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>redefine <a href='../class/RPath.html#initSelection-dynamic'>RPath#initSelection</a>
+Same functionnalities as <a href='../class/RPath.html#initSelection-dynamic'>RPath#initSelection</a> (determine which action to perform depending on the the <em>hitResult</em>) but:</p><ul>
+<li>adds handle selection initialization, and highlight selected points if any</li>
+<li>properly initialize transformation (rotation and scale) for PrecisePath</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='selectUpdate-dynamic'>
@@ -1197,9 +1241,42 @@ the shape is a circle if point is &#39;smooth&#39;, a square if point is a &#39;
     <div class='docstring'>
   <p>segment.rtype == null or &#39;smooth&#39;: handles are aligned, and have the same length if shit
 segment.rtype == &#39;corner&#39;: handles are not equal
-segment.rtype == &#39;point&#39;: no handles</p>
+segment.rtype == &#39;point&#39;: no handles
+redefine <a href='../class/RPath.html#selectUpdate-dynamic'>RPath#selectUpdate</a>
+depending on the selected item, selectUpdate will:</p><ul>
+<li>move the selected handle,</li>
+<li>move the selected point,</li>
+<li>rotate the group,</li>
+<li>scale the group,</li>
+<li>or move the group.
+the selection rectangle must be updated if the curve is changed</li>
+</ul>
+
 </div>
 <div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Paper event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user </span>
+    </li>
+  </ul>
 </div>
   </div>
   <div class='method_details'>
@@ -1209,7 +1286,11 @@ segment.rtype == &#39;point&#39;: no handles</p>
 <b>selectEnd</b><span>(event, userAction = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/RPath.html#selectUpdate-dynamic'>RPath#selectUpdate</a></p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='smoothPoint-dynamic'>
@@ -1218,7 +1299,34 @@ segment.rtype == &#39;point&#39;: no handles</p>
 <b>smoothPoint</b><span>(segment, offset)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>smooth the point of <em>segment</em>, i.e. align the handles with the tangent at this point</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>segment</span>
+      <span class='type'>
+        (
+          <tt>Paper Segment</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the segment to smooth </span>
+    </li>
+    <li>
+      <span class='name'>offset</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>(optional) the location of the segment (default is segment.location.offset) </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='doubleClick-dynamic'>
@@ -1227,7 +1335,40 @@ segment.rtype == &#39;point&#39;: no handles</p>
 <b>doubleClick</b><span>(event, userAction = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>double click event handler: 
+if we click on a point:</p><ul>
+<li>roll over the three point modes (a &#39;smooth&#39; point will become &#39;corner&#39;, a &#39;corner&#39; will become &#39;point&#39;, and a &#39;point&#39; will be deleted)
+else if we clicked on the control path:</li>
+<li>create a point at <em>event</em> position</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>event</span>
+      <span class='type'>
+        (
+          <tt>jQuery event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the mouse event </span>
+    </li>
+    <li>
+      <span class='name'>userAction</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether this is an action from <em>g.me</em> or another user </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='deletePoint-dynamic'>
@@ -1236,7 +1377,24 @@ segment.rtype == &#39;point&#39;: no handles</p>
 <b>deletePoint</b><span>(segment)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>delete the point of <em>segment</em> (from curve) and delete curve if there are no points anymore</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>segment</span>
+      <span class='type'>
+        (
+          <tt>Paper Segment</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the segment to delete </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='deleteSelectedPoint-dynamic'>
@@ -1245,7 +1403,25 @@ segment.rtype == &#39;point&#39;: no handles</p>
 <b>deleteSelectedPoint</b><span>(userAction = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>delete the selected point (from curve) and delete curve if there are no points anymore
+emit the action to websocket</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>userAction</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether this is an action from <em>g.me</em> or another user </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='changeSelectedPoint-dynamic'>
@@ -1254,7 +1430,39 @@ segment.rtype == &#39;point&#39;: no handles</p>
 <b>changeSelectedPoint</b><span>(userAction = true, value)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <ul>
+<li>set selected point mode to <em>value</em>: &#39;smooth&#39;, &#39;corner&#39; or &#39;point&#39;</li>
+<li>update the selected point highlight </li>
+<li>emit action to websocket</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>userAction</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether this is an action from <em>g.me</em> or another user </span>
+    </li>
+    <li>
+      <span class='name'>value</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>new mode of the point: can be &#39;smooth&#39;, &#39;corner&#39; or &#39;point&#39; </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='parameterChanged-dynamic'>
@@ -1263,7 +1471,12 @@ segment.rtype == &#39;point&#39;: no handles</p>
 <b>parameterChanged</b><span>(update = true)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/RPath.html#parameterChanged-dynamic'>RPath#parameterChanged</a>, but update the control path state if &#39;smooth&#39; was changed
+called when a parameter is changed</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='remove-dynamic'>
@@ -1272,12 +1485,16 @@ segment.rtype == &#39;point&#39;: no handles</p>
 <b>remove</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>overload <a href='../class/RPath.html#remove-dynamic'>RPath#remove</a>, but in addition: remove the selected point highlight and the canvas raster</p>
+</div>
+<div class='tags'>
+</div>
   </div>
 </div>
     </div>
     <div id='footer'>
-  December 10, 14 11:28:38 by
+  December 10, 14 20:42:34 by
   <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
     Codo
   </a>

@@ -47,10 +47,10 @@ A romanesco path (RPath) is a path made of the following items:</p><ul>
 <li>the speed group can be shown or hidden</li>
 </ul>
 </li>
-<li>RShape which defines a rectangle in which the drawing should be included<ul>
-<li>(during the creation, the user defines a rectangle with the mouse to define the rectangle)</li>
-</ul>
-</li>
+<li>RShape defined by a rectangle in which the drawing should be included (the user draws the rectangle with the mouse)</li>
+</ul><p>Those three RPaths (PrecisePath, SpeedPath and RShape) provide drawing functionnalities and are meant to be overridden to generate some advanced paths:</p><ul>
+<li>in PrecisePath and SpeedPath, three methods are meant to be overridden: drawBegin, drawUpdate and drawEnd,  see <a href='../class/PrecisePath.html'>PrecisePath</a> to see how those methods are called while drawing.</li>
+<li>in RShape, <a href='../class/RShape.html#createShape-dynamic'>RShape#createShape</a> is meant to be overloaded</li>
 </ul><p>Parameters:</p><ul>
 <li>parameters are defined as in RTools</li>
 <li>all data related to the parameters (and state) of the RPath is stored under the @data property</li>
@@ -139,7 +139,7 @@ A romanesco path (RPath) is a path made of the following items:</p><ul>
       </a>
     </span>
     <span class='desc'>
-      parameters are defined as in RTools 
+      parameters are defined as in <a href='../class/RTool.html'>RTool</a> 
     </span>
   </li>
 </ul>
@@ -154,7 +154,8 @@ A romanesco path (RPath) is a path made of the following items:</p><ul>
       </a>
     </span>
     <span class='desc'>
-      construct a new RPath and save it 
+      common to all RItems construct a new RPath and save it
+
     </span>
   </li>
   <li>
@@ -179,7 +180,8 @@ path width is used for example for hit tests and to determine is the RPath overl
       </a>
     </span>
     <span class='desc'>
-      return [Rectangle] the bounds of the control path (improve: must be expanded with @pathWidth()?) 
+      common to all RItems return [Rectangle] the bounds of the control path (should fit the drawing entirely since the stroke width is pathWidth)
+
     </span>
   </li>
   <li>
@@ -191,7 +193,8 @@ path width is used for example for hit tests and to determine is the RPath overl
       </a>
     </span>
     <span class='desc'>
-      move the RPath by <em>delta</em> 
+      common to all RItems move the RPath by <em>delta</em> and update if <em>userAction</em>
+
     </span>
   </li>
   <li>
@@ -203,7 +206,8 @@ path width is used for example for hit tests and to determine is the RPath overl
       </a>
     </span>
     <span class='desc'>
-      move the RPath to <em>position</em> 
+      common to all RItems move the RPath to <em>position</em> and update if <em>userAction</em>
+
     </span>
   </li>
   <li>
@@ -265,7 +269,7 @@ path width is used for example for hit tests and to determine is the RPath overl
     </span>
     <span class='desc'>
       <p>when hit through websocket, must be (fully)Selected to hitTest perform hit test on selection rectangle
-since @hitTest() will be overloaded by children RPath, it is necessary to @prepareHitTest() and @finishHitTest()</p>
+since @hitTest() will be overridden by children RPath, it is necessary to @prepareHitTest() and @finishHitTest()</p>
     </span>
   </li>
   <li>
@@ -277,7 +281,8 @@ since @hitTest() will be overloaded by children RPath, it is necessary to @prepa
       </a>
     </span>
     <span class='desc'>
-      add or update the selection rectangle (path used to rotate and scale the RPath) 
+      add or update the selection rectangle (path used to rotate and scale the RPath) redefined by RShape
+
     </span>
   </li>
   <li>
@@ -289,7 +294,8 @@ since @hitTest() will be overloaded by children RPath, it is necessary to @prepa
       </a>
     </span>
     <span class='desc'>
-      select the RPath: (only if it has a control path but no selection rectangle i.e. 
+      common to all RItems select the RPath: (only if it has a control path but no selection rectangle i.e.
+
     </span>
   </li>
   <li>
@@ -341,7 +347,8 @@ since @hitTest() will be overloaded by children RPath, it is necessary to @prepa
     <span class='desc'>
       <p>intialize the selection:  determine which action to perform depending on the the <em>hitResult</em> (move by default, edit point if segment from contorl path, etc.)
 set @selectedSegment, @selectionRectangleRotation or @selectionRectangleScale which will be used during the selection process (select begin, update, end)
-overloaded by path, good for shape
+redefined by <a href='../class/PrecisePath.html'>PrecisePath</a>, only used as is by <a href='../class/RShape.html'>RShape</a>
+the transformation is not intialized the same way for PrecisePath and for RShape
                    <em>change</em> is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)</p>
     </span>
   </li>
@@ -354,7 +361,8 @@ overloaded by path, good for shape
       </a>
     </span>
     <span class='desc'>
-      begin select action: <ul>
+      common to all RItems begin select action:
+<ul>
 <li>initialize selection (reset selection state)</li>
 <li>select if <em>userAction</em></li>
 <li>hit test and initilize selection</li>
@@ -373,8 +381,8 @@ overloaded by path, good for shape
       </a>
     </span>
     <span class='desc'>
-      update select action to be overloaded by children classes
-
+      <p>common to all RItems update select action
+to be redefined by children classes</p>
     </span>
   </li>
   <li>
@@ -386,7 +394,8 @@ overloaded by path, good for shape
       </a>
     </span>
     <span class='desc'>
-      end select action 
+      common to all RItems end select action
+
     </span>
   </li>
   <li>
@@ -398,7 +407,7 @@ overloaded by path, good for shape
       </a>
     </span>
     <span class='desc'>
-      double click action to be overloaded by children classes
+      double click action to be redefined in children classes
 
     </span>
   </li>
@@ -412,7 +421,7 @@ overloaded by path, good for shape
     </span>
     <span class='desc'>
       <p>redraw the skeleton (controlPath) of the path,  called only when loading a path
-overloaded by PrecisePath, extended by shape (for security checks)</p>
+redefined in PrecisePath, extended by shape (for security checks)</p>
     </span>
   </li>
   <li>
@@ -424,8 +433,12 @@ overloaded by PrecisePath, extended by shape (for security checks)</p>
       </a>
     </span>
     <span class='desc'>
-      <p>common to all RItems called from parameter.onChange (update = true)
-called from websocket after parameter.onChange (update = false)</p>
+      common to all RItems called when a parameter is changed:
+<ul>
+<li>from user action (parameter.onChange) (update = true)</li>
+<li>from websocket (another user changed the parameter) (update = false)</li>
+</ul>
+
     </span>
   </li>
   <li>
@@ -500,7 +513,7 @@ by createBegin/Update/End, selectUpdate/End, parameterChanged, deletePoint, chan
       </a>
     </span>
     <span class='desc'>
-      called once after createEnd to initialize the path (add it to a game, or to the animated paths) must be overloaded by children RPath
+      called once after createEnd to initialize the path (add it to a game, or to the animated paths) must be redefined in children RPath
 
     </span>
   </li>
@@ -575,19 +588,20 @@ called from PathTool.begin, PathTool.update and PathTool.end (when the user draw
       </a>
     </span>
     <span class='desc'>
-      get data, usually to save the RPath (some information must be added to data) 
+      common to all RItems get data, usually to save the RPath (some information must be added to data)
+
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#getStringifiedData-dynamic'>
         #
-(void)
+(String)
 <b>getStringifiedData</b><span>()</span>
       </a>
     </span>
     <span class='desc'>
-      get stringified data 
+      common to all RItems 
     </span>
   </li>
   <li>
@@ -711,7 +725,7 @@ called from PathTool.begin, PathTool.update and PathTool.end (when the user draw
       </a>
     </span>
     <span class='desc'>
-      <p>common in rpath and rdiv @delete() removes the path and delete it in the database
+      <p>common to all RItems @delete() removes the path and delete it in the database
 @remove() just removes visually</p>
     </span>
   </li>
@@ -750,7 +764,7 @@ called from PathTool.begin, PathTool.update and PathTool.end (when the user draw
       <br>
     </p>
     <div class='docstring'>
-  <p>parameters are defined as in RTools</p>
+  <p>parameters are defined as in <a href='../class/RTool.html'>RTool</a></p>
 </div>
 <div class='tags'>
 </div>
@@ -826,7 +840,8 @@ When user creates a path, the path is given an identifier (@id); when the path i
       <br>
     </p>
     <div class='docstring'>
-  <p>construct a new RPath and save it</p>
+  <p>common to all RItems
+construct a new RPath and save it</p>
 </div>
 <div class='tags'>
   <h3>Returns:</h3>
@@ -865,7 +880,8 @@ path width is used for example for hit tests and to determine is the RPath overl
       <br>
     </p>
     <div class='docstring'>
-  <p>return [Rectangle] the bounds of the control path (improve: must be expanded with @pathWidth()?)</p>
+  <p>common to all RItems
+return [Rectangle] the bounds of the control path (should fit the drawing entirely since the stroke width is pathWidth)</p>
 </div>
 <div class='tags'>
 </div>
@@ -878,7 +894,8 @@ path width is used for example for hit tests and to determine is the RPath overl
       <br>
     </p>
     <div class='docstring'>
-  <p>move the RPath by <em>delta</em></p>
+  <p>common to all RItems
+move the RPath by <em>delta</em> and update if <em>userAction</em></p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -914,7 +931,8 @@ path width is used for example for hit tests and to determine is the RPath overl
       <br>
     </p>
     <div class='docstring'>
-  <p>move the RPath to <em>position</em></p>
+  <p>common to all RItems
+move the RPath to <em>position</em> and update if <em>userAction</em></p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -1087,7 +1105,7 @@ store the current state of items, and change their state (the original states wi
     <div class='docstring'>
   <p>when hit through websocket, must be (fully)Selected to hitTest
 perform hit test on selection rectangle
-since @hitTest() will be overloaded by children RPath, it is necessary to @prepareHitTest() and @finishHitTest()</p>
+since @hitTest() will be overridden by children RPath, it is necessary to @prepareHitTest() and @finishHitTest()</p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -1133,7 +1151,8 @@ since @hitTest() will be overloaded by children RPath, it is necessary to @prepa
       <br>
     </p>
     <div class='docstring'>
-  <p>add or update the selection rectangle (path used to rotate and scale the RPath)</p>
+  <p>add or update the selection rectangle (path used to rotate and scale the RPath)
+redefined by RShape</p>
 </div>
 <div class='tags'>
 </div>
@@ -1146,7 +1165,8 @@ since @hitTest() will be overloaded by children RPath, it is necessary to @prepa
       <br>
     </p>
     <div class='docstring'>
-  <p>select the RPath: (only if it has a control path but no selection rectangle i.e. already selected)</p><ul>
+  <p>common to all RItems
+select the RPath: (only if it has a control path but no selection rectangle i.e. already selected)</p><ul>
 <li>create or update the selection rectangle, </li>
 <li>create or update the global selection group (i.e. add this RPath to the grouop)</li>
 <li>(optionally) update controller in the gui accordingly</li>
@@ -1244,7 +1264,8 @@ called by @selectBegin()</p>
   <p>intialize the selection: 
 determine which action to perform depending on the the <em>hitResult</em> (move by default, edit point if segment from contorl path, etc.)
 set @selectedSegment, @selectionRectangleRotation or @selectionRectangleScale which will be used during the selection process (select begin, update, end)
-overloaded by path, good for shape
+redefined by <a href='../class/PrecisePath.html'>PrecisePath</a>, only used as is by <a href='../class/RShape.html'>RShape</a>
+the transformation is not intialized the same way for PrecisePath and for RShape
                    <em>change</em> is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)</p>
 </div>
 <div class='tags'>
@@ -1302,7 +1323,8 @@ overloaded by path, good for shape
       <br>
     </p>
     <div class='docstring'>
-  <p>begin select action:</p><ul>
+  <p>common to all RItems
+begin select action:</p><ul>
 <li>initialize selection (reset selection state)</li>
 <li>select if <em>userAction</em></li>
 <li>hit test and initilize selection</li>
@@ -1356,8 +1378,9 @@ overloaded by path, good for shape
       <br>
     </p>
     <div class='docstring'>
-  <p>update select action
-to be overloaded by children classes</p>
+  <p>common to all RItems
+update select action
+to be redefined by children classes</p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -1393,7 +1416,8 @@ to be overloaded by children classes</p>
       <br>
     </p>
     <div class='docstring'>
-  <p>end select action</p>
+  <p>common to all RItems
+end select action</p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -1430,7 +1454,7 @@ to be overloaded by children classes</p>
     </p>
     <div class='docstring'>
   <p>double click action
-to be overloaded by children classes</p>
+to be redefined in children classes</p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -1468,7 +1492,7 @@ to be overloaded by children classes</p>
     <div class='docstring'>
   <p>redraw the skeleton (controlPath) of the path, 
 called only when loading a path
-overloaded by PrecisePath, extended by shape (for security checks)</p>
+redefined in PrecisePath, extended by shape (for security checks)</p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -1495,8 +1519,11 @@ overloaded by PrecisePath, extended by shape (for security checks)</p>
     </p>
     <div class='docstring'>
   <p>common to all RItems
-called from parameter.onChange (update = true)
-called from websocket after parameter.onChange (update = false)</p>
+called when a parameter is changed:</p><ul>
+<li>from user action (parameter.onChange) (update = true)</li>
+<li>from websocket (another user changed the parameter) (update = false)</li>
+</ul>
+
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -1628,7 +1655,7 @@ else</li>
   <p>update the appearance of the path (the drawing group)
 called anytime the path is modified:
 by createBegin/Update/End, selectUpdate/End, parameterChanged, deletePoint, changePoint etc. and loadPath
-must be overloaded by children RPath</p>
+must be redefined in children RPath</p>
 </div>
 <div class='tags'>
 </div>
@@ -1642,7 +1669,7 @@ must be overloaded by children RPath</p>
     </p>
     <div class='docstring'>
   <p>called once after createEnd to initialize the path (add it to a game, or to the animated paths)
-must be overloaded by children RPath</p>
+must be redefined in children RPath</p>
 </div>
 <div class='tags'>
 </div>
@@ -1764,7 +1791,8 @@ to be updated</p>
       <br>
     </p>
     <div class='docstring'>
-  <p>get data, usually to save the RPath (some information must be added to data)</p>
+  <p>common to all RItems
+get data, usually to save the RPath (some information must be added to data)</p>
 </div>
 <div class='tags'>
 </div>
@@ -1772,14 +1800,25 @@ to be updated</p>
   <div class='method_details'>
     <p class='signature' id='getStringifiedData-dynamic'>
       #
-(void)
+(String)
 <b>getStringifiedData</b><span>()</span>
       <br>
     </p>
     <div class='docstring'>
-  <p>get stringified data</p>
+  <p>common to all RItems</p>
 </div>
 <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>String</tt>
+      )
+      &mdash;
+      <span class='desc'>the stringified data </span>
+    </li>
+  </ul>
 </div>
   </div>
   <div class='method_details'>
@@ -1981,7 +2020,7 @@ called by @delete() and to update users view through websockets
       <br>
     </p>
     <div class='docstring'>
-  <p>common in rpath and rdiv
+  <p>common to all RItems
 @delete() removes the path and delete it in the database
 @remove() just removes visually</p>
 </div>
@@ -2017,7 +2056,7 @@ called by @delete() and to update users view through websockets
 </div>
     </div>
     <div id='footer'>
-  December 10, 14 11:28:38 by
+  December 10, 14 20:42:34 by
   <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
     Codo
   </a>
