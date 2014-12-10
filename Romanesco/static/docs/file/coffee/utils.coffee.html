@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset='UTF-8'>
+  <title>CoffeeScript API Documentation</title>
+  <script src='../../javascript/application.js'></script>
+  <script src='../../javascript/search.js'></script>
+  <link rel='stylesheet' href='../../stylesheets/application.css' type='text/css'>
+</head>
+  <body>
+    <div id='base' data-path='../../'></div>
+<div id='header'>
+  <div id='menu'>
+    <a href='../../alphabetical_index.html' title='Index'>
+      Index
+    </a>
+    &raquo;
+    <span class='title'>coffee</span>
+    &raquo;
+    <span class='title'>utils.coffee</span>
+  </div>
+</div>
+    <div id='content'>
+      <h1>
+        File:
+        utils.coffee
+      </h1>
+      <table class='box'>
+        <tr>
+          <td>Defined in:</td>
+          <td>coffee</td>
+        </tr>
+      </table>
+      <h2>Variables Summary</h2>
+      <dl class='constants'>
+  <dt id='g-variable'>
+    g
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'></code></pre>
+    
+  </dd>
+</dl>
+      <h2>Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#sign-'>
+        ~
+(Number)
+<b>sign</b><span>(x)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#clamp-'>
+        ~
+(Number)
+<b>clamp</b><span>(min, value, max)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#Array-'>
+        ~
+(void)
+<b>Array</b><span>(itemToRemove)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>removes <em>itemToRemove</em> from array  problem with array.splice(array.indexOf(item),1) :
+removes the last element if item is not in array</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#Array-'>
+        ~
+(Array item)
+<b>Array</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#Array-'>
+        ~
+(Array item)
+<b>Array</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#Array-'>
+        ~
+(Array item)
+<b>Array</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#pushIfAbsent-'>
+        ~
+(void)
+<b>pushIfAbsent</b><span>(array, item)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      previously Array.prototype.pushIfAbsent, but there seem to be a colision with jQuery... 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#defferedExecution-'>
+        ~
+(void)
+<b>defferedExecution</b><span>(callback, id, n = 500)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Execute <em>callback</em> after <em>n</em> milliseconds, reset the delay timer at each call 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#gaussian-'>
+        ~
+(Number)
+<b>gaussian</b><span>(mean, sigma, x)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+</ul>
+      <h2>Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='sign-'>
+      ~
+(Number)
+<b>sign</b><span>(x)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Number</tt>
+      )
+      &mdash;
+      <span class='desc'>sign of <em>x</em> (+1 or -1) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='clamp-'>
+      ~
+(Number)
+<b>clamp</b><span>(min, value, max)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Number</tt>
+      )
+      &mdash;
+      <span class='desc'><em>value</em> clamped with <em>min</em> and <em>max</em> ( so that min &lt;= value &lt;= max ) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='Array-'>
+      ~
+(void)
+<b>Array</b><span>(itemToRemove)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>removes <em>itemToRemove</em> from array 
+problem with array.splice(array.indexOf(item),1) :
+removes the last element if item is not in array</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='Array-'>
+      ~
+(Array item)
+<b>Array</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Array item</tt>
+      )
+      &mdash;
+      <span class='desc'>first element of the array </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='Array-'>
+      ~
+(Array item)
+<b>Array</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Array item</tt>
+      )
+      &mdash;
+      <span class='desc'>last element of the array </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='Array-'>
+      ~
+(Array item)
+<b>Array</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Array item</tt>
+      )
+      &mdash;
+      <span class='desc'>random element of then array </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='pushIfAbsent-'>
+      ~
+(void)
+<b>pushIfAbsent</b><span>(array, item)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>previously Array.prototype.pushIfAbsent, but there seem to be a colision with jQuery... 
+push if array does not contain item</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='defferedExecution-'>
+      ~
+(void)
+<b>defferedExecution</b><span>(callback, id, n = 500)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Execute <em>callback</em> after <em>n</em> milliseconds, reset the delay timer at each call</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>callback</span>
+      <span class='type'>
+        (
+          <tt>function</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>function </span>
+    </li>
+    <li>
+      <span class='name'>a</span>
+      <span class='type'>
+        (
+          <tt>Anything</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>unique id (usually the id or pk of RItems) to avoid collisions between deffered executions </span>
+    </li>
+    <li>
+      <span class='name'>delay</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>before <em>callback</em> is called </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='gaussian-'>
+      ~
+(Number)
+<b>gaussian</b><span>(mean, sigma, x)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>mean:</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>expected value </span>
+    </li>
+    <li>
+      <span class='name'>sigma:</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>standard deviation </span>
+    </li>
+    <li>
+      <span class='name'>x:</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>parameter </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Number</tt>
+      )
+      &mdash;
+      <span class='desc'>value (at <em>x</em>) of the gaussian of expected value <em>mean</em> and standard deviation <em>sigma</em> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+</div>
+    </div>
+    <div id='footer'>
+  December 10, 14 11:28:38 by
+  <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
+    Codo
+  </a>
+  2.0.9
+  &#10034;
+  Press H to see the keyboard shortcuts
+  &#10034;
+  <a href='http://twitter.com/netzpirat' target='_parent'>@netzpirat</a>
+  &#10034;
+  <a href='http://twitter.com/_inossidabile' target='_parent'>@_inossidabile</a>
+</div>
+<iframe id='search_frame'></iframe>
+<div id='fuzzySearch'>
+  <input type='text'>
+  <ol></ol>
+</div>
+<div id='help'>
+  <p>
+    Quickly fuzzy find classes, mixins, methods, file:
+  </p>
+  <ul>
+    <li>
+      <span>T</span>
+      Open fuzzy finder dialog
+    </li>
+  </ul>
+  <p>
+    Control the navigation frame:
+  </p>
+  <ul>
+    <li>
+      <span>L</span>
+      Toggle list view
+    </li>
+    <li>
+      <span>C</span>
+      Show class list
+    </li>
+    <li>
+      <span>I</span>
+      Show mixin list
+    </li>
+    <li>
+      <span>F</span>
+      Show file list
+    </li>
+    <li>
+      <span>M</span>
+      Show method list
+    </li>
+    <li>
+      <span>E</span>
+      Show extras list
+    </li>
+  </ul>
+  <p>
+    You can focus and blur the search input:
+  </p>
+  <ul>
+    <li>
+      <span>S</span>
+      Focus search input
+    </li>
+    <li>
+      <span>Esc</span>
+      Blur search input
+    </li>
+  </ul>
+</div>
+  </body>
+</html>

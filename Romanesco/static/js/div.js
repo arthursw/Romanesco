@@ -58,7 +58,7 @@
       this.modalJ.find('.url-group').show();
       this.modalJ.find('.message-group').show();
       this.modalJ.find('.checkbox.restrict-area').hide();
-      return this.modalJ.find('.checkbox.disable-toolbar').hide();
+      this.modalJ.find('.checkbox.disable-toolbar').hide();
     };
 
     RDiv.save = function(rectangle, object_type, message, name, url, clonePk, website, restrictedArea, disableToolbar) {
@@ -72,15 +72,16 @@
       switch (object_type) {
         case 'text':
         case 'media':
-          return Dajaxice.draw.saveDiv(this.save_callback, {
+          Dajaxice.draw.saveDiv(this.save_callback, {
             'box': this.boxFromRectangle(rectangle),
             'object_type': object_type,
             'message': message,
             'url': url,
             'clonePk': clonePk
           });
+          break;
         default:
-          return Dajaxice.draw.saveBox(this.save_callback, {
+          Dajaxice.draw.saveBox(this.save_callback, {
             'box': this.boxFromRectangle(rectangle),
             'object_type': object_type,
             'message': message,
@@ -95,7 +96,7 @@
     };
 
     RDiv.save_callback = function(result, owner) {
-      var br, div, tl;
+      var br, data, div, tl;
       if (owner == null) {
         owner = true;
       }
@@ -125,13 +126,14 @@
           div = new RLink(tl, new Size(br.subtract(tl)), result.owner, result.pk, result.message, result.name, result.url, result.data);
       }
       if (result.clonePk) {
-        div.data = g.items[result.clonePk].data;
+        data = g.items[result.clonePk].data;
+        div.data = jQuery.extend({}, data);
         div.parameterChanged();
       }
       if (owner) {
         g.chatSocket.emit("createDiv", result);
         if (result.clonePk == null) {
-          return div.select();
+          div.select();
         }
       }
     };
@@ -159,7 +161,7 @@
       } else {
         this.modalJ.find('.btn-primary').text("Add");
       }
-      return this.modalJ.modal('show');
+      this.modalJ.modal('show');
     };
 
     RDiv.modalSubmit = function() {
@@ -191,7 +193,7 @@
       } else {
         RDiv.save(RDiv.modalJ.rectangle, object_type, message, name, url, false, website, restrictedArea, disableToolbar);
       }
-      return RDiv.modalJ.modal('hide');
+      RDiv.modalJ.modal('hide');
     };
 
     RDiv.boxFromRectangle = function(rectangle) {
@@ -283,6 +285,7 @@
       if (g.selectedTool.name === 'Move') {
         this.disableInteraction();
       }
+      return;
     }
 
     RDiv.prototype.duplicate = function() {
@@ -290,14 +293,14 @@
     };
 
     RDiv.prototype.modify = function() {
-      return this.constructor.initModal(this.getBounds(), this);
+      this.constructor.initModal(this.getBounds(), this);
     };
 
     RDiv.prototype.updateTransform = function() {
       var css, viewPos;
       viewPos = view.projectToView(this.position);
       if (view.zoom === 1) {
-        return this.divJ.css({
+        this.divJ.css({
           'left': viewPos.x,
           'top': viewPos.y,
           'transform': 'none'
@@ -305,16 +308,12 @@
       } else {
         css = 'translate(' + viewPos.x + 'px,' + viewPos.y + 'px)';
         css += ' scale(' + view.zoom + ')';
-        return this.divJ.css({
+        this.divJ.css({
           'transform': css,
           'top': 0,
           'left': 0
         });
       }
-    };
-
-    RDiv.prototype.zoom = function() {
-      return this.updateTransform();
     };
 
     RDiv.prototype.getBounds = function() {
@@ -393,7 +392,7 @@
       }
       this.dragOffset = {};
       this.dragOffset.x = point.x - pos.x;
-      return this.dragOffset.y = point.y - pos.y;
+      this.dragOffset.y = point.y - pos.y;
     };
 
     RDiv.prototype.selectUpdate = function(event, userAction) {
@@ -411,9 +410,9 @@
         return true;
       }
       if (this.draggedHandleJ) {
-        return this.resize(event, userAction);
+        this.resize(event, userAction);
       } else {
-        return this.drag(event, userAction);
+        this.drag(event, userAction);
       }
     };
 
@@ -434,7 +433,7 @@
         this.dragFinished(userAction);
       }
       this.dragging = false;
-      return this.draggedHandleJ = null;
+      this.draggedHandleJ = null;
     };
 
     RDiv.prototype.disableInteraction = function() {
@@ -518,7 +517,7 @@
       this.dragging = false;
       this.draggedHandleJ = null;
       if (userAction) {
-        return this.update();
+        this.update();
       }
     };
 
@@ -533,7 +532,7 @@
           this.setCss();
       }
       if (update) {
-        return g.defferedExecution(this.update, this.pk);
+        g.defferedExecution(this.update, this.pk);
       }
     };
 
@@ -546,7 +545,7 @@
     };
 
     RDiv.prototype.updateDiv_callback = function(result) {
-      return g.checkError(result);
+      g.checkError(result);
     };
 
     RDiv.prototype.update = function() {
@@ -566,10 +565,10 @@
       };
       this.changed = null;
       if (this.object_type === 'text' || this.object_type === 'media') {
-        return Dajaxice.draw.updateDiv(this.updateDiv_callback, data);
+        Dajaxice.draw.updateDiv(this.updateDiv_callback, data);
       } else {
         data.name = this.name;
-        return Dajaxice.draw.updateBox(this.updateDiv_callback, data);
+        Dajaxice.draw.updateBox(this.updateDiv_callback, data);
       }
     };
 
@@ -582,7 +581,7 @@
         g.tools['Select'].select();
       }
       this.divJ.addClass("selected");
-      return g.updateParameters({
+      g.updateParameters({
         tool: this.constructor,
         item: this
       }, true);
@@ -593,44 +592,53 @@
         return;
       }
       this.divJ.removeClass("selected");
-      return g.selectedDivs.remove(this);
+      g.selectedDivs.remove(this);
     };
 
     RDiv.prototype.setCss = function() {
       this.setFillColor();
       this.setStrokeColor();
-      return this.setStrokeWidth();
+      this.setStrokeWidth();
     };
 
     RDiv.prototype.setFillColor = function() {
       var _ref, _ref1;
-      return (_ref = this.contentJ) != null ? _ref.css({
-        'background-color': (_ref1 = this.data.fillColor) != null ? _ref1 : 'transparent'
-      }) : void 0;
+      if ((_ref = this.contentJ) != null) {
+        _ref.css({
+          'background-color': (_ref1 = this.data.fillColor) != null ? _ref1 : 'transparent'
+        });
+      }
     };
 
     RDiv.prototype.setStrokeColor = function() {
       var _ref, _ref1;
-      return (_ref = this.contentJ) != null ? _ref.css({
-        'border-color': (_ref1 = this.data.strokeColor) != null ? _ref1 : 'transparent'
-      }) : void 0;
+      if ((_ref = this.contentJ) != null) {
+        _ref.css({
+          'border-color': (_ref1 = this.data.strokeColor) != null ? _ref1 : 'transparent'
+        });
+      }
     };
 
     RDiv.prototype.setStrokeWidth = function() {
       var _ref, _ref1;
-      return (_ref = this.contentJ) != null ? _ref.css({
-        'border-width': (_ref1 = this.data.strokeWidth) != null ? _ref1 : '0'
-      }) : void 0;
+      if ((_ref = this.contentJ) != null) {
+        _ref.css({
+          'border-width': (_ref1 = this.data.strokeWidth) != null ? _ref1 : '0'
+        });
+      }
     };
 
     RDiv.prototype.remove = function() {
       this.deselect();
       this.divJ.remove();
       g.divs.remove(this);
+      if (this.data.loadEntireArea) {
+        g.entireAreas.remove(this);
+      }
       if (g.divToUpdate === this) {
         delete g.divToUpdate;
       }
-      return delete g.items[this.pk];
+      delete g.items[this.pk];
     };
 
     RDiv.prototype["delete"] = function() {
@@ -639,11 +647,11 @@
         return;
       }
       if (this.object_type === 'text' || this.object_type === 'media') {
-        return Dajaxice.draw.deleteDiv(this.deleteDiv_callback, {
+        Dajaxice.draw.deleteDiv(this.deleteDiv_callback, {
           'pk': this.pk
         });
       } else {
-        return Dajaxice.draw.deleteBox(this.deleteDiv_callback, {
+        Dajaxice.draw.deleteBox(this.deleteDiv_callback, {
           'pk': this.pk
         });
       }
@@ -765,9 +773,9 @@
           cost = 2 * area / 1000;
       }
       if (g.credit < cost) {
-        return g.romanesco_alert("You do not have enough romanescoins to add this link", "error");
+        g.romanesco_alert("You do not have enough romanescoins to add this link", "error");
       } else {
-        return this.modalJ.find('p.cost').text("" + area + " pixels = " + cost.toFixed(2) + " romanescoins");
+        this.modalJ.find('p.cost').text("" + area + " pixels = " + cost.toFixed(2) + " romanescoins");
       }
     };
 
@@ -1616,6 +1624,9 @@
         case 'effect':
         case 'fontColor':
           this.setFont(false);
+          break;
+        default:
+          this.setFont(false);
       }
       return RText.__super__.parameterChanged.call(this, update);
     };
@@ -1666,7 +1677,7 @@
             _results = [];
             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
               selectedDiv = _ref[_i];
-              _results.push(selectedDiv === RMedia.selectedDiv ? selectedDiv != null ? selectedDiv.urlChanged(value, true) : void 0 : void 0);
+              _results.push(selectedDiv != null ? selectedDiv.urlChanged(value, true) : void 0);
             }
             return _results;
           }
@@ -1776,7 +1787,6 @@
 
     RMedia.prototype.checkIsImage = function() {
       var image, timedOut, timeout, timer;
-      console.log('check is image: ' + this.url + ', ' + this.pk);
       timedOut = false;
       timeout = this.hasImageUrlExt(this.url) ? 5000 : 1000;
       image = new Image();
@@ -1812,22 +1822,26 @@
 
     RMedia.prototype.loadMedia = function(imageLoadResult) {
       if (imageLoadResult === 'success') {
-        console.log('is image: ' + this.url + ', ' + this.pk);
         this.contentJ = $('<img class="content image" src="' + this.url + '" alt="' + this.url + '"">');
         this.contentJ.mousedown(function(event) {
           return event.preventDefault();
         });
         this.isImage = true;
       } else {
-        console.log('is not image: ' + this.url + ', ' + this.pk);
-        this.contentJ = $('<div class="content oembedall-container"></div>');
-        this.contentJ.oembed(this.url, {
-          includeHandle: false,
-          embedMethod: 'fill',
-          maxWidth: this.divJ.width(),
-          maxHeight: this.divJ.height(),
-          afterEmbed: this.afterEmbed
-        });
+        this.contentJ = $(this.url.substring(7));
+        if (this.contentJ.is('iframe')) {
+          this.contentJ.attr('width', this.divJ.width());
+          this.contentJ.attr('height', this.divJ.height());
+        } else {
+          this.contentJ = $('<div class="content oembedall-container"></div>');
+          this.contentJ.oembed(this.url, {
+            includeHandle: false,
+            embedMethod: 'fill',
+            maxWidth: this.divJ.width(),
+            maxHeight: this.divJ.height(),
+            afterEmbed: this.afterEmbed
+          });
+        }
       }
       this.contentJ.insertBefore(this.maskJ);
       return this.setCss();

@@ -4,356 +4,48 @@
 # todo: snap div
 # todo: center modal vertically with an event system: http://codepen.io/dimbslmh/pen/mKfCc and http://stackoverflow.com/questions/18422223/bootstrap-3-modal-vertical-position-center
 
-paper.install(window)
+# doctodo: look for "improve", "improvement", "deprecated", "to be updated" to see each time romanesco must be updated
 
-g.hideOthers = (me)->
-	for name, item of g.paths
-		if item != me
-			item.group?.visible = false
-	g.fastModeOn = true
-	return
+###
+# Romanesco documentation #
 
-g.showAll = (me)->
-	if not g.fastModeOn then return
-	for name, item of g.paths
-		item.group?.visible = true
-	g.fastModeOn = false
-	return
+Romanesco is an experiment about freedom, creativity and collaboration.
 
-g.getLimitPaths = ()->
-	limit = getLimit()
+tododoc
+tododoc: define RItems
 
-	limitPathV = null
-	limitPathH = null
+The source code is divided in files:
+ - [main.coffee](http://main.html) which is where the initialization
+ - [path.coffee](http://path.html)
+ - etc
 
-	if limit.x >= view.bounds.left and limit.x <= view.bounds.right
-		limitPathV = new Path()
-		limitPathV.name = 'limitPathV'
-		limitPathV.add(limit.x,view.bounds.top)
-		limitPathV.add(limit.x,view.bounds.bottom)
+Notations:
+ - override means that the method extends functionnalities of the inherited method (super is called at some point)
+ - redefine means that it totally replace the method (super is never called)
 
-	if limit.y >= view.bounds.top and limit.y <= view.bounds.bottom
-		limitPathH = new Path()
-		limitPathH.name = 'limitPathH'
-		limitPathH.add(view.bounds.left, limit.y)
-		limitPathH.add(view.bounds.right, limit.y)
+###
 
-	return vertical: limitPathV, horizontal: limitPathH
-
-g.rectangleOverlapsTwoPlanets = (rectangle)->
-	return g.overlapsTwoPlanets(new Path.Rectangle(rectangle))
-
-g.pathOverlapsTwoPlanets = (path)->
-	limitPaths = g.getLimitPaths()
-	limitPathV = limitPaths.vertical
-	limitPathH = limitPaths.horizontal
-
-	if limitPathV?
-		intersections = path.getIntersections(limitPathV)
-		limitPathV.remove()
-		if intersections.length>0
-			return true
-
-	if limitPathH?
-		intersections = path.getIntersections(limitPathH)
-		limitPathH.remove()
-		if intersections.length>0
-			return true
-
-	return false
-
-g.updateGrid = ()->
-	g.grid.removeChildren()
-
-	limitPaths = g.getLimitPaths()
-	limitPathV = limitPaths.vertical
-	limitPathH = limitPaths.horizontal
-
-	if limitPathV?
-		limitPathV.strokeColor = "#00FF00"
-		limitPathV.strokeWidth = 5
-		g.grid.addChild(limitPathV)
-
-	if limitPathH?
-		limitPathH.strokeColor = "#00FF00"
-		limitPathH.strokeWidth = 5
-		g.grid.addChild(limitPathH)
-
-	if not g.displayGrid
-		return
-	
-	t = Math.floor(view.bounds.top / g.scale)
-	l = Math.floor(view.bounds.left / g.scale)
-	b = Math.floor(view.bounds.bottom / g.scale)
-	r = Math.floor(view.bounds.right / g.scale)
-
-	pos = getTopLeftCorner()
-
-	planet = projectToPlanet( pos )
-	posOnPlanet = projectToPosOnPlanet( pos )
-
-	debug = false
-
-	snap = g.getSnap()
-	if snap < 15 then snap = 15
-	if debug then snap = 250
-
-	n = 1
-	i = l
-	j = t
-	while i<r+1 or j<b+1
-
-		px = new Path()
-		px.name = "grid px"
-		py = new Path()
-		px.name = "grid py"
-		
-		ijOnPlanet = projectToPosOnPlanet(new Point(i*g.scale,j*g.scale))
-
-		if ijOnPlanet.x == -180
-			px.strokeColor = "#00FF00"
-			px.strokeWidth = 5
-		else if n<4 # i-Math.floor(i)>0.0
-			px.strokeColor = "#666666"
-		else
-			px.strokeColor = "#000000"
-			px.strokeWidth = 2
-
-		if ijOnPlanet.y == -90
-			py.strokeColor = "#00FF00"
-			py.strokeWidth = 5
-		else if n<4 # j-Math.floor(j)>0.0
-			py.strokeColor = "#666666"
-		else
-			py.strokeColor = "#000000"
-			py.strokeWidth = 2
-
-		px.add(new Point(i*g.scale, view.bounds.top))
-		px.add(new Point(i*g.scale, view.bounds.bottom))
-
-		py.add(new Point(view.bounds.left, j*g.scale))
-		py.add(new Point(view.bounds.right, j*g.scale))
-		
-		g.grid.addChild(px)
-		g.grid.addChild(py)
-
-		i += snap/g.scale
-		j += snap/g.scale
-		
-		if n==4 then n=0
-		n++
-
-	if not debug then return
-
-	i = l
-	while i<r+1
-		j = t
-		while j<b+1
-			x = i*g.scale
-			y = j*g.scale
-			
-			planetText = new PointText(new Point(x-10,y-40))
-			planetText.justification = 'right'
-			planetText.fillColor = 'black'
-			p = projectToPlanet(new Point(i*g.scale,j*g.scale))
-			planetText.content = 'px: ' + Math.floor(p.x) + ', py: ' + Math.floor(p.y)
-			g.grid.addChild(planetText)
-			posText = new PointText(new Point(x-10,y-20))
-			posText.justification = 'right'
-			posText.fillColor = 'black'
-			p = projectToPosOnPlanet(new Point(i*g.scale,j*g.scale))
-			posText.content = 'x: ' + p.x.toFixed(2) + ', y: ' + p.y.toFixed(2)
-			g.grid.addChild(posText)
-			
-
-			j += snap/g.scale
-
-		i += snap/g.scale
-	return
-
-this.gameAt = (point)->
-	for div in g.divs
-		if div.getBounds().contains(point) and div.constructor.name == 'RVideoGame'
-		 	return div
-	return null
-
-# g.updateLoadingBar = (percentage)->
-# 	updateLoadingText = ()->
-# 		$("#loadingBar").text((percentage*100).toFixed(2) + '%')
-# 		return
-# 	window.setTimeout(updateLoadingText, 10)
-# 	return
-
-# g.initLoadingBar = ()->
-# 	g.nLoadingRequest = 0
-# 	g.nLoadingStartRequest = 0
-# 	g.loadingBarTimeout = null 
-# 	g.loadingBarJ = $("#loadingBar")
-# 	g.loadingBarProject = new Project("loadingBar")
-# 	g.loadingBarProject.activate()
-# 	size = 70
-# 	s = new Path.Star(new Point(size+30, size+30), 8, 0.8*size, size)
-# 	s.strokeWidth = 10
-# 	s.strokeColor = 'rgb(146, 215, 94)'
-
-# 	for i in [1 .. 10]
-# 		s = s.clone()
-# 		s.rotation = 45/2
-# 		s.scaling = 0.7
-# 		l = s.strokeColor.getLightness()
-# 		s.strokeColor.setLightness(l+(i+1)*0.01)
-	
-# 	paper.projects.first().activate()
-# 	g.startLoadingBar()
-
-# 	return
-
-# g.setLoadingBar = (percentage)->
-# 	if percentage>=1 then return
-# 	loadingBarPath = g.loadingBarProject.activeLayer.children[0].clone()
-# 	loadingBarPath.strokeColor = 'rgb(47, 161, 214)'
-# 	reminder = loadingBarPath.split(loadingBarPath.length*percentage)
-# 	reminder.remove()
-# 	return
-
-# g.animatedLoadingBar = ()->
-# 	if not g.loadingBarJ? then return
-# 	g.loadingBarProject.activeLayer.rotation += 0.5
-# 	g.loadingBarProject.view.draw()
-# 	# divJ = g.loadingBarJ.find(".rotation")
-# 	# divJ.css( transform: 'rotate(' + (Date.now()/10) + 'deg)')
-# 	# context = g.loadingBarJ.getContext("2d")
-# 	# context.rotate(Date.now()/10)
-# 	return
-
-# g.startLoadingBar = (timeBeforeStart=200)->
-# 	if not g.loadingBarJ? then return
-# 	if g.loadingBarTimeout? then return
-# 	g.loadingBarTimeout = setTimeout(g.startLoadingBarHandler, timeBeforeStart)
-# 	g.nLoadingStartRequest++
-# 	return
-
-# g.startLoadingBarHandler = ()->
-# 	if not g.loadingBarJ? then return
-
-# 	g.nLoadingRequest++
-# 	if g.loadingState == 'started' then return
-
-# 	g.loadingBarJ.stop(true)
-# 	g.loadingBarJ.fadeIn( duration: 200, queue: false )
-# 	clearInterval(g.loadingInterval)
-# 	g.loadingInterval = setInterval(g.animatedLoadingBar, 1000/60)
-# 	g.loadingState = 'started'
-
-# 	return
-
-# g.stopLoadingBar = ()->
-# 	if not g.loadingBarJ? then return
-	
-# 	g.nLoadingRequest--
-# 	if g.nLoadingRequest>0 then return
-
-# 	g.nLoadingStartRequest--
-# 	if g.nLoadingStartRequest==0 then clearTimeout(g.loadingBarTimeout)
-
-# 	g.loadingState = 'stop requested'
-	
-# 	g.loadingBarJ.fadeOut( duration: 200, queue: false, complete: ()-> 
-# 		clearInterval(g.loadingInterval)
-# 		g.loadingInterval = null
-# 		g.loadingState = 'stopped'
-# 		return
-# 	)
-# 	return
-
-g.RMoveTo = (pos) ->
-	g.RMoveBy(pos.subtract(view.center))
-
-g.RMoveBy = (delta) ->
-	
-	if g.restrictedArea?
-		
-		# check if the restricted area contains view.center (if not, move to center)
-		if not g.restrictedArea.contains(view.center)
-			# delta = g.restrictedArea.center.subtract(view.size.multiply(0.5)).subtract(view.topLeft)
-			delta = g.restrictedArea.center.subtract(view.center)
-		else
-			# test if new pos is still in restricted area
-			newView = view.bounds.clone()
-			newView.center.x += delta.x
-			newView.center.y += delta.y
-
-			# if it does not contain the view, change delta so that it contains it
-			if not g.restrictedArea.contains(newView)
-
-				restrictedAreaShrinked = g.restrictedArea.expand(view.size.multiply(-1)) # restricted area shrinked by view.size
-				
-				if restrictedAreaShrinked.width<0
-					restrictedAreaShrinked.left = restrictedAreaShrinked.right = g.restrictedArea.center.x
-				if restrictedAreaShrinked.height<0
-					restrictedAreaShrinked.top = restrictedAreaShrinked.bottom = g.restrictedArea.center.y
-
-				newView.center.x = g.clamp(restrictedAreaShrinked.left, newView.center.x, restrictedAreaShrinked.right)
-				newView.center.y = g.clamp(restrictedAreaShrinked.top, newView.center.y, restrictedAreaShrinked.bottom)
-				delta = newView.center.subtract(view.center)
-	
-	# console.log minusDelta
-	project.view.scrollBy(new Point(delta.x, delta.y))
-	
-	for div in g.divs
-		div.updateTransform()
-
-	newEntireArea = null
-	for area in g.entireAreas
-		if area.getBounds().contains(project.view.center)
-			newEntireArea = area
-			break
-
-	if not g.entireArea? and newEntireArea?
-		g.entireArea = newEntireArea.getBounds()
-	else if g.entireArea? and not newEntireArea?
-		g.entireArea = null
-
-	updateGrid()
-	if newEntireArea? then load(g.entireArea) else load()
-	g.updateRoom()
-
-	g.defferedExecution(g.updateHash, 500)
-	g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2))
-	return
-
-g.updateHash = ()->
-	g.moving = true
-	location.hash = '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)
-	return
-
-window.onhashchange = (event) ->
-	if g.moving
-		g.moving = false
-		return
-	pos = location.hash.substr(1).split(',')
-	p = new Point()
-	p.x = parseFloat(pos[0])
-	p.y = parseFloat(pos[1])
-	if not p.x then p.x = 0
-	if not p.y then p.y = 0
-	g.RMoveTo(p)
-	return
-
-# --- Tools --- #
-
+## Init tools
+# - init jQuery elements related to the tools
+# - create all tools
+# - init tool typeahead (the algorithm to find the tools from a few letters in the search tool input)
+# - get custom tools from the database, and initialize them
+# - make the tools draggable between the 'favorite tools' and 'other tools' panels, and update g.typeaheadToolEngine and g.favoriteTools accordingly
 initTools = () ->
+	# init jQuery elements related to the tools
 	g.toolsJ = $(".tool-list")
 	g.favoriteToolsJ = $("#FavoriteTools .tool-list")
 	g.allToolsContainerJ = $("#AllTools")
 	g.allToolsJ = g.allToolsContainerJ.find(".all-tool-list")
 
+	# init g.favoriteTools to see where to put the tools (in the 'favorite tools' panel or in 'other tools')
 	if localStorage?
 		try
 			g.favoriteTools = JSON.parse(localStorage.favorites)
 		catch error
 			console.log error
 
+	# create all tools
 	g.tools = new Object()
 	new MoveTool()
 	new CarTool()
@@ -365,6 +57,7 @@ initTools = () ->
 	new MediaTool(RMedia)
 	new ScreenshotTool()
 	
+	# path tools
 	new PathTool(PrecisePath)
 	new PathTool(RectangleShape)
 	new PathTool(SpiralShape)
@@ -379,6 +72,7 @@ initTools = () ->
 	new PathTool(FuzzyPath)
 	new PathTool(Checkpoint)
 
+	# init tool typeahead
 	initToolTypeahead = ()->
 		toolValues = []
 		toolValues.push( value: $(tool).attr("data-type") ) for tool in g.allToolsJ.children()
@@ -405,6 +99,7 @@ initTools = () ->
 			return
 		return
 
+	# get custom tools from the database, and initialize them
 	# ajaxPost '/getTools', {}, (result)->
 	Dajaxice.draw.getTools (result)->
 		scripts = JSON.parse(result.tools)
@@ -415,6 +110,7 @@ initTools = () ->
 		initToolTypeahead()
 		return
 
+	# make the tools draggable between the 'favorite tools' and 'other tools' panels, and update g.typeaheadToolEngine and g.favoriteTools accordingly
 	sortStart = (event, ui)->
 		$( "#sortable1, #sortable2" ).addClass("drag-over")
 		return
@@ -436,84 +132,22 @@ initTools = () ->
 
 	$( "#sortable1, #sortable2" ).sortable( connectWith: ".connectedSortable", appendTo: g.sidebarJ, helper: "clone", start: sortStart, stop: sortStop ).disableSelection()
 
-	g.tools['Move'].select()
-
-
-this.deselectAll = ()->
-	item.deselect?() for item in g.selectedItems()
-	project.activeLayer.selected = false
+	g.tools['Move'].select() 		# select the move tool
 	return
 
-this.mousedown = (event) ->
-	# select move tool if middle mouse button
-	switch event.which # middle mouse button
-		when 2
-			g.tools['Move'].select()
-		when 3
-			g.selectedTool.finishPath?()
-
-	if g.selectedTool.name == 'Move' 
-		g.selectedTool.beginNative(event)
-		return
-	
-	if event.target.nodeName == "CANVAS" then return false
-	g.previousPoint = new Point(event.pageX, event.pageY)
-	return
-
-this.mousemove = (event) ->
-	if g.selectedTool.name == 'Move' then g.selectedTool.updateNative(event)
-
-	# selectedDiv.selectUpdate(event) for selectedDiv in g.selectedDivs
-	
-	if g.previousPoint?
-		event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
-		g.previousPoint = new Point(event.pageX, event.pageY)
-
-		for item in g.selectedItems()
-			item.selectUpdate?(event)
-	
-	if g.draggingEditor
-		g.editorJ.css( right: g.windowJ.width()-event.pageX)
-
-	return
-
-this.mouseup = (event) ->
-	if g.selectedTool.name == 'Move' then g.selectedTool.endNative(event)
-
-	# deselect move tool and select previous tool if middle mouse button
-	if event.which == 2 # middle mouse button
-		g.previousTool?.select()
-
-	# drag handles	
-	g.mousemove(event)
-	# selectedDiv.selectEnd(event) for selectedDiv in g.selectedDivs
-
-	if g.previousPoint?
-		event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
-		g.previousPoint = null
-		for item in g.selectedItems()
-			item.selectEnd?(event)
-
-	g.draggingEditor = false
-	
-	return
-
-this.selectedItems = ()->
-	items = []
-	for item in project.selectedItems
-		if item.controller? and items.indexOf(item.controller)<0 then items.push(item.controller)
-	return items.concat g.selectedDivs
-
-this.sel = ()->
-	return g.selectedItems()[0]
-
+## Init position
+# initialize the view position according to the 'data-box' of the canvas (when loading a website or video game)
+# update g.entireArea and g.restrictedArea according to site settings
+# update sidebar according to site settings
 initPosition = ()->
+	# check if canvas has an attribute 'data-box'
 	boxString = g.canvasJ.attr("data-box")
 	
 	if not boxString or boxString.length==0
 		window.onhashchange()
 		return
 
+	# initialize the area rectangle *boxRectangle* from 'data-box' attr and move to the center of the box
 	box = JSON.parse( boxString )
 
 	planet = new Point(box.planetX, box.planetY)
@@ -524,8 +158,10 @@ initPosition = ()->
 	boxRectangle = new Rectangle(tl, br)
 	pos = boxRectangle.center
 
-	loadEntireArea = g.canvasJ.attr("data-load-entire-area")
 	g.RMoveTo(pos)
+
+	# load the entire area if 'data-load-entire-area' is set to true, and set g.entireArea
+	loadEntireArea = g.canvasJ.attr("data-load-entire-area")
 
 	if loadEntireArea
 		g.entireArea = boxRectangle
@@ -534,13 +170,17 @@ initPosition = ()->
 	# boxData = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
 	# console.log boxData
 
+	# init g.restrictedArea
 	siteString = g.canvasJ.attr("data-site")
 	site = JSON.parse( siteString )
 	if site.restrictedArea
 		g.restrictedArea = boxRectangle
 	
-	g.tools['Select'].select()
+	g.tools['Select'].select() 		# select 'Select' tool by default when loading a website
+									# since a click on an RLock will activate the drag (temporarily select the 'Move' tool) 
+									# and the user must be able to select text
 
+	# update sidebar according to site settings
 	if site.disableToolbar
 		# just hide the sidebar
 		g.sidebarJ.hide()
@@ -561,21 +201,11 @@ initPosition = ()->
 
 	return
 
-this.toggleSidebar = (show)->
-	show ?= not g.sidebarJ.hasClass("r-hidden")
-	if show
-		g.sidebarJ.addClass("r-hidden")
-		g.editorJ.addClass("r-hidden")
-		g.alertsContainer.addClass("r-sidebar-hidden")
-		g.sidebarHandleJ.find("span").removeClass("glyphicon-chevron-left").addClass("glyphicon-chevron-right")
-	else
-		g.sidebarJ.removeClass("r-hidden")
-		g.editorJ.removeClass("r-hidden")
-		g.alertsContainer.removeClass("r-sidebar-hidden")
-		g.sidebarHandleJ.find("span").removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-left")
-	return
+paper.install(window)
 
-# init global variables
+# initialize Romanesco
+# all global variables and functions are stored in *g* which is a synonym of *window*
+# all jQuery elements names end with a capital J: elementNameJ
 init = ()->
 	g.windowJ = $(window)
 	g.stageJ = $("#stage")
@@ -584,45 +214,59 @@ init = ()->
 	g.canvas = g.canvasJ[0]
 	g.context = g.canvas.getContext('2d')
 	g.templatesJ = $("#templates")
-	g.me = null
-	g.dragOffset = { x: 0, y: 0 }
-	g.draggedDivJ = null
+	g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
 	g.selectedDivs = []
-	g.selectionGroup = null
-	g.polygonMode = false
+	g.selectionGroup = null					# paper group containing all selected paper items
+	g.polygonMode = false					# whether to draw in polygon mode or not (in polygon mode: each time the user clicks a point will be created, in default mode: each time the user moves the mouse a point will be created)
 	g.selectionBlue = '#2fa1d6'
-	g.updateTimeout = {}
-	g.restrictedArea = null
-	g.offset = { x: 0, y: 0 }
-	g.OSName = "Unknown OS"
-	g.currentPaths = {}
-	g.loadingBarTimeout = null
-	g.entireArea = null
-	g.entireAreas = []
-	g.animatedItems = []
-	g.cars = {}
-	g.fastMode = false
-	g.fastModeOn = false
+	g.updateTimeout = {} 					# map of id -> timeout id to clear the timeouts
+	g.restrictedArea = null 				# area in which the user position will be constrained (in a website with restrictedArea == true)
+	g.OSName = "Unknown OS" 				# user's operating system
+	g.currentPaths = {} 					# map of username -> path id corresponding to the paths currently being created
+	g.loadingBarTimeout = null 				# timeout id of the loading bar
+	g.entireArea = null 					# entire area to be kept loaded, it is a paper Rectangle
+	g.entireAreas = [] 						# array of RDivs which have data.loadEntireArea==true
+	g.loadedAreas = [] 						# array of areas { pos: pos, planet: planet } which are loaded (to test if areas have to be loaded or unloaded)
+	g.paths = new Object() 					# a map of RPath.pk (or RPath.id) -> RPath. RPath are first added with their id, and then with their pk (as soon as server saved it and responds)
+	g.items = new Object() 					# map RItem.id or RItem.pk -> RItem, all loaded RItems. The key is RItem.id before RItem is savied in the database, and RItem.pk after
+	g.locks = [] 							# array of loaded RLocks
+	g.divs = [] 							# array of loaded RDivs
+	g.sortedPaths = []						# an array where path are sorted by index (z-index)
+	g.animatedItems = [] 					# an array of animated items to be updated each frame
+	g.cars = {} 							# a map of username -> cars which will be updated each frame
+	g.fastMode = false 						# fastMode will hide all items except the one being edited (when user edits an item)
+	g.fastModeOn = false					# fastModeOn is true when the user is edditing an item
+	g.alerts = null 						# An array of alerts ({ type: type, message: message }) containing all alerts info. It is append to the alert box in showAlert()
+	g.scale = 1000.0 						# the scale to go from project coordinates to planet coordinates
+	g.previousPoint = null 					# the previous mouse event point
+	g.draggingEditor = false 				# boolean, true when user is dragging the code editor
+
 	# g.globalMaskJ = $("#globalMask")
 	# g.globalMaskJ.hide()
 	
+	# Display a romanesco_alert message when a dajaxice error happens (problem on the server)
 	Dajaxice.setup( 'default_exception_callback': (error)-> 
 		console.log 'Dajaxice error!'
 		romanesco_alert "Connection error", "error"
 		return
 	)
 
+	# init g.OSName (user's operating system)
 	if navigator.appVersion.indexOf("Win")!=-1 then g.OSName = "Windows"
 	if navigator.appVersion.indexOf("Mac")!=-1 then g.OSName = "MacOS"
 	if navigator.appVersion.indexOf("X11")!=-1 then g.OSName = "UNIX"
 	if navigator.appVersion.indexOf("Linux")!=-1 then g.OSName = "Linux"
 
+	# init paper.js
 	paper.setup(canvas)
 	activeLayer = project.activeLayer
-	g.carLayer = new Layer()
+	g.carLayer = new Layer() 				# Paper layer to append all cars
 	activeLayer.activate()
 	paper.settings.hitTolerance = 5
+	g.grid = new Group() 					# Paper Group to append all grid items
+	g.grid.name = 'grid group'
 
+	# add custom methods to export Paper point to JSON
 	Point.prototype.toJSON = ()->
 		return { x: this.x, y: this.y }
 	Point.prototype.exportJSON = ()->
@@ -630,50 +274,27 @@ init = ()->
 
 	g.tool = new Tool()
 
-	g.paths = new Object()
-	g.sortedPaths = []
-	g.grid = new Group()
-	g.grid.name = 'grid group'
-
 	# g.defaultColors = ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5' ]
 	g.defaultColors = ['#d7dddb', '#4f8a83', '#e76278', '#fac699', '#712164']
 
-	# --- Alerts --- #
+	# initialize alerts
 	g.alertsContainer = $("#Romanesco_alerts")
 	g.alerts = []
 	g.currentAlert = -1
 	g.alertTimeOut = -1
-	g.alertsContainer.find(".btn-up").click( -> setAlert(g.currentAlert-1) )
-	g.alertsContainer.find(".btn-down").click( -> setAlert(g.currentAlert+1) )
+	g.alertsContainer.find(".btn-up").click( -> showAlert(g.currentAlert-1) )
+	g.alertsContainer.find(".btn-down").click( -> showAlert(g.currentAlert+1) )
 
-	g.loadedAreas = []
-	g.areasToObjects = new Object()
-	g.items = new Object()
-	g.locks = []
-	g.divs = []
-
+	# initialize sidebar handle
 	g.sidebarHandleJ = g.sidebarJ.find(".sidebar-handle")
 	g.sidebarHandleJ.click ()->
 		g.toggleSidebar()
 		return
 
-	g.sidebarJ.find("#buyRomanescoins").click ()-> 
-		g.templatesJ.find('#romanescoinModal').modal('show')
-		paypalFormJ = g.templatesJ.find("#paypalForm")
-		paypalFormJ.find("input[name='submit']").click( ()-> 
-			data = 
-				user: g.me
-				location: { x: view.center.x, y: view.center.y }
-			paypalFormJ.find("input[name='custom']").attr("value", JSON.stringify(data) )
-		)
-	
-
-	g.sidebarJ.find("#codeSubmit").click ()->
-		return
+	$(".mCustomScrollbar.sidebar-scrollbar").mCustomScrollbar( keyboard: false )
 
 	# g.sound = new RSound(['/static/sounds/space_ship_engine.mp3', '/static/sounds/space_ship_engine.ogg'])
-
-	g.sound = new RSound(['/static/sounds/viper.ogg'])
+	g.sound = new RSound(['/static/sounds/viper.ogg']) 			# load car sound
 
 	# g.sound = new Howl( 
 	# 	urls: ['/static/sounds/viper.ogg']
@@ -689,7 +310,6 @@ init = ()->
 
 	# g.sound.plays = (spriteName)->
 	# 	return g.sound.spriteName == spriteName # and g.sound.pos()>0
-
 
 	# g.sound.playAt = (spriteName, time)->
 	# 	if time < 0 or time > 1.0 then return
@@ -709,34 +329,50 @@ init = ()->
 	# 	g.sound.rTimeout = setTimeout(callback, duration-time*duration)
 	# 	return false
 
-	initOptions()
+	# g.sidebarJ.find("#buyRomanescoins").click ()-> 
+	# 	g.templatesJ.find('#romanescoinModal').modal('show')
+	# 	paypalFormJ = g.templatesJ.find("#paypalForm")
+	# 	paypalFormJ.find("input[name='submit']").click( ()-> 
+	# 		data = 
+	# 			user: g.me
+	# 			location: { x: view.center.x, y: view.center.y }
+	# 		paypalFormJ.find("input[name='custom']").attr("value", JSON.stringify(data) )
+	# 	)
+
+	initParameters()
 	initCodeEditor()
 	initTools()
 	initSocket()
 	initPosition()
 	# initLoadingBar()
 
+	updateGrid()
+
+	return
+
+# Initialize Romanesco and handlers
+$(document).ready () ->
+
+	init()
+
+	## mouse and key listeners
+
+	# jQuery listeners
 	g.canvasJ.mousedown( g.mousedown )
 	g.stageJ.mousedown( g.mousedown )
 	$(window).mousemove( g.mousemove )
 	$(window).mouseup( g.mouseup )
-	g.stageJ.mousewheel( (event)->
-		g.RMoveBy(new Point(-event.deltaX, -event.deltaY))
+	g.stageJ.mousewheel (event)->
+		g.RMoveBy(new Point(-event.deltaX, event.deltaY))
 		return
-	)
-
-	return
-
-$(document).ready () ->
-	init()
-	updateGrid()
 
 	canvasJ.dblclick( (event) -> g.selectedTool.doubleClick?(event) )
-	canvasJ.keydown( (event) -> if event.key == 43 then event.preventDefault() )
+	canvasJ.keydown( (event) -> if event.key == 46 then event.preventDefault() ) # cancel default delete key behaviour (not really working)
 
+	# Paper listeners
 	tool.onMouseDown = (event) ->
 		$(document.activeElement).blur() # prevent to keep focus on the chat when we interact with the canvas
-		# event = g.snap(event)
+		# event = g.snap(event) 		# snapping mouseDown event causes some problems
 		g.selectedTool.begin(event)
 
 	tool.onMouseDrag = (event) ->
@@ -752,9 +388,9 @@ $(document).ready () ->
 		for selectedDiv in g.selectedDivs
 			if selectedDiv.constructor.name == 'RText'
 				return
-		if event.key == 'delete'
+		if event.key == 'delete' 									# prevent default delete behaviour (not working)
 			event.preventDefault()
-		if event.key == 'space' and g.selectedTool.name != 'Move'
+		if event.key == 'space' and g.selectedTool.name != 'Move' 	# select 'Move' tool when user press space key (and reselect previous tool after)
 			g.tools['Move'].select()
 
 	tool.onKeyUp = (event) ->
@@ -767,17 +403,22 @@ $(document).ready () ->
 		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea")
 			return
 
+		# - move selected RItem by delta if an arrow key was pressed (delta is function of special keys press)
+		# - finish current path (if in polygon mode) if 'enter' or 'escape' was pressed
+		# - select previous tool on space key up
+		# - select 'Select' tool if key == 'v'
+		# - delete selected item on 'delete' or 'backspace'
 		if event.key in ['left', 'right', 'up', 'down']
 			delta = if event.modifiers.shift then 50 else if event.modifiers.option then 5 else 1
 		switch event.key
 			when 'right'
-				item.moveBy(new Point(delta,0)) for item in g.selectedItems()
+				item.moveBy(new Point(delta,0), true) for item in g.selectedItems()
 			when 'left'
-				item.moveBy(new Point(-delta,0)) for item in g.selectedItems()
+				item.moveBy(new Point(-delta,0), true) for item in g.selectedItems()
 			when 'up'
-				item.moveBy(new Point(0,-delta)) for item in g.selectedItems()
+				item.moveBy(new Point(0,-delta), true) for item in g.selectedItems()
 			when 'down'
-				item.moveBy(new Point(0,delta)) for item in g.selectedItems()
+				item.moveBy(new Point(0,delta), true) for item in g.selectedItems()
 			when 'enter', 'escape'
 				g.selectedTool.finishPath?()
 			when 'space'
@@ -790,6 +431,9 @@ $(document).ready () ->
 		
 		event.preventDefault()
 	
+	# on frame event:
+	# - update animatedItems
+	# - update cars positions
 	view.onFrame = (event)->
 		g.selectedTool.onFrame?(event)
 		for item in g.animatedItems
@@ -805,49 +449,70 @@ $(document).ready () ->
 
 		return
 
-	$(".mCustomScrollbar.sidebar-scrollbar").mCustomScrollbar( keyboard: false )
-
+	# update grid and mCustomScrollbar when window is resized
 	g.windowJ.resize( (event) ->
 		updateGrid()
 		$(".mCustomScrollbar").mCustomScrollbar("update")
 		view.draw()
 	)
+	return
 
-	# debug function to log pk of selected path
-	# debugSelectedBefore = null
-	# debug = ()->
-	# 	paper.view.draw()
-	# 	if project.selectedItems.length>0 and debugSelectedBefore!=project.selectedItems[0]
-	# 		debugSelectedBefore = project.selectedItems[0]
-	# 		if project.selectedItems[0].hasOwnProperty('pk')
-	# 			console.log project.selectedItems[0].pk
+# mousedown event listener
+this.mousedown = (event) ->
+	
+	switch event.which						# switch on mouse button number (left, middle or right click)
+		when 2
+			g.tools['Move'].select()		# select move tool if middle mouse button
+		when 3
+			g.selectedTool.finishPath?() 	# finish current path (in polygon mode) if right click
 
-	# setInterval(debug, 500)
+	if g.selectedTool.name == 'Move' 		# update 'Move' tool if it is the one selected, and return
+		g.selectedTool.beginNative(event)
+		return
+	
+	if event.target.nodeName == "CANVAS" then return false 
+	g.previousPoint = new Point(event.pageX, event.pageY) 	# store previous mouse event point
+	return
 
-this.logItems = ()->
+# mousemove event listener
+this.mousemove = (event) ->
+	if g.selectedTool.name == 'Move' then g.selectedTool.updateNative(event) 	# update 'Move' tool if it is the one selected
 
-	console.log "Selected items:"
-	for item, i in project.selectedItems
-		if item.name?.indexOf("debug")==0 then continue
-		console.log "------" + i + "------"
-		console.log item.name
-		console.log item
-		console.log item.controller
-		console.log item.controller?.pk
-	console.log "All items:"
-	for item, i in project.activeLayer.children
-		if item.name?.indexOf("debug")==0 then continue
-		console.log "------" + i + "------"
-		console.log item.name
-		console.log item
-		console.log item.controller
-		console.log item.controller?.pk
-	console.log "hiiiiiii"
-	return "--- THE END ---"
+	# selectedDiv.selectUpdate(event) for selectedDiv in g.selectedDivs
+	
+	# update selected RDivs
+	if g.previousPoint?
+		event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
+		g.previousPoint = new Point(event.pageX, event.pageY)
 
-this.checkRasters = ()->
-	for item in project.activeLayer.children
-		if item.controller? and not item.controller.raster?
-			console.log item.controller
-			# item.controller.rasterize()
+		for item in g.selectedItems()
+			item.selectUpdate?(event)
+	
+	# update code editor width
+	if g.draggingEditor
+		g.editorJ.css( right: g.windowJ.width()-event.pageX)
+
+	return
+
+# mouseup event listener
+this.mouseup = (event) ->
+	if g.selectedTool.name == 'Move' then g.selectedTool.endNative(event) 	# update 'Move' tool if it is the one selected
+
+	# deselect move tool and select previous tool if middle mouse button
+	if event.which == 2 # middle mouse button
+		g.previousTool?.select()
+
+	# drag handles	
+	g.mousemove(event)
+	# selectedDiv.selectEnd(event) for selectedDiv in g.selectedDivs
+
+	# update selected RDivs
+	if g.previousPoint?
+		event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
+		g.previousPoint = null
+		for item in g.selectedItems()
+			item.selectEnd?(event)
+
+	g.draggingEditor = false
+	
 	return

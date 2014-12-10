@@ -1,19 +1,75 @@
 # todo: replace update by drag
 
+# An RTool can be selected from the sidebar, or with special shortcuts.
+# once selected, a tool will usually react to user events (mouse and keyboard events)
+
+# Here are all types of tools:
+# - MoveTool to scroll the view in the project space
+# - SelectTool to select RItems
+# - TextTool to add RText (editable text box)
+# - MediaTool to add RMedia (can be an image, video, shadertoy, or anything embeddable)
+# - LockTool to add RLock (a locked area)
+# - CodeTool to open code editor and create a script
+# - ScreenshotTool to take a screenshot
+# - CarTool to have a car and travel in the world with arrow key (and play video games)
+# - PathTool the mother class of all drawing tools
+
+# The mother class of all RTools
 class RTool
 
-	# to be overloaded, must return the parameters to display when the tool is selected
+	# parameters must return an object listing all parameters specific to the tool, organized according to the following format:
+	###
+	parameters = 
+		'First folder':
+			firstParameter:
+				type: 'slider' 									# type is only required when adding a color (then it must be 'color')
+				label: 'Name of the parameter'					# label of the controller (name displayed in the gui)
+				value: 0										# value (deprecated)
+				default: 0 										# default value
+				step: 5 										# values will be incremented/decremented by step
+				min: 0 											# minimum value
+				max: 100 										# maximum value
+				simplified: 0 									# value during the simplified mode (useful to quickly draw an RPath, for example when modifying a curve)
+				defaultFunction: () -> 							# called to get a default value
+				addController: true 							# if true: adds the dat.gui controller to the item or the selected tool
+				onChange: (value)->  							# called when controller changes
+				onFinishChange: (value)-> 						# called when controller finishes change
+				setValue: (value, item)-> 						# called on set value of controller
+				permanent: true									# if true: the controller is never removed (always says in dat.gui)
+				defaultCheck: true 								# checked/activated by default or not
+				initializeController: (controller, item)->		# called just after controller is added to dat.gui, enables to customize the gui and add functionalities
+			secondParameter:
+				type: 'slider'
+				label: 'Second parameter'
+				value: 1
+				min: 0
+				max: 10
+		'Second folder':
+			thirdParameter:
+				type: 'slider'
+				label: 'Third parameter'
+				value: 1
+				min: 0
+				max: 10
+	###
+	# to be overloaded by children classes, must return the parameters to display when the tool is selected
 	@parameters: ()->
 		return {}
 
+	# RTool constructor:
+	# - find the corresponding button in the sidebar: look for a <li> tag with an attribute 'data-type' equal to @name
+	# - add a click handler to select the tool and extract the cursor name from the attribute 'data-cursor'
+	# - initialize the popover (help tooltip)
 	constructor: (@name, @cursorPosition = { x: 0, y: 0 }, @cursorDefault="default") ->
 		g.tools[@name] = @
 
+		# find or create the corresponding button in the sidebar
 		@btnJ ?= g.toolsJ.find('li[data-type="'+@name+'"]')
 
 		@cursorName = @btnJ.attr("data-cursor")
 		@btnJ.click( () => @select() )
 
+		# initialize the popover (help tooltip)
 		popoverOptions = 
 			placement: 'right'
 			container: 'body'
@@ -31,10 +87,19 @@ class RTool
 
 		@btnJ.popover( popoverOptions )
 
+	# @return [string] the description of the tool
 	description: ()->
 		return null
 
+	# Select the tool:
+	# - deselect selected tool
+	# - deselect all RItems
+	# - update cursor
+	# - update parameters
+	# @param [RTool constructor] the constructor used to update gui parameters (@constructor.parameters)
+	# @param [RItem] selected item to update gui parameters
 	select: (constructor=@constructor, selectedItem=null)->
+		# check if new tool is defferent from previous
 		differentTool = g.previousTool != g.selectedTool
 		
 		if @ != g.selectedTool
@@ -53,30 +118,39 @@ class RTool
 		g.updateParameters( { tool: constructor, item: selectedItem }, differentTool)
 		return
 
+	# Deselect current tool
 	deselect: ()->
 		return
 
+	# Begin tool action (usually called on mouse down event)
 	begin: (event) ->
 		return
 
+	# Update tool action (usually called on mouse drag event)
 	update: (event) ->
 		return
 
+	# Move tool action (usually called on mouse move event)
 	move: (event) ->
 		return
 
+	# End tool action (usually called on mouse up event)
 	end: (event) ->
 		return
 
+	# @return [Boolean] whether snap should be disabled when this tool is  selected or not
 	disableSnap: ()->
 		return false
 
 @RTool = RTool
 
+# CodeTool is just used as a button to open the code editor, the remaining code is in editor.coffee
 class CodeTool extends RTool
+
 	constructor: ()->
 		super("Script")
 
+	# show code editor on select
 	select: ()->
 		super()
 		g.toolEditor()
@@ -85,19 +159,22 @@ class CodeTool extends RTool
 
 # --- Move & select tools --- #
 
+# MoveTool to scroll the view in the project space
 class MoveTool extends RTool
 
 	constructor: () -> 
 		super("Move", { x: 32, y: 32 }, "move")
-		@prevPoint = { x: 0, y: 0 }
-		@dragging = false
+		@prevPoint = { x: 0, y: 0 } 	# the previous point the mouse was at
+		@dragging = false 				# a boolean to see if user is dragging mouse
 
+	# Select tool and disable RDiv interactions (to be able to scroll even when user clicks on them, for exmaple disable textarea default behaviour)
 	select: ()->
 		super()
 		g.stageJ.addClass("moveTool")
 		for div in g.divs
 			div.disableInteraction()
 
+	# Reactivate RDiv interactions
 	deselect: ()->
 		super()
 		g.stageJ.removeClass("moveTool")
@@ -114,43 +191,46 @@ class MoveTool extends RTool
 	end: (event) ->
 		return
 
-	# note: we could use g.eventObj to convert the Native event into Paper.ToolEvent, however onMouseDown/Drag/Up also fire begin/update/end
+	# begin with jQuery event
+	# note: we could use g.eventToObject to convert the Native event into Paper.ToolEvent, however onMouseDown/Drag/Up also fire begin/update/end
 	beginNative: (event) ->
 		@dragging = true
 		@prevPoint = { x: event.pageX, y: event.pageY }
 		return
 
+	# update with jQuery event
 	updateNative: (event) ->
 		if @dragging
 			g.RMoveBy({ x: (@prevPoint.x-event.pageX)/view.zoom, y: (@prevPoint.y-event.pageY)/view.zoom })
 			@prevPoint = { x: event.pageX, y: event.pageY }
 		return
 
+	# end with jQuery event
 	endNative: (event) ->
 		@dragging = false
 		return
 
 @MoveTool = MoveTool
 
-
+# CarTool gives a car to travel in the world with arrow key (and play video games)
 class CarTool extends RTool
 	
 	@parameters: ()->
 		parameters = 
 			'Car':
-				speed:
+				speed: 							# the speed of the car, just used as an indicator. Updated in @onFrame
 					type: 'input'
 					label: 'Speed'
 					value: '0'
 					addController: true
-					onChange: ()-> return
-				volume:
+					onChange: ()-> return 		# disable the default callback
+				volume: 						# volume of the car sound
 					type: 'slider'
 					label: 'Volume'
 					value: 1
 					min: 0
 					max: 10
-					onChange: (value)->
+					onChange: (value)-> 		# set volume of the car, stop the sound if volume==0 and restart otherwise
 						if g.selectedTool.constructor.name == "CarTool"
 							if value>0
 								if not g.sound.isPlaying 
@@ -164,15 +244,15 @@ class CarTool extends RTool
 		return parameters
 
 	constructor: () -> 
-		super("Car", { x: 0, y: 0 }, "none")
-		@prevPoint = { x: 0, y: 0 }
-		@dragging = false
+		super("Car", { x: 0, y: 0 }, "none") 		# no cursor when car is selected (might change)
 
+	# Select car tool
+	# load the car image, and initialize the car and the sound
 	select: ()->
 		super()
-		url = "/static/images/car.png"
 
-		@car = new Raster(url)
+		# create Paper raster and initialize car parameters
+		@car = new Raster("/static/images/car.png")
 		g.carLayer.addChild(@car)
 		@car.position = view.center
 		@speed = 0
@@ -183,6 +263,7 @@ class CarTool extends RTool
 
 		@previousSpeed = 0
 		
+		# initialize sound
 		g.sound.setVolume(0.1)
 		g.sound.play(0)
 		g.sound.setLoopStart(3.26)
@@ -192,6 +273,7 @@ class CarTool extends RTool
 
 		return
 
+	# Deselect tool: remove car and stop sound
 	deselect: ()->
 		super()
 		@car.remove()
@@ -199,9 +281,13 @@ class CarTool extends RTool
 		g.sound.stop()
 		return
 
+	# on frame event:
+	# - update car position, speed and direction according to user inputs
+	# - update sound rate
 	onFrame: ()->
 		if not @car? then return
-
+		
+		# update car position, speed and direction according to user inputs
 		minSpeed = 0.05
 		maxSpeed = 100
 		
@@ -218,6 +304,7 @@ class CarTool extends RTool
 			if Math.abs(@speed) < minSpeed
 				@speed = 0
 
+		# update sound rate
 		minRate = 0.25
 		maxRate = 3
 		rate = minRate+Math.abs(@speed)/maxSpeed*(maxRate-minRate)
@@ -263,7 +350,7 @@ class CarTool extends RTool
 
 		g.gameAt(@car.position)?.updateGame(@)
 
-		if Date.now()-@lastUpdate>150
+		if Date.now()-@lastUpdate>150 			# emit car position every 150 milliseconds
 			if g.me? then g.chatSocket.emit "car move", g.me, @car.position, @car.rotation, @speed
 			@lastUpdate = Date.now()
 
@@ -272,8 +359,10 @@ class CarTool extends RTool
 
 @CarTool = CarTool
 
+# Enables to select RItems
 class SelectTool extends RTool
 
+	# Paper hitOptions for hitTest function to check which items (corresponding to those criterias) are under a point
 	hitOptions =
 		stroke: true
 		fill: true
@@ -284,12 +373,14 @@ class SelectTool extends RTool
 
 	constructor: () -> 
 		super("Select")
-		@selectedItem = null
+		@selectedItem = null 		# should be deprecated
 
 	select: ()->
 		@selectedItem = g.selectedItems().first()
 		super(@selectedItem?.constructor or @constructor, @selectedItem)
 
+	# Create selection rectangle path (remove if existed)
+	# @param [Paper event] event containing down and current positions to draw the rectangle 
 	createSelectionRectangle: (event)->
 		g.currentPaths[g.me]?.remove()
 		g.currentPaths[g.me] = new Path.Rectangle(event.downPoint, event.point)
@@ -297,8 +388,8 @@ class SelectTool extends RTool
 		g.currentPaths[g.me].strokeColor = g.selectionBlue
 		g.currentPaths[g.me].dashArray = [10, 4]
 		return
-
-
+	
+	# remove the selection group: deselect divs, move selected items to active layer and remove selection group
 	removeSelectionGroup: ()->
 		g.deselectAll()		# deselect divs
 		if not g.selectionGroup? then return
@@ -307,50 +398,65 @@ class SelectTool extends RTool
 		g.selectionGroup = null
 		return
 
+	# Begin selection:
+	# - perform hit test to see if there is any item under the mouse
+	# - if user hits a path (not in selection group): begin select action (deselect other items by default (= remove selection group), or add to selection if shift pressed)
+	# - otherwise: deselect other items (= remove selection group) and create selection rectangle
+	# must be reshaped (right not impossible to add a group of RItems to the current selection group)
 	begin: (event) ->
 		console.log "select begin"
+		# perform hit test to see if there is any item under the mouse
 		path.prepareHitTest() for name, path of g.paths
 		hitResult = g.project.hitTest(event.point, hitOptions)
 		path.finishHitTest() for name, path of g.paths
-
-		# if user hits a path: select it
-		if hitResult and hitResult.item.controller?
+		
+		if hitResult and hitResult.item.controller? 		# if user hits a path: select it
 			@selectedItem = hitResult.item.controller
 
-			if not event.modifiers.shift 
+			if not event.modifiers.shift 	# if shift is not pressed: deselect previous items
 				if g.selectionGroup?
-					if not g.selectionGroup.isAncestor(hitResult.item) then @removeSelectionGroup()
+					if not g.selectionGroup.isAncestor(hitResult.item) then @removeSelectionGroup() 	# if the item is not in selection group: deselect selection group
 				else 
 					if g.selectedDivs.length>0 then g.deselectAll()
 
 			hitResult.item.controller.selectBegin?(event)
-		else
+		else 												# otherwise: remove selection group and create selection rectangle
 			@removeSelectionGroup()
 			@createSelectionRectangle(event)
 
+	# Update selection:
+	# - update selected RItems if there is no selection rectangle
+	# - update selection rectangle if there is one
 	update: (event) ->
-		if not g.currentPaths[g.me]
+		if not g.currentPaths[g.me] 			# update selected RItems if there is no selection rectangle
 			for item in g.selectedItems()
 				item.selectUpdate?(event)
-		else
+		else 									# update selection rectangle if there is one
 			@createSelectionRectangle(event)
 		return
 
+	# End selection:
+	# - end selection action on selected RItems if there is no selection rectangle
+	# - create selection group is there is a selection rectangle
+	#   update parameters from selected RItems and remove selection rectangle
 	end: (event) ->
-		if not g.currentPaths[g.me]
+		if not g.currentPaths[g.me] 		# end selection action on selected RItems if there is no selection rectangle
 
 			for item in g.selectedItems()
 				item.selectEnd?(event)
 
-		else
+		else 								# create selection group is there is a selection rectangle
 			rectangle = new Rectangle(event.downPoint, event.point)
 			
 			itemsToSelect = []
 
+			# Add all items which have bounds intersecting with the selection rectangle (1st version)
 			for name, item of g.items
 				if item.getBounds().intersects(rectangle)
 					item.select(false)
 					itemsToSelect.push(item)
+
+			# Add all items which intersect with the selection rectangle (2nd version)
 
 			# for item in project.activeLayer.children
 			# 	bounds = item.bounds
@@ -360,6 +466,8 @@ class SelectTool extends RTool
 			
 			# for item in itemsToSelect
 			# 	item.select(false)
+
+			# update parameters
 			itemsToSelect = itemsToSelect.map( (item)-> return { tool: item.constructor, item: item } )
 			g.updateParameters(itemsToSelect)
 
@@ -367,15 +475,18 @@ class SelectTool extends RTool
 			# 	if div.getBounds().intersects(rectangle)
 			# 		div.select()
 
+			# remove selection rectangle
 			g.currentPaths[g.me].remove()
 			delete g.currentPaths[g.me]
 		return
 
+	# Double click handler: send event to selected RItems
 	doubleClick: (event) ->
 		for item in g.selectedItems()
 			item.doubleClick?(event)
 		return
 
+	# Disable snap while drawnig a selection rectangle
 	disableSnap: ()->
 		return g.currentPaths[g.me]?
 
@@ -383,37 +494,55 @@ class SelectTool extends RTool
 
 # --- Path tool --- #
 
+# PathTool: the mother class of all drawing tools
+# doctodo: Path are created with three steps: 
+# - begin: initialize RPath: create the group, controlPath etc., and initialize the drawing
+# - update: update the drawing
+# - end: finish the drawing and finish RPath initialization
+# doctodo: explain polygon mode
+# begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on "begin" signal (then from == author of the signal, data == RItem initial data)
+# begin, update, and end handlers emit the events to websocket
 class PathTool extends RTool
 
+	# Find or create a button for the tool in the sidebar (if the button is created, add it default or favorite tool list depending on the user settings stored in local storage, and whether the tool was just created in a newly created script)
+	# set its name and icon if an icon url is provided, or create an icon with the letters of the name otherwise
+	# the icon will be made with the first two letters of the name if the name is in one word, or the first letter of each words of the name otherwise
+	# @param [RPath constructor] the RPath which will be created by this tool
+	# @param [Boolean] whether the tool was just created (with the code editor) or not
 	constructor: (@RPath, justCreated=false) ->
 		@name = @RPath.rname
 
-		# if the tool is just created (in editor) add in favorite. Otherwise check is it was saved as a favorite tool in the localStorage (g.favoriteTools).
-		favorite = justCreated | g.favoriteTools?.indexOf(@name)>=0
-
+		# find a button for the tool in the sidebar 
 		@btnJ = g.toolsJ.find('li[data-type="'+@name+'"]')
 
-		# <li data-type="Spiral" data-cursor="spiral"><img src="{% static 'icons/inverted/spiral.png' %}" alt="spiral"></li>		
-		# todo: put this part in PathTool?
-		if @btnJ.length==0
+		# example tool button <li> in index.html
+		# <li data-type="Spiral" data-cursor="spiral"><img src="{% static 'icons/inverted/spiral.png' %}" alt="spiral"></li>
+
+		if @btnJ.length==0 		# or create a button for the tool in the sidebar (if no button found)
+			
+			# initialize button
 			@btnJ = $("<li>")
 			@btnJ.attr("data-type", @name)
 			# @btnJ.attr("data-cursor", @cursorDefault)
 			@btnJ.attr("alt", @name)
 			
-			if @RPath.iconUrl?
+			if @RPath.iconUrl? 																		# set icon if url is provided
 				@btnJ.append('<img src="' + @RPath.iconUrl + '" alt="' + @RPath.iconAlt + '">')
-			else
+			else 																					# create icon if url is not provided
 				@btnJ.addClass("text-btn")
 				name = ""
 				words = @name.split(" ")
-				if words.length>1
+																# the icon will be made with
+				if words.length>1 								# the first letter of each words of the name
 					name += word.substring(0,1) for word in words
-				else
+				else 											# or the first two letters of the name (if it has only one word)
 					name += @name.substring(0,2)
 				shortNameJ = $('<span class="short-name">').text(name + ".")
 				@btnJ.append(shortNameJ)
-			
+
+			# if the tool is just created (in editor) add in favorite. Otherwise check is it was saved as a favorite tool in the localStorage (g.favoriteTools).
+			favorite = justCreated | g.favoriteTools?.indexOf(@name)>=0
+
 			if favorite
 				g.favoriteToolsJ.append(@btnJ)
 			else
@@ -427,13 +556,17 @@ class PathTool extends RTool
 		
 		return
 
+	# @return [String] tool description
 	description: ()->
 		return @RPath.rdescription
 
+	# Remove tool button, useful when user create a tool which already existed (overwrite the tool)
 	remove: () ->
 		@btnJ.remove()
 		return
 
+	# Select: add the mouse move listener on the tool (userful when creating a path in polygon mode) 
+	# todo: move this to main, have a global onMouseMove handler like other handlers
 	select: ()->
 		super(@RPath)
 
@@ -443,44 +576,69 @@ class PathTool extends RTool
 			return
 		return
 	
+	# Deselect: remove the mouse move listener
 	deselect: ()->
 		super()
 		@finishPath()
 		g.tool.onMouseMove = null
 		return
 
+	# Begin path action:
+	# - deselect all and create new path in all case except in polygonMode (add path to g.currentPaths)
+	# - emit event on websocket (if user is the author of the event)
+	# @param [Paper event or REvent] (usually) mouse down event
+	# @param [String] author (username) of the event
+	# @param [Object] RItem initial data (strokeWidth, strokeColor, etc.)
+	# begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on "begin" signal (then from == author of the signal, data == RItem initial data)
 	begin: (event, from=g.me, data=null) ->
 
 		# deselect all and create new path in all case except in polygonMode
-		if not (g.currentPaths[from]? and g.currentPaths[from].data?.polygonMode)
+		if not (g.currentPaths[from]? and g.currentPaths[from].data?.polygonMode) 	# if not in polygon mode
 			g.deselectAll()
 			g.currentPaths[from] = new @RPath(null, data)
 
 		g.currentPaths[from].createBegin(event.point, event, false)
 
-		if g.me? and from==g.me then g.chatSocket.emit( "begin", g.me, g.eventObj(event), @name, g.currentPaths[from].data )
+		# emit event on websocket (if user is the author of the event)
+		if g.me? and from==g.me then g.chatSocket.emit( "begin", g.me, g.eventToObject(event), @name, g.currentPaths[from].data )
 		return
 
+	# Update path action:
+	# update path action and emit event on websocket (if user is the author of the event)
+	# @param [Paper event or REvent] (usually) mouse drag event
+	# @param [String] author (username) of the event
 	update: (event, from=g.me) ->
 		g.currentPaths[from].createUpdate(event.point, event, false)
-		if g.me? and from==g.me then g.chatSocket.emit( "update", g.me, g.eventObj(event), @name)
+		if g.me? and from==g.me then g.chatSocket.emit( "update", g.me, g.eventToObject(event), @name)
 		return
 
+	# Update path action (usually from a mouse move event, necessary for the polygon mode):
+	# @param [Paper event or REvent] (usually) mouse move event
 	move: (event) ->
 		if g.currentPaths[g.me]?.data?.polygonMode then g.currentPaths[g.me].createMove?(event)
 		return
 
+	# End path action:
+	# - end path action 
+	# - if not in polygon mode: select and save path and emit event on websocket (if user is the author of the event), (remove path from g.currentPaths)
+	# @param [Paper event or REvent] (usually) mouse up event
+	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
 		g.currentPaths[from].createEnd(event.point, event, false)
 
-		if not g.currentPaths[from].data?.polygonMode
-			if g.me? and from==g.me
+		if not g.currentPaths[from].data?.polygonMode 		# if not in polygon mode
+			if g.me? and from==g.me 						# if user is the author of the event: select and save path and emit event on websocket
 				g.currentPaths[from].select(false)
 				g.currentPaths[from].save()
-				g.chatSocket.emit( "end", g.me, g.eventObj(event), @name )
+				g.chatSocket.emit( "end", g.me, g.eventToObject(event), @name )
 			delete g.currentPaths[from]
 		return
 
+	# Finish path action (necessary in polygon mode):
+	# - check that we are in polygon mode (return otherwise)
+	# - end path action
+	# - select and save path and emit event on websocket (if user is the author of the event), (remove path from g.currentPaths)
+	# @param [String] author (username) of the event
 	finishPath: (from=g.me)->
 		if not g.currentPaths[g.me]?.data?.polygonMode then return
 		
@@ -492,11 +650,19 @@ class PathTool extends RTool
 		delete g.currentPaths[from]
 		return
 
-
 @PathTool = PathTool
 
 # --- Link & lock tools --- #
 
+# DivTool: mother class of all RDiv creation tools (this will create a new div on top of the canvas, with custom content, and often resizable)
+# User will create a selection rectangle
+# once the mouse is released, the box will be validated by RDiv.end() (check that the RDiv does not overlap two planets, and does not intersects with an RLock)
+# children classes will use RDiv.end() to check if it is valid and:
+# - initialize a modal to ask the user more info about the RDiv
+# - or directly save the RDiv
+# the RDiv will be created on server response
+# begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on "begin" signal (then from == author of the signal, data == RItem initial data)
+# begin, update, and end handlers emit the events to websocket
 class DivTool extends RTool
 
 	constructor: (@name, @RDiv) ->
@@ -506,6 +672,12 @@ class DivTool extends RTool
 	select: ()->
 		super(@RDiv)
 
+	# Begin div action:
+	# - create new selection rectangle
+	# - emit event on websocket (if user is the author of the event)
+	# @param [Paper event or REvent] (usually) mouse down event
+	# @param [String] author (username) of the event
+	# begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on "begin" signal (then from == author of the signal, data == RItem initial data)
 	begin: (event, from=g.me) ->
 		point = event.point
 
@@ -514,8 +686,13 @@ class DivTool extends RTool
 		g.currentPaths[from].dashArray = [4, 10]
 		g.currentPaths[from].strokeColor = 'black'
 
-		if g.me? and from==g.me then g.chatSocket.emit( "begin", g.me, g.eventObj(event), @name, g.currentPaths[from].data )
+		if g.me? and from==g.me then g.chatSocket.emit( "begin", g.me, g.eventToObject(event), @name, g.currentPaths[from].data )
 
+	# Update div action:
+	# - update selection rectangle
+	# - emit event on websocket (if user is the author of the event)
+	# @param [Paper event or REvent] (usually) mouse down event
+	# @param [String] author (username) of the event
 	update: (event, from=g.me) ->
 		point = event.point
 
@@ -525,27 +702,31 @@ class DivTool extends RTool
 
 		if g.me? and from==g.me then g.chatSocket.emit( "update", g.me, point, @name )
 
+	# End div action:
+	# - remove selection rectangle
+	# - check if div if valid (does not overlap two planets, and does not intersects with an RLock), return false otherwise
+	# - resize div to 10x10 if area if lower than 100
+	# - emit event on websocket (if user is the author of the event)
+	# @param [Paper event or REvent] (usually) mouse down event
+	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
-		if from != g.me
+		if from != g.me 					# if event come from websocket (another user in the room is creating the RDiv): just remove the selection rectangle
 			g.currentPaths[from].remove()
 			delete g.currentPaths[from]			
 			return false
 
 		point = event.point
 
-		g.currentPaths[from].segments[2].point = point
-		g.currentPaths[from].segments[1].point.x = point.x
-		g.currentPaths[from].segments[3].point.y = point.y
-
 		g.currentPaths[from].remove()
 
+		# check if div if valid (does not overlap two planets, and does not intersects with an RLock), return false otherwise
 		if RDiv.boxOverlapsTwoPlanets(g.currentPaths[from].bounds)
 			return false
 
 		if RLock.intersectRect(g.currentPaths[from].bounds)
 			return false
 
-		if g.currentPaths[from].bounds.area < 100
+		if g.currentPaths[from].bounds.area < 100 			# resize div to 10x10 if area if lower than 100
 			g.currentPaths[from].width = 10
 			g.currentPaths[from].height = 10
 
@@ -555,12 +736,17 @@ class DivTool extends RTool
 
 @DivTool = DivTool
 
+# RLock creation tool
 class LockTool extends DivTool
 
 	constructor: () -> 
 		super("Lock", RLock)
 		@textItem = null
 
+	# Update lock action:
+	# - display lock cost (in romanescoins) in selection rectangle
+	# @param [Paper event or REvent] (usually) mouse move event
+	# @param [String] author (username) of the event
 	update: (event, from=g.me) ->
 		point = event.point
 
@@ -573,6 +759,11 @@ class LockTool extends DivTool
 		@textItem.content = '' + cost + ' romanescoins'
 		super(event, from)
 
+	# End lock action:
+	# - remove lock cost and init RLock modal if it is valid (does not overlap two planets, and does not intersects with an RLock)
+	# the RLock modal window will ask the user some information about the lock he wants to create, the RLock will be saved once the user submits and created on server response
+	# @param [Paper event or REvent] (usually) mouse up event
+	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
 		@textItem?.remove()
 		if super(event, from)
@@ -608,11 +799,17 @@ class LockTool extends DivTool
 
 # @LinkTool = LinkTool
 
+# RText creation tool
 class TextTool extends DivTool
 
 	constructor: () -> 
 		super("Text", RText)
 
+	# End RText action:
+	# - save RText if it is valid (does not overlap two planets, and does not intersects with an RLock)
+	# the RText will be created on server response
+	# @param [Paper event or REvent] (usually) mouse up event
+	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
 		if super(event, from)
 			RText.save(g.currentPaths[from].bounds, "text")
@@ -620,11 +817,17 @@ class TextTool extends DivTool
 
 @TextTool = TextTool
 
+# RMedia creation tool
 class MediaTool extends DivTool
 
 	constructor: () -> 
 		super("Media", RMedia)
 
+	# End RMedia action:
+	# - init RMedia modal if it is valid (does not overlap two planets, and does not intersects with an RLock)
+	# the RMedia modal window will ask the user some information about the media he wants to create, the RMedia will be saved once the user submits and created on server response
+	# @param [Paper event or REvent] (usually) mouse up event
+	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
 		if super(event, from)
 			RMedia.initModal(g.currentPaths[from].bounds)
@@ -633,8 +836,14 @@ class MediaTool extends DivTool
 @MediaTool = MediaTool
 
 # todo: ZeroClipboard.destroy()
+# ScreenshotTool to take a screenshot and save it or publish it on different social platforms (facebook, pinterest or twitter)
+# - the user will create a selection rectangle with the mouse
+# - when the user release the mouse, a special (temporary) resizable RDiv (RSelectionRectangle) is created so that the user can adjust the screenshot box to fit his needs (this must be imporved, with better visibility and the possibility to better snap the box to the grid)
+# - once the user adjusted the box, he can take the screenshot by clicking the "Take screenshot" button at the center of the RSelectionRectangle
+# - a modal window asks the user how to exploit the newly created image (copy it, save it, or publish it on facebook, twitter or pinterest)
 class ScreenshotTool extends RTool
 
+	# Initialize screenshot modal (init button click event handlers)
 	constructor: () ->
 		super('Screenshot', { x: 24, y: 0 }, "crosshair")
 		@modalJ = $("#screenshotModal")
@@ -652,30 +861,35 @@ class ScreenshotTool extends RTool
 		ZeroClipboard.config( swfPath: "http://127.0.0.1:8000/static/libs/ZeroClipboard/ZeroClipboard.swf" )
 		# ZeroClipboard.destroy()
 	
+	# Get description input value, or default description: "Artwork made in Romanesco"
 	getDescription: ()->
 		return if @descriptionJ.val().length>0 then @descriptionJ.val() else "Artwork made in Romanesco"
 
-	begin: (event, from=g.me) ->
-		if from!=g.me then return
+	# create selection rectangle
+	begin: (event) ->
 		g.currentPaths[from] = new Path.Rectangle(event.point, event.point)
 		g.currentPaths[from].name = 'screenshot tool selection rectangle'
 		g.currentPaths[from].dashArray = [4, 10]
 		g.currentPaths[from].strokeColor = 'black'
 		g.currentPaths[from].strokeWidth = 1
 
-	update: (event, from=g.me) ->
-		if from!=g.me then return
+	# update selection rectangle
+	update: (event) ->
 		g.currentPaths[from].lastSegment.point = event.point
 		g.currentPaths[from].lastSegment.next.point.y = event.point.y
 		g.currentPaths[from].lastSegment.previous.point.x = event.point.x
 
-	end: (event, from=g.me) ->
-		if from!=g.me then return
+	# - remove selection rectangle
+	# - return if rectangle is too small
+	# - create the RSelectionRectangle (so that the user can adjust the screenshot box to fit his needs)
+	end: (event) ->
+		# remove selection rectangle
 		g.currentPaths[from].remove()
 		delete g.currentPaths[from]
 		g.view.draw()
 
-		r = new Rectangle(event.downPoint, event.point)
+		# return if rectangle is too small
+		r = new Rectangle(event.downPoint, event.point) 
 		if r.area<100
 			return
 
@@ -683,7 +897,10 @@ class ScreenshotTool extends RTool
 
 		return
 
+	# Extract image and initialize & display modal (so that the user can choose what to do with it)
+	# todo: use something like [rasterizeHTML.js](http://cburgmer.github.io/rasterizeHTML.js/) to render RDivs in the image
 	extractImage: ()=>
+		# extract the image (create a temporaty canvas, html5 only, no paper.js)
 		@rectangle = @div.getBounds()
 		viewRectangle = g.projectToViewRectangle(@rectangle)
 		@div.remove()
@@ -692,6 +909,8 @@ class ScreenshotTool extends RTool
 		canvasTemp.height = viewRectangle.height
 		contextTemp = canvasTemp.getContext('2d')
 		contextTemp.putImageData(g.context.getImageData(viewRectangle.x, viewRectangle.y, viewRectangle.width, viewRectangle.height), 0, 0)
+		
+		# initialize modal (data url and image)
 		@dataURL = canvasTemp.toDataURL("image/png")
 		copyDataBtnJ = @modalJ.find('button[name="copy-data-url"]')
 		copyDataBtnJ.attr("data-clipboard-text", @dataURL)
@@ -699,15 +918,16 @@ class ScreenshotTool extends RTool
 		imgJ.attr("src", @dataURL)
 		maxHeight = g.windowJ.height - 220
 		imgJ.css( 'max-height': maxHeight + "px" )
+		@modalJ.find("a.png").attr("href", @dataURL)
 		
-		# twitter
+		# initialize twitter button
 		twitterLinkJ = @modalJ.find('a[name="publish-on-twitter"]')
 		twitterLinkJ.empty().text("Publish on Twitter")
 		twitterLinkJ.attr "data-url", "http://romanesc.co/" + location.hash
 		twitterScriptJ = $('<script type="text/javascript">window.twttr=(function(d,s,id){var t,js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id)){return}js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);return window.twttr||(t={_e:[],ready:function(f){t._e.push(f)}})}(document,"script","twitter-wjs"));</script>')
 		twitterLinkJ.append(twitterScriptJ)
 
-		@modalJ.find("a.png").attr("href", @dataURL)
+		# show modal, and initialize ZeroClipboard once it is on screen (ZeroClipboard enables users to copy the image data in the clipboard)
 		@modalJ.modal('show')
 		@modalJ.on 'shown.bs.modal', (e)=>
 			client = new ZeroClipboard( copyDataBtnJ )
@@ -728,16 +948,21 @@ class ScreenshotTool extends RTool
 	# 	@modalJ.modal('hide')
 	# 	return
 
+	# Some actions require to upload the image on the server
+	# makes an ajax request to save the image
 	saveImage: (callback)->
 		# ajaxPost '/saveImage', {'image': @dataURL } , callback
 		Dajaxice.draw.saveImage( callback, {'image': @dataURL } )
 		romanesco_alert "Your image is being uploaded...", "info"
 		return
 
+	# Save image and call publish on facebook callback
 	publishOnFacebook: ()=>
 		@saveImage(@publishOnFacebook_callback)
 		return
 
+	# (Called once the image is uploaded) add a facebook dialog box in which user can add more info and publish the image
+	# todo: check if upload was successful?
 	publishOnFacebook_callback: (result)=>
 		romanesco_alert "Your image was successfully uploaded to Romanesco, posting to Facebook...", "info"
 		caption = @getDescription()
@@ -790,6 +1015,8 @@ class ScreenshotTool extends RTool
 		# 		return
 		# )
 
+	# - log in to facebook (if not already logged in)
+	# - save image to publish photo when/if logged in
 	publishOnFacebookAsPhoto: ()=>
 		if not g.loggedIntoFacebook
 			FB.login( (response)=>
@@ -803,6 +1030,8 @@ class ScreenshotTool extends RTool
 			@saveImage(@publishOnFacebookAsPhoto_callback)
 		return
 
+	# (Called once the image is uploaded) directly publish the image
+	# todo: check if upload was successful?
 	publishOnFacebookAsPhoto_callback: (result)=>
 		romanesco_alert "Your image was successfully uploaded to Romanesco, posting to Facebook...", "info"
 		caption = @getDescription()
@@ -823,28 +1052,32 @@ class ScreenshotTool extends RTool
 		)
 		return
 
+	# Save image and call publish on pinterest callback
 	publishOnPinterest: ()=>
 		@saveImage(@publishOnPinterest_callback)
 		return
 
+	# (Called once the image is uploaded) add a modal dialog to publish the image on pinterest (the pinterest button must link to an image already existing on the server)
+	# todo: check if upload was successful?
 	publishOnPinterest_callback: (result)=>
 		romanesco_alert "Your image was successfully uploaded to Romanesco...", "info"
 
+		# initialize pinterest modal
 		pinterestModalJ = $("#customModal")
 		pinterestModalJ.modal('show')
 		pinterestModalJ.addClass("pinterest-modal")
-
 		pinterestModalJ.find(".modal-title").text("Publish on Pinterest")
 		# siteUrl = encodeURI('http://romanesc.co/')
 		siteUrl = encodeURI('http://61b2fd1e.ngrok.com/')
 		imageUrl = siteUrl+result.url
 		caption = @getDescription()
 		description = encodeURI(caption)
+		
 		linkJ = $("<a>")
 		linkJ.addClass("image")
 		linkJ.attr("href", "http://pinterest.com/pin/create/button/?url="+siteUrl+"&media="+imageUrl+"&description="+description)
 		linkJcopy = linkJ.clone()
-		
+
 		imgJ = $('<img>')
 		imgJ.attr( 'src', siteUrl+result.url )
 		linkJ.append(imgJ)
@@ -876,13 +1109,17 @@ class ScreenshotTool extends RTool
 	# 	linkJ.click()
 	# 	return
 
+	# on download png button click: simulate a click on the image link 
+	# (chrome will open the save image dialog, other browsers will open the image in a new window/tab for the user to be able to save it)
 	downloadPNG: ()=>
 		@modalJ.find("a.png")[0].click()
-		# todo: open image in new page if in ie or safari?
 		@modalJ.modal('hide')
 		return
 
+	# on download svg button click: extract svg from the paper project (in the selected rectangle) and click on resulting svg image link
+	# (chrome will open the save image dialog, other browsers will open the image in a new window/tab for the user to be able to save it)
 	downloadSVG: ()=>
+		# get rectangle and retrieve items in this rectangle
 		rectanglePath = new Path.Rectangle(@rectangle)
 
 		itemsToSave = []
@@ -891,11 +1128,13 @@ class ScreenshotTool extends RTool
 			if item.controller? and ( @rectangle.contains(bounds) or ( @rectangle.intersects(bounds) and item.controller.controlPath?.getIntersections(rectanglePath).length>0 ) )
 				g.pushIfAbsent(itemsToSave, item.controller)
 
+		# put the retrieved items in a group
 		svgGroup = new Group()
 
 		for item in itemsToSave
 			svgGroup.addChild(item.drawing.clone())
 		
+		# create a new paper project and add the new group (fit group and project positions and dimensions according to the selected rectangle)
 		rectanglePath.remove()
 		position = svgGroup.position.subtract(@rectangle.topLeft)
 		fileName = "image.svg"
@@ -908,9 +1147,12 @@ class ScreenshotTool extends RTool
 		svgGroup.position = position
 		tempProject.addChild(svgGroup)
 
+		# export new project to svg, remove the new project
 		svg = tempProject.exportSVG( asString: true )
 		tempProject.remove()
 		paper.projects.first().activate()
+
+		# create an svg image, create a link to download the image, and click it
 		blob = new Blob([svg], {type: 'image/svg+xml'})
 		url = URL.createObjectURL(blob)
 		link = document.createElement("a")
@@ -921,6 +1163,7 @@ class ScreenshotTool extends RTool
 		@modalJ.modal('hide')
 		return
 
+	# nothing to do here: ZeroClipboard handles it
 	copyURL: ()=>
 		return
 

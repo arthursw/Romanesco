@@ -56,7 +56,13 @@
       if ((firstLineResult != null) && firstLineResult.length >= 2) {
         className = firstLineResult[1];
       } else {
-        return;
+        firstLineRegExp = /scriptName = {1}(("|')\w+("|'))\n/;
+        firstLineResult = firstLineRegExp.exec(source);
+        if ((firstLineResult != null) && firstLineResult.length >= 1) {
+          className = firstLineResult[1];
+        } else {
+          return;
+        }
       }
       if ((g[className] == null) || source === g[className].source) {
         return;

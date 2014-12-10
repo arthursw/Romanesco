@@ -449,11 +449,11 @@
 
     RPath.prototype.initialize = function() {};
 
-    RPath.prototype.createBegin = function(event, point) {};
+    RPath.prototype.createBegin = function(point, event) {};
 
     RPath.prototype.createUpdate = function(point, event) {};
 
-    RPath.prototype.createEnd = function(event, point) {
+    RPath.prototype.createEnd = function(point, event) {
       this.initialize();
     };
 
@@ -609,10 +609,6 @@
       if (g.checkError(result)) {
         return g.chatSocket.emit("delete path", result.pk);
       }
-    };
-
-    RPath.prototype.planet = function() {
-      return projectToPlanet(this.controlPath.segments[0].point);
     };
 
     RPath.prototype.pathOnPlanet = function(controlSegments) {
@@ -818,7 +814,7 @@
       this.path.selected = false;
     };
 
-    PrecisePath.prototype.checkUpdateBrush = function(event) {
+    PrecisePath.prototype.checkUpdateDrawing = function(event) {
       var controlPathLength, step;
       step = this.data.step;
       controlPathLength = this.controlPath.length;
@@ -885,7 +881,7 @@
         }
         this.controlPath.add(point);
         if (!loading) {
-          this.checkUpdateBrush(event);
+          this.checkUpdateDrawing(event);
         }
       } else {
         lastSegment = this.controlPath.lastSegment;
@@ -946,7 +942,7 @@
         this.controlPath.smooth();
       }
       if (!loading) {
-        this.checkUpdateBrush();
+        this.checkUpdateDrawing();
         this.drawEnd();
         this.offset = 0;
       }
@@ -1443,7 +1439,7 @@
       SpeedPath.__super__.loadPath.call(this, points);
     };
 
-    SpeedPath.prototype.checkUpdateBrush = function(event) {
+    SpeedPath.prototype.checkUpdateDrawing = function(event) {
       var controlPathLength, delta, f, lastSpeed, speed, startOffset, step;
       step = this.data.step;
       controlPathLength = this.controlPath.length;

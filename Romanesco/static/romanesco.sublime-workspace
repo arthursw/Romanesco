@@ -4,6 +4,30 @@
 		"selected_items":
 		[
 			[
+				"bounds",
+				"boundsPath"
+			],
+			[
+				"stroke",
+				"strokeBounds"
+			],
+			[
+				"rotat",
+				"rotation"
+			],
+			[
+				"conten",
+				"contentJ"
+			],
+			[
+				"sele",
+				"selectedTool"
+			],
+			[
+				"roman",
+				"Romanesco_alerts"
+			],
+			[
 				"initi",
 				"initialize"
 			],
@@ -60,10 +84,6 @@
 				"itemsOutsideLimit"
 			],
 			[
-				"sele",
-				"selected"
-			],
-			[
 				"pint",
 				"pinterestModalJ"
 			],
@@ -74,10 +94,6 @@
 			[
 				"emtp",
 				"emptyTwitterDiv"
-			],
-			[
-				"roman",
-				"romanesc"
 			],
 			[
 				"publi",
@@ -126,10 +142,6 @@
 			[
 				"pla",
 				"plays"
-			],
-			[
-				"stroke",
-				"strokeColor"
 			],
 			[
 				"bufferO",
@@ -502,18 +514,6 @@
 			[
 				"selection",
 				"selectionRectangle"
-			],
-			[
-				"contro",
-				"controlPath"
-			],
-			[
-				"inti",
-				"initializeController"
-			],
-			[
-				"init",
-				"initialize"
 			]
 		]
 	},
@@ -523,7 +523,7 @@
 			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/index.html",
 			"settings":
 			{
-				"buffer_size": 38689,
+				"buffer_size": 38826,
 				"line_ending": "Unix"
 			}
 		},
@@ -532,6 +532,14 @@
 			"settings":
 			{
 				"buffer_size": 684,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/urls.py",
+			"settings":
+			{
+				"buffer_size": 921,
 				"line_ending": "Unix"
 			}
 		},
@@ -574,7 +582,7 @@
 			"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/ajax.py",
 			"settings":
 			{
-				"buffer_size": 17686,
+				"buffer_size": 17685,
 				"line_ending": "Unix"
 			}
 		},
@@ -606,15 +614,15 @@
 			"file": "/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/settings.py",
 			"settings":
 			{
-				"buffer_size": 8081,
+				"buffer_size": 8109,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"contents": "Searching 27 files for \"cursor\"\n\n/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/index.html:\n  218                        <ul class=\"tool-list\">\n  219                          <ul class=\"edit-list\">\n  220:                           <li data-type=\"Move\" data-cursor=\"hand\"><img src=\"{% static 'images/icons/inverted/hand.png' %}\" alt=\"hand\"></li>\n  221:                           <li data-type=\"Select\"><img src=\"{% static 'images/icons/inverted/cursor.png' %}\" alt=\"cursor\"></li>\n  222                            <!-- <li data-type=\"editCurve\"><img src=\"{% static 'images/icons/inverted/editCurve.png' %}\" alt=\"editCurve\"></li> -->\n  223                            <li data-type=\"Screenshot\"><img src=\"{% static 'images/icons/inverted/screenshot.png' %}\" alt=\"screenshot\"></li>\n  ...\n  227                            <li data-type=\"Text\"><img src=\"{% static 'images/icons/inverted/text.png' %}\" alt=\"text\"></li>\n  228                            <li data-type=\"Media\"><img src=\"{% static 'images/icons/inverted/image.png' %}\" alt=\"image\"></li>\n  229:                           <li data-type=\"Lock\" data-cursor=\"key\"><img src=\"{% static 'images/icons/inverted/lock.png' %}\" alt=\"key\"></li>\n  230:                           <!-- <li data-type=\"Link\" data-cursor=\"link\"><img src=\"{% static 'images/icons/inverted/link.png' %}\" alt=\"link\"></li> -->\n  231                            <li data-type=\"Car\"><img src=\"{% static 'images/icons/inverted/car.png' %}\" alt=\"car\"></li>\n  232                          </ul>\n  ...\n  252                        <ul id=\"sortable2\" class=\"favorite-tool-list tool-list connectedSortable\">\n  253                          <li data-type=\"Precise path\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/editCurve.png' %}\" alt=\"editCurve\"></li>\n  254:                         <li data-type=\"Rectangle\" data-cursor=\"rectangle\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/rectangle.png' %}\" alt=\"rectangle\"></li>\n  255:                         <li data-type=\"Spiral\" data-cursor=\"spiral\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/spiral.png' %}\" alt=\"spiral\"></li>\n  256                          <!-- <li data-type=\"Checkpoint\"><span class=\"short-name\">Ch.</span><span class=\"tool-name\">Checkpoint</span></li> -->\n  257                        </ul>\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/div.coffee:\n  884  						return\n  885  \n  886: 					input.on 'typeahead:cursorchanged', ()->\n  887  						inputValue = input.val()\n  888  						return\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/path.coffee:\n   11  	@rname = 'Pen'\n   12  	@rdescription = \"The classic and basic pen tool\"\n   13: 	@cursorPosition = { x: 24, y: 0 }\n   14: 	@cursorDefault = \"crosshair\"\n   15  \n   16  	@hitOptions =\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/tools.coffee:\n    7  		return {}\n    8  \n    9: 	constructor: (@name, @cursorPosition = { x: 0, y: 0 }, @cursorDefault=\"default\") ->\n   10  		g.tools[@name] = @\n   11  \n   12  		@btnJ ?= g.toolsJ.find('li[data-type=\"'+@name+'\"]')\n   13  \n   14: 		@cursorName = @btnJ.attr(\"data-cursor\")\n   15  		@btnJ.click( () => @select() )\n   16  \n   ..\n   46  		g.deselectAll()\n   47  \n   48: 		if @cursorName?\n   49: 			g.stageJ.css('cursor', 'url(static/images/cursors/'+@cursorName+'.png) '+@cursorPosition.x+' '+@cursorPosition.y+','+@cursorDefault)\n   50  		else\n   51: 			g.stageJ.css('cursor', @cursorDefault)\n   52  		\n   53  		g.updateParameters( { tool: constructor, item: selectedItem }, differentTool)\n   ..\n  377  		@btnJ = g.toolsJ.find('li[data-type=\"'+@name+'\"]')\n  378  \n  379: 		# <li data-type=\"Spiral\" data-cursor=\"spiral\"><img src=\"{% static 'icons/inverted/spiral.png' %}\" alt=\"spiral\"></li>		\n  380  		# todo: put this part in PathTool?\n  381  		if @btnJ.length==0\n  382  			@btnJ = $(\"<li>\")\n  383  			@btnJ.attr(\"data-type\", @name)\n  384: 			# @btnJ.attr(\"data-cursor\", @cursorDefault)\n  385  			@btnJ.attr(\"alt\", @name)\n  386  			\n  ...\n  407  		@btnJ.addClass(\"tool-btn\")\n  408  		\n  409: 		super(@RPath.rname, @RPath.cursorPosition, @RPath.cursorDefault, @RPath.options)\n  410  		\n  411  		return\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/less/styles.less:\n  143  \n  144  	&.moveTool {\n  145: 		cursor: url(images/hand.png) 32 32, move;\n  146  \n  147  		.custom-div {\n  148: 			cursor: url(images/hand.png) 32 32, move;\n  149  			textarea, .handle, .content {\n  150: 				cursor: url(images/hand.png) 32 32, move;\n  151  				.vendor(user-select, text);\n  152  			}\n  ...\n  175  	.link, .lock {\n  176  		border: dotted 2px #428bca;\n  177: 		cursor: pointer;\n  178  		position: absolute;\n  179  		background-color: rgba(111, 84, 153, 0);\n  ...\n  197  		// border-radius: 5px;\n  198  		padding: 20px;\n  199: 		cursor: pointer;\n  200  		overflow: hidden;\n  201  \n  ...\n  371  		}\n  372  		&.website {\n  373: 			cursor: url(images/hand.png) 32 32, move;\n  374  		}\n  375  	}\n  ...\n  518  \n  519  	li.tool-btn {\n  520: 		cursor: pointer;\n  521  		padding: 6px;\n  522  		&:hover {\n  ...\n  561  \n  562  			// li {\n  563: 			// 	cursor: pointer;\n  564  			// 	float: left;\n  565  			// 	padding: 10px;\n  ...\n  580  \n  581  		li.tool-btn, ul li {\n  582: 			cursor: pointer;\n  583  			float: left;\n  584  			padding: 10px;\n  ...\n  745  		clear: both;\n  746  		padding-left: 100px;\n  747: 		.tt-cursor {\n  748  			background-color: #1ed36f;\n  749  		}\n  ...\n  809  				line-height: 24px;\n  810  \n  811: 				&.tt-cursor {\n  812  					color: #fff;\n  813  					background-color: #0097cf;\n  ...\n  959  				border-bottom-width: 1px;\n  960  				box-sizing: border-box;\n  961: 				cursor: pointer;\n  962  				color: rgb(238, 238, 238);\n  963  				font-family: 'Lucida Grande', sans-serif;\n  ...\n 1014  			border-bottom-width: 1px;\n 1015  			box-sizing: border-box;\n 1016: 			cursor: pointer;\n 1017  			color: rgb(238, 238, 238);\n 1018  			font-family: 'Lucida Grande', sans-serif;\n ....\n 1104  		right: 0;\n 1105  		width: 10px;\n 1106: 		cursor: e-resize;\n 1107  	}\n 1108  \n\n42 matches across 5 files\n",
+			"contents": "Searching 27 files for \"cursor\"\n\n/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/index.html:\n  218                        <ul class=\"tool-list\">\n  219                          <ul class=\"edit-list\">\n  220:                           <li data-type=\"Move\" data-cursor=\"hand\"><img src=\"{% static 'images/icons/inverted/hand.png' %}\" alt=\"hand\"></li>\n  221:                           <li data-type=\"Select\"><img src=\"{% static 'images/icons/inverted/cursor.png' %}\" alt=\"cursor\"></li>\n  222                            <!-- <li data-type=\"editCurve\"><img src=\"{% static 'images/icons/inverted/editCurve.png' %}\" alt=\"editCurve\"></li> -->\n  223                            <li data-type=\"Screenshot\"><img src=\"{% static 'images/icons/inverted/screenshot.png' %}\" alt=\"screenshot\"></li>\n  ...\n  227                            <li data-type=\"Text\"><img src=\"{% static 'images/icons/inverted/text.png' %}\" alt=\"text\"></li>\n  228                            <li data-type=\"Media\"><img src=\"{% static 'images/icons/inverted/image.png' %}\" alt=\"image\"></li>\n  229:                           <li data-type=\"Lock\" data-cursor=\"key\"><img src=\"{% static 'images/icons/inverted/lock.png' %}\" alt=\"key\"></li>\n  230:                           <!-- <li data-type=\"Link\" data-cursor=\"link\"><img src=\"{% static 'images/icons/inverted/link.png' %}\" alt=\"link\"></li> -->\n  231                            <li data-type=\"Car\"><img src=\"{% static 'images/icons/inverted/car.png' %}\" alt=\"car\"></li>\n  232                          </ul>\n  ...\n  252                        <ul id=\"sortable2\" class=\"favorite-tool-list tool-list connectedSortable\">\n  253                          <li data-type=\"Precise path\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/editCurve.png' %}\" alt=\"editCurve\"></li>\n  254:                         <li data-type=\"Rectangle\" data-cursor=\"rectangle\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/rectangle.png' %}\" alt=\"rectangle\"></li>\n  255:                         <li data-type=\"Spiral\" data-cursor=\"spiral\" class=\"tool-btn\"><img src=\"{% static 'images/icons/inverted/spiral.png' %}\" alt=\"spiral\"></li>\n  256                          <!-- <li data-type=\"Checkpoint\"><span class=\"short-name\">Ch.</span><span class=\"tool-name\">Checkpoint</span></li> -->\n  257                        </ul>\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/div.coffee:\n  884  						return\n  885  \n  886: 					input.on 'typeahead:cursorchanged', ()->\n  887  						inputValue = input.val()\n  888  						return\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/path.coffee:\n   11  	@rname = 'Pen'\n   12  	@rdescription = \"The classic and basic pen tool\"\n   13: 	@cursorPosition = { x: 24, y: 0 }\n   14: 	@cursorDefault = \"crosshair\"\n   15  \n   16  	@hitOptions =\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/tools.coffee:\n    7  		return {}\n    8  \n    9: 	constructor: (@name, @cursorPosition = { x: 0, y: 0 }, @cursorDefault=\"default\") ->\n   10  		g.tools[@name] = @\n   11  \n   12  		@btnJ ?= g.toolsJ.find('li[data-type=\"'+@name+'\"]')\n   13  \n   14: 		@cursorName = @btnJ.attr(\"data-cursor\")\n   15  		@btnJ.click( () => @select() )\n   16  \n   ..\n   46  		g.deselectAll()\n   47  \n   48: 		if @cursorName?\n   49: 			g.stageJ.css('cursor', 'url(static/images/cursors/'+@cursorName+'.png) '+@cursorPosition.x+' '+@cursorPosition.y+','+@cursorDefault)\n   50  		else\n   51: 			g.stageJ.css('cursor', @cursorDefault)\n   52  		\n   53  		g.updateParameters( { tool: constructor, item: selectedItem }, differentTool)\n   ..\n  377  		@btnJ = g.toolsJ.find('li[data-type=\"'+@name+'\"]')\n  378  \n  379: 		# <li data-type=\"Spiral\" data-cursor=\"spiral\"><img src=\"{% static 'icons/inverted/spiral.png' %}\" alt=\"spiral\"></li>		\n  380  		# todo: put this part in PathTool?\n  381  		if @btnJ.length==0\n  382  			@btnJ = $(\"<li>\")\n  383  			@btnJ.attr(\"data-type\", @name)\n  384: 			# @btnJ.attr(\"data-cursor\", @cursorDefault)\n  385  			@btnJ.attr(\"alt\", @name)\n  386  			\n  ...\n  407  		@btnJ.addClass(\"tool-btn\")\n  408  		\n  409: 		super(@RPath.rname, @RPath.cursorPosition, @RPath.cursorDefault, @RPath.options)\n  410  		\n  411  		return\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/less/styles.less:\n  143  \n  144  	&.moveTool {\n  145: 		cursor: url(images/hand.png) 32 32, move;\n  146  \n  147  		.custom-div {\n  148: 			cursor: url(images/hand.png) 32 32, move;\n  149  			textarea, .handle, .content {\n  150: 				cursor: url(images/hand.png) 32 32, move;\n  151  				.vendor(user-select, text);\n  152  			}\n  ...\n  175  	.link, .lock {\n  176  		border: dotted 2px #428bca;\n  177: 		cursor: pointer;\n  178  		position: absolute;\n  179  		background-color: rgba(111, 84, 153, 0);\n  ...\n  197  		// border-radius: 5px;\n  198  		padding: 20px;\n  199: 		cursor: pointer;\n  200  		overflow: hidden;\n  201  \n  ...\n  371  		}\n  372  		&.website {\n  373: 			cursor: url(images/hand.png) 32 32, move;\n  374  		}\n  375  	}\n  ...\n  518  \n  519  	li.tool-btn {\n  520: 		cursor: pointer;\n  521  		padding: 6px;\n  522  		&:hover {\n  ...\n  561  \n  562  			// li {\n  563: 			// 	cursor: pointer;\n  564  			// 	float: left;\n  565  			// 	padding: 10px;\n  ...\n  580  \n  581  		li.tool-btn, ul li {\n  582: 			cursor: pointer;\n  583  			float: left;\n  584  			padding: 10px;\n  ...\n  745  		clear: both;\n  746  		padding-left: 100px;\n  747: 		.tt-cursor {\n  748  			background-color: #1ed36f;\n  749  		}\n  ...\n  809  				line-height: 24px;\n  810  \n  811: 				&.tt-cursor {\n  812  					color: #fff;\n  813  					background-color: #0097cf;\n  ...\n  959  				border-bottom-width: 1px;\n  960  				box-sizing: border-box;\n  961: 				cursor: pointer;\n  962  				color: rgb(238, 238, 238);\n  963  				font-family: 'Lucida Grande', sans-serif;\n  ...\n 1014  			border-bottom-width: 1px;\n 1015  			box-sizing: border-box;\n 1016: 			cursor: pointer;\n 1017  			color: rgb(238, 238, 238);\n 1018  			font-family: 'Lucida Grande', sans-serif;\n ....\n 1104  		right: 0;\n 1105  		width: 10px;\n 1106: 		cursor: e-resize;\n 1107  	}\n 1108  \n\n42 matches across 5 files\n\n\nSearching 29 files for \"g = t\"\n\n/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/settings.py:\n   11      sys.path.insert(0, PROJECT_ROOT)\n   12  \n   13: DEBUG = True\n   14  TEMPLATE_DEBUG = DEBUG\n   15  \n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/div.coffee:\n  297  			return true\n  298  \n  299: 		@dragging = true\n  300  \n  301  		# pos will be used with event.page, must be defined in screen coordinates\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/global.coffee:\n    1: g = this\n    2  this.g = g\n    3  g.alerts = null\n    .\n  238  		@gainNode.gain.value = @volume\n  239  		@source.start(time)\n  240: 		@isPlaying = true\n  241  		@source.onended = ()=>\n  242  			@isPlaying = false\n  ...\n  301  #		g.showMask(true)\n  302  # 		if @isDrawing\n  303: # 			@stopDrawing = true\n  304  # 			_this = @\n  305  # 			setTimeout( ( ()-> _this.draw(simplified, loading) ), 0)\n  306  		\n  307: # 		@isDrawing = true\n  308  \n  309  # 		if @controlPath.segments.length < 2 then return\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/main.coffee:\n  339  \n  340  g.updateHash = ()->\n  341: 	g.moving = true\n  342  	location.hash = '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)\n  343  	return\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/options.coffee:\n  280  	g.optionsJ = $(\".option-list\")\n  281  	colorName = g.defaultColors.random()\n  282: 	colorRGBstring = tinycolor(colorName).toRgbString() \n  283  	g.strokeColor = colorRGBstring\n  284  	g.fillColor = \"rgb(255,255,255,255)\"\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/tools.coffee:\n  117  	# note: we could use g.eventObj to convert the Native event into Paper.ToolEvent, however onMouseDown/Drag/Up also fire begin/update/end\n  118  	beginNative: (event) ->\n  119: 		@dragging = true\n  120  		@prevPoint = { x: event.pageX, y: event.pageY }\n  121  		return\n  ...\n  910  		tempProject.addChild(svgGroup)\n  911  \n  912: 		svg = tempProject.exportSVG( asString: true )\n  913  		tempProject.remove()\n  914  		paper.projects.first().activate()\n\n10 matches across 6 files\n\n\nSearching 31 files for \"setAlert\"\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/global.coffee:\n    7  \n    8  ## Alerts\n    9: this.setAlert = (index) ->\n   10  \n   11  	if g.alerts.length<=0 || index<0 || index>=g.alerts.length\n\n/Users/Arthur/Projects/romanesco/Romanesco/static/coffee/main.coffee:\n  298  	g.currentAlert = -1\n  299  	g.alertTimeOut = -1\n  300: 	g.alertsContainer.find(\".btn-up\").click( -> setAlert(g.currentAlert-1) )\n  301: 	g.alertsContainer.find(\".btn-down\").click( -> setAlert(g.currentAlert+1) )\n  302  \n  303  	g.loadedAreas = []\n\n3 matches across 2 files\n",
 			"settings":
 			{
-				"buffer_size": 6055,
+				"buffer_size": 8749,
 				"line_ending": "Unix",
 				"name": "Find Results",
 				"scratch": true
@@ -624,7 +632,7 @@
 			"file": "coffee/path.coffee",
 			"settings":
 			{
-				"buffer_size": 67509,
+				"buffer_size": 67685,
 				"line_ending": "Unix"
 			}
 		},
@@ -656,7 +664,7 @@
 			"file": "coffee/tools.coffee",
 			"settings":
 			{
-				"buffer_size": 24953,
+				"buffer_size": 25414,
 				"line_ending": "Unix"
 			}
 		},
@@ -672,7 +680,7 @@
 			"file": "coffee/div.coffee",
 			"settings":
 			{
-				"buffer_size": 40964,
+				"buffer_size": 41063,
 				"line_ending": "Unix"
 			}
 		},
@@ -685,26 +693,48 @@
 			}
 		},
 		{
-			"file": "coffee/global.coffee",
-			"settings":
-			{
-				"buffer_size": 9040,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
-			"settings":
-			{
-				"buffer_size": 3897,
-				"line_ending": "Unix"
-			}
-		},
-		{
 			"file": "/Users/Arthur/Projects/romanesco/Romanesco/run.py",
 			"settings":
 			{
 				"buffer_size": 1240,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "#!/usr/bin/env python\n\nfrom gevent import monkey\nmonkey.patch_all()\n\nimport os\nimport sys\nfrom psycogreen.gevent import patch_psycopg\n\n\ndir = os.path.dirname(__file__)\nsys.path.insert(0, os.path.join(dir, 'Romanesco'))\n\ntry:\n    import settings\nexcept ImportError:\n    sys.stderr.write(\"Error: Can't find the file 'settings.py' in the directory containing %r. It appears you've customized things.\\nYou'll have to run django-admin.py, passing it your settings module.\\n(If the file settings.py does indeed exist, it's causing an ImportError somehow.)\\n\" % __file__)\n    sys.exit(1)\n\nsys.path.insert(0, os.path.join(settings.PROJECT_ROOT, \"draw\")) # should not be necessary\n\nPORT = 8000\n\nos.environ['DJANGO_SETTINGS_MODULE'] = 'settings'\n\npatch_psycopg()\n\nfrom django.core.wsgi import get_wsgi_application\napplication = get_wsgi_application()\n\n\nif __name__ == '__main__':\n    from socketio.server import SocketIOServer\n    server = SocketIOServer(('', PORT), application, resource=\"socket.io\")\n    server.serve_forever()",
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/runserver.py",
+			"file_size": -1,
+			"file_write_time": -1,
+			"settings":
+			{
+				"buffer_size": 1018,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/manage.py",
+			"settings":
+			{
+				"buffer_size": 440,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "###\n# Global functions #\n\nHere are all global functions (which do not belong to classes and are not event handlers neither initialization functions).\n\n###\n\n## Alerts\n\n# Display the alert number *index*\n# Change the text and the class of the alert box to the ones from alert number *index*\nthis.showAlert = (index) ->\n	if g.alerts.length<=0 || index<0 || index>=g.alerts.length then return  	# check that index is valid\n\n	prevType = g.alerts[g.currentAlert].type\n	g.currentAlert = index\n	alertJ = g.alertsContainer.find(\".alert\")\n	alertJ.removeClass(prevType).addClass(g.alerts[g.currentAlert].type).text(g.alerts[g.currentAlert].message)\n\n	g.alertsContainer.find(\".alert-number\").text(g.currentAlert+1)\n	return\n\n# display an alert with message, type and delay\nthis.romanesco_alert = (message, type=\"\", delay=2000) ->\n	if type.length==0\n		type = \"info\"\n	else if type == \"error\"\n		type = \"danger\"\n	\n	type = \" alert-\" + type\n\n	alertJ = g.alertsContainer.find(\".alert\")\n	g.alertsContainer.removeClass(\"r-hidden\")\n\n	prevType = if g.alerts.length>0 then g.alerts[g.alerts.length-1].type else \"\"\n	\n	g.currentAlert = g.alerts.length\n	g.alerts.push( { type: type, message: message } )\n\n	if g.alerts.length>0\n		g.alertsContainer.addClass(\"activated\")\n\n	alertJ.removeClass(prevType).addClass(type).text(message)\n\n	g.alertsContainer.find(\".alert-number\").text(g.alerts.length)\n\n	g.alertsContainer.addClass(\"show\")\n\n	if delay!=0\n		clearTimeout(g.alertTimeOut)\n		g.alertTimeOut = setTimeout( ( () -> g.alertsContainer.removeClass(\"show\") ) , delay )\n\nsqrtTwoPi = Math.sqrt(2*Math.PI)\n\n\n# divs: lock, links, text and medias \nthis.eventObj = (event)->\n	eo =\n		modifiers: event.modifiers\n		point: if not event.pageX? then event.point else view.viewToProject(new Point(event.pageX, event.pageY))\n		downPoint: event.downPoint?\n		delta: event.delta\n	if event.pageX? and event.pageY?\n		eo.modifiers = {}\n		eo.modifiers.control = event.ctrlKey\n		eo.modifiers.command = event.command\n	if event.target?\n		eo.target = \".\" + event.target.className.replace(\" \", \".\") # convert class name to selector to be able to find the target on the other clients (websocket com)\n	return eo\n\nthis.parseEventObj = (event)->\n	event.point = new Point(event.point)\n	event.downPoint = new Point(event.downPoint)\n	event.delta = new Point(event.delta)\n	return event\n\nthis.specialKey = (event)->\n	if event.pageX? and event.pageY?\n		specialKey = if g.OSName == \"MacOS\" then event.metaKey else event.ctrlKey\n	else\n		specialKey = if g.OSName == \"MacOS\" then event.modifiers.command else event.modifiers.control\n	return specialKey\n\nthis.getSnap = ()->\n	snap = g.parameters.snap.snap\n	return snap-snap%g.parameters.snap.step\n\nthis.snap1D = (value, snap)->\n	snap ?= g.getSnap()\n	if snap != 0\n		return Math.floor(value/snap)*snap\n	else\n		return value\n\nthis.snap2D = (point, snap)->\n	snap ?= g.getSnap()\n	if snap != 0\n		return new Point(snap1D(point.x, snap), snap1D(point.y, snap))\n	else\n		return point\n\nthis.snap = (event, from=g.me)->\n	if from!=g.me then return event\n	if g.selectedTool.disableSnap() then return event\n	snap = g.parameters.snap.snap\n	snap = snap-snap%g.parameters.snap.step\n	if snap != 0\n		snappedEvent = jQuery.extend({}, event)\n		snappedEvent.modifiers = event.modifiers\n		snappedEvent.point = g.snap2D(event.point, snap)\n		if event.lastPoint? then snappedEvent.lastPoint = g.snap2D(event.lastPoint, snap)\n		if event.downPoint? then snappedEvent.downPoint = g.snap2D(event.downPoint, snap)\n		if event.lastPoint? then snappedEvent.middlePoint = snappedEvent.point.add(snappedEvent.lastPoint).multiply(0.5)\n		if event.type != 'mouseup' and event.lastPoint?\n			snappedEvent.delta = snappedEvent.point.subtract(snappedEvent.lastPoint)\n		else if event.downPoint?\n			snappedEvent.delta = snappedEvent.point.subtract(snappedEvent.downPoint)\n		return snappedEvent\n	else\n		return event\n\n\n\n\n# Hide every path except me\n# @param [Item Object] the only item not to hide\ng.hideOthers = (me)->\n	for name, item of g.paths\n		if item != me\n			item.group?.visible = false\n	g.fastModeOn = true\n	return\n\ng.showAll = (me)->\n	if not g.fastModeOn then return\n	for name, item of g.paths\n		item.group?.visible = true\n	g.fastModeOn = false\n	return\n\ng.getLimitPaths = ()->\n	limit = getLimit()\n\n	limitPathV = null\n	limitPathH = null\n\n	if limit.x >= view.bounds.left and limit.x <= view.bounds.right\n		limitPathV = new Path()\n		limitPathV.name = 'limitPathV'\n		limitPathV.add(limit.x,view.bounds.top)\n		limitPathV.add(limit.x,view.bounds.bottom)\n\n	if limit.y >= view.bounds.top and limit.y <= view.bounds.bottom\n		limitPathH = new Path()\n		limitPathH.name = 'limitPathH'\n		limitPathH.add(view.bounds.left, limit.y)\n		limitPathH.add(view.bounds.right, limit.y)\n\n	return vertical: limitPathV, horizontal: limitPathH\n\ng.rectangleOverlapsTwoPlanets = (rectangle)->\n	return g.overlapsTwoPlanets(new Path.Rectangle(rectangle))\n\ng.pathOverlapsTwoPlanets = (path)->\n	limitPaths = g.getLimitPaths()\n	limitPathV = limitPaths.vertical\n	limitPathH = limitPaths.horizontal\n\n	if limitPathV?\n		intersections = path.getIntersections(limitPathV)\n		limitPathV.remove()\n		if intersections.length>0\n			return true\n\n	if limitPathH?\n		intersections = path.getIntersections(limitPathH)\n		limitPathH.remove()\n		if intersections.length>0\n			return true\n\n	return false\n\ng.updateGrid = ()->\n	g.grid.removeChildren()\n\n	limitPaths = g.getLimitPaths()\n	limitPathV = limitPaths.vertical\n	limitPathH = limitPaths.horizontal\n\n	if limitPathV?\n		limitPathV.strokeColor = \"#00FF00\"\n		limitPathV.strokeWidth = 5\n		g.grid.addChild(limitPathV)\n\n	if limitPathH?\n		limitPathH.strokeColor = \"#00FF00\"\n		limitPathH.strokeWidth = 5\n		g.grid.addChild(limitPathH)\n\n	if not g.displayGrid\n		return\n	\n	t = Math.floor(view.bounds.top / g.scale)\n	l = Math.floor(view.bounds.left / g.scale)\n	b = Math.floor(view.bounds.bottom / g.scale)\n	r = Math.floor(view.bounds.right / g.scale)\n\n	pos = getTopLeftCorner()\n\n	planet = projectToPlanet( pos )\n	posOnPlanet = projectToPosOnPlanet( pos )\n\n	debug = false\n\n	snap = g.getSnap()\n	if snap < 15 then snap = 15\n	if debug then snap = 250\n\n	n = 1\n	i = l\n	j = t\n	while i<r+1 or j<b+1\n\n		px = new Path()\n		px.name = \"grid px\"\n		py = new Path()\n		px.name = \"grid py\"\n		\n		ijOnPlanet = projectToPosOnPlanet(new Point(i*g.scale,j*g.scale))\n\n		if ijOnPlanet.x == -180\n			px.strokeColor = \"#00FF00\"\n			px.strokeWidth = 5\n		else if n<4 # i-Math.floor(i)>0.0\n			px.strokeColor = \"#666666\"\n		else\n			px.strokeColor = \"#000000\"\n			px.strokeWidth = 2\n\n		if ijOnPlanet.y == -90\n			py.strokeColor = \"#00FF00\"\n			py.strokeWidth = 5\n		else if n<4 # j-Math.floor(j)>0.0\n			py.strokeColor = \"#666666\"\n		else\n			py.strokeColor = \"#000000\"\n			py.strokeWidth = 2\n\n		px.add(new Point(i*g.scale, view.bounds.top))\n		px.add(new Point(i*g.scale, view.bounds.bottom))\n\n		py.add(new Point(view.bounds.left, j*g.scale))\n		py.add(new Point(view.bounds.right, j*g.scale))\n		\n		g.grid.addChild(px)\n		g.grid.addChild(py)\n\n		i += snap/g.scale\n		j += snap/g.scale\n		\n		if n==4 then n=0\n		n++\n\n	if not debug then return\n\n	i = l\n	while i<r+1\n		j = t\n		while j<b+1\n			x = i*g.scale\n			y = j*g.scale\n			\n			planetText = new PointText(new Point(x-10,y-40))\n			planetText.justification = 'right'\n			planetText.fillColor = 'black'\n			p = projectToPlanet(new Point(i*g.scale,j*g.scale))\n			planetText.content = 'px: ' + Math.floor(p.x) + ', py: ' + Math.floor(p.y)\n			g.grid.addChild(planetText)\n			posText = new PointText(new Point(x-10,y-20))\n			posText.justification = 'right'\n			posText.fillColor = 'black'\n			p = projectToPosOnPlanet(new Point(i*g.scale,j*g.scale))\n			posText.content = 'x: ' + p.x.toFixed(2) + ', y: ' + p.y.toFixed(2)\n			g.grid.addChild(posText)\n			\n\n			j += snap/g.scale\n\n		i += snap/g.scale\n	return\n\nthis.gameAt = (point)->\n	for div in g.divs\n		if div.getBounds().contains(point) and div.constructor.name == 'RVideoGame'\n		 	return div\n	return null\n\n# g.updateLoadingBar = (percentage)->\n# 	updateLoadingText = ()->\n# 		$(\"#loadingBar\").text((percentage*100).toFixed(2) + '%')\n# 		return\n# 	window.setTimeout(updateLoadingText, 10)\n# 	return\n\n# g.initLoadingBar = ()->\n# 	g.nLoadingRequest = 0\n# 	g.nLoadingStartRequest = 0\n# 	g.loadingBarTimeout = null \n# 	g.loadingBarJ = $(\"#loadingBar\")\n# 	g.loadingBarProject = new Project(\"loadingBar\")\n# 	g.loadingBarProject.activate()\n# 	size = 70\n# 	s = new Path.Star(new Point(size+30, size+30), 8, 0.8*size, size)\n# 	s.strokeWidth = 10\n# 	s.strokeColor = 'rgb(146, 215, 94)'\n\n# 	for i in [1 .. 10]\n# 		s = s.clone()\n# 		s.rotation = 45/2\n# 		s.scaling = 0.7\n# 		l = s.strokeColor.getLightness()\n# 		s.strokeColor.setLightness(l+(i+1)*0.01)\n	\n# 	paper.projects.first().activate()\n# 	g.startLoadingBar()\n\n# 	return\n\n# g.setLoadingBar = (percentage)->\n# 	if percentage>=1 then return\n# 	loadingBarPath = g.loadingBarProject.activeLayer.children[0].clone()\n# 	loadingBarPath.strokeColor = 'rgb(47, 161, 214)'\n# 	reminder = loadingBarPath.split(loadingBarPath.length*percentage)\n# 	reminder.remove()\n# 	return\n\n# g.animatedLoadingBar = ()->\n# 	if not g.loadingBarJ? then return\n# 	g.loadingBarProject.activeLayer.rotation += 0.5\n# 	g.loadingBarProject.view.draw()\n# 	# divJ = g.loadingBarJ.find(\".rotation\")\n# 	# divJ.css( transform: 'rotate(' + (Date.now()/10) + 'deg)')\n# 	# context = g.loadingBarJ.getContext(\"2d\")\n# 	# context.rotate(Date.now()/10)\n# 	return\n\n# g.startLoadingBar = (timeBeforeStart=200)->\n# 	if not g.loadingBarJ? then return\n# 	if g.loadingBarTimeout? then return\n# 	g.loadingBarTimeout = setTimeout(g.startLoadingBarHandler, timeBeforeStart)\n# 	g.nLoadingStartRequest++\n# 	return\n\n# g.startLoadingBarHandler = ()->\n# 	if not g.loadingBarJ? then return\n\n# 	g.nLoadingRequest++\n# 	if g.loadingState == 'started' then return\n\n# 	g.loadingBarJ.stop(true)\n# 	g.loadingBarJ.fadeIn( duration: 200, queue: false )\n# 	clearInterval(g.loadingInterval)\n# 	g.loadingInterval = setInterval(g.animatedLoadingBar, 1000/60)\n# 	g.loadingState = 'started'\n\n# 	return\n\n# g.stopLoadingBar = ()->\n# 	if not g.loadingBarJ? then return\n	\n# 	g.nLoadingRequest--\n# 	if g.nLoadingRequest>0 then return\n\n# 	g.nLoadingStartRequest--\n# 	if g.nLoadingStartRequest==0 then clearTimeout(g.loadingBarTimeout)\n\n# 	g.loadingState = 'stop requested'\n	\n# 	g.loadingBarJ.fadeOut( duration: 200, queue: false, complete: ()-> \n# 		clearInterval(g.loadingInterval)\n# 		g.loadingInterval = null\n# 		g.loadingState = 'stopped'\n# 		return\n# 	)\n# 	return\n\ng.RMoveTo = (pos) ->\n	g.RMoveBy(pos.subtract(view.center))\n\ng.RMoveBy = (delta) ->\n	\n	if g.restrictedArea?\n		\n		# check if the restricted area contains view.center (if not, move to center)\n		if not g.restrictedArea.contains(view.center)\n			# delta = g.restrictedArea.center.subtract(view.size.multiply(0.5)).subtract(view.topLeft)\n			delta = g.restrictedArea.center.subtract(view.center)\n		else\n			# test if new pos is still in restricted area\n			newView = view.bounds.clone()\n			newView.center.x += delta.x\n			newView.center.y += delta.y\n\n			# if it does not contain the view, change delta so that it contains it\n			if not g.restrictedArea.contains(newView)\n\n				restrictedAreaShrinked = g.restrictedArea.expand(view.size.multiply(-1)) # restricted area shrinked by view.size\n				\n				if restrictedAreaShrinked.width<0\n					restrictedAreaShrinked.left = restrictedAreaShrinked.right = g.restrictedArea.center.x\n				if restrictedAreaShrinked.height<0\n					restrictedAreaShrinked.top = restrictedAreaShrinked.bottom = g.restrictedArea.center.y\n\n				newView.center.x = g.clamp(restrictedAreaShrinked.left, newView.center.x, restrictedAreaShrinked.right)\n				newView.center.y = g.clamp(restrictedAreaShrinked.top, newView.center.y, restrictedAreaShrinked.bottom)\n				delta = newView.center.subtract(view.center)\n	\n	# console.log minusDelta\n	project.view.scrollBy(new Point(delta.x, delta.y))\n	\n	for div in g.divs\n		div.updateTransform()\n\n	newEntireArea = null\n	for area in g.entireAreas\n		if area.getBounds().contains(project.view.center)\n			newEntireArea = area\n			break\n\n	if not g.entireArea? and newEntireArea?\n		g.entireArea = newEntireArea.getBounds()\n	else if g.entireArea? and not newEntireArea?\n		g.entireArea = null\n\n	updateGrid()\n	if newEntireArea? then load(g.entireArea) else load()\n	g.updateRoom()\n\n	g.defferedExecution(g.updateHash, 500)\n	g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2))\n	return\n\ng.updateHash = ()->\n	g.moving = true\n	location.hash = '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)\n	return\n\nwindow.onhashchange = (event) ->\n	if g.moving\n		g.moving = false\n		return\n	pos = location.hash.substr(1).split(',')\n	p = new Point()\n	p.x = parseFloat(pos[0])\n	p.y = parseFloat(pos[1])\n	if not p.x then p.x = 0\n	if not p.y then p.y = 0\n	g.RMoveTo(p)\n	return\n\nthis.deselectAll = ()->\n	item.deselect?() for item in g.selectedItems()\n	project.activeLayer.selected = false\n	return\n\nthis.toggleSidebar = (show)->\n	show ?= not g.sidebarJ.hasClass(\"r-hidden\")\n	if show\n		g.sidebarJ.addClass(\"r-hidden\")\n		g.editorJ.addClass(\"r-hidden\")\n		g.alertsContainer.addClass(\"r-sidebar-hidden\")\n		g.sidebarHandleJ.find(\"span\").removeClass(\"glyphicon-chevron-left\").addClass(\"glyphicon-chevron-right\")\n	else\n		g.sidebarJ.removeClass(\"r-hidden\")\n		g.editorJ.removeClass(\"r-hidden\")\n		g.alertsContainer.removeClass(\"r-sidebar-hidden\")\n		g.sidebarHandleJ.find(\"span\").removeClass(\"glyphicon-chevron-right\").addClass(\"glyphicon-chevron-left\")\n	return\n\nthis.selectedItems = ()->\n	items = []\n	for item in project.selectedItems\n		if item.controller? and items.indexOf(item.controller)<0 then items.push(item.controller)\n	return items.concat g.selectedDivs\n\nthis.logItems = ()->\n\n	console.log \"Selected items:\"\n	for item, i in project.selectedItems\n		if item.name?.indexOf(\"debug\")==0 then continue\n		console.log \"------\" + i + \"------\"\n		console.log item.name\n		console.log item\n		console.log item.controller\n		console.log item.controller?.pk\n	console.log \"All items:\"\n	for item, i in project.activeLayer.children\n		if item.name?.indexOf(\"debug\")==0 then continue\n		console.log \"------\" + i + \"------\"\n		console.log item.name\n		console.log item\n		console.log item.controller\n		console.log item.controller?.pk\n	console.log \"hiiiiiii\"\n	return \"--- THE END ---\"\n\nthis.checkRasters = ()->\n	for item in project.activeLayer.children\n		if item.controller? and not item.controller.raster?\n			console.log item.controller\n			# item.controller.rasterize()\n	return\n\n# one complicated solution to handle the loading:\n# this.showMask = (show)->\n	# if show\n	# 	g.globalMaskJ.show()\n	# else\n	# 	g.globalMaskJ.hide()\n	# return\n# this.loop = (work, max, batchSize, callback, init=0, step=1, callbackArgs) ->\n# 	length = init\n	\n# 	doWork = () ->\n# 		limit = Math.min(length+batchSize*step, max)\n# 		while length < limit\n# 			if not work(length) then return\n# 			length += step\n# 		if length < max\n# 			setTimeout(doWork, 0)\n# 		else\n# 			callback(callbackArgs)\n# 		return\n	\n# 	doWork()\n# 	return\n\n# 	draw: (simplified=false, loading=false)->\n#		g.showMask(true)\n# 		if @isDrawing\n# 			@stopDrawing = true\n# 			_this = @\n# 			setTimeout( ( ()-> _this.draw(simplified, loading) ), 0)\n		\n# 		@isDrawing = true\n\n# 		if @controlPath.segments.length < 2 then return\n	\n# 		if simplified then @simplifiedModeOn()\n\n# 		step = @data.step\n# 		controlPathLength = @controlPath.length\n# 		nf = controlPathLength/step\n# 		nIteration  = Math.floor(nf)\n# 		reminder = nf-nIteration\n# 		length = reminder*step/2\n\n# 		@drawBegin()\n\n# 		drawUpdateJob = (length)=>\n# 			try\n# 				if @stopDrawing\n# 					@isDrawing = false\n# 					@stopDrawing = false\n# 					return false 		# @controlPath is null if the path was removed before totally drawn, then return false (stop the loop execution)\n# 				@drawUpdate(length)\n# 				view.draw()\n# 			catch error\n# 				console.error error\n# 				throw error\n# 			# g.setLoadingBar(length/controlPathLength)\n# 			return true\n\n# 		g.loop(drawUpdateJob, controlPathLength, 10, @finishDraw, length, step, simplified)\n\n# 		# while length<controlPathLength\n# 		# 	@drawUpdate(length)\n# 		# 	length += step\n\n# 		return\n\n# 	finishDraw: (simplified)=>\n# 		@drawEnd()\n\n# 		if simplified \n# 			@simplifiedModeOff()\n# 		else\n# 			@rasterize()\n#		g.showMask(false)\n# 		return",
+			"file": "coffee/global.coffee",
+			"file_size": 9145,
+			"file_write_time": 130621840430000000,
+			"settings":
+			{
+				"buffer_size": 16220,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/sound.coffee",
+			"settings":
+			{
+				"buffer_size": 2095,
 				"line_ending": "Unix"
 			}
 		},
@@ -717,11 +747,23 @@
 			}
 		},
 		{
+			"contents": "# TODO: manage items and path in the same way (g.paths and g.items)? make an interface on top of path and div, and use events to update them\n# todo: add else case in switches\n# todo: bug when creating a small div (happened with text)\n# todo: snap div\n# todo: center modal vertically with an event system: http://codepen.io/dimbslmh/pen/mKfCc and http://stackoverflow.com/questions/18422223/bootstrap-3-modal-vertical-position-center\n\n\n###\n# Romanesco documentation #\n\nRomanesco is an experiment about freedom, creativity and collaboration.\n\nThe source code is divided in files:\n - [main.coffee](http://main.html) which is where the initialization\n - [path.coffee](http://path.html)\n - etc\n\n\n###\n\n# --- Tools --- #\n\ninitTools = () ->\n	g.toolsJ = $(\".tool-list\")\n	g.favoriteToolsJ = $(\"#FavoriteTools .tool-list\")\n	g.allToolsContainerJ = $(\"#AllTools\")\n	g.allToolsJ = g.allToolsContainerJ.find(\".all-tool-list\")\n\n	if localStorage?\n		try\n			g.favoriteTools = JSON.parse(localStorage.favorites)\n		catch error\n			console.log error\n\n	g.tools = new Object()\n	new MoveTool()\n	new CarTool()\n	new SelectTool()\n	new CodeTool()\n	# new LinkTool(RLink)\n	new LockTool(RLock)\n	new TextTool(RText)\n	new MediaTool(RMedia)\n	new ScreenshotTool()\n	\n	new PathTool(PrecisePath)\n	new PathTool(RectangleShape)\n	new PathTool(SpiralShape)\n	new PathTool(SketchPath)\n\n	new PathTool(SpiralPath)\n	new PathTool(ShapePath)\n	new PathTool(StarShape)\n	new PathTool(EllipseShape)\n\n	new PathTool(RollerPath)\n	new PathTool(FuzzyPath)\n	new PathTool(Checkpoint)\n\n	initToolTypeahead = ()->\n		toolValues = []\n		toolValues.push( value: $(tool).attr(\"data-type\") ) for tool in g.allToolsJ.children()\n		g.typeaheadToolEngine = new Bloodhound({\n			name: 'Tools',\n			local: toolValues,\n			datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),\n			queryTokenizer: Bloodhound.tokenizers.whitespace\n		})\n		promise = g.typeaheadToolEngine.initialize()\n\n		g.searchToolInputJ = g.allToolsContainerJ.find(\"input.search-tool\")\n		g.searchToolInputJ.keyup (event)->\n			query = g.searchToolInputJ.val()\n			if query == \"\"\n				g.allToolsJ.children().show()\n				return\n			g.allToolsJ.children().hide()\n			g.typeaheadToolEngine.get( query, (suggestions)->\n				for suggestion in suggestions\n					console.log(suggestion)\n					g.allToolsJ.children(\"[data-type='\" + suggestion.value + \"']\").show()\n			)\n			return\n		return\n\n	# ajaxPost '/getTools', {}, (result)->\n	Dajaxice.draw.getTools (result)->\n		scripts = JSON.parse(result.tools)\n\n		for script in scripts\n			g.runScript(script)\n\n		initToolTypeahead()\n		return\n\n	sortStart = (event, ui)->\n		$( \"#sortable1, #sortable2\" ).addClass(\"drag-over\")\n		return\n\n	sortStop = (event, ui)->\n		$( \"#sortable1, #sortable2\" ).removeClass(\"drag-over\")\n		if not localStorage? then return\n		names = []\n		for li in g.favoriteToolsJ.children()\n			names.push($(li).attr(\"data-type\"))\n		localStorage.favorites = JSON.stringify(names)\n\n		toolValues = []\n		toolValues.push( value: $(tool).attr(\"data-type\") ) for tool in g.allToolsJ.children()\n		g.typeaheadToolEngine.clear()\n		g.typeaheadToolEngine.add(toolValues)\n\n		return\n\n	$( \"#sortable1, #sortable2\" ).sortable( connectWith: \".connectedSortable\", appendTo: g.sidebarJ, helper: \"clone\", start: sortStart, stop: sortStop ).disableSelection()\n\n	g.tools['Move'].select()\n\nthis.mousedown = (event) ->\n	# select move tool if middle mouse button\n	switch event.which # middle mouse button\n		when 2\n			g.tools['Move'].select()\n		when 3\n			g.selectedTool.finishPath?()\n\n	if g.selectedTool.name == 'Move' \n		g.selectedTool.beginNative(event)\n		return\n	\n	if event.target.nodeName == \"CANVAS\" then return false\n	g.previousPoint = new Point(event.pageX, event.pageY)\n	return\n\nthis.mousemove = (event) ->\n	if g.selectedTool.name == 'Move' then g.selectedTool.updateNative(event)\n\n	# selectedDiv.selectUpdate(event) for selectedDiv in g.selectedDivs\n	\n	if g.previousPoint?\n		event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)\n		g.previousPoint = new Point(event.pageX, event.pageY)\n\n		for item in g.selectedItems()\n			item.selectUpdate?(event)\n	\n	if g.draggingEditor\n		g.editorJ.css( right: g.windowJ.width()-event.pageX)\n\n	return\n\nthis.mouseup = (event) ->\n	if g.selectedTool.name == 'Move' then g.selectedTool.endNative(event)\n\n	# deselect move tool and select previous tool if middle mouse button\n	if event.which == 2 # middle mouse button\n		g.previousTool?.select()\n\n	# drag handles	\n	g.mousemove(event)\n	# selectedDiv.selectEnd(event) for selectedDiv in g.selectedDivs\n\n	if g.previousPoint?\n		event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)\n		g.previousPoint = null\n		for item in g.selectedItems()\n			item.selectEnd?(event)\n\n	g.draggingEditor = false\n	\n	return\n\ninitPosition = ()->\n	boxString = g.canvasJ.attr(\"data-box\")\n	\n	if not boxString or boxString.length==0\n		window.onhashchange()\n		return\n\n	box = JSON.parse( boxString )\n\n	planet = new Point(box.planetX, box.planetY)\n	\n	tl = posOnPlanetToProject(box.box.coordinates[0][0], planet)\n	br = posOnPlanetToProject(box.box.coordinates[0][2], planet)\n\n	boxRectangle = new Rectangle(tl, br)\n	pos = boxRectangle.center\n\n	loadEntireArea = g.canvasJ.attr(\"data-load-entire-area\")\n	g.RMoveTo(pos)\n\n	if loadEntireArea\n		g.entireArea = boxRectangle\n		g.load(boxRectangle)\n\n	# boxData = if box.data? and box.data.length>0 then JSON.parse(box.data) else null\n	# console.log boxData\n\n	siteString = g.canvasJ.attr(\"data-site\")\n	site = JSON.parse( siteString )\n	if site.restrictedArea\n		g.restrictedArea = boxRectangle\n	\n	g.tools['Select'].select()\n\n	if site.disableToolbar\n		# just hide the sidebar\n		g.sidebarJ.hide()\n	else\n		# remove all panels except the chat\n		g.sidebarJ.find(\"div.panel.panel-default:not(:last)\").hide()\n\n		# remove all controllers and folder except zoom in General.\n		for folderName, folder of g.gui.__folders\n			for controller in folder.__controllers\n				if controller.name != 'Zoom'\n					folder.remove(controller)\n					folder.__controllers.remove(controller)\n			if folder.__controllers.length==0\n				g.gui.removeFolder(folderName)\n\n		g.sidebarHandleJ.click()\n\n	return\n\n\npaper.install(window)\n# init global variables\ninit = ()->\n	g.windowJ = $(window)\n	g.stageJ = $(\"#stage\")\n	g.sidebarJ = $(\"#sidebar\")\n	g.canvasJ = g.stageJ.find(\"#canvas\")\n	g.canvas = g.canvasJ[0]\n	g.context = g.canvas.getContext('2d')\n	g.templatesJ = $(\"#templates\")\n	g.me = null\n	g.dragOffset = { x: 0, y: 0 }\n	g.draggedDivJ = null\n	g.selectedDivs = []\n	g.selectionGroup = null\n	g.polygonMode = false\n	g.selectionBlue = '#2fa1d6'\n	g.updateTimeout = {}\n	g.restrictedArea = null\n	g.offset = { x: 0, y: 0 }\n	g.OSName = \"Unknown OS\"\n	g.currentPaths = {}\n	g.loadingBarTimeout = null\n	g.entireArea = null\n	g.entireAreas = []\n	g.animatedItems = []\n	g.cars = {}\n	g.fastMode = false\n	g.fastModeOn = false\n	g.alerts = null\n	g.scale = 1000.0\n\n	# g.globalMaskJ = $(\"#globalMask\")\n	# g.globalMaskJ.hide()\n	\n	Dajaxice.setup( 'default_exception_callback': (error)-> \n		console.log 'Dajaxice error!'\n		romanesco_alert \"Connection error\", \"error\"\n		return\n	)\n\n	if navigator.appVersion.indexOf(\"Win\")!=-1 then g.OSName = \"Windows\"\n	if navigator.appVersion.indexOf(\"Mac\")!=-1 then g.OSName = \"MacOS\"\n	if navigator.appVersion.indexOf(\"X11\")!=-1 then g.OSName = \"UNIX\"\n	if navigator.appVersion.indexOf(\"Linux\")!=-1 then g.OSName = \"Linux\"\n\n	paper.setup(canvas)\n	activeLayer = project.activeLayer\n	g.carLayer = new Layer()\n	activeLayer.activate()\n	paper.settings.hitTolerance = 5\n\n	Point.prototype.toJSON = ()->\n		return { x: this.x, y: this.y }\n	Point.prototype.exportJSON = ()->\n		return JSON.stringify(this.toJSON())\n\n	g.tool = new Tool()\n\n	g.paths = new Object()\n	g.sortedPaths = []\n	g.grid = new Group()\n	g.grid.name = 'grid group'\n\n	# g.defaultColors = ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5' ]\n	g.defaultColors = ['#d7dddb', '#4f8a83', '#e76278', '#fac699', '#712164']\n\n	# --- Alerts --- #\n	g.alertsContainer = $(\"#Romanesco_alerts\")\n	g.alerts = []\n	g.currentAlert = -1\n	g.alertTimeOut = -1\n	g.alertsContainer.find(\".btn-up\").click( -> showAlert(g.currentAlert-1) )\n	g.alertsContainer.find(\".btn-down\").click( -> showAlert(g.currentAlert+1) )\n\n	g.loadedAreas = []\n	g.areasToObjects = new Object()\n	g.items = new Object()\n	g.locks = []\n	g.divs = []\n\n	g.sidebarHandleJ = g.sidebarJ.find(\".sidebar-handle\")\n	g.sidebarHandleJ.click ()->\n		g.toggleSidebar()\n		return\n\n	g.sidebarJ.find(\"#buyRomanescoins\").click ()-> \n		g.templatesJ.find('#romanescoinModal').modal('show')\n		paypalFormJ = g.templatesJ.find(\"#paypalForm\")\n		paypalFormJ.find(\"input[name='submit']\").click( ()-> \n			data = \n				user: g.me\n				location: { x: view.center.x, y: view.center.y }\n			paypalFormJ.find(\"input[name='custom']\").attr(\"value\", JSON.stringify(data) )\n		)\n	\n\n	g.sidebarJ.find(\"#codeSubmit\").click ()->\n		return\n\n	# g.sound = new RSound(['/static/sounds/space_ship_engine.mp3', '/static/sounds/space_ship_engine.ogg'])\n\n	g.sound = new RSound(['/static/sounds/viper.ogg'])\n\n	# g.sound = new Howl( \n	# 	urls: ['/static/sounds/viper.ogg']\n	# 	onload: ()->\n	# 		console.log(\"sound loaded\")\n	# 		XMLHttpRequest = g.DajaxiceXMLHttpRequest\n	# 		return\n	# 	volume: 0.25\n	# 	buffer: true\n	# 	sprite:\n	# 		loop: [2000, 3000, true]\n	# )\n\n	# g.sound.plays = (spriteName)->\n	# 	return g.sound.spriteName == spriteName # and g.sound.pos()>0\n\n\n	# g.sound.playAt = (spriteName, time)->\n	# 	if time < 0 or time > 1.0 then return\n	# 	sprite = g.sound.sprite()[spriteName]\n	# 	begin = sprite[0]\n	# 	duration = sprite[1]\n	# 	looped = sprite[2]\n	# 	g.sound.stop()\n	# 	g.sound.spriteName = spriteName\n	# 	g.sound.play(spriteName)\n	# 	g.sound.pos(time*duration/1000)\n	# 	callback = ()->\n	# 		g.sound.stop()\n	# 		if looped then g.sound.play(spriteName)\n	# 		return\n	# 	clearTimeout(g.sound.rTimeout)\n	# 	g.sound.rTimeout = setTimeout(callback, duration-time*duration)\n	# 	return false\n\n	initOptions()\n	initCodeEditor()\n	initTools()\n	initSocket()\n	initPosition()\n	# initLoadingBar()\n\n	g.canvasJ.mousedown( g.mousedown )\n	g.stageJ.mousedown( g.mousedown )\n	$(window).mousemove( g.mousemove )\n	$(window).mouseup( g.mouseup )\n	g.stageJ.mousewheel( (event)->\n		g.RMoveBy(new Point(-event.deltaX, event.deltaY))\n		return\n	)\n\n	return\n\n$(document).ready () ->\n	init()\n	updateGrid()\n\n	canvasJ.dblclick( (event) -> g.selectedTool.doubleClick?(event) )\n	canvasJ.keydown( (event) -> if event.key == 43 then event.preventDefault() )\n\n	tool.onMouseDown = (event) ->\n		$(document.activeElement).blur() # prevent to keep focus on the chat when we interact with the canvas\n		# event = g.snap(event)\n		g.selectedTool.begin(event)\n\n	tool.onMouseDrag = (event) ->\n		event = g.snap(event)\n		g.selectedTool.update(event)\n\n	tool.onMouseUp = (event) ->\n		event = g.snap(event)\n		g.selectedTool.end(event)\n\n	tool.onKeyDown = (event) ->\n		# if user is typing: ignore\n		for selectedDiv in g.selectedDivs\n			if selectedDiv.constructor.name == 'RText'\n				return\n		if event.key == 'delete'\n			event.preventDefault()\n		if event.key == 'space' and g.selectedTool.name != 'Move'\n			g.tools['Move'].select()\n\n	tool.onKeyUp = (event) ->\n		# if user is typing: ignore\n		# for selectedDiv in g.selectedDivs\n		# 	if selectedDiv.constructor.name == 'RText'\n		# 		return\n\n		# if the focus is on anything in the sidebar or is a textarea: ignore the delete\n		if $(document.activeElement).parents(\".sidebar\").length or $(document.activeElement).is(\"textarea\")\n			return\n\n		if event.key in ['left', 'right', 'up', 'down']\n			delta = if event.modifiers.shift then 50 else if event.modifiers.option then 5 else 1\n		switch event.key\n			when 'right'\n				item.moveBy(new Point(delta,0), true) for item in g.selectedItems()\n			when 'left'\n				item.moveBy(new Point(-delta,0), true) for item in g.selectedItems()\n			when 'up'\n				item.moveBy(new Point(0,-delta), true) for item in g.selectedItems()\n			when 'down'\n				item.moveBy(new Point(0,delta), true) for item in g.selectedItems()\n			when 'enter', 'escape'\n				g.selectedTool.finishPath?()\n			when 'space'\n				g.previousTool?.select()\n			when 'v'\n				g.tools['Select'].select()\n			when 'delete', 'backspace'\n				for item in g.selectedItems()\n					item.delete()\n		\n		event.preventDefault()\n	\n	view.onFrame = (event)->\n		g.selectedTool.onFrame?(event)\n		for item in g.animatedItems\n			item.onFrame(event)\n\n		for username, car of g.cars\n			direction = new Point(1,0)\n			direction.angle = car.rotation-90\n			car.position = car.position.add(direction.multiply(car.speed))\n			if Date.now() - car.rLastUpdate > 1000\n				g.cars[username].remove()\n				delete g.cars[username]\n\n		return\n\n	$(\".mCustomScrollbar.sidebar-scrollbar\").mCustomScrollbar( keyboard: false )\n\n	g.windowJ.resize( (event) ->\n		updateGrid()\n		$(\".mCustomScrollbar\").mCustomScrollbar(\"update\")\n		view.draw()\n	)\n\n	# debug function to log pk of selected path\n	# debugSelectedBefore = null\n	# debug = ()->\n	# 	paper.view.draw()\n	# 	if project.selectedItems.length>0 and debugSelectedBefore!=project.selectedItems[0]\n	# 		debugSelectedBefore = project.selectedItems[0]\n	# 		if project.selectedItems[0].hasOwnProperty('pk')\n	# 			console.log project.selectedItems[0].pk\n\n	# setInterval(debug, 500)\n",
 			"file": "coffee/main.coffee",
+			"file_size": 13192,
+			"file_write_time": 130622667250000000,
 			"settings":
 			{
-				"buffer_size": 23262,
+				"buffer_size": 13194,
 				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "coffee/utils.coffee",
+			"settings":
+			{
+				"buffer_size": 1408,
+				"line_ending": "Unix",
+				"name": "utils.coffee"
 			}
 		},
 		{
@@ -729,14 +771,6 @@
 			"settings":
 			{
 				"buffer_size": 10467,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test2.html",
-			"settings":
-			{
-				"buffer_size": 1946,
 				"line_ending": "Unix"
 			}
 		},
@@ -805,23 +839,29 @@
 	},
 	"file_history":
 	[
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/Romanesco/settings.py",
+		"/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/settings.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/run.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/runserver.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/help.txt",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/manage.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/gunicorn_config.py",
+		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/nginx.conf",
+		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/sites-available/romanesco",
+		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/site-available/romanesco",
+		"/Users/Arthur/Projects/romanesco/Romanesco/socketio_runserver/management/commands/socketio_runserver.py",
+		"/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test2.html",
+		"/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
 		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/index.coffee",
 		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/EvolutionCommons.coffee",
 		"/Users/Arthur/Projects/Evolution/evolution-server/coffee/evolutionController.coffee",
 		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanescoBckp/gunicorn_config.py",
-		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/gunicorn_config.py",
 		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/Romanesco/urls.py",
-		"/Users/Arthur/Projects/digitalocean/romanesco/opt/help.txt",
-		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/nginx.conf",
-		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/sites-available/romanesco",
-		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/run.py",
-		"/Users/Arthur/Projects/digitalocean/romanesco/opt/romanesco/Romanesco/Romanesco/settings.py",
 		"/Users/Arthur/Projects/digitalocean/romanesco/opt/gunicorn_config.py",
 		"/Users/Arthur/Projects/digitalocean/romanesco/etc/opt/help.txt",
 		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/sites-available/Find help to work with nginx, unicorn and django h",
 		"/Users/Arthur/Projects/digitalocean/romanesco/etc/nginx/sites-available/default",
 		"/Users/Arthur/Projects/secret_key.txt",
-		"/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
 		"/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/urls.py",
 		"/Users/Arthur/Projects/euphony-mapping/lib/MIDI.js/MIDI.Player.js",
 		"/Users/Arthur/Libraries/web/euphony-master/lib/MIDI.js/MIDI.Player.js",
@@ -866,7 +906,6 @@
 		"/Users/Arthur/Projects/romanesco/Romanesco/draw/static/css/style.css",
 		"/Users/Arthur/Projects/romanesco/Romanesco/draw/templates/accountBckp/base.html",
 		"/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test1.html",
-		"/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test2.html",
 		"/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/deps.yaml",
 		"/Users/Arthur/Libraries/web/turbulenz_engine/tools/Makefile",
 		"/Users/Arthur/Libraries/web/turbulenz_engine/manage.py",
@@ -927,12 +966,7 @@
 		"/Users/Arthur/Libraries/web/ui-layout-master/demo/index.html",
 		"/Users/Arthur/Libraries/web/ui-layout-master/demo/minmax.html",
 		"/Users/Arthur/Libraries/web/ui-layout-master/demo/demo.html",
-		"/Users/Arthur/Projects/reflect/reflect/graph/templates/index.html",
-		"/Users/Arthur/Projects/reflect/reflect/static/styles.sass",
-		"/Users/Arthur/Projects/of_v0.8.3_osx_release/docs/projectgenerator.md",
-		"/Users/Arthur/Projects/of_v0.8.3_osx_release/docs/osx.md",
-		"/Users/Arthur/Projects/reflect/reflect/static/templates/reflect-branch.html",
-		"/Users/Arthur/Projects/romanesco/.gitignore"
+		"/Users/Arthur/Projects/reflect/reflect/graph/templates/index.html"
 	],
 	"find":
 	{
@@ -953,6 +987,26 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"container",
+			"setAlert",
+			"g = t",
+			"g = this",
+			"g = win",
+			"popover.on(‘show.bs.popover’, ()-> screenRect = new Rectang",
+			"://\"\"))",
+			"http://",
+			"keyup",
+			"paypal",
+			"0.0.0",
+			"socketio",
+			"ADMIN",
+			"dajax",
+			"log",
+			"proxy_set_header X-Forwarded-Host $server_name",
+			"proxy_pass http://188.226.156.97:8001",
+			"server_name romanesc.co",
+			"environ['socketio']",
+			"8000",
 			"wsgi",
 			"access_log",
 			"include",
@@ -1060,27 +1114,7 @@
 			"temporary",
 			"61b2fd1e.ngrok.com",
 			"checkbox",
-			"save",
-			"pin1",
-			"screensho",
-			"random",
-			"New tool",
-			"align",
-			".align",
-			"align",
-			"distri",
-			"png",
-			".input-group-addon",
-			"divModalSiteName",
-			"'lock'",
-			"!= \"lock\"",
-			"!= 'lock'",
-			"!= \"",
-			"!= '",
-			"!= 'lock'",
-			"'lock'",
-			"car",
-			"getArea"
+			"save"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1219,7 +1253,7 @@
 	"groups":
 	[
 		{
-			"selected": 22,
+			"selected": 24,
 			"sheets":
 			[
 				{
@@ -1228,15 +1262,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 38689,
+						"buffer_size": 38826,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4815,
-								4826
+								37613,
+								37613
 							]
 						],
 						"settings":
@@ -1246,10 +1280,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1561.0,
+						"translation.y": 11082.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
@@ -1277,11 +1311,39 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 22,
 					"type": "text"
 				},
 				{
 					"buffer": 2,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/urls.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 921,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								550,
+								550
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 21,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
 					"file": "less/styles.less",
 					"semi_transient": false,
 					"settings":
@@ -1303,14 +1365,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 1768.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 11,
+					"stack_index": 26,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 4,
 					"file": "styles.css",
 					"semi_transient": false,
 					"settings":
@@ -1334,11 +1396,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 13,
+					"stack_index": 28,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 5,
 					"file": "/Users/Arthur/Projects/romanesco/.gitignore",
 					"semi_transient": false,
 					"settings":
@@ -1359,14 +1421,14 @@
 							"syntax": "Packages/Text/Plain text.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 102.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 12,
+					"stack_index": 27,
 					"type": "text"
 				},
 				{
-					"buffer": 5,
+					"buffer": 6,
 					"file": "less/flexbox.less",
 					"semi_transient": false,
 					"settings":
@@ -1392,24 +1454,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 27,
+					"stack_index": 31,
 					"type": "text"
 				},
 				{
-					"buffer": 6,
+					"buffer": 7,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/ajax.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 17686,
+						"buffer_size": 17685,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								12811,
-								12811
+								15227,
+								15227
 							]
 						],
 						"settings":
@@ -1418,14 +1480,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 5454.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 5,
+					"stack_index": 19,
 					"type": "text"
 				},
 				{
-					"buffer": 7,
+					"buffer": 8,
 					"file": "coffee/ajax.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1450,11 +1512,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 21,
+					"stack_index": 24,
 					"type": "text"
 				},
 				{
-					"buffer": 8,
+					"buffer": 9,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/sockets.py",
 					"semi_transient": false,
 					"settings":
@@ -1466,8 +1528,8 @@
 						"selection":
 						[
 							[
-								3305,
-								3305
+								2484,
+								2484
 							]
 						],
 						"settings":
@@ -1477,14 +1539,14 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1108.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 16,
+					"stack_index": 18,
 					"type": "text"
 				},
 				{
-					"buffer": 9,
+					"buffer": 10,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/models.py",
 					"semi_transient": false,
 					"settings":
@@ -1510,24 +1572,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 24,
+					"stack_index": 15,
 					"type": "text"
 				},
 				{
-					"buffer": 10,
+					"buffer": 11,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/Romanesco/settings.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 8081,
+						"buffer_size": 8109,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4685,
-								4685
+								8068,
+								8068
 							]
 						],
 						"settings":
@@ -1537,18 +1599,18 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1546.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 14,
 					"type": "text"
 				},
 				{
-					"buffer": 11,
+					"buffer": 12,
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6055,
+						"buffer_size": 8749,
 						"regions":
 						{
 							"match":
@@ -1723,6 +1785,58 @@
 									[
 										5992,
 										5998
+									],
+									[
+										6218,
+										6223
+									],
+									[
+										6382,
+										6387
+									],
+									[
+										6562,
+										6567
+									],
+									[
+										6705,
+										6710
+									],
+									[
+										6856,
+										6861
+									],
+									[
+										6986,
+										6991
+									],
+									[
+										7183,
+										7188
+									],
+									[
+										7473,
+										7478
+									],
+									[
+										7863,
+										7868
+									],
+									[
+										8010,
+										8015
+									],
+									[
+										8300,
+										8308
+									],
+									[
+										8576,
+										8584
+									],
+									[
+										8659,
+										8667
 									]
 								],
 								"scope": ""
@@ -1731,15 +1845,15 @@
 						"selection":
 						[
 							[
-								4272,
-								4272
+								8578,
+								8578
 							]
 						],
 						"settings":
 						{
 							"detect_indentation": false,
 							"line_numbers": false,
-							"output_tag": 1,
+							"output_tag": 3,
 							"result_base_dir": "",
 							"result_file_regex": "^([A-Za-z\\\\/<].*):$",
 							"result_line_regex": "^ +([0-9]+):",
@@ -1747,27 +1861,27 @@
 							"syntax": "Packages/Default/Find Results.hidden-tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 950.0,
+						"translation.y": 3375.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 14,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
-					"buffer": 12,
+					"buffer": 13,
 					"file": "coffee/path.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 67509,
+						"buffer_size": 67685,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								41941,
-								41956
+								51624,
+								51624
 							]
 						],
 						"settings":
@@ -1776,14 +1890,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 20694.0,
+						"translation.y": 27391.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 10,
+					"stack_index": 11,
 					"type": "text"
 				},
 				{
-					"buffer": 13,
+					"buffer": 14,
 					"semi_transient": false,
 					"settings":
 					{
@@ -1808,11 +1922,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 15,
+					"stack_index": 16,
 					"type": "text"
 				},
 				{
-					"buffer": 14,
+					"buffer": 15,
 					"file": "coffee/pathSources.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1833,15 +1947,15 @@
 							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
 							"translate_tabs_to_spaces": false
 						},
-						"translation.x": -0.0,
-						"translation.y": 8713.0,
+						"translation.x": 0.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 7,
+					"stack_index": 12,
 					"type": "text"
 				},
 				{
-					"buffer": 15,
+					"buffer": 16,
 					"file": "coffee/socket.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1866,24 +1980,24 @@
 						"translation.y": 1554.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 17,
+					"stack_index": 29,
 					"type": "text"
 				},
 				{
-					"buffer": 16,
+					"buffer": 17,
 					"file": "coffee/tools.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 24953,
+						"buffer_size": 25414,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								758,
-								758
+								8690,
+								8690
 							]
 						],
 						"settings":
@@ -1892,14 +2006,14 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 336.0,
+						"translation.y": 5140.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 6,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
-					"buffer": 17,
+					"buffer": 18,
 					"file": "coffee/coordinateSystems.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1921,27 +2035,27 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 91.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 19,
+					"stack_index": 9,
 					"type": "text"
 				},
 				{
-					"buffer": 18,
+					"buffer": 19,
 					"file": "coffee/div.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 40964,
+						"buffer_size": 41063,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1209,
-								1209
+								97,
+								97
 							]
 						],
 						"settings":
@@ -1953,11 +2067,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 9,
+					"stack_index": 10,
 					"type": "text"
 				},
 				{
-					"buffer": 19,
+					"buffer": 20,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/draw/views.py",
 					"semi_transient": false,
 					"settings":
@@ -1982,70 +2096,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 25,
-					"type": "text"
-				},
-				{
-					"buffer": 20,
-					"file": "coffee/global.coffee",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 9040,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								6288,
-								6288
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 22,
+					"stack_index": 6,
 					"type": "text"
 				},
 				{
 					"buffer": 21,
-					"file": "/Users/Arthur/Libraries/web/decode-audio-data-gh-pages/index.html",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 3897,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								3591,
-								3594
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/HTML/HTML.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 1227.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 22,
 					"file": "/Users/Arthur/Projects/romanesco/Romanesco/run.py",
 					"semi_transient": false,
 					"settings":
@@ -2057,8 +2112,8 @@
 						"selection":
 						[
 							[
-								801,
-								801
+								375,
+								375
 							]
 						],
 						"settings":
@@ -2069,11 +2124,125 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 17,
+					"type": "text"
+				},
+				{
+					"buffer": 22,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/runserver.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1018,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								580,
+								580
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 23,
 					"type": "text"
 				},
 				{
 					"buffer": 23,
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/manage.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 440,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								322,
+								330
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 20,
+					"type": "text"
+				},
+				{
+					"buffer": 24,
+					"file": "coffee/global.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 16220,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								807,
+								807
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 83.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 25,
+					"file": "coffee/sound.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2095,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								13,
+								13
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": -0.0,
+						"translation.y": 571.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 26,
 					"file": "coffee/lock.coffee",
 					"semi_transient": false,
 					"settings":
@@ -2097,24 +2266,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 26,
+					"stack_index": 30,
 					"type": "text"
 				},
 				{
-					"buffer": 24,
+					"buffer": 27,
 					"file": "coffee/main.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 23262,
+						"buffer_size": 13194,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								251,
-								251
+								8203,
+								8194
 							]
 						],
 						"settings":
@@ -2123,14 +2292,43 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 4101.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 8,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 25,
+					"buffer": 28,
+					"file": "coffee/utils.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1408,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								14,
+								14
+							]
+						],
+						"settings":
+						{
+							"auto_name": "utils.coffee",
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 29,
 					"file": "coffee/editor.coffee",
 					"semi_transient": false,
 					"settings":
@@ -2155,41 +2353,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 23,
+					"stack_index": 25,
 					"type": "text"
 				},
 				{
-					"buffer": 26,
-					"file": "/Users/Arthur/Libraries/web/Turbulenz/turbulenz_engine/test2.html",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1946,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1348,
-								1348
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/HTML/HTML.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 28,
-					"type": "text"
-				},
-				{
-					"buffer": 27,
+					"buffer": 30,
 					"file": "coffee/facebook.coffee",
 					"semi_transient": false,
 					"settings":
@@ -2201,8 +2369,8 @@
 						"selection":
 						[
 							[
-								809,
-								809
+								3174,
+								3174
 							]
 						],
 						"settings":
@@ -2210,15 +2378,15 @@
 							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
 							"translate_tabs_to_spaces": false
 						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.x": -0.0,
+						"translation.y": 868.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 20,
+					"stack_index": 8,
 					"type": "text"
 				},
 				{
-					"buffer": 28,
+					"buffer": 31,
 					"file": "coffee/options.coffee",
 					"semi_transient": false,
 					"settings":
@@ -2230,8 +2398,8 @@
 						"selection":
 						[
 							[
-								1422,
-								1422
+								161,
+								161
 							]
 						],
 						"settings":
@@ -2239,11 +2407,11 @@
 							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
 							"translate_tabs_to_spaces": false
 						},
-						"translation.x": 0.0,
-						"translation.y": 546.0,
+						"translation.x": -0.0,
+						"translation.y": 362.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 18,
+					"stack_index": 13,
 					"type": "text"
 				}
 			]
@@ -2300,32 +2468,116 @@
 		"selected_items":
 		[
 			[
-				"sett",
-				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+				"glo",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
 			],
 			[
-				"aja",
-				"~/Projects/romanesco/Romanesco/draw/ajax.py"
-			],
-			[
-				"inde",
-				"~/Projects/romanesco/Romanesco/draw/templates/index.html"
-			],
-			[
-				"",
-				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
-			],
-			[
-				"path",
-				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
+				"gloa",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
 			],
 			[
 				"main",
 				"~/Projects/romanesco/Romanesco/static/coffee/main.coffee"
 			],
 			[
+				"sou",
+				"~/Projects/romanesco/Romanesco/static/coffee/sound.coffee"
+			],
+			[
+				"inde",
+				"~/Projects/romanesco/Romanesco/draw/templates/index.html"
+			],
+			[
+				"utils",
+				"~/Projects/romanesco/Romanesco/static/coffee/utils.coffee"
+			],
+			[
+				"facb",
+				"~/Projects/romanesco/Romanesco/static/coffee/facebook.coffee"
+			],
+			[
+				"global",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"item",
+				"~/Projects/romanesco/Romanesco/static/coffee/coordinateSystems.coffee"
+			],
+			[
 				"div",
 				"~/Projects/romanesco/Romanesco/static/coffee/div.coffee"
+			],
+			[
+				"path",
+				"~/Projects/romanesco/Romanesco/static/coffee/path.coffee"
+			],
+			[
+				"tools",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"tool",
+				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
+			],
+			[
+				"opti",
+				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
+			],
+			[
+				"glob",
+				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
+			],
+			[
+				"settings",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"sett",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"run",
+				"~/Projects/romanesco/Romanesco/run.py"
+			],
+			[
+				"sock",
+				"~/Projects/romanesco/Romanesco/draw/sockets.py"
+			],
+			[
+				"aja",
+				"~/Projects/romanesco/Romanesco/draw/ajax.py"
+			],
+			[
+				"view",
+				"~/Projects/romanesco/Romanesco/draw/views.py"
+			],
+			[
+				"url",
+				"~/Projects/romanesco/Romanesco/draw/urls.py"
+			],
+			[
+				"setting",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"",
+				"~/Projects/digitalocean/romanesco/etc/nginx/sites-available/romanesco"
+			],
+			[
+				"guni",
+				"~/Projects/digitalocean/romanesco/opt/romanesco/gunicorn_config.py"
+			],
+			[
+				"setti",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
+			],
+			[
+				"mana",
+				"~/Projects/romanesco/Romanesco/manage.py"
+			],
+			[
+				"set",
+				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
 			],
 			[
 				"styl",
@@ -2336,24 +2588,12 @@
 				"~/Projects/romanesco/Romanesco/static/less/styles.less"
 			],
 			[
-				"tools",
-				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
-			],
-			[
 				"index",
 				"~/Libraries/web/decode-audio-data-gh-pages/index.html"
 			],
 			[
 				"settin",
 				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
-			],
-			[
-				"run",
-				"~/Projects/romanesco/Romanesco/run.py"
-			],
-			[
-				"sock",
-				"~/Projects/romanesco/Romanesco/draw/sockets.py"
 			],
 			[
 				"opt",
@@ -2384,20 +2624,8 @@
 				"~/Projects/romanesco/Romanesco/static/coffee/facebook.coffee"
 			],
 			[
-				"opti",
-				"~/Projects/romanesco/Romanesco/static/coffee/options.coffee"
-			],
-			[
 				"soc",
 				"~/Projects/romanesco/Romanesco/draw/sockets.py"
-			],
-			[
-				"glob",
-				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
-			],
-			[
-				"glo",
-				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
 			],
 			[
 				"globa",
@@ -2440,10 +2668,6 @@
 				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
 			],
 			[
-				"tool",
-				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
-			],
-			[
 				"tol",
 				"~/Projects/romanesco/Romanesco/static/coffee/tools.coffee"
 			],
@@ -2454,22 +2678,6 @@
 			[
 				"vie",
 				"~/Projects/romanesco/Romanesco/draw/views.py"
-			],
-			[
-				"url",
-				"~/Projects/romanesco/Romanesco/draw/urls.py"
-			],
-			[
-				"view",
-				"~/Projects/romanesco/Romanesco/draw/views.py"
-			],
-			[
-				"setting",
-				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
-			],
-			[
-				"setti",
-				"~/Projects/romanesco/Romanesco/Romanesco/settings.py"
 			],
 			[
 				"ett",
@@ -2553,10 +2761,6 @@
 			],
 			[
 				"gloab",
-				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
-			],
-			[
-				"global",
 				"~/Projects/romanesco/Romanesco/static/coffee/global.coffee"
 			],
 			[
@@ -2662,10 +2866,6 @@
 			[
 				"ajax.",
 				"~/Projects/romanesco/Romanesco/draw/ajax.py"
-			],
-			[
-				"sou",
-				"~/Projects/romanesco/Romanesco/static/coffee/pathSources.coffee"
 			],
 			[
 				"sour",

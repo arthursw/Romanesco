@@ -84,6 +84,7 @@ testAPI = ->
 
 	return
 
+# initialize facebook
 window.fbAsyncInit = ->
 	FB.init
 		appId: "401623863314694"

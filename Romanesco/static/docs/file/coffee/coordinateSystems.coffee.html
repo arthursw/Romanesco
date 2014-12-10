@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset='UTF-8'>
+  <title>CoffeeScript API Documentation</title>
+  <script src='../../javascript/application.js'></script>
+  <script src='../../javascript/search.js'></script>
+  <link rel='stylesheet' href='../../stylesheets/application.css' type='text/css'>
+</head>
+  <body>
+    <div id='base' data-path='../../'></div>
+<div id='header'>
+  <div id='menu'>
+    <a href='../../alphabetical_index.html' title='Index'>
+      Index
+    </a>
+    &raquo;
+    <span class='title'>coffee</span>
+    &raquo;
+    <span class='title'>coordinateSystems.coffee</span>
+  </div>
+</div>
+    <div id='content'>
+      <h1>
+        File:
+        coordinateSystems.coffee
+      </h1>
+      <table class='box'>
+        <tr>
+          <td>Defined in:</td>
+          <td>coffee</td>
+        </tr>
+      </table>
+      <h2>Variables Summary</h2>
+      <dl class='constants'>
+  <dt id='g-variable'>
+    g
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'></code></pre>
+    
+  </dd>
+</dl>
+      <h2>Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#projectToPlanet-'>
+        ~
+(Point object)
+<b>projectToPlanet</b><span>(point)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Get the planet on which <em>point</em> lies 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#projectToPosOnPlanet-'>
+        ~
+(Point object)
+<b>projectToPosOnPlanet</b><span>(point, planet)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Get the position of <em>point</em> on <em>planet</em> 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#projectToPlanetJson-'>
+        ~
+({ pos: Point, planet: Planet )
+<b>projectToPlanetJson</b><span>(point)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Get an object { pos: pos, planet: planet } with the planet on which <em>point</em> lies and the position of <em>point</em> on this planet This is the opposite of posOnPlanetToProject
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#posOnPlanetToProject-'>
+        ~
+(Paper point)
+<b>posOnPlanetToProject</b><span>(point, planet)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Get the position in project coordinate system of <em>point</em> on <em>planet</em> This is the opposite of projectToPlanetJson
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#arrayToPoint-'>
+        ~
+(Paper point)
+<b>arrayToPoint</b><span>(array)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#pointToArray-'>
+        ~
+(Array of Number)
+<b>pointToArray</b><span>(point)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#pointToObj-'>
+        ~
+(Point)
+<b>pointToObj</b><span>(point)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#getChatRoom-'>
+        ~
+(String)
+<b>getChatRoom</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#getTopLeftCorner-'>
+        ~
+(Paper point)
+<b>getTopLeftCorner</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#midPoint-'>
+        ~
+(Paper point)
+<b>midPoint</b><span>(p1, p2)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#viewToProjectRectangle-'>
+        ~
+(Rectangle)
+<b>viewToProjectRectangle</b><span>(rectangle)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#projectToViewRectangle-'>
+        ~
+(Rectangle)
+<b>projectToViewRectangle</b><span>(rectangle)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#getLimit-'>
+        ~
+(Paper point)
+<b>getLimit</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+</ul>
+      <h2>Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='projectToPlanet-'>
+      ~
+(Point object)
+<b>projectToPlanet</b><span>(point)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Get the planet on which <em>point</em> lies</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>point</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to convert </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Point object</tt>
+      )
+      &mdash;
+      <span class='desc'>the planet on which <em>point</em> lies </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='projectToPosOnPlanet-'>
+      ~
+(Point object)
+<b>projectToPosOnPlanet</b><span>(point, planet)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Get the position of <em>point</em> on <em>planet</em></p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>point</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to convert </span>
+    </li>
+    <li>
+      <span class='name'>plant</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to convert </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Point object</tt>
+      )
+      &mdash;
+      <span class='desc'>the position of <em>point</em> on the planet </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='projectToPlanetJson-'>
+      ~
+({ pos: Point, planet: Planet )
+<b>projectToPlanetJson</b><span>(point)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Get an object { pos: pos, planet: planet } with the planet on which <em>point</em> lies and the position of <em>point</em> on this planet
+This is the opposite of posOnPlanetToProject</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>point</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to convert </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      <tt>{ pos: Point, planet: Planet</tt>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='posOnPlanetToProject-'>
+      ~
+(Paper point)
+<b>posOnPlanetToProject</b><span>(point, planet)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Get the position in project coordinate system of <em>point</em> on <em>planet</em>
+This is the opposite of projectToPlanetJson</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>point</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to convert </span>
+    </li>
+    <li>
+      <span class='name'>planet</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to convert </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Paper point</tt>
+      )
+      &mdash;
+      <span class='desc'>the position of <em>point</em> on <em>planet</em> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='arrayToPoint-'>
+      ~
+(Paper point)
+<b>arrayToPoint</b><span>(array)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Paper point</tt>
+      )
+      &mdash;
+      <span class='desc'>point extracted from <em>array</em> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='pointToArray-'>
+      ~
+(Array of Number)
+<b>pointToArray</b><span>(point)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Array of Number</tt>
+      )
+      &mdash;
+      <span class='desc'>array extracted from <em>point</em> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='pointToObj-'>
+      ~
+(Point)
+<b>pointToObj</b><span>(point)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Point</tt>
+      )
+      &mdash;
+      <span class='desc'>object converted from paper point </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='getChatRoom-'>
+      ~
+(String)
+<b>getChatRoom</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>String</tt>
+      )
+      &mdash;
+      <span class='desc'>a string corresponding to the view position on a grid of g.scale wide cells </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='getTopLeftCorner-'>
+      ~
+(Paper point)
+<b>getTopLeftCorner</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Paper point</tt>
+      )
+      &mdash;
+      <span class='desc'>the top left corner of the view [0,0] in project coordinates </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='midPoint-'>
+      ~
+(Paper point)
+<b>midPoint</b><span>(p1, p2)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Paper point</tt>
+      )
+      &mdash;
+      <span class='desc'>the point between <em>p1</em> and <em>p2</em> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='viewToProjectRectangle-'>
+      ~
+(Rectangle)
+<b>viewToProjectRectangle</b><span>(rectangle)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Rectangle</tt>
+      )
+      &mdash;
+      <span class='desc'><em>rectangle</em> in project coordinates </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='projectToViewRectangle-'>
+      ~
+(Rectangle)
+<b>projectToViewRectangle</b><span>(rectangle)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Rectangle</tt>
+      )
+      &mdash;
+      <span class='desc'><em>rectangle</em> in view coordinates </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='getLimit-'>
+      ~
+(Paper point)
+<b>getLimit</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Paper point</tt>
+      )
+      &mdash;
+      <span class='desc'>topLeft point of the bottom right planet in project coordinates (this will be the origin of the limits) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+</div>
+    </div>
+    <div id='footer'>
+  December 10, 14 11:28:38 by
+  <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
+    Codo
+  </a>
+  2.0.9
+  &#10034;
+  Press H to see the keyboard shortcuts
+  &#10034;
+  <a href='http://twitter.com/netzpirat' target='_parent'>@netzpirat</a>
+  &#10034;
+  <a href='http://twitter.com/_inossidabile' target='_parent'>@_inossidabile</a>
+</div>
+<iframe id='search_frame'></iframe>
+<div id='fuzzySearch'>
+  <input type='text'>
+  <ol></ol>
+</div>
+<div id='help'>
+  <p>
+    Quickly fuzzy find classes, mixins, methods, file:
+  </p>
+  <ul>
+    <li>
+      <span>T</span>
+      Open fuzzy finder dialog
+    </li>
+  </ul>
+  <p>
+    Control the navigation frame:
+  </p>
+  <ul>
+    <li>
+      <span>L</span>
+      Toggle list view
+    </li>
+    <li>
+      <span>C</span>
+      Show class list
+    </li>
+    <li>
+      <span>I</span>
+      Show mixin list
+    </li>
+    <li>
+      <span>F</span>
+      Show file list
+    </li>
+    <li>
+      <span>M</span>
+      Show method list
+    </li>
+    <li>
+      <span>E</span>
+      Show extras list
+    </li>
+  </ul>
+  <p>
+    You can focus and blur the search input:
+  </p>
+  <ul>
+    <li>
+      <span>S</span>
+      Focus search input
+    </li>
+    <li>
+      <span>Esc</span>
+      Blur search input
+    </li>
+  </ul>
+</div>
+  </body>
+</html>

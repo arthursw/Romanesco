@@ -602,7 +602,7 @@ def romanescoinsCancel(request):
 # 			pass
 
 # 	else:
-# 		print "payment was not successfull: "
+# 		print "payment was not successful: "
 # 		print ipn_obj.payment_status
 
 # payment_was_successful.connect(updateUserRomanescoins)

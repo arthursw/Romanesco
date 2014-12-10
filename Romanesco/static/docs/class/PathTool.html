@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset='UTF-8'>
+  <title>CoffeeScript API Documentation</title>
+  <script src='../javascript/application.js'></script>
+  <script src='../javascript/search.js'></script>
+  <link rel='stylesheet' href='../stylesheets/application.css' type='text/css'>
+</head>
+  <body>
+    <div id='base' data-path='../'></div>
+<div id='header'>
+  <div id='menu'>
+    <a href='../alphabetical_index.html' title='Index'>
+      Index
+    </a>
+    &raquo;
+    <span class='title'>PathTool</span>
+  </div>
+</div>
+    <div id='content'>
+      <h1>
+        Class:
+        PathTool
+      </h1>
+      <table class='box'>
+        <tr>
+          <td>Defined in:</td>
+          <td>coffee&#47;tools.coffee</td>
+        </tr>
+        <tr>
+          <td>Inherits:</td>
+          <td>
+            <a href='../class/RTool.html'>RTool</a>
+          </td>
+        </tr>
+      </table>
+      <h2>Overview</h2>
+      <div class='docstring'>
+  <p>PathTool: the mother class of all drawing tools
+doctodo: Path are created with three steps: </p><ul>
+<li>begin: initialize RPath: create the group, controlPath etc., and initialize the drawing</li>
+<li>update: update the drawing</li>
+<li>end: finish the drawing and finish RPath initialization
+doctodo: explain polygon mode
+begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on &quot;begin&quot; signal (then from == author of the signal, data == RItem initial data)
+begin, update, and end handlers emit the events to websocket</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
+      <h2>Instance Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#description-dynamic'>
+        #
+(String)
+<b>description</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#remove-dynamic'>
+        #
+(void)
+<b>remove</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Remove tool button, useful when user create a tool which already existed (overwrite the tool) 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#select-dynamic'>
+        #
+(void)
+<b>select</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Select: add the mouse move listener on the tool (userful when creating a path in polygon mode)  todo: move this to main, have a global onMouseMove handler like other handlers
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#deselect-dynamic'>
+        #
+(void)
+<b>deselect</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Deselect: remove the mouse move listener 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#begin-dynamic'>
+        #
+(void)
+<b>begin</b><span>(event, from = g.me, data = null)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Begin path action: <ul>
+<li>deselect all and create new path in all case except in polygonMode (add path to g.currentPaths)</li>
+<li>emit event on websocket (if user is the author of the event)
+begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on &quot;begin&quot; signal (then from == author of the signal, data == RItem initial data)</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#update-dynamic'>
+        #
+(void)
+<b>update</b><span>(event, from = g.me)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Update path action: update path action and emit event on websocket (if user is the author of the event)
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#move-dynamic'>
+        #
+(void)
+<b>move</b><span>(event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Update path action (usually from a mouse move event, necessary for the polygon mode): 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#end-dynamic'>
+        #
+(void)
+<b>end</b><span>(event, from = g.me)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      End path action: <ul>
+<li>end path action </li>
+<li>if not in polygon mode: select and save path and emit event on websocket (if user is the author of the event), (remove path from g.currentPaths)</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#finishPath-dynamic'>
+        #
+(void)
+<b>finishPath</b><span>(from = g.me)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Finish path action (necessary in polygon mode): <ul>
+<li>check that we are in polygon mode (return otherwise)</li>
+<li>end path action</li>
+<li>select and save path and emit event on websocket (if user is the author of the event), (remove path from g.currentPaths)</li>
+</ul>
+
+    </span>
+  </li>
+</ul>
+      <h2>
+        <small>Inherited Method Summary</small>
+        <h3 class='inherited'>
+          Methods inherited from
+          <a href='../class/RTool.html'>RTool</a>
+        </h3>
+        <p class='inherited'>
+          <a href='../class/RTool.html#parameters-static'>.parameters</a>
+          <a href='../class/RTool.html#description-dynamic'>#description</a>
+          <a href='../class/RTool.html#select-dynamic'>#select</a>
+          <a href='../class/RTool.html#deselect-dynamic'>#deselect</a>
+          <a href='../class/RTool.html#begin-dynamic'>#begin</a>
+          <a href='../class/RTool.html#update-dynamic'>#update</a>
+          <a href='../class/RTool.html#move-dynamic'>#move</a>
+          <a href='../class/RTool.html#end-dynamic'>#end</a>
+          <a href='../class/RTool.html#disableSnap-dynamic'>#disableSnap</a>
+        </p>
+      </h2>
+      <h2>Constructor Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='constructor-dynamic'>
+      #
+(void)
+<b>constructor</b><span>(RPath, justCreated = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Find or create a button for the tool in the sidebar (if the button is created, add it default or favorite tool list depending on the user settings stored in local storage, and whether the tool was just created in a newly created script)
+set its name and icon if an icon url is provided, or create an icon with the letters of the name otherwise
+the icon will be made with the first two letters of the name if the name is in one word, or the first letter of each words of the name otherwise</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>RPath constructor</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>RPath which will be created by this tool </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the tool was just created (with the code editor) or not </span>
+    </li>
+  </ul>
+</div>
+  </div>
+</div>
+      <h2>Instance Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='description-dynamic'>
+      #
+(String)
+<b>description</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>String</tt>
+      )
+      &mdash;
+      <span class='desc'>tool description </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='remove-dynamic'>
+      #
+(void)
+<b>remove</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Remove tool button, useful when user create a tool which already existed (overwrite the tool)</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='select-dynamic'>
+      #
+(void)
+<b>select</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Select: add the mouse move listener on the tool (userful when creating a path in polygon mode) 
+todo: move this to main, have a global onMouseMove handler like other handlers</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='deselect-dynamic'>
+      #
+(void)
+<b>deselect</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Deselect: remove the mouse move listener</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='begin-dynamic'>
+      #
+(void)
+<b>begin</b><span>(event, from = g.me, data = null)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Begin path action:</p><ul>
+<li>deselect all and create new path in all case except in polygonMode (add path to g.currentPaths)</li>
+<li>emit event on websocket (if user is the author of the event)
+begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on &quot;begin&quot; signal (then from == author of the signal, data == RItem initial data)</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(usually)</span>
+      <span class='type'>
+        (
+          <tt>Paper event or REvent</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse down event </span>
+    </li>
+    <li>
+      <span class='name'>author</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>(username) of the event </span>
+    </li>
+    <li>
+      <span class='name'>RItem</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>initial data (strokeWidth, strokeColor, etc.) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='update-dynamic'>
+      #
+(void)
+<b>update</b><span>(event, from = g.me)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Update path action:
+update path action and emit event on websocket (if user is the author of the event)</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(usually)</span>
+      <span class='type'>
+        (
+          <tt>Paper event or REvent</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse drag event </span>
+    </li>
+    <li>
+      <span class='name'>author</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>(username) of the event </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='move-dynamic'>
+      #
+(void)
+<b>move</b><span>(event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Update path action (usually from a mouse move event, necessary for the polygon mode):</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(usually)</span>
+      <span class='type'>
+        (
+          <tt>Paper event or REvent</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse move event </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='end-dynamic'>
+      #
+(void)
+<b>end</b><span>(event, from = g.me)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>End path action:</p><ul>
+<li>end path action </li>
+<li>if not in polygon mode: select and save path and emit event on websocket (if user is the author of the event), (remove path from g.currentPaths)</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(usually)</span>
+      <span class='type'>
+        (
+          <tt>Paper event or REvent</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse up event </span>
+    </li>
+    <li>
+      <span class='name'>author</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>(username) of the event </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='finishPath-dynamic'>
+      #
+(void)
+<b>finishPath</b><span>(from = g.me)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Finish path action (necessary in polygon mode):</p><ul>
+<li>check that we are in polygon mode (return otherwise)</li>
+<li>end path action</li>
+<li>select and save path and emit event on websocket (if user is the author of the event), (remove path from g.currentPaths)</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>author</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>(username) of the event </span>
+    </li>
+  </ul>
+</div>
+  </div>
+</div>
+    </div>
+    <div id='footer'>
+  December 10, 14 11:28:38 by
+  <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
+    Codo
+  </a>
+  2.0.9
+  &#10034;
+  Press H to see the keyboard shortcuts
+  &#10034;
+  <a href='http://twitter.com/netzpirat' target='_parent'>@netzpirat</a>
+  &#10034;
+  <a href='http://twitter.com/_inossidabile' target='_parent'>@_inossidabile</a>
+</div>
+<iframe id='search_frame'></iframe>
+<div id='fuzzySearch'>
+  <input type='text'>
+  <ol></ol>
+</div>
+<div id='help'>
+  <p>
+    Quickly fuzzy find classes, mixins, methods, file:
+  </p>
+  <ul>
+    <li>
+      <span>T</span>
+      Open fuzzy finder dialog
+    </li>
+  </ul>
+  <p>
+    Control the navigation frame:
+  </p>
+  <ul>
+    <li>
+      <span>L</span>
+      Toggle list view
+    </li>
+    <li>
+      <span>C</span>
+      Show class list
+    </li>
+    <li>
+      <span>I</span>
+      Show mixin list
+    </li>
+    <li>
+      <span>F</span>
+      Show file list
+    </li>
+    <li>
+      <span>M</span>
+      Show method list
+    </li>
+    <li>
+      <span>E</span>
+      Show extras list
+    </li>
+  </ul>
+  <p>
+    You can focus and blur the search input:
+  </p>
+  <ul>
+    <li>
+      <span>S</span>
+      Focus search input
+    </li>
+    <li>
+      <span>Esc</span>
+      Blur search input
+    </li>
+  </ul>
+</div>
+  </body>
+</html>

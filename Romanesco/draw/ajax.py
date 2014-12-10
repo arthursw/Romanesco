@@ -162,6 +162,7 @@ def saveBox(request, box, object_type, message, name="", url="", clonePk=None, w
 
 	loadEntireArea = object_type == 'video-game'
 
+	# todo: warning: website is not defined in Box model...
 	try:
 		data = simplejson.dumps( { 'loadEntireArea': loadEntireArea } )
 		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, url=url, message=message, name=name, website=website, data=data)
@@ -500,7 +501,7 @@ def updateUserRomanescoins(sender, **kwargs):
 			pass
 
 	else:
-		print "payment was not successfull: "
+		print "payment was not successful: "
 		print ipn_obj.payment_status
 
 payment_was_successful.connect(updateUserRomanescoins)

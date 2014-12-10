@@ -1,19 +1,34 @@
 # todo: change ownership through websocket?
 # todo: change lock/link popover to romanesco alert?
 
+# RDiv is a div on top of the canvas (i.e. on top of the paper.js project) which can be resized, unless it is locked
+# it is lock if it is owned by another user
+#
+# There are different RDivs, with different content:
+# - RLocks (RLock, RLink, RWebsite and RVideoGame): @see RLock
+#     they define areas which can only be modified by a single user (the on who created the RLock); all RItems in the area is the property of this user
+# - RText: a textarea to write some text. The text can have any google font, any effect, but all text of an RText have the same formating.
+# - RMedia: an image, video or any content inside an iframe (can be a [shadertoy](https://www.shadertoy.com/))
+# - RSelectionRectangle: a special div just to defined a selection rectangle, user by {ScreenshotTool}
+#
 class RDiv
-	@modalTitle = ''
-	@modalTitleUpdate = ''
-	@object_type = 'div'
-	@modalJ = $('#divModal')
-	@modalJ.on('shown.bs.modal', (event)=> @modalJ.find('input.form-control:visible:first').focus() )
-	@modalJ.find('.submit-shortcut').keypress( (event) => 
-		if event.which == 13
+
+	# once the user made the selection rectangle, a modal window ask the user to enter additional information to create the RDiv
+	# (RText and RSelectionRectangle do not require additional information)
+	
+	@modalTitle = '' 						# the title of the modal window
+	@modalTitleUpdate = '' 					# the title of the modal window when the RDiv is being modified (not used anymore at the moment)
+	@object_type = 'div' 					# string describing the type of RDiv (can be 'lock', 'link', 'website', 'video-game', 'text', 'media')
+	@modalJ = $('#divModal') 				# initialize the modal jQuery element
+	@modalJ.on('shown.bs.modal', (event)=> @modalJ.find('input.form-control:visible:first').focus() ) 	# focus on the first visible element when the modal shows up
+	@modalJ.find('.submit-shortcut').keypress( (event) => 		# submit modal when enter is pressed
+		if event.which == 13 	# enter key
 			event.preventDefault()
 			@modalSubmit()
 	)
-	@modalJ.find('.btn-primary').click( (event)=> @modalSubmit()	)
+	@modalJ.find('.btn-primary').click( (event)=> @modalSubmit()	) # submit modal when click submit button
 
+	# parameters are defined as in {RTool}
 	@parameters: ()->
 
 		strokeWidth = $.extend(true, {}, g.parameters.strokeWidth)
@@ -35,6 +50,9 @@ class RDiv
 				strokeColor: strokeColor
 				fillColor: g.parameters.fillColor
 
+	# intialize the fields of the modal
+	# this is redefined by children RDivs
+	# each RDiv shows the fields it needs and hide others
 	@initFields: () ->
 		@modalJ.find('p.cost').show()
 		@modalJ.find('.url-name-group').show()
@@ -43,7 +61,20 @@ class RDiv
 		@modalJ.find('.message-group').show()
 		@modalJ.find('.checkbox.restrict-area').hide()
 		@modalJ.find('.checkbox.disable-toolbar').hide()
+		return
 
+	# save the RDiv to the database
+	# this method is usually called when the modal is submitted
+	# however, RText is saved directly after user has defined the rectangle (in TextTool)
+	# save() is also called to duplicate an RDiv
+	# @param rectangle [Paper rectangle] the RDiv rectangle
+	# @param object_type [String] the type of RDiv (can be 'lock', 'link', 'website', 'video-game', 'text', 'media')
+	# @param message [String] (optional) the message (for example, the message which will be displayed when a user click on a RLock)
+	# @param url [String] (optional) the url (for example the url of the website to link for a RLink)
+	# @param clonePk [ID] (optional) null by default, pk of the RDiv to duplicate
+	# @param website [Boolean] whether the RDiv is a website
+	# @param restrictedArea [Boolean] whether the user must be restricted to this area when landing on the website
+	# @param disableToolbar [Boolean] whether the toolbar must be disabled when navigating on this website
 	@save: (rectangle, object_type, message, name, url, clonePk, website, restrictedArea, disableToolbar) ->
 
 		if @boxOverlapsTwoPlanets(rectangle)
@@ -64,7 +95,12 @@ class RDiv
 		# 	Dajaxice.draw.saveDiv( @save_callback, { 'box': @boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk } )
 		# else if object_type == 'lock' or object_type == 'link'
 		# 	Dajaxice.draw.saveBox( @save_callback, { 'box': @boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar } )
+		return
 
+	# save callback: check for errors and create div if success
+	# usually called be the server, but can be called by websocket (when transfering RDiv creation to other users)
+	# @param result [Object] the data returned by the server
+	# @param owner [Boolean] whether the user created the RDiv or it is recieved from websocket
 	@save_callback: (result, owner=true)->
 		
 		if not g.checkError(result)
@@ -89,14 +125,22 @@ class RDiv
 			when 'link'
 				div = new RLink(tl, new Size(br.subtract(tl)), result.owner, result.pk, result.message, result.name, result.url, result.data)
 
+		# if we cloned the div: copy data from original div
 		if result.clonePk
-			div.data = g.items[result.clonePk].data
+			data = g.items[result.clonePk].data
+			div.data = jQuery.extend({}, data)
 			div.parameterChanged()
 
-		if owner
+		if owner 	# emit div creation on websocket
 			g.chatSocket.emit( "createDiv", result)
 			if not result.clonePk? then div.select()
 
+		return
+
+	# initialize the modal
+	# @param object_type [String] the type of RDiv (can be 'lock', 'link', 'website', 'video-game', 'text', 'media')
+	# @param rectangle [Rectangle]  the RDiv rectangle
+	# @param div [RDiv] the div to update (not used anymore)
 	@initModal: (object_type, rectangle=null, div=null)->
 		@modalJ.object_type = object_type
 		@modalJ.rectangle = rectangle
@@ -113,11 +157,17 @@ class RDiv
 		else
 			@modalJ.find('.btn-primary').text("Add")
 		@modalJ.modal('show')
+		return
 	
+	# submit the modal (to save or update the RDiv)
+	# the modal is hidden
 	@modalSubmit = () =>
+		# get url and add http:// prefix if necessary
 		url = @modalJ.find("input.url").val()
 		if url.length>0 && url.indexOf("http://") != 0 && url.indexOf("https://") != 0
 			url = "http://" + url
+
+		# get field informations
 		name = @modalJ.find("input.name").val()
 		message = @modalJ.find("input.message").val()
 
@@ -130,6 +180,7 @@ class RDiv
 			name = @modalJ.find("input.url-name").val()
 
 		# g.tools[@object_type].select()
+		# update or save the div
 		if @modalJ.update
 			if div.url? then div.url = url
 			if div.name? then div.name = name
@@ -138,7 +189,11 @@ class RDiv
 		else
 			@save(@modalJ.rectangle, object_type, message, name, url, false, website, restrictedArea, disableToolbar)
 		@modalJ.modal('hide')
+		return
 
+	# get a GeoJson valid box in planet coordinates from *rectangle* 
+	# @param rectangle [Paper Rectangle] the rectangle to convert
+	# @return [{ points:Array<Array<2 Numbers>>, planet: Object, tl: Point, br: Point }]
 	@boxFromRectangle: (rectangle)->
 		# remove margin to ignore intersections of paths which are close to the edges
 
@@ -156,6 +211,9 @@ class RDiv
 
 		return { points:points, planet: pointToObj(planet), tl: tlOnPlanet, br: brOnPlanet }
 
+	# test if the box overlaps two planets
+	# @param box [Paper Rectangle] the box to test
+	# @return [Boolean] true if the box overlaps two planets, false otherwise
 	@boxOverlapsTwoPlanets: (box) ->
 		limit = getLimit()
 		if ( box.left < limit.x && box.right > limit.x ) || ( box.top < limit.y && box.bottom > limit.y )
@@ -163,10 +221,19 @@ class RDiv
 			return true
 		return false
 
+	# add the div jQuery element (@divJ) on top of the canvas and intialize it
+	# initialize @data
+	# @param position [Paper Point] the position of the div
+	# @param size [Paper Size] the size of the div
+	# @param owner [String] the username of the owner of the div
+	# @param pk [ID] the primary key of the div
+	# @param locked [Boolean] (optional) whether the div is locked by an RLock
+	# @param data [Object] the data of the div (containing the stroke width, colors, etc.)
 	constructor: (@position, @size, @owner, @pk, locked=false, @data) ->
 		@controller = this
 		@object_type = @constructor.object_type
 
+		# initialize @divJ: main jQuery element of the div
 		separatorJ = g.stageJ.find("." + @object_type + "-separator")
 		@divJ = g.templatesJ.find(".custom-div").clone().insertAfter(separatorJ)
 		@maskJ = @divJ.find(".mask")
@@ -181,10 +248,11 @@ class RDiv
 				for controller in folder.__controllers
 					@data[controller.property] = controller.rValue()
 
+		# update size and position
 		@divJ.css(width: width, height: height)
 		@updateTransform()
 
-		if @owner != g.me and locked
+		if @owner != g.me and locked 	# lock div it is not mine and it is locked
 			@divJ.addClass("locked")
 
 		@divJ.attr("data-pk",@pk)
@@ -202,19 +270,29 @@ class RDiv
 		# @debugRectangle.strokeColor = 'red'
 
 		if g.selectedTool.name == 'Move' then @disableInteraction()
+		return
 
+	# common to all RItems
+	# construct a new RDiv and save it
+	# @return [RDiv] the copy
 	duplicate: ()->
 		@constructor.save(@getBounds(), @object_type, @message, @name, @url, @pk)
 		return
 
+	# open modal window to modify RDiv information (not used anymore)
 	modify: () ->
 		@constructor.initModal(@getBounds(), @)
+		return
 
 	# updateTransform: ()->
 	# 	css = 'translate(' + (@position.x * g.view.zoom) + 'px,' + (@position.y * g.view.zoom) + 'px) scale(' + g.view.zoom + ')'
 	# 	@divJ.css( 'transform': css )
 
+	# update the scale and position of the RDiv (depending on its position and scale, and the view position and scale)
+	# if zoom equals 1, do no use css translate() property to avoid blurry text
 	updateTransform: ()->
+		# the css of the div in styles.less: transform-origin: 0% 0% 0
+
 		viewPos = view.projectToView(@position)
 		# viewPos = new Point( -g.offset.x + @position.x, -g.offset.y + @position.y )
 		if view.zoom == 1
@@ -224,37 +302,51 @@ class RDiv
 			css += ' scale(' + view.zoom + ')'
 
 			@divJ.css( 'transform': css, 'top': 0, 'left': 0 )
+		return
 
-	zoom: ()->
-		# originX = '' + (g.stageJ.width()*0.5-@position.x) + 'px'
-		# originY = '' + (g.stageJ.height()*0.5-@position.y) + 'px'
+	# zoom: ()->
+	# 	# originX = '' + (g.stageJ.width()*0.5-@position.x) + 'px'
+	# 	# originY = '' + (g.stageJ.height()*0.5-@position.y) + 'px'
 
-		# originX = '' + (g.stageJ.width()*0.5) + 'px'
-		# originY = '' + (g.stageJ.height()*0.5) + 'px'
+	# 	# originX = '' + (g.stageJ.width()*0.5) + 'px'
+	# 	# originY = '' + (g.stageJ.height()*0.5) + 'px'
 
-		# @divJ.css( 'transform-origin-x': originX, 'transform-origin-y': originY )
-		@updateTransform()
+	# 	# @divJ.css( 'transform-origin-x': originX, 'transform-origin-y': originY )
+	# 	@updateTransform()
+	# 	return
 
+	# common to all RItems
+	# return [Rectangle] the bounds of the RDiv
 	getBounds: ()->
 		return new Rectangle(@position.x, @position.y, @divJ.outerWidth(), @divJ.outerHeight())
 
+	# common to all RItems
+	# move the RDiv to *position* and update if *userAction*
+	# @param [Point] the new position of the div
+	# @param [Boolean] whether this is an action from *g.me* or another user
 	moveTo: (position, userAction)->
 		@position = position.subtract(@size.multiply(0.5))
 		@updateTransform()
 		if userAction
 			g.defferedExecution(@update, @pk)
-			# if g.me? and userAction then g.chatSocket.emit( "select begin", g.me, @pk, g.eventObj(event))
+			# if g.me? and userAction then g.chatSocket.emit( "select begin", g.me, @pk, g.eventToObject(event))
 		return
 
+	# common to all RItems
+	# move the RDiv by *delta* and update if *userAction*
+	# @param [Point] the amount by which moving the div
+	# @param [Boolean] whether this is an action from *g.me* or another user
 	moveBy: (delta, userAction)->
 		@position.x += delta.x
 		@position.y += delta.y
 		@updateTransform()
 		if userAction
 			g.defferedExecution(@update, @pk)
-			# if g.me? and userAction then g.chatSocket.emit( "select begin", g.me, @pk, g.eventObj(event))
+			# if g.me? and userAction then g.chatSocket.emit( "select begin", g.me, @pk, g.eventToObject(event))
 		return
 
+	# get the position of the RDiv on the screen
+	# @return [Paper Point] the position of the top left corner of the div
 	posOnScreen: ()->
 		# should be equal to view.projectToView(@position)
 		# return view.projectToView(@position)
@@ -262,19 +354,35 @@ class RDiv
 		delta = @position.subtract(center)
 		return new Point(center.add(delta.multiply(g.view.zoom)))
 
+	# the x position of the div before applying the scale (to fit the zoom)
+	# @param posX [Number] the x position of the div
+	# @return [Number] the x position in the div before it is scaled
 	posBeforeScaleX: (posX)->
 		centerX = g.stageJ.width()*0.5 					# delta = (posX-centerX) / g.view.zoom
 		return centerX + (posX-centerX) / g.view.zoom 	# return centerX + delta
 
+	# the y position of the div before applying the scale (to fit the zoom)
+	# @param posY [Number] the x position of the div
+	# @return [Number] the y position in the div before it is scaled
 	posBeforeScaleY: (posY)->
 		centerY = g.stageJ.height()*0.5
 		return centerY + (posY-centerY) / g.view.zoom
 
+	# the position of the div before applying the scale (to fit the zoom)
+	# @param pos [Point] the position of the div
+	# @return [Paper Point] the position in the div before it is scaled
 	posBeforeScale: (pos)->
 		return new Point(@posBeforeScaleX(pos.x), @posBeforeScaleY(pos.y))
 
-	# todo: interface between path and div
-	# set on @divJ
+	# common to all RItems
+	# called when user press mouse while on the div (the event listener is set in the constructor, after @divJ is added in top of the canvas)
+	# (could be called by websocket, this functionnality is disabled for now)
+	# - select the div if *userAction* and the div is not selected yet
+	# - if target is handle: prepare to resize the div
+	# - if tagret if textarea: do nothing
+	# - otherwise: prepare to move the div
+	# @param event [Paper Event] the mouse event
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
 	selectBegin: (event, userAction=true) =>
 		# return if user used the middle mouse button (mouse wheel button, event.which == 2) to drag the stage instead of the div
 		if userAction and ( g.selectedTool.name == 'Move' or event.which == 2 )
@@ -283,7 +391,7 @@ class RDiv
 		@dragging = false
 		@draggedHandleJ = null
 
-		if userAction and g.selectedDivs.indexOf(@)<0
+		if userAction and g.selectedDivs.indexOf(@)<0 	# select the div if *userAction* and the div is not selected yet
 			if not event.shiftKey then g.deselectAll()
 			@select()
 
@@ -310,9 +418,14 @@ class RDiv
 		@dragOffset.x = point.x-pos.x
 		@dragOffset.y = point.y-pos.y
 
-		# if g.me? and userAction then g.chatSocket.emit( "select begin", g.me, @pk, g.eventObj(event))
+		# if g.me? and userAction then g.chatSocket.emit( "select begin", g.me, @pk, g.eventToObject(event))
+		return
 
+	# common to all RItems
 	# called by main.coffee, when mousemove on window
+	# move, resize or drag the div, depending on how the select action was initialized
+	# @param event [Paper Event] the mouse event
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
 	selectUpdate: (event, userAction=true) =>
 		if @selectingText then return
 
@@ -325,9 +438,14 @@ class RDiv
 		else
 			@drag(event, userAction)
 
-		# if g.me? and userAction then g.chatSocket.emit( "select update", g.me, @pk, g.eventObj(event))
+		# if g.me? and userAction then g.chatSocket.emit( "select update", g.me, @pk, g.eventToObject(event))
+		return
 
+	# common to all RItems
 	# called by main.coffee, when mouseup on window
+	# ends the select actions
+	# @param event [Paper Event] the mouse event
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
 	selectEnd: (event, userAction=true) =>
 		if not @dragging
 			if @selectingText then @selectingText = false
@@ -340,20 +458,30 @@ class RDiv
 		@dragging = false
 		@draggedHandleJ = null
 
-		# if g.me? and userAction then g.chatSocket.emit( "select end", g.me, @pk, g.eventObj(event))
+		# if g.me? and userAction then g.chatSocket.emit( "select end", g.me, @pk, g.eventToObject(event))
+		return
 
-	# mouse interaction must be disabled with the move tool
+	# mouse interaction must be disabled when user has the move tool (a click on an RDiv must not start a resize action)
+	# disable user interaction on this div by putting a transparent mask (div) on top of the div
 	disableInteraction: () ->
 		@maskJ.show()
 		return
 	
+	# see {RDiv#disableInteraction}
+	# enable user interaction on this div by hiding the mask (div)
 	enableInteraction: () ->
 		@maskJ.hide()
 		return
 
+	# @return [Paper Point] the bottom right corner position of the div
 	bottomRight: () ->
 		return new Point(@position.x+@divJ.outerWidth(), @position.y+@divJ.outerHeight())
 
+	# resize the div when the user drags one of the corner (handle)
+	# the opposite corner should not change, and the neighbour corners should adapt to the new size
+	# the position and size of the div are updated
+	# @param event [Paper Event] the mouse event
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
 	resize: (event, userAction=true) =>
 		point = if userAction then new Point(event.pageX, event.pageY) else view.projectToView(event.point)
 		pos = @position
@@ -395,6 +523,9 @@ class RDiv
 		@divJ.find(".handle").css( 'z-index': 10)
 		return
 
+	# drag the div according to the event
+	# @param event [Event] the mouse event
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
 	drag: (event, userAction=true) =>
 		point = if userAction then new Point(event.pageX, event.pageY) else view.projectToView(event.point)
 		@position = @posBeforeScale(new Point(point.x - @dragOffset.x, point.y - @dragOffset.y))
@@ -402,36 +533,55 @@ class RDiv
 		@updateTransform()
 		return
 
+	# reset drag action
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
 	dragFinished: (userAction=true) =>
 		@dragging = false
 		@draggedHandleJ = null
 		if userAction
 			@update()
+		return
 	
 	# update = false when called by parameter.onChange from websocket
+	# common to all RItems
+	# called when a parameter is changed:
+	# - from user action (parameter.onChange) (update = true)
+	# - from websocket (another user changed the parameter) (update = false)
+	# @param [Boolean] (optional, default is true) whether to update the RPath in database
 	parameterChanged: (update=true)->
 		switch @changed
 			when 'strokeWidth', 'strokeColor', 'fillColor'
 				@setCss()
 		if update then g.defferedExecution(@update, @pk)
-
+		return
+	
+	# common to all RItems
+	# @return [String] the stringified data
 	getStringifiedData: ()->
 		return JSON.stringify(@getData())
-
+	
+	# common to all RItems
+	# get data, usually to save the RPath (some information must be added to data)
 	getData: ()->
 		return @data
 
+	# called after udpate, on server response
+	# @param result [Object] the server response
 	updateDiv_callback: (result)->
 		g.checkError(result)
+		return
 
-	# todo: describe when it is called and by who.
+	# update the RDiv in the database
+	# often called after the RDiv has changed, in a *g.defferedExecution(@update)*
 	update: () =>
 		tl = @position
 		br = @bottomRight()
 		
+		# check if position is valid
 		if @constructor.boxOverlapsTwoPlanets(tl,br)
 			return
-	
+		
+		# intiialize data to be saved
 		data = 
 			box: @constructor.boxFromRectangle(new Rectangle(tl,br))
 			pk: @pk
@@ -442,6 +592,7 @@ class RDiv
 
 		@changed = null
 		
+		# update the div
 		if @object_type == 'text' or @object_type == 'media' 
 			# ajaxPost '/updateDiv', data, @updateDiv_callback
 			Dajaxice.draw.updateDiv( @updateDiv_callback, data )
@@ -450,6 +601,12 @@ class RDiv
 			# ajaxPost '/updateBox', data, @updateDiv_callback
 			Dajaxice.draw.updateBox( @updateDiv_callback, data )
 
+		return
+
+	# common to all RItems
+	# - select the RDiv is not already selected
+	# - select the select tool
+	# - update parameters according to @data
 	select: () =>
 		if @divJ.hasClass("selected") then return
 		g.selectedDivs.push(@)
@@ -457,41 +614,55 @@ class RDiv
 		@divJ.addClass("selected")
 
 		g.updateParameters( { tool: @constructor, item: @ }, true)
+		return
 
+	# common to all RItems
+	# deselect the div
 	deselect: () =>
 		if not @divJ.hasClass("selected") then return
 		@divJ.removeClass("selected")
 		g.selectedDivs.remove(@)
+		return
 
+	# update basic apparence parameters (fill color, stroke color and stroke width) from @data
 	setCss: ()->
 		@setFillColor()
 		@setStrokeColor()
 		@setStrokeWidth()
+		return
 
+	# update fill color from @data.fillColor
 	setFillColor: ()->
 		@contentJ?.css( 'background-color': @data.fillColor ? 'transparent')
+		return
 		
+	# update stroke color from @data.strokeColor
 	setStrokeColor: ()->
 		@contentJ?.css( 'border-color': @data.strokeColor ? 'transparent')
+		return
 		
+	# update stroke width from @data.strokeWidth
 	setStrokeWidth: ()->
 		@contentJ?.css( 'border-width': @data.strokeWidth ? '0')
+		return
 
-	# common in rpath and rdiv
-	# called by delete and to update users view through websockets
-	# delete() removes the path and delete it in the database
-	# remove() just removes visually
+	# common to all RItems
+	# called by @delete() and to update users view through websockets
+	# @delete() removes the path and delete it in the database
+	# @remove() just removes visually
 	remove: () ->
 		@deselect()
 		@divJ.remove()
 		g.divs.remove(@)
-		if g.divToUpdate==@
-			delete g.divToUpdate
+		if @data.loadEntireArea then g.entireAreas.remove(@)
+		if g.divToUpdate==@ then delete g.divToUpdate
 		delete g.items[@pk]
+		return
 
-	# common in rpath and rdiv
-	# delete() removes the path and delete it in the database
-	# remove() just removes visually
+	# common to all RItems
+	# called when user deletes the item by pressing delete key or from the gui
+	# @delete() removes the path and delete it in the database
+	# @remove() just removes visually
 	delete: () ->
 		@remove()
 		if not @pk? then return
@@ -501,7 +672,9 @@ class RDiv
 		else
 			# ajaxPost '/deleteBox', { 'pk': @pk }, @deleteDiv_callback
 			Dajaxice.draw.deleteBox( @deleteDiv_callback, { 'pk': @pk } )
+		return
 
+	# check for any error during delete, transmit delete on websocket if no errors
 	deleteDiv_callback: (result)->
 		if g.checkError(result)
 			g.chatSocket.emit( "delete div", result.pk )
@@ -509,10 +682,12 @@ class RDiv
 
 @RDiv = RDiv
 
+# RSelectionRectangle is just a helper to define a selection rectangle, it is used in {ScreenshotTool}
 class RSelectionRectangle extends RDiv
 
 	@object_type = 'lock'
 
+	# create the div and add a "Take snapshot" button
 	constructor: (@rectangle, handler) ->
 		g.tools['Select'].select()
 		super(rectangle.topLeft, rectangle.size)
@@ -524,34 +699,41 @@ class RSelectionRectangle extends RDiv
 		@select()
 		return
 
+	# update the div transformation, without taking the zoom into account
 	updateTransform: ()->
 		viewPos = view.projectToView(@position)
 		css = 'translate(' + viewPos.x + 'px,' + viewPos.y + 'px)'
 		@divJ.css( 'transform': css )
 		return
 
+	# deselect the div: remove it
 	deselect: ()->
 		if @deselected then return
 		@deselected = true
 		@remove()
 		return
 
+	# the div should not be updated (it is not related to the server/database)
 	update: ()->
 		return
 
 @RSelectionRectangle = RSelectionRectangle
 
-# todo: setStroke to the outerbound of the lock
+# RLock are locked area which can only be modified by their author 
+# all RItems on the area are also locked, and can be unlocked if the user drags them outside the div
 class RLock extends RDiv
 
 	@modalTitle = "Lock an area"
 	@modalTitleUpdate = "Modify your lock"
 	@object_type = 'lock'
 
+	# in the modal: the fields are reinitialized as soon as the type of RLock is changed 
 	@modalJ.find("#divModalTypeSelector").click (event)=>
 		@initFields()
 		return
 
+	# intialize the fields of the modal
+	# the fields are initialized depending on the type of RLock (@object_type: 'lock', 'link', 'website', or 'video-game')
 	@initFields: ()->
 		@modalJ.find('#divModalTypeSelector').show()
 		typeSelectorJ = @modalJ.find('input[type=radio][name=typeSelector]:checked')
@@ -596,13 +778,18 @@ class RLock extends RDiv
 			g.romanesco_alert("You do not have enough romanescoins to add this link", "error")
 		else
 			@modalJ.find('p.cost').text("" + area + " pixels = " + cost.toFixed(2) + " romanescoins")
+		return
 
+	# @param point [Paper point] the point to test
+	# @return [Boolean] true if the point is in the div, false otherwise
 	@intersectPoint: (point)->
 		for lock in g.locks
 			if lock.getBounds().contains(point) and g.me != lock.owner
 				return true
 		return false
 
+	# @param rectangle [Paper point] the point to test
+	# @return [Boolean] true if the point is in the div, false otherwise
 	@intersectRect: (rectangle)->
 		for lock in g.locks
 			if lock.getBounds().intersects(new Rectangle(rectangle)) and g.me != lock.owner
@@ -1135,6 +1322,8 @@ class RText extends RDiv
 		switch @changed
 			when 'fontStyle', 'fontFamily', 'fontSize', 'effect', 'fontColor'
 				@setFont(false)
+			else
+				@setFont(false)
 		super(update)
 
 	getData: ()->
@@ -1173,7 +1362,7 @@ class RMedia extends RDiv
 				onChange: ()-> RMedia.selectedDivs = g.selectedDivs 	# onFinishChange is called on blur (focus out), it is a problem when user selects url input
 																	# in the sidebar and then select another RMedia 
 																	# (since it would call urlChanged on the newly selected RMedia since blur and g.selectedDiv is new)
-				onFinishChange: (value)-> ( if selectedDiv==RMedia.selectedDiv then selectedDiv?.urlChanged(value, true) ) for selectedDiv in RMedia.selectedDivs
+				onFinishChange: (value)-> selectedDiv?.urlChanged(value, true) for selectedDiv in RMedia.selectedDivs
 			fitImage:
 				type: 'checkbox'
 				label: 'Fit image'
@@ -1242,7 +1431,6 @@ class RMedia extends RDiv
 		return false
 
 	checkIsImage: ()->
-		console.log 'check is image: ' + @url + ', ' + @pk
 		timedOut = false
 		timeout = if @hasImageUrlExt(@url) then 5000 else 1000
 		image = new Image()
@@ -1265,14 +1453,18 @@ class RMedia extends RDiv
 
 	loadMedia: (imageLoadResult)=>
 		if imageLoadResult == 'success'
-			console.log 'is image: ' + @url + ', ' + @pk
 			@contentJ = $('<img class="content image" src="'+@url+'" alt="'+@url+'"">')
 			@contentJ.mousedown( (event) -> event.preventDefault() )
 			@isImage = true
 		else
-			console.log 'is not image: ' + @url + ', ' + @pk
-			@contentJ = $('<div class="content oembedall-container"></div>')
-			@contentJ.oembed(@url, { includeHandle: false, embedMethod: 'fill', maxWidth: @divJ.width(), maxHeight: @divJ.height(), afterEmbed: @afterEmbed })
+			# @contentJ = $(@url.replace("http://", ""))
+			@contentJ = $(@url.substring(7))
+			if @contentJ.is('iframe')
+				@contentJ.attr('width', @divJ.width())
+				@contentJ.attr('height', @divJ.height())
+			else
+				@contentJ = $('<div class="content oembedall-container"></div>')
+				@contentJ.oembed(@url, { includeHandle: false, embedMethod: 'fill', maxWidth: @divJ.width(), maxHeight: @divJ.height(), afterEmbed: @afterEmbed })
 		@contentJ.insertBefore(@maskJ)
 
 		@setCss()

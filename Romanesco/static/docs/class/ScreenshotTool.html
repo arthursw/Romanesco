@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset='UTF-8'>
+  <title>CoffeeScript API Documentation</title>
+  <script src='../javascript/application.js'></script>
+  <script src='../javascript/search.js'></script>
+  <link rel='stylesheet' href='../stylesheets/application.css' type='text/css'>
+</head>
+  <body>
+    <div id='base' data-path='../'></div>
+<div id='header'>
+  <div id='menu'>
+    <a href='../alphabetical_index.html' title='Index'>
+      Index
+    </a>
+    &raquo;
+    <span class='title'>ScreenshotTool</span>
+  </div>
+</div>
+    <div id='content'>
+      <h1>
+        Class:
+        ScreenshotTool
+      </h1>
+      <table class='box'>
+        <tr>
+          <td>Defined in:</td>
+          <td>coffee&#47;tools.coffee</td>
+        </tr>
+        <tr>
+          <td>Inherits:</td>
+          <td>
+            <a href='../class/RTool.html'>RTool</a>
+          </td>
+        </tr>
+      </table>
+      <h2>Overview</h2>
+      <div class='docstring'>
+  <p>todo: ZeroClipboard.destroy()
+ScreenshotTool to take a screenshot and save it or publish it on different social platforms (facebook, pinterest or twitter)</p><ul>
+<li>the user will create a selection rectangle with the mouse</li>
+<li>when the user release the mouse, a special (temporary) resizable RDiv (RSelectionRectangle) is created so that the user can adjust the screenshot box to fit his needs (this must be imporved, with better visibility and the possibility to better snap the box to the grid)</li>
+<li>once the user adjusted the box, he can take the screenshot by clicking the &quot;Take screenshot&quot; button at the center of the RSelectionRectangle</li>
+<li>a modal window asks the user how to exploit the newly created image (copy it, save it, or publish it on facebook, twitter or pinterest)</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
+      <h2>Instance Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#getDescription-dynamic'>
+        #
+(void)
+<b>getDescription</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Get description input value, or default description: &quot;Artwork made in Romanesco&quot; 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#begin-dynamic'>
+        #
+(void)
+<b>begin</b><span>(event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      create selection rectangle 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#update-dynamic'>
+        #
+(void)
+<b>update</b><span>(event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      update selection rectangle 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#end-dynamic'>
+        #
+(void)
+<b>end</b><span>(event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <ul> remove selection rectangle
+<li>return if rectangle is too small</li>
+<li>create the RSelectionRectangle (so that the user can adjust the screenshot box to fit his needs)</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#extractImage-dynamic'>
+        #
+(void)
+<b>extractImage</b><span>()</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      Extract image and initialize &amp; display modal (so that the user can choose what to do with it) todo: use something like <a href="http://cburgmer.github.io/rasterizeHTML.js/">rasterizeHTML.js</a> to render RDivs in the image
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#saveImage-dynamic'>
+        #
+(void)
+<b>saveImage</b><span>(callback)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Some actions require to upload the image on the server makes an ajax request to save the image
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#publishOnFacebook-dynamic'>
+        #
+(void)
+<b>publishOnFacebook</b><span>()</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      Save image and call publish on facebook callback 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#publishOnFacebook_callback-dynamic'>
+        #
+(void)
+<b>publishOnFacebook_callback</b><span>(result)</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      (Called once the image is uploaded) add a facebook dialog box in which user can add more info and publish the image todo: check if upload was successful?
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#publishOnFacebookAsPhoto-dynamic'>
+        #
+(void)
+<b>publishOnFacebookAsPhoto</b><span>()</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      <ul> log in to facebook (if not already logged in)
+<li>save image to publish photo when/if logged in</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#publishOnFacebookAsPhoto_callback-dynamic'>
+        #
+(void)
+<b>publishOnFacebookAsPhoto_callback</b><span>(result)</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      (Called once the image is uploaded) directly publish the image todo: check if upload was successful?
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#publishOnPinterest-dynamic'>
+        #
+(void)
+<b>publishOnPinterest</b><span>()</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      Save image and call publish on pinterest callback 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#publishOnPinterest_callback-dynamic'>
+        #
+(void)
+<b>publishOnPinterest_callback</b><span>(result)</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      (Called once the image is uploaded) add a modal dialog to publish the image on pinterest (the pinterest button must link to an image already existing on the server) todo: check if upload was successful?
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#downloadPNG-dynamic'>
+        #
+(void)
+<b>downloadPNG</b><span>()</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      on download png button click: simulate a click on the image link  (chrome will open the save image dialog, other browsers will open the image in a new window/tab for the user to be able to save it)
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#downloadSVG-dynamic'>
+        #
+(void)
+<b>downloadSVG</b><span>()</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      on download svg button click: extract svg from the paper project (in the selected rectangle) and click on resulting svg image link (chrome will open the save image dialog, other browsers will open the image in a new window/tab for the user to be able to save it)
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#copyURL-dynamic'>
+        #
+(void)
+<b>copyURL</b><span>()</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      nothing to do here: ZeroClipboard handles it 
+    </span>
+  </li>
+</ul>
+      <h2>
+        <small>Inherited Method Summary</small>
+        <h3 class='inherited'>
+          Methods inherited from
+          <a href='../class/RTool.html'>RTool</a>
+        </h3>
+        <p class='inherited'>
+          <a href='../class/RTool.html#parameters-static'>.parameters</a>
+          <a href='../class/RTool.html#description-dynamic'>#description</a>
+          <a href='../class/RTool.html#select-dynamic'>#select</a>
+          <a href='../class/RTool.html#deselect-dynamic'>#deselect</a>
+          <a href='../class/RTool.html#begin-dynamic'>#begin</a>
+          <a href='../class/RTool.html#update-dynamic'>#update</a>
+          <a href='../class/RTool.html#move-dynamic'>#move</a>
+          <a href='../class/RTool.html#end-dynamic'>#end</a>
+          <a href='../class/RTool.html#disableSnap-dynamic'>#disableSnap</a>
+        </p>
+      </h2>
+      <h2>Constructor Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='constructor-dynamic'>
+      #
+(void)
+<b>constructor</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Initialize screenshot modal (init button click event handlers)</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+</div>
+      <h2>Instance Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='getDescription-dynamic'>
+      #
+(void)
+<b>getDescription</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Get description input value, or default description: &quot;Artwork made in Romanesco&quot;</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='begin-dynamic'>
+      #
+(void)
+<b>begin</b><span>(event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>create selection rectangle</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='update-dynamic'>
+      #
+(void)
+<b>update</b><span>(event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>update selection rectangle</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='end-dynamic'>
+      #
+(void)
+<b>end</b><span>(event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <ul>
+<li>remove selection rectangle</li>
+<li>return if rectangle is too small</li>
+<li>create the RSelectionRectangle (so that the user can adjust the screenshot box to fit his needs)</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='extractImage-dynamic'>
+      #
+(void)
+<b>extractImage</b><span>()</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Extract image and initialize &amp; display modal (so that the user can choose what to do with it)
+todo: use something like <a href="http://cburgmer.github.io/rasterizeHTML.js/">rasterizeHTML.js</a> to render RDivs in the image</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='saveImage-dynamic'>
+      #
+(void)
+<b>saveImage</b><span>(callback)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Some actions require to upload the image on the server
+makes an ajax request to save the image</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='publishOnFacebook-dynamic'>
+      #
+(void)
+<b>publishOnFacebook</b><span>()</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Save image and call publish on facebook callback</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='publishOnFacebook_callback-dynamic'>
+      #
+(void)
+<b>publishOnFacebook_callback</b><span>(result)</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>(Called once the image is uploaded) add a facebook dialog box in which user can add more info and publish the image
+todo: check if upload was successful?</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='publishOnFacebookAsPhoto-dynamic'>
+      #
+(void)
+<b>publishOnFacebookAsPhoto</b><span>()</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <ul>
+<li>log in to facebook (if not already logged in)</li>
+<li>save image to publish photo when/if logged in</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='publishOnFacebookAsPhoto_callback-dynamic'>
+      #
+(void)
+<b>publishOnFacebookAsPhoto_callback</b><span>(result)</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>(Called once the image is uploaded) directly publish the image
+todo: check if upload was successful?</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='publishOnPinterest-dynamic'>
+      #
+(void)
+<b>publishOnPinterest</b><span>()</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Save image and call publish on pinterest callback</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='publishOnPinterest_callback-dynamic'>
+      #
+(void)
+<b>publishOnPinterest_callback</b><span>(result)</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>(Called once the image is uploaded) add a modal dialog to publish the image on pinterest (the pinterest button must link to an image already existing on the server)
+todo: check if upload was successful?</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='downloadPNG-dynamic'>
+      #
+(void)
+<b>downloadPNG</b><span>()</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>on download png button click: simulate a click on the image link 
+(chrome will open the save image dialog, other browsers will open the image in a new window/tab for the user to be able to save it)</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='downloadSVG-dynamic'>
+      #
+(void)
+<b>downloadSVG</b><span>()</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>on download svg button click: extract svg from the paper project (in the selected rectangle) and click on resulting svg image link
+(chrome will open the save image dialog, other browsers will open the image in a new window/tab for the user to be able to save it)</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='copyURL-dynamic'>
+      #
+(void)
+<b>copyURL</b><span>()</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>nothing to do here: ZeroClipboard handles it</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+</div>
+    </div>
+    <div id='footer'>
+  December 10, 14 11:28:38 by
+  <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
+    Codo
+  </a>
+  2.0.9
+  &#10034;
+  Press H to see the keyboard shortcuts
+  &#10034;
+  <a href='http://twitter.com/netzpirat' target='_parent'>@netzpirat</a>
+  &#10034;
+  <a href='http://twitter.com/_inossidabile' target='_parent'>@_inossidabile</a>
+</div>
+<iframe id='search_frame'></iframe>
+<div id='fuzzySearch'>
+  <input type='text'>
+  <ol></ol>
+</div>
+<div id='help'>
+  <p>
+    Quickly fuzzy find classes, mixins, methods, file:
+  </p>
+  <ul>
+    <li>
+      <span>T</span>
+      Open fuzzy finder dialog
+    </li>
+  </ul>
+  <p>
+    Control the navigation frame:
+  </p>
+  <ul>
+    <li>
+      <span>L</span>
+      Toggle list view
+    </li>
+    <li>
+      <span>C</span>
+      Show class list
+    </li>
+    <li>
+      <span>I</span>
+      Show mixin list
+    </li>
+    <li>
+      <span>F</span>
+      Show file list
+    </li>
+    <li>
+      <span>M</span>
+      Show method list
+    </li>
+    <li>
+      <span>E</span>
+      Show extras list
+    </li>
+  </ul>
+  <p>
+    You can focus and blur the search input:
+  </p>
+  <ul>
+    <li>
+      <span>S</span>
+      Focus search input
+    </li>
+    <li>
+      <span>Esc</span>
+      Blur search input
+    </li>
+  </ul>
+</div>
+  </body>
+</html>

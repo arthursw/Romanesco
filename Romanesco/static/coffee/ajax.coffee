@@ -1,16 +1,18 @@
 
 # --- global --- #
 
+# check for any error in an ajax callback and display the appropriate error message
+# @return [Boolean] true if there was no error, false otherwise
 this.checkError = (result)->
 	if result.state == 'not_logged_in'
 		romanesco_alert("You must be logged in to update drawings to the database.", "info")
 		return false
 	if result.state == 'error'
-			if result.message == 'invalid_url'
-				romanesco_alert("Your URL is invalid or does not point to an existing page.", "error")
-			else
-				romanesco_alert("Error: " + result.message, "error")
-			return false
+		if result.message == 'invalid_url'
+			romanesco_alert("Your URL is invalid or does not point to an existing page.", "error")
+		else
+			romanesco_alert("Error: " + result.message, "error")
+		return false
 	else if result.state == 'system_error'
 		console.log result.message
 		return false
@@ -18,6 +20,7 @@ this.checkError = (result)->
 
 # --- load --- #
 
+# @return [Boolean] true if the area was already loaded, false otherwise
 this.areaIsLoaded = (pos,planet) ->
 	for area in g.loadedAreas
 		if area.planet.x == planet.x && area.planet.y == planet.y
@@ -25,6 +28,17 @@ this.areaIsLoaded = (pos,planet) ->
 				return true
 	return false
 
+# load an area from the server
+# the project coordinate system is divided into square cells of size *g.scale*
+# an Area is an object { pos: Point, planet: Point } corresponding to a cell (pos is the top left corner of the cell, the server consider the cells to be 1 unit wide (1000 pixels))
+# a load does:
+# - build a list of Area overlapping *area* and not already loaded
+# - define a load limit rectangle equels to *area* expanded to 2 x g.scale
+# - remove RItems which are not within this limit anymore AND in an area which must be unloaded
+#   (do not remove items on an area which is not unloaded, otherwise they wont be reloaded if user comes back on it)
+# - remove loaded areas which where unloaded
+# - load areas
+# @param [Rectangle] (optional) the area to load, *area* equals the bounds of the view if not defined
 this.load = (area=null) ->
 
 	if g.previousLoadPosition? and g.previousLoadPosition.subtract(view.center).length<50
@@ -45,6 +59,7 @@ this.load = (area=null) ->
 	else
 		bounds = area
 
+	# find top, left, bottom and right positions of the area in the quantized space
 	t = Math.floor(bounds.top / scale) * scale
 	l = Math.floor(bounds.left / scale) * scale
 	b = Math.floor(bounds.bottom / scale) * scale
@@ -72,6 +87,7 @@ this.load = (area=null) ->
 		for y in [t .. b] by scale
 			planet = projectToPlanet(new Point(x,y))
 			pos = projectToPosOnPlanet(new Point(x,y))
+
 			if not areaIsLoaded(pos, planet)
 
 				if debug
@@ -86,7 +102,8 @@ this.load = (area=null) ->
 				if debug then area.rectangle = areaRectangle
 				g.loadedAreas.push(area)
 
-	# unload
+	# unload:
+	# define unload limit rectangle
 	unloadDist = Math.round(2*scale)#/g.project.view.zoom)
 	
 	if not g.entireArea
@@ -95,7 +112,9 @@ this.load = (area=null) ->
 		limit = g.entireArea
 
 	itemsOutsideLimit = []
-	# remove items which are not on screen anymore AND in area which must be unloaded (do not remove items on a )
+
+	# remove RItems which are not on within limit anymore AND in area which must be unloaded
+	# (do not remove items on an area which is not unloaded, otherwise they wont be reloaded if user comes back on it)
 	for own pk, item of g.items
 		if not item.getBounds().intersects(limit)
 			itemsOutsideLimit.push(item)
@@ -137,9 +156,10 @@ this.load = (area=null) ->
 	
 	itemsOutsideLimit = null
 
-	if areasToLoad.length<=0
+	if areasToLoad.length<=0 	# return if there is nothing to load
 		return
 
+	# load areas
 	if not g.loadingBarTimeout?
 		showLoadingBar = ()->
 			$("#loadingBar").show()
@@ -155,20 +175,26 @@ this.load = (area=null) ->
 	# ajaxPost '/load', args, load_callback
 	return
 
+# load callback: add loaded RItems
 this.load_callback = (results)->
 
 	checkError(results)
+
 	if results.hasOwnProperty('message') && results.message == 'no_paths'
 		return
 
+	# set g.me (the server sends the username at each load)
 	if not g.me?
 		g.me = results.user
 		if g.chatJ.find("#chatUserNameInput").length==0
 			g.startChatting( g.me )
 
+	# helper to check it the item is already loaded
+	# in the current implementation, it should not be necessary
 	itemIsLoaded = (pk)->
 		return g.items[pk]?
 
+	# add RLocks: RLock, RLink, RWebsite and RVideoGame
 	for b in results.boxes
 		for box in JSON.parse(b)
 
@@ -199,7 +225,7 @@ this.load_callback = (results)->
 			if data?.loadEntireArea
 				g.entireAreas.push(lock)
 
-	console.log results.paths.length
+	# add and draw RPath
 	for p in results.paths
 		for path in JSON.parse(p)
 
@@ -208,6 +234,7 @@ this.load_callback = (results)->
 
 			planet = new Point(path.planetX, path.planetY)
 
+			# parse data
 			date = path.date.$date
 			if path.data? and path.data.length>0
 				data = JSON.parse(path.data)
@@ -215,9 +242,11 @@ this.load_callback = (results)->
 
 			points = []
 
+			# convert points from planet coordinates to project coordinates
 			for point in path.points.coordinates
 				points.push( posOnPlanetToProject(point, planet) )
 
+			# create the RPath with the corresponding RTool
 			if g.tools[path.object_type]?
 				rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points)
 				if rpath.constructor.name == "Checkpoint"
@@ -225,7 +254,7 @@ this.load_callback = (results)->
 			else
 				console.log "Unknown path type: " + path.object_type
 
-
+	# add the RDivs (RText and RMedia)
 	for d in results.divs
 		for div in JSON.parse(d)
 
@@ -250,13 +279,12 @@ this.load_callback = (results)->
 				rmedia = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.url, data)
 				divJ = rmedia.divJ
 
-	loadFonts()
+	# loadFonts()
 	view.draw()
-
+	
 	clearTimeout(g.loadingBarTimeout)
 	g.loadingBarTimeout = null
 	$("#loadingBar").hide()
-
 
 
 	# g.stopLoadingBar()

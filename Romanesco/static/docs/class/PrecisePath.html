@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset='UTF-8'>
+  <title>CoffeeScript API Documentation</title>
+  <script src='../javascript/application.js'></script>
+  <script src='../javascript/search.js'></script>
+  <link rel='stylesheet' href='../stylesheets/application.css' type='text/css'>
+</head>
+  <body>
+    <div id='base' data-path='../'></div>
+<div id='header'>
+  <div id='menu'>
+    <a href='../alphabetical_index.html' title='Index'>
+      Index
+    </a>
+    &raquo;
+    <span class='title'>PrecisePath</span>
+  </div>
+</div>
+    <div id='content'>
+      <h1>
+        Class:
+        PrecisePath
+      </h1>
+      <table class='box'>
+        <tr>
+          <td>Defined in:</td>
+          <td>coffee&#47;path.coffee</td>
+        </tr>
+        <tr>
+          <td>Inherits:</td>
+          <td>
+            <a href='../class/RPath.html'>RPath</a>
+          </td>
+        </tr>
+      </table>
+      <h2>Overview</h2>
+      <div class='docstring'>
+  <p>PrecisePath extends RPath to add precise editing functionnalities
+PrecisePath adds control handles to the control path (which can be hidden): 
+one can edit, add or remove points, to precisely shape the curve.
+The user can edit the curve with the &#39;Edit Curve&#39; folder of the gui</p><p>Points of a PrecisePath can have three states:</p><ul>
+<li>smooth (default): the handles of the point are always aligned, they are not necessarly of the same size (although they are equal if the user pressed command or control key)</li>
+<li>corner: the handles of the point are independent, giving the possibility to make sharp corners</li>
+<li>point: the point has no handles, it is simple to manipulate</li>
+</ul><p>A precise path has two modes:</p><ul>
+<li>the default mode: handles are editable</li>
+<li>the smooth mode: handles are not editable and the control path is <a href="http://paperjs.org/reference/path/#smooth">smoothed</a></li>
+</ul><p>A precise path has two creation modes:</p><ul>
+<li>the default mode: a point is added to the control path when the user drags the mouse (at each drag event), resulting in many close points</li>
+<li>the polygon mode: a point is added to the control path when the user clicks the mouse, and the last handle is modified when the user drags the mouse</li>
+</ul>
+<h1 id="the-drawing">The drawing</h1><p>The drawing is performed as follows:</p><ul>
+<li>the control path is divided into a number of steps of fixed size (giving points along the control path at regular intervals)</li>
+<li>the drawing is updated at each of those points</li>
+<li>to have better results, the remaining step (which is shorter) is split in half and distributed among the first and last step</li>
+<li>the size of the steps is data.step, and can be added in the gui</li>
+<li>during the drawing process, the <em>offset</em> property corresponds to the current position along the control path where the drawing must be updated  (offset can be seen as the length of the drawing along the path)</li>
+</ul><p>For example the simplest precise path is as a set of points regularly distributed along the control path;
+a more complexe precise path would also be function of the normal and the tangent of the control point at each points.</p><p>The drawing is performed with three methods:</p><ul>
+<li>drawBegin() called to initialize the drawing</li>
+<li>drawUpdate() called at each update</li>
+<li>drawEnd() called at the end onf the drawing</li>
+</ul><p>There are two creation modes:</p><ul>
+<li>when the user creates the path with the mouse:<ul>
+<li>each time a new point is added to the control path:
+drawUpdate() is called to fit the drawing along the control path until <em>offset</em> (the length of the drawing) equals the control path length (minus the remaining)
+this process takes place in <a href='../class/PrecisePath.html#checkUpdateDrawing-dynamic'>PrecisePath#checkUpdateDrawing</a> (it is overloaded by {SpeedPath.checkUpdateDrawing})</li>
+</ul>
+</li>
+<li>when the path is loaded (or the control path is complete before the drawing):<ul>
+<li>the remaining step (which is shorter) is split in half and distributed among the first and last step</li>
+<li>drawUpdate() is called in a loop to fit the whole control path at once, in <a href='../class/PrecisePath.html#draw-dynamic'>PrecisePath#draw</a></li>
+</ul>
+</li>
+</ul><p>When the user creates the control path:</p><ul>
+<li>each time a new point is added to the control path (giving a new segment linking to the previous point) drawUpdate() is called to fit the drawing along the control path until the length of the drawing </li>
+</ul><p>During the path creation, when a new point is added to the control path (giving a new segment linking to the previous point)
+drawUpdate() is called to fit the drawing along the control path until the length of the drawing </p><p>When the user is creating a path, drawUpdate() is called as soon as a new point is added to the control path (giving a new segment linking to the previous point).</p><p>It is determined how many steps can be fitted in the new segment (taking into account the previous )
+drawUpdate() is called when the user adds a point to the control path</p>
+</div>
+<div class='tags'>
+</div>
+      <h2>Direct Known Subclasses</h2>
+      <p class='children'>
+        <a href='../class/SpeedPath.html'>SpeedPath</a>
+        <a href='../class/SpiralPath.html'>SpiralPath</a>
+        <a href='../class/SketchPath.html'>SketchPath</a>
+      </p>
+      <h2>Variables Summary</h2>
+      <dl class='constants'>
+  <dt id='rname-variable'>
+    rname
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>&#39;Precise path&#39;</code></pre>
+    
+  </dd>
+  <dt id='rdescription-variable'>
+    rdescription
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>&quot;This path offers precise controls, one can modify points along with their handles and their type.&quot;</code></pre>
+    
+  </dd>
+  <dt id='hitOptions-variable'>
+    hitOptions
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>{
+  segments: true,
+  stroke: true,
+  fill: true,
+  selected: true,
+  curves: true,
+  handles: true,
+  tolerance: 5
+}</code></pre>
+    
+  </dd>
+  <dt id='secureStep-variable'>
+    secureStep
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>25</code></pre>
+    
+  </dd>
+</dl>
+      <h3 class='inherited'>
+        Variable inherited from
+        <a href='../class/RPath.html'>RPath</a>
+      </h3>
+      <p class='inherited'>
+        <a href='../class/RPath.html#rname-variable'>rname</a>
+        <a href='../class/RPath.html#rdescription-variable'>rdescription</a>
+        <a href='../class/RPath.html#cursorPosition-variable'>cursorPosition</a>
+        <a href='../class/RPath.html#cursorDefault-variable'>cursorDefault</a>
+        <a href='../class/RPath.html#hitOptions-variable'>hitOptions</a>
+        <a href='../class/RPath.html#constructor.secureDistance-variable'>constructor.secureDistance</a>
+      </p>
+      <h2>Class Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#parameters-static'>
+        .
+(void)
+<b>parameters</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+</ul>
+      <h2>Instance Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#loadPath-dynamic'>
+        #
+(void)
+<b>loadPath</b><span>(points)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      load control path from @data.points and check if <em>points</em> fit to the created control path 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#hitTest-dynamic'>
+        #
+(void)
+<b>hitTest</b><span>(point, hitOptions)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      overload hit test to test not only on the selection rectangle, but also on the control path 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#initializeDrawing-dynamic'>
+        #
+(void)
+<b>initializeDrawing</b><span>(createCanvas = false)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      initialize drawing 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#drawBegin-dynamic'>
+        #
+(void)
+<b>drawBegin</b><span>(createCanvas = false)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      default drawBegin function, will be overloaded by children PrecisePath 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#drawUpdate-dynamic'>
+        #
+(void)
+<b>drawUpdate</b><span>(offset)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      default drawUpdate function, will be overloaded by children PrecisePath 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#drawEnd-dynamic'>
+        #
+(void)
+<b>drawEnd</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      default drawEnd function, will be overloaded by children PrecisePath 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#checkUpdateDrawing-dynamic'>
+        #
+(void)
+<b>checkUpdateDrawing</b><span>(event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      continue drawing the path along the control path if necessary: <ul>
+<li>the drawing is performed every <em>@data.step</em> along the control path</li>
+<li>each time the user adds a point to the control path (either by moving the mouse in normal mode, or by clicking in polygon mode) <em>checkUpdateDrawing</em> check by how long the control path was extended, and calls @drawUpdate() if some draw step must be performed
+called only when creating the path (not when we load it) (by createUpdate and finishPath)</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#initializeControlPath-dynamic'>
+        #
+(void)
+<b>initializeControlPath</b><span>(point)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      initialize the main group and the control path 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#createBegin-dynamic'>
+        #
+(void)
+<b>createBegin</b><span>(point, event, loading = false)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>begin create action: initialize the control path and draw begin
+called when user press mouse down, or on loading
+todo: better handle lock area</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#createUpdate-dynamic'>
+        #
+(void)
+<b>createUpdate</b><span>(point, event, loading = false)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      update create action: in normal mode:
+<ul>
+<li>check if path is not in an RLock</li>
+<li>add point</li>
+<li>@checkUpdateDrawing(event) (i.e.</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#createMove-dynamic'>
+        #
+(void)
+<b>createMove</b><span>(event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>update create action: only used when in polygon mode move the last point of the control path to the mouse position and draw in simple/quick mode
+called on mouse move</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#createEnd-dynamic'>
+        #
+(void)
+<b>createEnd</b><span>(point, event, loading = false)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      end create action:  <ul>
+<li>in polygon mode: just finish the path (@finiPath())</li>
+<li>in normal mode: compute speed, simplify path and update speed (necessary for SpeedPath) and finish path</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#finishPath-dynamic'>
+        #
+(void)
+<b>finishPath</b><span>(loading = false)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      finish path creation: 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#simplifiedModeOn-dynamic'>
+        #
+(void)
+<b>simplifiedModeOn</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      in simplified mode, the path is drawn quickly, with less details all parameters which are critical in terms of drawing time are set to <em>parameter.simplified</em>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#simplifiedModeOff-dynamic'>
+        #
+(void)
+<b>simplifiedModeOff</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      retrieve parameters values we had before drawing in simplified mode 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#draw-dynamic'>
+        #
+(void)
+<b>draw</b><span>(simplified = false, loading = false)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>update the appearance of the path (the drawing group) called anytime the path is modified:
+by createBegin/Update/End, selectUpdate/End, parameterChanged, deletePoint, changePoint etc.</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#pathOnPlanet-dynamic'>
+        #
+(Array of Paper point)
+<b>pathOnPlanet</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#getData-dynamic'>
+        #
+(void)
+<b>getData</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      get data, usually to save the RPath (some information must be added to data)  the control path is stored in @data.points and @data.planet
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#select-dynamic'>
+        #
+(void)
+<b>select</b><span>(updateOptions = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <ul> bring control path to front and select it
+<li>call RPath.select</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#deselect-dynamic'>
+        #
+(void)
+<b>deselect</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      deselect control path, remove selection highlight (@see PrecisePath.highlightSelectedPoint) and call RPath.deselect 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#highlightSelectedPoint-dynamic'>
+        #
+(void)
+<b>highlightSelectedPoint</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>highlight selection path point: draw a shape behind the selected point to be able to move and modify it
+the shape is a circle if point is &#39;smooth&#39;, a square if point is a &#39;corner&#39; and a triangle otherwise</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#initSelection-dynamic'>
+        #
+(void)
+<b>initSelection</b><span>(event, hitResult, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#selectUpdate-dynamic'>
+        #
+(void)
+<b>selectUpdate</b><span>(event, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>segment.rtype == null or &#39;smooth&#39;: handles are aligned, and have the same length if shit segment.rtype == &#39;corner&#39;: handles are not equal
+segment.rtype == &#39;point&#39;: no handles</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#selectEnd-dynamic'>
+        #
+(void)
+<b>selectEnd</b><span>(event, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#smoothPoint-dynamic'>
+        #
+(void)
+<b>smoothPoint</b><span>(segment, offset)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#doubleClick-dynamic'>
+        #
+(void)
+<b>doubleClick</b><span>(event, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#deletePoint-dynamic'>
+        #
+(void)
+<b>deletePoint</b><span>(segment)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#deleteSelectedPoint-dynamic'>
+        #
+(void)
+<b>deleteSelectedPoint</b><span>(userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#changeSelectedPoint-dynamic'>
+        #
+(void)
+<b>changeSelectedPoint</b><span>(userAction = true, value)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#parameterChanged-dynamic'>
+        #
+(void)
+<b>parameterChanged</b><span>(update = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#remove-dynamic'>
+        #
+(void)
+<b>remove</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+</ul>
+      <h2>
+        <small>Inherited Method Summary</small>
+        <h3 class='inherited'>
+          Methods inherited from
+          <a href='../class/RPath.html'>RPath</a>
+        </h3>
+        <p class='inherited'>
+          <a href='../class/RPath.html#parameters-static'>.parameters</a>
+          <a href='../class/RPath.html#duplicate-dynamic'>#duplicate</a>
+          <a href='../class/RPath.html#pathWidth-dynamic'>#pathWidth</a>
+          <a href='../class/RPath.html#getBounds-dynamic'>#getBounds</a>
+          <a href='../class/RPath.html#moveBy-dynamic'>#moveBy</a>
+          <a href='../class/RPath.html#moveTo-dynamic'>#moveTo</a>
+          <a href='../class/RPath.html#projectToRaster-dynamic'>#projectToRaster</a>
+          <a href='../class/RPath.html#prepareHitTest-dynamic'>#prepareHitTest</a>
+          <a href='../class/RPath.html#finishHitTest-dynamic'>#finishHitTest</a>
+          <a href='../class/RPath.html#hitTest-dynamic'>#hitTest</a>
+          <a href='../class/RPath.html#performeHitTest-dynamic'>#performeHitTest</a>
+          <a href='../class/RPath.html#updateSelectionRectangle-dynamic'>#updateSelectionRectangle</a>
+          <a href='../class/RPath.html#select-dynamic'>#select</a>
+          <a href='../class/RPath.html#deselect-dynamic'>#deselect</a>
+          <a href='../class/RPath.html#rasterize-dynamic'>#rasterize</a>
+          <a href='../class/RPath.html#hitTestAndInitSelection-dynamic'>#hitTestAndInitSelection</a>
+          <a href='../class/RPath.html#initSelection-dynamic'>#initSelection</a>
+          <a href='../class/RPath.html#selectBegin-dynamic'>#selectBegin</a>
+          <a href='../class/RPath.html#selectUpdate-dynamic'>#selectUpdate</a>
+          <a href='../class/RPath.html#selectEnd-dynamic'>#selectEnd</a>
+          <a href='../class/RPath.html#doubleClick-dynamic'>#doubleClick</a>
+          <a href='../class/RPath.html#loadPath-dynamic'>#loadPath</a>
+          <a href='../class/RPath.html#parameterChanged-dynamic'>#parameterChanged</a>
+          <a href='../class/RPath.html#addPath-dynamic'>#addPath</a>
+          <a href='../class/RPath.html#initializeDrawing-dynamic'>#initializeDrawing</a>
+          <a href='../class/RPath.html#initializeAnimation-dynamic'>#initializeAnimation</a>
+          <a href='../class/RPath.html#draw-dynamic'>#draw</a>
+          <a href='../class/RPath.html#initialize-dynamic'>#initialize</a>
+          <a href='../class/RPath.html#createBegin-dynamic'>#createBegin</a>
+          <a href='../class/RPath.html#createUpdate-dynamic'>#createUpdate</a>
+          <a href='../class/RPath.html#createEnd-dynamic'>#createEnd</a>
+          <a href='../class/RPath.html#updateZIndex-dynamic'>#updateZIndex</a>
+          <a href='../class/RPath.html#insertAbove-dynamic'>#insertAbove</a>
+          <a href='../class/RPath.html#getData-dynamic'>#getData</a>
+          <a href='../class/RPath.html#getStringifiedData-dynamic'>#getStringifiedData</a>
+          <a href='../class/RPath.html#planet-dynamic'>#planet</a>
+          <a href='../class/RPath.html#prepareUpdate-dynamic'>#prepareUpdate</a>
+          <a href='../class/RPath.html#save-dynamic'>#save</a>
+          <a href='../class/RPath.html#save_callback-dynamic'>#save_callback</a>
+          <a href='../class/RPath.html#update-dynamic'>#update</a>
+          <a href='../class/RPath.html#updatePath_callback-dynamic'>#updatePath_callback</a>
+          <a href='../class/RPath.html#getPk-dynamic'>#getPk</a>
+          <a href='../class/RPath.html#setPK-dynamic'>#setPK</a>
+          <a href='../class/RPath.html#remove-dynamic'>#remove</a>
+          <a href='../class/RPath.html#delete-dynamic'>#delete</a>
+          <a href='../class/RPath.html#deletePath_callback-dynamic'>#deletePath_callback</a>
+          <a href='../class/RPath.html#pathOnPlanet-dynamic'>#pathOnPlanet</a>
+        </p>
+      </h2>
+      <h2>Class Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='parameters-static'>
+      .
+(void)
+<b>parameters</b><span>()</span>
+      <br>
+    </p>
+    
+  </div>
+</div>
+      <h2>Constructor Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='constructor-dynamic'>
+      #
+(void)
+<b>constructor</b><span>(date = null, data = null, pk = null, points = null)</span>
+      <br>
+    </p>
+    
+  </div>
+</div>
+      <h2>Instance Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='loadPath-dynamic'>
+      #
+(void)
+<b>loadPath</b><span>(points)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>load control path from @data.points and check if <em>points</em> fit to the created control path</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='hitTest-dynamic'>
+      #
+(void)
+<b>hitTest</b><span>(point, hitOptions)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>overload hit test to test not only on the selection rectangle, but also on the control path</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>point to test </span>
+    </li>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'><a href="http://paperjs.org/reference/item/#hittest-point">paper hit test options</a> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='initializeDrawing-dynamic'>
+      #
+(void)
+<b>initializeDrawing</b><span>(createCanvas = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>initialize drawing</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional,</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>default to true) whether to create a child canavs <em>@canverRaster</em> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='drawBegin-dynamic'>
+      #
+(void)
+<b>drawBegin</b><span>(createCanvas = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>default drawBegin function, will be overloaded by children PrecisePath</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional,</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>default to true) whether to create a child canavs <em>@canverRaster</em> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='drawUpdate-dynamic'>
+      #
+(void)
+<b>drawUpdate</b><span>(offset)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>default drawUpdate function, will be overloaded by children PrecisePath</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>offset along the control path to begin drawing </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='drawEnd-dynamic'>
+      #
+(void)
+<b>drawEnd</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>default drawEnd function, will be overloaded by children PrecisePath</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='checkUpdateDrawing-dynamic'>
+      #
+(void)
+<b>checkUpdateDrawing</b><span>(event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>continue drawing the path along the control path if necessary:</p><ul>
+<li>the drawing is performed every <em>@data.step</em> along the control path</li>
+<li>each time the user adds a point to the control path (either by moving the mouse in normal mode, or by clicking in polygon mode) <em>checkUpdateDrawing</em> check by how long the control path was extended, and calls @drawUpdate() if some draw step must be performed
+called only when creating the path (not when we load it) (by createUpdate and finishPath)</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='initializeControlPath-dynamic'>
+      #
+(void)
+<b>initializeControlPath</b><span>(point)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>initialize the main group and the control path</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>first point of the path </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='createBegin-dynamic'>
+      #
+(void)
+<b>createBegin</b><span>(point, event, loading = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>begin create action:
+initialize the control path and draw begin
+called when user press mouse down, or on loading
+todo: better handle lock area</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='createUpdate-dynamic'>
+      #
+(void)
+<b>createUpdate</b><span>(point, event, loading = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>update create action:
+in normal mode:</p><ul>
+<li>check if path is not in an RLock</li>
+<li>add point</li>
+<li>@checkUpdateDrawing(event) (i.e. continue the draw steps to fit the control path)
+in polygon mode:</li>
+<li>update the <a href="http://paperjs.org/reference/segment/#handlein">handleIn</a> and handleOut of the last segment</li>
+<li>draw in simplified (quick) mode
+called on mouse drag</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>point to add </span>
+    </li>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>(optional</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>and deprecated) whether the path is being loaded or being created by user </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='createMove-dynamic'>
+      #
+(void)
+<b>createMove</b><span>(event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>update create action: only used when in polygon mode
+move the last point of the control path to the mouse position and draw in simple/quick mode
+called on mouse move</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='createEnd-dynamic'>
+      #
+(void)
+<b>createEnd</b><span>(point, event, loading = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>end create action: </p><ul>
+<li>in polygon mode: just finish the path (@finiPath())</li>
+<li>in normal mode: compute speed, simplify path and update speed (necessary for SpeedPath) and finish path</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>point to add </span>
+    </li>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether the path is being loaded or being created by user </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='finishPath-dynamic'>
+      #
+(void)
+<b>finishPath</b><span>(loading = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>finish path creation:</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether the path is being loaded or being created by user </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='simplifiedModeOn-dynamic'>
+      #
+(void)
+<b>simplifiedModeOn</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>in simplified mode, the path is drawn quickly, with less details
+all parameters which are critical in terms of drawing time are set to <em>parameter.simplified</em></p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='simplifiedModeOff-dynamic'>
+      #
+(void)
+<b>simplifiedModeOff</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>retrieve parameters values we had before drawing in simplified mode</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='draw-dynamic'>
+      #
+(void)
+<b>draw</b><span>(simplified = false, loading = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>update the appearance of the path (the drawing group)
+called anytime the path is modified:
+by createBegin/Update/End, selectUpdate/End, parameterChanged, deletePoint, changePoint etc. and loadPath</p><ul>
+<li>begin drawing (@drawBegin())</li>
+<li>update drawing (@drawUpdate()) every <em>step</em> along the control path</li>
+<li>end drawing (@drawEnd())</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to draw in simplified mode or not (much faster) </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the path is being loaded or drawn by a user </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='pathOnPlanet-dynamic'>
+      #
+(Array of Paper point)
+<b>pathOnPlanet</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Array of Paper point</tt>
+      )
+      &mdash;
+      <span class='desc'>a list of point from the control path converted in the planet coordinate system  </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='getData-dynamic'>
+      #
+(void)
+<b>getData</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>get data, usually to save the RPath (some information must be added to data) 
+the control path is stored in @data.points and @data.planet</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='select-dynamic'>
+      #
+(void)
+<b>select</b><span>(updateOptions = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <ul>
+<li>bring control path to front and select it</li>
+<li>call RPath.select</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>updateOptions</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether to update gui parameters with this RPath or not </span>
+    </li>
+  </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='RPath.select'>RPath.select</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='deselect-dynamic'>
+      #
+(void)
+<b>deselect</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>deselect control path, remove selection highlight (@see PrecisePath.highlightSelectedPoint) and call RPath.deselect</p>
+</div>
+<div class='tags'>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='RPath.deselect'>RPath.deselect</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='highlightSelectedPoint-dynamic'>
+      #
+(void)
+<b>highlightSelectedPoint</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>highlight selection path point:
+draw a shape behind the selected point to be able to move and modify it
+the shape is a circle if point is &#39;smooth&#39;, a square if point is a &#39;corner&#39; and a triangle otherwise</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='initSelection-dynamic'>
+      #
+(void)
+<b>initSelection</b><span>(event, hitResult, userAction = true)</span>
+      <br>
+    </p>
+    
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='selectUpdate-dynamic'>
+      #
+(void)
+<b>selectUpdate</b><span>(event, userAction = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>segment.rtype == null or &#39;smooth&#39;: handles are aligned, and have the same length if shit
+segment.rtype == &#39;corner&#39;: handles are not equal
+segment.rtype == &#39;point&#39;: no handles</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='selectEnd-dynamic'>
+      #
+(void)
+<b>selectEnd</b><span>(event, userAction = true)</span>
+      <br>
+    </p>
+    
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='smoothPoint-dynamic'>
+      #
+(void)
+<b>smoothPoint</b><span>(segment, offset)</span>
+      <br>
+    </p>
+    
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='doubleClick-dynamic'>
+      #
+(void)
+<b>doubleClick</b><span>(event, userAction = true)</span>
+      <br>
+    </p>
+    
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='deletePoint-dynamic'>
+      #
+(void)
+<b>deletePoint</b><span>(segment)</span>
+      <br>
+    </p>
+    
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='deleteSelectedPoint-dynamic'>
+      #
+(void)
+<b>deleteSelectedPoint</b><span>(userAction = true)</span>
+      <br>
+    </p>
+    
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='changeSelectedPoint-dynamic'>
+      #
+(void)
+<b>changeSelectedPoint</b><span>(userAction = true, value)</span>
+      <br>
+    </p>
+    
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='parameterChanged-dynamic'>
+      #
+(void)
+<b>parameterChanged</b><span>(update = true)</span>
+      <br>
+    </p>
+    
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='remove-dynamic'>
+      #
+(void)
+<b>remove</b><span>()</span>
+      <br>
+    </p>
+    
+  </div>
+</div>
+    </div>
+    <div id='footer'>
+  December 10, 14 11:28:38 by
+  <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
+    Codo
+  </a>
+  2.0.9
+  &#10034;
+  Press H to see the keyboard shortcuts
+  &#10034;
+  <a href='http://twitter.com/netzpirat' target='_parent'>@netzpirat</a>
+  &#10034;
+  <a href='http://twitter.com/_inossidabile' target='_parent'>@_inossidabile</a>
+</div>
+<iframe id='search_frame'></iframe>
+<div id='fuzzySearch'>
+  <input type='text'>
+  <ol></ol>
+</div>
+<div id='help'>
+  <p>
+    Quickly fuzzy find classes, mixins, methods, file:
+  </p>
+  <ul>
+    <li>
+      <span>T</span>
+      Open fuzzy finder dialog
+    </li>
+  </ul>
+  <p>
+    Control the navigation frame:
+  </p>
+  <ul>
+    <li>
+      <span>L</span>
+      Toggle list view
+    </li>
+    <li>
+      <span>C</span>
+      Show class list
+    </li>
+    <li>
+      <span>I</span>
+      Show mixin list
+    </li>
+    <li>
+      <span>F</span>
+      Show file list
+    </li>
+    <li>
+      <span>M</span>
+      Show method list
+    </li>
+    <li>
+      <span>E</span>
+      Show extras list
+    </li>
+  </ul>
+  <p>
+    You can focus and blur the search input:
+  </p>
+  <ul>
+    <li>
+      <span>S</span>
+      Focus search input
+    </li>
+    <li>
+      <span>Esc</span>
+      Blur search input
+    </li>
+  </ul>
+</div>
+  </body>
+</html>

@@ -113,16 +113,16 @@
     }
     g.chatSocket.on("begin", function(from, event, tool, data) {
       console.log("begin");
-      g.tools[tool].begin(parseEventObj(event), from, data);
+      g.tools[tool].begin(objectToEvent(event), from, data);
     });
     g.chatSocket.on("update", function(from, event, tool) {
       console.log("update");
-      g.tools[tool].update(parseEventObj(event), from);
+      g.tools[tool].update(objectToEvent(event), from);
       view.draw();
     });
     g.chatSocket.on("end", function(from, event, tool) {
       console.log("end");
-      g.tools[tool].end(parseEventObj(event), from);
+      g.tools[tool].end(objectToEvent(event), from);
       view.draw();
     });
     g.chatSocket.on("setPathPK", function(from, pid, pk) {
@@ -142,22 +142,22 @@
     });
     g.chatSocket.on("selectBegin", function(from, pk, event) {
       console.log("selectBegin");
-      g.items[pk].selectBegin(parseEventObj(event), false);
+      g.items[pk].selectBegin(objectToEvent(event), false);
       view.draw();
     });
     g.chatSocket.on("selectUpdate", function(from, pk, event) {
       console.log("selectUpdate");
-      g.items[pk].selectUpdate(parseEventObj(event), false);
+      g.items[pk].selectUpdate(objectToEvent(event), false);
       view.draw();
     });
     g.chatSocket.on("doubleClick", function(from, pk, event) {
       console.log("doubleClick");
-      g.items[pk].doubleClick(parseEventObj(event), false);
+      g.items[pk].doubleClick(objectToEvent(event), false);
       view.draw();
     });
     g.chatSocket.on("selectEnd", function(from, pk, event) {
       console.log("selectEnd");
-      g.items[pk].selectEnd(parseEventObj(event), false);
+      g.items[pk].selectEnd(objectToEvent(event), false);
       view.draw();
     });
     g.chatSocket.on("createDiv", function(data) {

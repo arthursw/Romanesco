@@ -6,6 +6,41 @@
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   RTool = (function() {
+
+    /*
+    	parameters = 
+    		'First folder':
+    			firstParameter:
+    				type: 'slider' 									# type is only required when adding a color (then it must be 'color')
+    				label: 'Name of the parameter'					# label of the controller (name displayed in the gui)
+    				value: 0										# value (deprecated)
+    				default: 0 										# default value
+    				step: 5 										# values will be incremented/decremented by step
+    				min: 0 											# minimum value
+    				max: 100 										# maximum value
+    				simplified: 0 									# value during the simplified mode (useful to quickly draw an RPath, for example when modifying a curve)
+    				defaultFunction: () -> 							# called to get a default value
+    				addController: true 							# if true: adds the dat.gui controller to the item or the selected tool
+    				onChange: (value)->  							# called when controller changes
+    				onFinishChange: (value)-> 						# called when controller finishes change
+    				setValue: (value, item)-> 						# called on set value of controller
+    				permanent: true									# if true: the controller is never removed (always says in dat.gui)
+    				defaultCheck: true 								# checked/activated by default or not
+    				initializeController: (controller, item)->		# called just after controller is added to dat.gui, enables to customize the gui and add functionalities
+    			secondParameter:
+    				type: 'slider'
+    				label: 'Second parameter'
+    				value: 1
+    				min: 0
+    				max: 10
+    		'Second folder':
+    			thirdParameter:
+    				type: 'slider'
+    				label: 'Third parameter'
+    				value: 1
+    				min: 0
+    				max: 10
+     */
     RTool.parameters = function() {
       return {};
     };
@@ -238,18 +273,11 @@
         x: 0,
         y: 0
       }, "none");
-      this.prevPoint = {
-        x: 0,
-        y: 0
-      };
-      this.dragging = false;
     }
 
     CarTool.prototype.select = function() {
-      var url;
       CarTool.__super__.select.call(this);
-      url = "/static/images/car.png";
-      this.car = new Raster(url);
+      this.car = new Raster("/static/images/car.png");
       g.carLayer.addChild(this.car);
       this.car.position = view.center;
       this.speed = 0;
@@ -492,7 +520,6 @@
         justCreated = false;
       }
       this.name = this.RPath.rname;
-      favorite = justCreated | ((_ref = g.favoriteTools) != null ? _ref.indexOf(this.name) : void 0) >= 0;
       this.btnJ = g.toolsJ.find('li[data-type="' + this.name + '"]');
       if (this.btnJ.length === 0) {
         this.btnJ = $("<li>");
@@ -515,6 +542,7 @@
           shortNameJ = $('<span class="short-name">').text(name + ".");
           this.btnJ.append(shortNameJ);
         }
+        favorite = justCreated | ((_ref = g.favoriteTools) != null ? _ref.indexOf(this.name) : void 0) >= 0;
         if (favorite) {
           g.favoriteToolsJ.append(this.btnJ);
         } else {
@@ -564,7 +592,7 @@
       }
       g.currentPaths[from].createBegin(event.point, event, false);
       if ((g.me != null) && from === g.me) {
-        g.chatSocket.emit("begin", g.me, g.eventObj(event), this.name, g.currentPaths[from].data);
+        g.chatSocket.emit("begin", g.me, g.eventToObject(event), this.name, g.currentPaths[from].data);
       }
     };
 
@@ -574,7 +602,7 @@
       }
       g.currentPaths[from].createUpdate(event.point, event, false);
       if ((g.me != null) && from === g.me) {
-        g.chatSocket.emit("update", g.me, g.eventObj(event), this.name);
+        g.chatSocket.emit("update", g.me, g.eventToObject(event), this.name);
       }
     };
 
@@ -597,7 +625,7 @@
         if ((g.me != null) && from === g.me) {
           g.currentPaths[from].select(false);
           g.currentPaths[from].save();
-          g.chatSocket.emit("end", g.me, g.eventObj(event), this.name);
+          g.chatSocket.emit("end", g.me, g.eventToObject(event), this.name);
         }
         delete g.currentPaths[from];
       }
@@ -657,7 +685,7 @@
       g.currentPaths[from].dashArray = [4, 10];
       g.currentPaths[from].strokeColor = 'black';
       if ((g.me != null) && from === g.me) {
-        return g.chatSocket.emit("begin", g.me, g.eventObj(event), this.name, g.currentPaths[from].data);
+        return g.chatSocket.emit("begin", g.me, g.eventToObject(event), this.name, g.currentPaths[from].data);
       }
     };
 
@@ -686,9 +714,6 @@
         return false;
       }
       point = event.point;
-      g.currentPaths[from].segments[2].point = point;
-      g.currentPaths[from].segments[1].point.x = point.x;
-      g.currentPaths[from].segments[3].point.y = point.y;
       g.currentPaths[from].remove();
       if (RDiv.boxOverlapsTwoPlanets(g.currentPaths[from].bounds)) {
         return false;
@@ -866,13 +891,7 @@
       }
     };
 
-    ScreenshotTool.prototype.begin = function(event, from) {
-      if (from == null) {
-        from = g.me;
-      }
-      if (from !== g.me) {
-        return;
-      }
+    ScreenshotTool.prototype.begin = function(event) {
       g.currentPaths[from] = new Path.Rectangle(event.point, event.point);
       g.currentPaths[from].name = 'screenshot tool selection rectangle';
       g.currentPaths[from].dashArray = [4, 10];
@@ -880,26 +899,14 @@
       return g.currentPaths[from].strokeWidth = 1;
     };
 
-    ScreenshotTool.prototype.update = function(event, from) {
-      if (from == null) {
-        from = g.me;
-      }
-      if (from !== g.me) {
-        return;
-      }
+    ScreenshotTool.prototype.update = function(event) {
       g.currentPaths[from].lastSegment.point = event.point;
       g.currentPaths[from].lastSegment.next.point.y = event.point.y;
       return g.currentPaths[from].lastSegment.previous.point.x = event.point.x;
     };
 
-    ScreenshotTool.prototype.end = function(event, from) {
+    ScreenshotTool.prototype.end = function(event) {
       var r;
-      if (from == null) {
-        from = g.me;
-      }
-      if (from !== g.me) {
-        return;
-      }
       g.currentPaths[from].remove();
       delete g.currentPaths[from];
       g.view.draw();
@@ -929,12 +936,12 @@
       imgJ.css({
         'max-height': maxHeight + "px"
       });
+      this.modalJ.find("a.png").attr("href", this.dataURL);
       twitterLinkJ = this.modalJ.find('a[name="publish-on-twitter"]');
       twitterLinkJ.empty().text("Publish on Twitter");
       twitterLinkJ.attr("data-url", "http://romanesc.co/" + location.hash);
       twitterScriptJ = $('<script type="text/javascript">window.twttr=(function(d,s,id){var t,js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id)){return}js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);return window.twttr||(t={_e:[],ready:function(f){t._e.push(f)}})}(document,"script","twitter-wjs"));</script>');
       twitterLinkJ.append(twitterScriptJ);
-      this.modalJ.find("a.png").attr("href", this.dataURL);
       this.modalJ.modal('show');
       this.modalJ.on('shown.bs.modal', (function(_this) {
         return function(e) {

@@ -2,9 +2,10 @@
 
 # todo: bug when modifying (click edit btn) a tool existing in DB: the editor do not show the code.
 
+# initialize code editor
 this.initCodeEditor = ()->
 
-	# editor
+	# initialiaze jQuery elements
 	g.editorJ = $(document.body).find("#codeEditor")
 	g.sourceSelectorJ = g.editorJ.find(".source-selector")
 	g.messageBoxJ = g.editorJ.find(".message-box")
@@ -16,6 +17,7 @@ this.initCodeEditor = ()->
 		g.draggingEditor = true
 		return
 
+	# initialize source selector
 	g.sourceSelectorJ.append($("<option>").append(PrecisePath.name))
 	g.sourceSelectorJ.append($("<option>").append(RectangleShape.name))
 	g.sourceSelectorJ.append($("<option>").append(SpiralShape.name))
@@ -27,22 +29,26 @@ this.initCodeEditor = ()->
 	g.sourceSelectorJ.append($("<option>").append(RollerPath.name))
 	g.sourceSelectorJ.append($("<option>").append(FuzzyPath.name))
 
-	if localStorage.romanescoCode? and localStorage.romanescoCode.length>0
+	# add saved sources to source selector
+	if localStorage.romanescoCode? and localStorage.romanescoCode.length>0 
 		for name, source of JSON.parse(localStorage.romanescoCode)
 			g.sourceSelectorJ.append($("<option>").append("saved - " + name))
 
+	# set code editor value to selected source when source selection changed
 	g.sourceSelectorJ.change ()->
 		source = ""
-		if this.value.indexOf("saved - ")>=0
+		if this.value.indexOf("saved - ")>=0	# if selected option starts with 'saved': read source from localStorage
 			source = JSON.parse(localStorage.romanescoCode)[this.value.replace("saved - ", "")]
-		if g[this.value]?
+		if g[this.value]?						# if selected option is an property of 'g': take source from g[this.value]
 			source = g[this.value].source
-		if source.length>0 then g.editor.getSession().setValue( source )
+		if source.length>0 then g.editor.getSession().setValue( source ) 		# set code editor value to selected source
 		return
 
+	# initialize ace editor
 	g.editor = ace.edit("codeEditorContent")
 	g.editor.setTheme("ace/theme/monokai")
 	# g.editor.setShowInvisibles(true)
+	# g.editor.getSession().setTabSize(4)
 	g.editor.getSession().setUseSoftTabs(false)
 	g.editor.getSession().setMode("ace/mode/coffee")
 	g.editor.getSession().setValue("""
@@ -68,28 +74,40 @@ this.initCodeEditor = ()->
 
 		""", 1)
 
+	# save code changes 1 second after user modifies the source
+	# extract class name and update localStorage.romanescoCode record
+	# This is a poor and dirty implementation which must be updated
 	saveChanges = ()->
+		# romanescoCode is a map of className -> source code, it is JSON stringified/parsed when read/written from/to localStorage
 		romanescoCode = if localStorage.romanescoCode? and localStorage.romanescoCode.length>0 then JSON.parse(localStorage.romanescoCode) else {}
 
-		source = g.editor.getValue()
+		source = g.editor.getValue() 	# get source
+
+		# extract class name
 		className = ''
 
+		# try to extract className when the code is a class
 		firstLineRegExp = /class {1}([A-Z]\w+) extends {1}(PrecisePath|SpeedPath|RShape){1}\n/
 		firstLineResult = firstLineRegExp.exec(source)
 		if firstLineResult? and firstLineResult.length >= 2
 			className = firstLineResult[1]
 		else
-			return
+			# try to extract className when it is a script
+			firstLineRegExp = /scriptName = {1}(("|')\w+("|'))\n/
+			firstLineResult = firstLineRegExp.exec(source)
+			if firstLineResult? and firstLineResult.length>=1
+				className = firstLineResult[1]
+			else 	# if no className: return (we do not save)
+				return
 		
-		if not g[className]? or source == g[className].source
-			return
+		if not g[className]? or source == g[className].source then return 		# return if source did not change or if className is not known (do not save)
 
-		romanescoCode[className] = source
-		localStorage.romanescoCode = JSON.stringify(romanescoCode)
+		romanescoCode[className] = source 										# update romanescoCode
+		localStorage.romanescoCode = JSON.stringify(romanescoCode) 				# save stringified version to local storage
 
 		return
 
-	# save the code in localStorage
+	# save the code in localStorage after 1 second
 	g.editor.getSession().on 'change', (e)->
 		g.defferedExecution(saveChanges, 1000)
 		return
@@ -107,15 +125,18 @@ this.initCodeEditor = ()->
 	# 	g.addTool()
 	# 	return
 
+	# initialize run button handler
 	runBtnJ = g.editorJ.find("button.submit.run")
 	runBtnJ.click (event)->
-		g.runScript()
+		g.runScript()	# compile and run the script in code editor
 		return
 
+	# just check for an error message on tool update callback
 	toolUpdate_callback = (result)=>
 		g.checkError(result)
 		return
 
+	# push request button handler: compile source and add or update tool
 	g.pushRequestBtnJ.click (event)->
 		tool = compileSource()
 		if tool?
@@ -127,6 +148,7 @@ this.initCodeEditor = ()->
 				Dajaxice.draw.updateTool( toolUpdate_callback, { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource } )
 		return
 
+	# close button handler: hide code editor and reset default console.log and console.error functions
 	closeBtnJ = g.editorJ.find("button.close-editor")
 	closeBtnJ.click (event)-> 
 		g.editorJ.hide()
@@ -134,19 +156,19 @@ this.initCodeEditor = ()->
 		console.error = console.oerror
 		return
 
+	# close console button handler: hide message box
 	closeMessageBoxBtnJ = g.editorJ.find("button.close-message-box")
 	closeMessageBoxBtnJ.click (event)-> 
 		g.messageBoxJ.hide()
 		g.codeEditorContentJ.removeClass 'message'
 		return
 
-	# log in div console
+	# get the default console.log and console.error functions, to log in a div (have console message displayed on a div in the document)
 	if typeof console  != 'undefined'
 		console.olog = console.log or ()->return
 		console.oerror = console.error or ()->return
-		# console.odebug = console.debug or ()->return
-		# console.oinfo = console.info or ()->return
 
+	# custom log function: log to the console and to the console div
 	g.logMessage = (message)->
 		console.olog(message)
 		g.messageBoxContentJ.append( $("<p>").append(message) )
@@ -154,6 +176,7 @@ this.initCodeEditor = ()->
 		g.messageBoxJ.show()
 		return
 
+	# custom error function: log to the console and to the console div
 	g.logError = (message)->
 		# console.oerror(message)
 		g.messageBoxContentJ.append( $("<p>").append(message).addClass("error") )
@@ -162,13 +185,18 @@ this.initCodeEditor = ()->
 		romanesco_alert "An error occured, you can open the debug console (Command + Option + I) to have more information about the problem.", "info"
 		return
 
-	g.log = console.log
+	# console.log and console.error will be set to the custom g.logMessage and g.logError when code editor will be shown, like so:
+	# console.log = g.logMessage
+	# console.error = g.logError
+	# this means that all logs and errors will be displayed both in the console and in the console div when code editor is opened
 
+	g.log = console.log 	# log is a shortcut/synonym to console.log
+
+# Compile source code:
+# - extract className and rname and determine whether it is a simple script or a path class
+# @return [{ name: String, className: String, source: String, compiledSource: String, isTool: Boolean }] the compiled script in an object with the source, compiled source, class name, etc.
 this.compileSource = ()->
 	
-	# g.editor.getSession().setTabSize(4)
-	# http://regex101.com/r/zT9iI1/1
-
 	source = g.editor.getValue()
 	className = ''
 	compiledJS = ''
@@ -176,6 +204,9 @@ this.compileSource = ()->
 	isTool = false
 
 	try
+		# extract className and rname and determine whether it is a simple script or a path class
+
+		# a nice regex tool can be found here: http://regex101.com/r/zT9iI1/1
 		# allRegExp = /class {1}(\w+) extends {1}(PrecisePath|SpeedPath){1}\n\s+@rname = {1}(\'.*)\n{1}[\s\S]*(drawBegin: \(\)->|drawUpdate: \(length\)->|drawEnd: \(\)->)[\s\S]*/
 		# result = allRegExp.exec(source)
 
@@ -216,13 +247,14 @@ this.compileSource = ()->
 		# if /(drawBegin: \(\)->|drawUpdate: \(length\)->|drawEnd: \(\)->)/.exec(source).length==0
 		# 	throw { 1, 'The methods drawBegin, drawUpdate or drawEnd must be defined.' }
 
-		compiledJS = CoffeeScript.compile source, bare: on
+		compiledJS = CoffeeScript.compile source, bare: on 			# compile coffeescript to javascript
 
+		# update ui: hide console div
 		g.messageBoxJ.removeClass 'error'
 		g.messageBoxJ.hide()
 		g.codeEditorContentJ.removeClass 'message'
 
-	catch {location, message}
+	catch {location, message} 	# compilation error, or className was not found: log & display error
 		if location?
 			errorMessage = "Error on line #{location.first_line + 1}: #{message}"
 			if message == "unmatched OUTDENT"
@@ -251,6 +283,11 @@ this.compileSource = ()->
 # 			return null
 # 	return tool
 
+# run script and create path tool if script is a path class
+# if *script* is not provided, the content of the code editor is compiled and taken as the script
+# called by the run button in the code editor (then the content of the code editor is compiled and taken as the script)
+# and when loading tools from database (then the script is given with its compiled version)
+# @return [{ name: String, className: String, source: String, compiledSource: String, isTool: Boolean }] the compiled script in an object with the source, compiled source, class name, etc.
 this.runScript = (script)->
 	justCreated = not script?
 	script ?= compileSource()
@@ -258,8 +295,8 @@ this.runScript = (script)->
 		# Eval the compiled js.
 		try
 			eval script.compiledSource
-			if script.isTool
-				if g.tools[script.rname]?
+			if script.isTool 							# if the script is a tool (or more exactly a path class)
+				if g.tools[script.rname]? 				# remove the tool with the same name if exists, create the new path tool and select it
 					g.tools[script.rname].remove()
 					delete this[script.className]
 				className = if script.originalClassName? and script.originalClassName.length>0 then script.originalClassName else script.className
@@ -267,12 +304,14 @@ this.runScript = (script)->
 				newTool.RPath.source = script.source
 				# newTool.constructor.source = script.source
 				if justCreated then newTool.select()
-		catch error 
+		catch error 									# display and throw error if any
 			console.error error
 			throw error
 			return null
 	return script
 
+# show the tool editor (and set code editor content)
+# @param [RPath constructor] optionnal: set RPath.source as the content of the code editor if not null, set the example source otherwise
 this.toolEditor = (RPath)->
 	g.editor.getSession().setValue(if RPath? then RPath.source else g.codeExample)
 	g.editorJ.show()
@@ -283,15 +322,18 @@ this.toolEditor = (RPath)->
 		g.pushRequestBtnJ.text('Push request (update "' + RPath.rname + '" tool)')
 	else
 		g.pushRequestBtnJ.text('Push request (create new tool)')
-
 	return
-	
+
+## Administration functions to test and accept tools (which are not validated yet)
+
+# set tool as accepted in the database
 this.acceptTool = (tool)->
 	acceptTool_callback = (result)-> g.checkError(result)
 	# ajaxPost '/acceptTool', { 'name':tool.name }, acceptTool_callback
 	Dajaxice.draw.acceptTool( acceptTool_callback, { 'name': tool.name } )
 	return
 
+# get tools which are not accepted yet, and put them in g.waitingTools
 this.getWaitingTools = (value)->
 
 	getWaitingTools_callback = (result)->

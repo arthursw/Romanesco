@@ -219,7 +219,6 @@
         }
       }
     }
-    console.log(results.paths.length);
     _ref2 = results.paths;
     for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
       p = _ref2[_k];
@@ -277,7 +276,6 @@
         }
       }
     }
-    loadFonts();
     view.draw();
     clearTimeout(g.loadingBarTimeout);
     g.loadingBarTimeout = null;

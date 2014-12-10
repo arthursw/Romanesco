@@ -1,6 +1,5 @@
 # --- Options --- #
 
-# todo: squarify GUI (http://glyphrstudio.com/sandbox/)
 # todo: improve reset parameter values when selection
 
 # this.updateFillColor = ()->
@@ -22,7 +21,8 @@
 # 		updateDiv(g.itemsToUpdate)
 # 	return
 
-this.initOptions = () ->
+# Initialize general and default parameters
+this.initParameters = () ->
 
 	g.parameters = {}
 	g.parameters.location = 
@@ -46,7 +46,8 @@ this.initOptions = () ->
 			g.project.view.zoom = value/100.0
 			g.updateGrid()
 			for div in g.divs
-				div.zoom(g.project.view.zoom)
+				div.updateTransform()
+			return
 		onFinishChange: (value) -> return g.load()
 	g.parameters.displayGrid = 
 		type: 'checkbox'
@@ -291,7 +292,7 @@ this.initOptions = () ->
 
 	# --- DAT GUI/ --- #
 
-	# todo: use addItems !!!
+	# todo: use addItems for general settings!!!
 	dat.GUI.autoPace = false
 	g.gui = new dat.GUI()
 	g.generalFolder = g.gui.addFolder('General')
@@ -301,7 +302,8 @@ this.initOptions = () ->
 		g.project.view.zoom = value/100.0
 		g.updateGrid()
 		for div in g.divs
-			div.zoom(g.project.view.zoom)
+			div.updateTransform()
+		return
 	).onFinishChange( (value) -> g.load() )
 	g.generalFolder.add({displayGrid: g.parameters.displayGrid.default}, 'displayGrid', true).name("Display grid").onChange(g.parameters.displayGrid.onChange)
 	g.generalFolder.add({fastMode: g.parameters.fastMode.default}, 'fastMode', true).name("Fast mode").onChange(g.parameters.fastMode.onChange)
@@ -317,27 +319,31 @@ this.initOptions = () ->
 	# --- /DAT GUI --- #
 
 	# --- Text options --- #
-	g.availableFonts = []
-	g.textOptionsJ = g.optionsJ.find(".text-options")
 
-	g.stylePickerJ = g.textOptionsJ.find('#fontStyle')
-	# g.subsetPickerJ = g.optionsJ.find('#fontSubset')
-	g.effectPickerJ = g.textOptionsJ.find('#fontEffect')
-	g.sizePickerJ = g.textOptionsJ.find('#fontSizeSlider')
-	g.sizePickerJ.slider().on('slide', (event)-> g.fontSize = event.value )
+	# g.textOptionsJ = g.optionsJ.find(".text-options")
+
+	# g.stylePickerJ = g.textOptionsJ.find('#fontStyle')
+	# # g.subsetPickerJ = g.optionsJ.find('#fontSubset')
+	# g.effectPickerJ = g.textOptionsJ.find('#fontEffect')
+	# g.sizePickerJ = g.textOptionsJ.find('#fontSizeSlider')
+	# g.sizePickerJ.slider().on('slide', (event)-> g.fontSize = event.value )
 	
+	g.availableFonts = []
 	g.usedFonts = []
 	jQuery.support.cors = true
 
 	# $.getJSON("https://www.googleapis.com/webfonts/v1/webfonts?key=AIzaSyD2ZjTQxVfi34-TMKjB5WYK3U8K6y-IQH0", initTextOptions)
 	$.getJSON("https://www.googleapis.com/webfonts/v1/webfonts?key=AIzaSyBVfBj_ugQO_w0AK1x9F6yiXByhcNgjQZU", initTextOptions)
 
+# add font to the page:
+# - check if the font is already loaded, and with which effect
+# - load web font from google font if needed
 this.addFont = (fontFamily, effect)->		
 	if not fontFamily? then return
 
 	fontFamilyURL = fontFamily.split(" ").join("+")
 
-	# update g.usedFonts
+	# update g.usedFonts, check if the font is already
 	fontAlreadyUsed = false
 	for font in g.usedFonts
 		if font.family == fontFamilyURL
@@ -349,7 +355,7 @@ this.addFont = (fontFamily, effect)->
 				font.effects.push(effect)
 			fontAlreadyUsed = true
 			break
-	if not fontAlreadyUsed
+	if not fontAlreadyUsed 		# if the font is not already used (loaded): load the font with the effect
 		# subsets = [subset]
 		# if subset!='latin'
 		# 	subsets.push('latin')
@@ -359,8 +365,12 @@ this.addFont = (fontFamily, effect)->
 		if not fontFamilyURL or fontFamilyURL == ''
 			debugger
 		g.usedFonts.push( family: fontFamilyURL, effects: effects )
+	return
 
 # todo: use google web api to update text font on load callback
+# fonts could have multiple effects at once, but the gui does not allow this yet
+# since having multiple effects would not be of great use
+# must be improved!!
 this.loadFonts = ()->
 	$('head').remove("link.fonts")
 
@@ -376,23 +386,28 @@ this.loadFonts = ()->
 		# 	for subset in font.subsets
 		# 		newFont += subset + ','
 		# 	newFont = newFont.slice(0,-1)
-		if font.effects.length>0 and not (font.effects.length == 1 and font.effects.first() == 'none')
-			newFont += "&effect="
-			for effect, i in font.effects
-				newFont += effect + '|'					
-			newFont = newFont.slice(0,-1)
 
-		fontLink = $('<link class="fonts" rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=' + newFont + '">')
-		
-		$('head').append(fontLink)
+		if $('head').find('link[data-font-family="' + font.family + '"]').length==0
 
+			if font.effects.length>0 and not (font.effects.length == 1 and font.effects.first() == 'none')
+				newFont += "&effect="
+				for effect, i in font.effects
+					newFont += effect + '|'					
+				newFont = newFont.slice(0,-1)
 
+			fontLink = $('<link class="fonts" data-font-family="' + font.family + '" rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=' + newFont + '">')
+			$('head').append(fontLink)
+	return
+
+# initialize typeahead font engine to quickly search for a font by typing its first letters
 this.initTextOptions = (data, textStatus, jqXHR) ->
 
+	# gather all font names
 	fontFamilyNames = []
 	for item in data.items
 		fontFamilyNames.push({ value: item.family })
 
+	# initialize typeahead font engine 
 	g.typeaheadFontEngine = new Bloodhound({
 		name: 'Font families',
 		local: fontFamilyNames,
@@ -410,13 +425,19 @@ this.initTextOptions = (data, textStatus, jqXHR) ->
 	# 	{ valueKey: 'value', displayKey: 'value', source: typeaheadFontEngine.ttAdapter() }
 	# )
 
-	g.fontSubmitJ = g.textOptionsJ.find('#fontSubmit')
+	# g.fontSubmitJ = g.textOptionsJ.find('#fontSubmit')
 
 
-	g.fontSubmitJ.click( (event) ->
-		g.setFontStyles()
-	)
+	# g.fontSubmitJ.click( (event) ->
+	# 	g.setFontStyles()
+	# )
+
+	return
+
 # todo: better manage parameter..
+# set the value of the controller without calling its onChange and onFinishChange callback
+# controller.rSetValue (a user defined callback) is called here
+# called when the controller is updated (when it existed, and must be updated to fit data of a newly selected tool or item)
 this.setControllerValue = (controller, parameter, value, item, checked=false)->
 	onChange = controller.__onChange
 	onFinishChange = controller.__onFinishChange
@@ -430,8 +451,16 @@ this.setControllerValue = (controller, parameter, value, item, checked=false)->
 	controller.__onChange = onChange
 	controller.__onFinishChange = onFinishChange
 
+# doctodo: copy deault parameter doc here
+# add a controller to dat.gui (corresponding to a parameter, from a tool or an item)
+# @param [String] name of the parameter (short name without spaces, same as RItem.data[name] )
+# @param [Parameter] the parameter to add
+# @param [RItem] optional RItem, the controller will be initialized with *item.data* if any
+# @param [DatFolder] folder in which to add the controller
+# @param [resetValues] (optional) reset value to default (create a new default if parameter has a defaultFunction)
 this.addItem = (name, parameter, item, datFolder, resetValues)->
 	
+	# intialize the default value
 	if item? and datFolder.name != 'General' and item.data? and (item.data[name]? or parameter.type=='color') 	# a color can be null, then it is disabled
 		value = item.data[name]
 	else if parameter.value?
@@ -441,6 +470,11 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 	else
 		value = parameter.default
 
+	# add controller to the current tool or item if parameter.addController
+	# @param [Parameter] the parameter of the controller
+	# @param [String] the name of the parameter
+	# @param [RItem] (optional) the RItem
+	# @param [Dat Controller] the controller to add
 	updateItemControllers = (parameter, name, item, controller)->
 		if parameter.addController
 			if item?
@@ -462,8 +496,12 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 			g.unusedControllers.remove(controller)
 			return
 
-	if not parameter.onChange?
+	if not parameter.onChange? 		# if parameter has no onChange function: create a default one which will update item.data[name]
 
+		# - snap the value according to parameter.step
+		# - update item.data[name] if it is defined
+		# - call item.parameterChanged()
+		# - emit "parameter change" on websocket
 		parameter.onChange = (value) -> 
 			console.log "onChange"
 			for item in g.selectedItems()
@@ -478,7 +516,7 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 	obj = {}
 
 	switch parameter.type
-		when 'color'
+		when 'color' 		# create a color controller
 			obj[name] = ''
 			controller = datFolder.add(obj, name).name(parameter.label)
 			inputJ = $(datFolder.domElement).find("div.c > input:last")
@@ -518,7 +556,7 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 				if checked
 					if value? then colorPicker.trigger("colorpickersliders.updateColor", value)
 				checkboxJ[0].checked = checked
-		when 'slider', 'checkbox', 'dropdown', 'button', 'button-group', 'radio-button-group', 'input', 'input-typeahead'
+		when 'slider', 'checkbox', 'dropdown', 'button', 'button-group', 'radio-button-group', 'input', 'input-typeahead'		# create any other controller
 			obj[name] = value
 			firstOptionalParameter = if parameter.min? then parameter.min else parameter.values
 			controller = datFolder.add(obj, name, firstOptionalParameter, parameter.max).name(parameter.label).onChange(parameter.onChange).onFinishChange(parameter.onFinishChange)
@@ -534,29 +572,34 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 
 	return
 
+# update parameters according to the selected tool or items
+# @param [{ tool: RTool constructor, item: RItem } or Array of { tool: RTool constructor, item: RItem }] list of tools from which controllers will be created or updated
+# @param [Boolean] reset controller values or let them untouched (values must be reset when selecting a new tool, but not when creating another similar shape... this must be improved)
 this.updateParameters = (tools, resetValues=false)->
 	
-	# add every controllers in g.unusedcontroller (we will potentially remove them all)
+	# add every controllers in g.unusedControllers (we will potentially remove them all)
 	g.unusedControllers = []
 	for folderName, folder of g.gui.__folders
 		for controller in folder.__controllers
 			if not g.parameters[controller.property]?.permanent
 				g.unusedControllers.push(controller)
 
-	if not Array.isArray(tools)
+	if not Array.isArray(tools) # make tools an array if it was not
 		tools = [tools]
 
-	for toolObject in tools
+	# for all tools: add one controller per parameter to corresponding folder (create folder if it does not exist)
+	for toolObject in tools											# for all tools
 		tool = toolObject.tool
 		item  = toolObject.item
-		for folderName, folder of tool.parameters()
+		for folderName, folder of tool.parameters() 				# for all folders of the tool
 			folderExists = g.gui.__folders[folderName]?
-			datFolder = if folderExists then g.gui.__folders[folderName] else g.gui.addFolder(folderName)
-			for name, parameter of folder
+			datFolder = if folderExists then g.gui.__folders[folderName] else g.gui.addFolder(folderName) 	# get or create folder
+			for name, parameter of folder  							# for all parameters of the folder
 				addItem(name, parameter, item, datFolder, resetValues)
-			if not folderExists
+			if not folderExists 	# open folder if it did not exist
 				datFolder.open()
 
+	# remove all controllers which are not used anymore
 	for unusedController in g.unusedControllers
 		for folderName, folder of g.gui.__folders
 			if folder.__controllers.indexOf(unusedController)>=0
@@ -565,6 +608,7 @@ this.updateParameters = (tools, resetValues=false)->
 				if folder.__controllers.length==0
 					g.gui.removeFolder(folderName)
 
+	# refresh dat.gui size and visibility in 500 milliseconds, (to fix a bug: sometimes dat.gui is too small, with a scrollbar or is not visible)
 	setTimeout( ()->
 		$(g.gui.domElement).find("ul:first").css( 'height': 'initial' )
 		$(g.gui.domElement).css( 'opacity': 1, 'z-index': 'auto' )

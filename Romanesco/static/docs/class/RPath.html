@@ -1,0 +1,2091 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset='UTF-8'>
+  <title>CoffeeScript API Documentation</title>
+  <script src='../javascript/application.js'></script>
+  <script src='../javascript/search.js'></script>
+  <link rel='stylesheet' href='../stylesheets/application.css' type='text/css'>
+</head>
+  <body>
+    <div id='base' data-path='../'></div>
+<div id='header'>
+  <div id='menu'>
+    <a href='../alphabetical_index.html' title='Index'>
+      Index
+    </a>
+    &raquo;
+    <span class='title'>RPath</span>
+  </div>
+</div>
+    <div id='content'>
+      <h1>
+        Class:
+        RPath
+      </h1>
+      <table class='box'>
+        <tr>
+          <td>Defined in:</td>
+          <td>coffee&#47;path.coffee</td>
+        </tr>
+      </table>
+      <h2>Overview</h2>
+      <div class='docstring'>
+  <p>RPath: mother of all romanesco paths
+A romanesco path (RPath) is a path made of the following items:</p><ul>
+<li>a control path, with which users will interact</li>
+<li>a drawing group (the drawing) contaning all visible items built arround the control path (it must follow the control path)</li>
+<li>a selection group (containing a selection path) when the RPath is selected; it enables user to scale and rotate the RPath</li>
+<li>a group (main group or <em>group</em>) which contains all of the previous items</li>
+</ul><p>There are three main RPaths:</p><ul>
+<li>PrecisePath adds control handles to the control path (which can be hidden): one can edit, add or remove points, to precisely shape the curve.</li>
+<li>SpeedPath which extends PrecisePath to add speed functionnalities: <ul>
+<li>the speed at which the user has drawn the path is stored and has influence on the drawing,</li>
+<li>the speed values are displayed as normals of the path, and can be edited thanks to handles</li>
+<li>when the user drags a handle, it will also influence surrounding speed values depending on how far from the normal the user drags the handle (with a gaussian attenuation)</li>
+<li>the speed path and handles are added to a speed group, which is added to the main group</li>
+<li>the speed group can be shown or hidden</li>
+</ul>
+</li>
+<li>RShape which defines a rectangle in which the drawing should be included<ul>
+<li>(during the creation, the user defines a rectangle with the mouse to define the rectangle)</li>
+</ul>
+</li>
+</ul><p>Parameters:</p><ul>
+<li>parameters are defined as in RTools</li>
+<li>all data related to the parameters (and state) of the RPath is stored under the @data property</li>
+<li>dy default, when a parameter is chanegd in the gui, onParameterChange is called</li>
+</ul><p>tododoc: loadPath will call create begin, update, end</p><p>Notable differences between RPath:</p><ul>
+<li>in regular path: when transforming a path, the points of the control path are resaved with their new positions; no transform information is stored</li>
+<li>in RShape: the rectangle  is never changed with transformations; instead the rotation and scale are stored in @data and taken into account at each draw</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
+      <h2>Direct Known Subclasses</h2>
+      <p class='children'>
+        <a href='../class/PrecisePath.html'>PrecisePath</a>
+        <a href='../class/RShape.html'>RShape</a>
+      </p>
+      <h2>Variables Summary</h2>
+      <dl class='constants'>
+  <dt id='rname-variable'>
+    rname
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>&#39;Pen&#39;</code></pre>
+    
+  </dd>
+  <dt id='rdescription-variable'>
+    rdescription
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>&quot;The classic and basic pen tool&quot;</code></pre>
+    
+  </dd>
+  <dt id='cursorPosition-variable'>
+    cursorPosition
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>{
+  x: 24,
+  y: 0
+}</code></pre>
+    
+  </dd>
+  <dt id='cursorDefault-variable'>
+    cursorDefault
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>&quot;crosshair&quot;</code></pre>
+    
+  </dd>
+  <dt id='hitOptions-variable'>
+    hitOptions
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>{
+  segments: true,
+  stroke: true,
+  fill: true,
+  selected: true,
+  tolerance: 5
+}</code></pre>
+    
+  </dd>
+  <dt id='constructor.secureDistance-variable'>
+    constructor.secureDistance
+    =
+  </dt>
+  <dd>
+    <pre><code class='coffeescript'>2</code></pre>
+    
+  </dd>
+</dl>
+      <h2>Class Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#parameters-static'>
+        .
+(void)
+<b>parameters</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      parameters are defined as in RTools 
+    </span>
+  </li>
+</ul>
+      <h2>Instance Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#duplicate-dynamic'>
+        #
+(RPath)
+<b>duplicate</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      construct a new RPath and save it 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#pathWidth-dynamic'>
+        #
+(void)
+<b>pathWidth</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>returns the maximum width of the RPath arround control path the drawing can not exeed the limit of <em>@pathWidth()</em> around the contorl path
+path width is used for example for hit tests and to determine is the RPath overlaps on an RLock</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#getBounds-dynamic'>
+        #
+(void)
+<b>getBounds</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      return [Rectangle] the bounds of the control path (improve: must be expanded with @pathWidth()?) 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#moveBy-dynamic'>
+        #
+(void)
+<b>moveBy</b><span>(delta, userAction)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      move the RPath by <em>delta</em> 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#moveTo-dynamic'>
+        #
+(void)
+<b>moveTo</b><span>(position, userAction)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      move the RPath to <em>position</em> 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#projectToRaster-dynamic'>
+        #
+(void)
+<b>projectToRaster</b><span>(point)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      convert a point from project coordinate system to raster coordinate system 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#prepareHitTest-dynamic'>
+        #
+(void)
+<b>prepareHitTest</b><span>(fullySelected = true, strokeWidth)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      set path items (control path, drawing, etc.) to the right state before performing hitTest store the current state of items, and change their state (the original states will be restored in @finishHitTest())
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#finishHitTest-dynamic'>
+        #
+(void)
+<b>finishHitTest</b><span>(fullySelected = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      restore path items orginial states (same as before @prepareHitTest()) 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#hitTest-dynamic'>
+        #
+(void)
+<b>hitTest</b><span>(point, hitOptions)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      perform hit test to check if the point hits the selection rectangle 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#performeHitTest-dynamic'>
+        #
+(void)
+<b>performeHitTest</b><span>(point, hitOptions, fullySelected = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>when hit through websocket, must be (fully)Selected to hitTest perform hit test on selection rectangle
+since @hitTest() will be overloaded by children RPath, it is necessary to @prepareHitTest() and @finishHitTest()</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#updateSelectionRectangle-dynamic'>
+        #
+(void)
+<b>updateSelectionRectangle</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      add or update the selection rectangle (path used to rotate and scale the RPath) 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#select-dynamic'>
+        #
+(void)
+<b>select</b><span>(updateOptions = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      select the RPath: (only if it has a control path but no selection rectangle i.e. 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#deselect-dynamic'>
+        #
+(void)
+<b>deselect</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      deselect: remove the selection rectangle (and rasterize) 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#rasterize-dynamic'>
+        #
+(void)
+<b>rasterize</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      called when user deselects, after a not simplified draw or once the user finished creating the path this is suppose to convert all the group to a raster to speed up paper.js operations, but it does not drastically improve speed, so it is just commented out
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#hitTestAndInitSelection-dynamic'>
+        #
+(void)
+<b>hitTestAndInitSelection</b><span>(event, userAction)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      perform a hit test and initialize the selection called by @selectBegin()
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#initSelection-dynamic'>
+        #
+(String)
+<b>initSelection</b><span>(event, hitResult, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>intialize the selection:  determine which action to perform depending on the the <em>hitResult</em> (move by default, edit point if segment from contorl path, etc.)
+set @selectedSegment, @selectionRectangleRotation or @selectionRectangleScale which will be used during the selection process (select begin, update, end)
+overloaded by path, good for shape
+                   <em>change</em> is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#selectBegin-dynamic'>
+        #
+(String)
+<b>selectBegin</b><span>(event, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      begin select action: <ul>
+<li>initialize selection (reset selection state)</li>
+<li>select if <em>userAction</em></li>
+<li>hit test and initilize selection</li>
+<li>hide other path if in fast mode<pre><code>             *change* is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)
+</code></pre></li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#selectUpdate-dynamic'>
+        #
+(void)
+<b>selectUpdate</b><span>(event, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      update select action to be overloaded by children classes
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#selectEnd-dynamic'>
+        #
+(void)
+<b>selectEnd</b><span>(event, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      end select action 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#doubleClick-dynamic'>
+        #
+(void)
+<b>doubleClick</b><span>(event, userAction = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      double click action to be overloaded by children classes
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#loadPath-dynamic'>
+        #
+(void)
+<b>loadPath</b><span>(points)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>redraw the skeleton (controlPath) of the path,  called only when loading a path
+overloaded by PrecisePath, extended by shape (for security checks)</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#parameterChanged-dynamic'>
+        #
+(void)
+<b>parameterChanged</b><span>(update = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>common to all RItems called from parameter.onChange (update = true)
+called from websocket after parameter.onChange (update = false)</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#addPath-dynamic'>
+        #
+(Paper path)
+<b>addPath</b><span>(path)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      add a path to the drawing group: <ul>
+<li>create the path</li>
+<li>initilize it (stroke width, and colors) with @data</li>
+<li>add to the drawing group</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#initializeDrawing-dynamic'>
+        #
+(void)
+<b>initializeDrawing</b><span>(createCanvas = false)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      initialize the drawing group before drawing: <ul>
+<li>create drawing group and initialize it with @data (add it to group)</li>
+<li>optionally create a child canvas to draw on it (drawn in a raster, add it to group) - this child canvas is used to speed up drawing operations (bypass paper.js drawing tools) when heavy drawing oprations are required - the advantage is speed, the drawback is that we loose the greate benefits of paper.js (ease of use) - if their is no control path yet (meaning the user did not even start drawing the RPath, mouse was just pressed)<ul>
+<li>create the canvas at the size of the view
+else</li>
+<li>create canvas to the dimensions of the control path</li>
+</ul>
+</li>
+</ul>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#initializeAnimation-dynamic'>
+        #
+(void)
+<b>initializeAnimation</b><span>(animate)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      initialize animation: push/remove RPath to/from g.animatedItems 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#draw-dynamic'>
+        #
+(void)
+<b>draw</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>update the appearance of the path (the drawing group) called anytime the path is modified:
+by createBegin/Update/End, selectUpdate/End, parameterChanged, deletePoint, changePoint etc.</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#initialize-dynamic'>
+        #
+(void)
+<b>initialize</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      called once after createEnd to initialize the path (add it to a game, or to the animated paths) must be overloaded by children RPath
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#createBegin-dynamic'>
+        #
+(void)
+<b>createBegin</b><span>(point, event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>createBegin, createUpdate, createEnd called from loadPath (draw the skeleton when path is loaded), then <em>event</em> is null
+called from PathTool.begin, PathTool.update and PathTool.end (when the user draws something), then <em>event</em> is the Paper mouse event</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#createUpdate-dynamic'>
+        #
+(void)
+<b>createUpdate</b><span>(point, event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      see createBegin 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#createEnd-dynamic'>
+        #
+(void)
+<b>createEnd</b><span>(point, event)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      see createBegin 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#updateZIndex-dynamic'>
+        #
+(void)
+<b>updateZIndex</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      update the z index (to be used in further version) i.e. 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#insertAbove-dynamic'>
+        #
+(void)
+<b>insertAbove</b><span>(path)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      insert above given <em>path</em> to be updated
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#getData-dynamic'>
+        #
+(void)
+<b>getData</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      get data, usually to save the RPath (some information must be added to data) 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#getStringifiedData-dynamic'>
+        #
+(void)
+<b>getStringifiedData</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      get stringified data 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#planet-dynamic'>
+        #
+(Point)
+<b>planet</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#prepareUpdate-dynamic'>
+        #
+(void)
+<b>prepareUpdate</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      check that the path does not lie between two planets before update 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#save-dynamic'>
+        #
+(void)
+<b>save</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      save RPath to server 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#save_callback-dynamic'>
+        #
+(void)
+<b>save_callback</b><span>(result)</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      check if the save was successful and set @pk if it is 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#update-dynamic'>
+        #
+(void)
+<b>update</b><span>(type)</span>
+      </a>
+    </span>
+    <span class='bound note title'>Bound</span>
+    <span class='desc'>
+      update the RPath in the database often called after the RPath has changed, in a <em>g.defferedExecution(@update)</em>
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#updatePath_callback-dynamic'>
+        #
+(void)
+<b>updatePath_callback</b><span>(result)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      check if update was successful 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#getPk-dynamic'>
+        #
+(ID)
+<b>getPk</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      get the database primary key (@pk) or @id if it is not saved yet 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#setPK-dynamic'>
+        #
+(void)
+<b>setPK</b><span>(pk, updateRoom = true)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      set @pk, update g.items and emit @pk to other users 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#remove-dynamic'>
+        #
+(void)
+<b>remove</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>common to all RItems called by @delete() and to update users view through websockets
+@delete() removes the path and delete it in the database
+@remove() just removes visually</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#delete-dynamic'>
+        #
+(void)
+<b>delete</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      <p>common in rpath and rdiv @delete() removes the path and delete it in the database
+@remove() just removes visually</p>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#deletePath_callback-dynamic'>
+        #
+(void)
+<b>deletePath_callback</b><span>(result)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      check if delete was successful and emit &quot;delete path&quot; to other users if so 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#pathOnPlanet-dynamic'>
+        #
+(void)
+<b>pathOnPlanet</b><span>(controlSegments = @controlPath)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      return [Array of Paper point] a list of point from the control path converted in the planet coordinate system 
+    </span>
+  </li>
+</ul>
+      <h2>Class Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='parameters-static'>
+      .
+(void)
+<b>parameters</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>parameters are defined as in RTools</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+</div>
+      <h2>Constructor Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='constructor-dynamic'>
+      #
+(void)
+<b>constructor</b><span>(date = null, data = null, pk = null, points = null)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Create the RPath and initialize the drawing creation if a user is creating it, or draw if the path is being loaded
+When user creates a path, the path is given an identifier (@id); when the path is saved, the servers returns a primary key (@pk) and @id will not be used anymore</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Date</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the date at which the path has been crated (will be used as z-index in further versions) </span>
+    </li>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the data containing information about parameters and state of RPath </span>
+    </li>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>ID</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the primary key of the path in the database </span>
+    </li>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Array of Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the points of the controlPath, the points must fit on the control path (the control path is stored in @data.points) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+</div>
+      <h2>Instance Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='duplicate-dynamic'>
+      #
+(RPath)
+<b>duplicate</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>construct a new RPath and save it</p>
+</div>
+<div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/RPath.html'>RPath</a></tt>
+      )
+      &mdash;
+      <span class='desc'>the copy </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='pathWidth-dynamic'>
+      #
+(void)
+<b>pathWidth</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>returns the maximum width of the RPath arround control path
+the drawing can not exeed the limit of <em>@pathWidth()</em> around the contorl path
+path width is used for example for hit tests and to determine is the RPath overlaps on an RLock</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='getBounds-dynamic'>
+      #
+(void)
+<b>getBounds</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>return [Rectangle] the bounds of the control path (improve: must be expanded with @pathWidth()?)</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='moveBy-dynamic'>
+      #
+(void)
+<b>moveBy</b><span>(delta, userAction)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>move the RPath by <em>delta</em></p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>amount by which moving the path </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='moveTo-dynamic'>
+      #
+(void)
+<b>moveTo</b><span>(position, userAction)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>move the RPath to <em>position</em></p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>new position of the path </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user  </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='projectToRaster-dynamic'>
+      #
+(void)
+<b>projectToRaster</b><span>(point)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>convert a point from project coordinate system to raster coordinate system</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>point</span>
+      <span class='type'>
+        (
+          <tt>Paper point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to convert </span>
+    </li>
+    <li>
+      <span class='name'>resulting</span>
+      <span class='type'>
+        (
+          <tt>Paper point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>point </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='prepareHitTest-dynamic'>
+      #
+(void)
+<b>prepareHitTest</b><span>(fullySelected = true, strokeWidth)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>set path items (control path, drawing, etc.) to the right state before performing hitTest
+store the current state of items, and change their state (the original states will be restored in @finishHitTest())</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles) </span>
+    </li>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>contorl path width will be set to <em>strokeWidth</em> if it is provided </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='finishHitTest-dynamic'>
+      #
+(void)
+<b>finishHitTest</b><span>(fullySelected = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>restore path items orginial states (same as before @prepareHitTest())</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='hitTest-dynamic'>
+      #
+(void)
+<b>hitTest</b><span>(point, hitOptions)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>perform hit test to check if the point hits the selection rectangle</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>point to test </span>
+    </li>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'><a href="http://paperjs.org/reference/item/#hittest-point">paper hit test options</a> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='performeHitTest-dynamic'>
+      #
+(void)
+<b>performeHitTest</b><span>(point, hitOptions, fullySelected = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>when hit through websocket, must be (fully)Selected to hitTest
+perform hit test on selection rectangle
+since @hitTest() will be overloaded by children RPath, it is necessary to @prepareHitTest() and @finishHitTest()</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>point to test </span>
+    </li>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'><a href="http://paperjs.org/reference/item/#hittest-point">paper hit test options</a> </span>
+    </li>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='updateSelectionRectangle-dynamic'>
+      #
+(void)
+<b>updateSelectionRectangle</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>add or update the selection rectangle (path used to rotate and scale the RPath)</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='select-dynamic'>
+      #
+(void)
+<b>select</b><span>(updateOptions = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>select the RPath: (only if it has a control path but no selection rectangle i.e. already selected)</p><ul>
+<li>create or update the selection rectangle, </li>
+<li>create or update the global selection group (i.e. add this RPath to the grouop)</li>
+<li>(optionally) update controller in the gui accordingly</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to update controllers in gui or not </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='deselect-dynamic'>
+      #
+(void)
+<b>deselect</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>deselect: remove the selection rectangle (and rasterize)</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='rasterize-dynamic'>
+      #
+(void)
+<b>rasterize</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>called when user deselects, after a not simplified draw or once the user finished creating the path
+this is suppose to convert all the group to a raster to speed up paper.js operations, but it does not drastically improve speed, so it is just commented out</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='hitTestAndInitSelection-dynamic'>
+      #
+(void)
+<b>hitTestAndInitSelection</b><span>(event, userAction)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>perform a hit test and initialize the selection
+called by @selectBegin()</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Paper event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user  </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='initSelection-dynamic'>
+      #
+(String)
+<b>initSelection</b><span>(event, hitResult, userAction = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>intialize the selection: 
+determine which action to perform depending on the the <em>hitResult</em> (move by default, edit point if segment from contorl path, etc.)
+set @selectedSegment, @selectionRectangleRotation or @selectionRectangleScale which will be used during the selection process (select begin, update, end)
+overloaded by path, good for shape
+                   <em>change</em> is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Paper event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>[paper</span>
+      <span class='type'>
+        (
+          <tt>Paper HitResult</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>hit result](<a href="http://paperjs.org/reference/hitresult/">http://paperjs.org/reference/hitresult/</a>) form the hit test </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user  </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>String</tt>
+      )
+      &mdash;
+      <span class='desc'>string describing how will the path change during the selection process. The string can be &#39;rotation&#39;, &#39;scale&#39;, &#39;segment&#39; or &#39;move&#39;; </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='selectBegin-dynamic'>
+      #
+(String)
+<b>selectBegin</b><span>(event, userAction = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>begin select action:</p><ul>
+<li>initialize selection (reset selection state)</li>
+<li>select if <em>userAction</em></li>
+<li>hit test and initilize selection</li>
+<li>hide other path if in fast mode<pre><code>             *change* is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)
+</code></pre></li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Paper event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user  </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>String</tt>
+      )
+      &mdash;
+      <span class='desc'>string describing how will the path change during the selection process. The string can be &#39;rotation&#39;, &#39;scale&#39;, &#39;segment&#39; or &#39;move&#39;; </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='selectUpdate-dynamic'>
+      #
+(void)
+<b>selectUpdate</b><span>(event, userAction = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>update select action
+to be overloaded by children classes</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Paper event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user  </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='selectEnd-dynamic'>
+      #
+(void)
+<b>selectEnd</b><span>(event, userAction = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>end select action</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Paper event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user  </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='doubleClick-dynamic'>
+      #
+(void)
+<b>doubleClick</b><span>(event, userAction = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>double click action
+to be overloaded by children classes</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Paper event</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>this is an action from <em>g.me</em> or another user  </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='loadPath-dynamic'>
+      #
+(void)
+<b>loadPath</b><span>(points)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>redraw the skeleton (controlPath) of the path, 
+called only when loading a path
+overloaded by PrecisePath, extended by shape (for security checks)</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Array of Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the points of the controlPath </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='parameterChanged-dynamic'>
+      #
+(void)
+<b>parameterChanged</b><span>(update = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>common to all RItems
+called from parameter.onChange (update = true)
+called from websocket after parameter.onChange (update = false)</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional,</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>default is true) whether to update the RPath in database </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='addPath-dynamic'>
+      #
+(Paper path)
+<b>addPath</b><span>(path)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>add a path to the drawing group:</p><ul>
+<li>create the path</li>
+<li>initilize it (stroke width, and colors) with @data</li>
+<li>add to the drawing group</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>Paper path</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the path to add to drawing, create an empty one if not provided </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Paper path</tt>
+      )
+      &mdash;
+      <span class='desc'>the resulting path </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='initializeDrawing-dynamic'>
+      #
+(void)
+<b>initializeDrawing</b><span>(createCanvas = false)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>initialize the drawing group before drawing:</p><ul>
+<li>create drawing group and initialize it with @data (add it to group)</li>
+<li>optionally create a child canvas to draw on it (drawn in a raster, add it to group) - this child canvas is used to speed up drawing operations (bypass paper.js drawing tools) when heavy drawing oprations are required - the advantage is speed, the drawback is that we loose the greate benefits of paper.js (ease of use) - if their is no control path yet (meaning the user did not even start drawing the RPath, mouse was just pressed)<ul>
+<li>create the canvas at the size of the view
+else</li>
+<li>create canvas to the dimensions of the control path</li>
+</ul>
+</li>
+</ul>
+
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>(optional,</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>default to true) whether to create a child canavs <em>@canverRaster</em> </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='initializeAnimation-dynamic'>
+      #
+(void)
+<b>initializeAnimation</b><span>(animate)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>initialize animation: push/remove RPath to/from g.animatedItems</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>wether</span>
+      <span class='type'>
+        (
+          <tt>animate</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to animate this RPath (i.e. add or remove this RPath to g.animatedItems) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='draw-dynamic'>
+      #
+(void)
+<b>draw</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>update the appearance of the path (the drawing group)
+called anytime the path is modified:
+by createBegin/Update/End, selectUpdate/End, parameterChanged, deletePoint, changePoint etc. and loadPath
+must be overloaded by children RPath</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='initialize-dynamic'>
+      #
+(void)
+<b>initialize</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>called once after createEnd to initialize the path (add it to a game, or to the animated paths)
+must be overloaded by children RPath</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='createBegin-dynamic'>
+      #
+(void)
+<b>createBegin</b><span>(point, event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>createBegin, createUpdate, createEnd
+called from loadPath (draw the skeleton when path is loaded), then <em>event</em> is null
+called from PathTool.begin, PathTool.update and PathTool.end (when the user draws something), then <em>event</em> is the Paper mouse event</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>point</span>
+      <span class='type'>
+        (
+          <tt>Point</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>to peform the action </span>
+    </li>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>Paper event of REvent</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>mouse event </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='createUpdate-dynamic'>
+      #
+(void)
+<b>createUpdate</b><span>(point, event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>see createBegin</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='createEnd-dynamic'>
+      #
+(void)
+<b>createEnd</b><span>(point, event)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>see createBegin</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='updateZIndex-dynamic'>
+      #
+(void)
+<b>updateZIndex</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>update the z index (to be used in further version) i.e. move the path to the right position</p><ul>
+<li>RPath are kept sorted by z-index in <em>g.sortedPath</em></li>
+<li>z-index are initialize to the current date (this is a way to provide a global z index even with RPath which are not loaded)
+to be updated</li>
+</ul>
+
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='insertAbove-dynamic'>
+      #
+(void)
+<b>insertAbove</b><span>(path)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>insert above given <em>path</em>
+to be updated</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>path</span>
+      <span class='type'>
+        (
+          <tt><a href='../class/RPath.html'>RPath</a></tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>on which to insert this </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='getData-dynamic'>
+      #
+(void)
+<b>getData</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>get data, usually to save the RPath (some information must be added to data)</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='getStringifiedData-dynamic'>
+      #
+(void)
+<b>getStringifiedData</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>get stringified data</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='planet-dynamic'>
+      #
+(Point)
+<b>planet</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Point</tt>
+      )
+      &mdash;
+      <span class='desc'>the planet on which the RPath lies </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='prepareUpdate-dynamic'>
+      #
+(void)
+<b>prepareUpdate</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>check that the path does not lie between two planets before update</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>whether</span>
+      <span class='type'>
+        (
+          <tt>Boolean</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>we can update the RPath or not (is contained in one planet or not) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='save-dynamic'>
+      #
+(void)
+<b>save</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>save RPath to server</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='save_callback-dynamic'>
+      #
+(void)
+<b>save_callback</b><span>(result)</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>check if the save was successful and set @pk if it is</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='update-dynamic'>
+      #
+(void)
+<b>update</b><span>(type)</span>
+      <span class='bound note'>Bound</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>update the RPath in the database
+often called after the RPath has changed, in a <em>g.defferedExecution(@update)</em></p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>type</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>of change to consider (in further version, could send only the required information to the server to make the update to improve performances) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='updatePath_callback-dynamic'>
+      #
+(void)
+<b>updatePath_callback</b><span>(result)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>check if update was successful</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='getPk-dynamic'>
+      #
+(ID)
+<b>getPk</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>get the database primary key (@pk) or @id if it is not saved yet</p>
+</div>
+<div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>ID</tt>
+      )
+      &mdash;
+      <span class='desc'>@pk or @id </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='setPK-dynamic'>
+      #
+(void)
+<b>setPK</b><span>(pk, updateRoom = true)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>set @pk, update g.items and emit @pk to other users</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>the</span>
+      <span class='type'>
+        (
+          <tt>ID</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>new pk </span>
+    </li>
+    <li>
+      <span class='name'>(optional)</span>
+      <span class='type'>
+        (
+          <tt>updateRoom</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>whether to emit @pk to other users in the room </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='remove-dynamic'>
+      #
+(void)
+<b>remove</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>common to all RItems
+called by @delete() and to update users view through websockets
+@delete() removes the path and delete it in the database
+@remove() just removes visually</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='delete-dynamic'>
+      #
+(void)
+<b>delete</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>common in rpath and rdiv
+@delete() removes the path and delete it in the database
+@remove() just removes visually</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='deletePath_callback-dynamic'>
+      #
+(void)
+<b>deletePath_callback</b><span>(result)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>check if delete was successful and emit &quot;delete path&quot; to other users if so</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='pathOnPlanet-dynamic'>
+      #
+(void)
+<b>pathOnPlanet</b><span>(controlSegments = @controlPath)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>return [Array of Paper point] a list of point from the control path converted in the planet coordinate system</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+</div>
+    </div>
+    <div id='footer'>
+  December 10, 14 11:28:38 by
+  <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
+    Codo
+  </a>
+  2.0.9
+  &#10034;
+  Press H to see the keyboard shortcuts
+  &#10034;
+  <a href='http://twitter.com/netzpirat' target='_parent'>@netzpirat</a>
+  &#10034;
+  <a href='http://twitter.com/_inossidabile' target='_parent'>@_inossidabile</a>
+</div>
+<iframe id='search_frame'></iframe>
+<div id='fuzzySearch'>
+  <input type='text'>
+  <ol></ol>
+</div>
+<div id='help'>
+  <p>
+    Quickly fuzzy find classes, mixins, methods, file:
+  </p>
+  <ul>
+    <li>
+      <span>T</span>
+      Open fuzzy finder dialog
+    </li>
+  </ul>
+  <p>
+    Control the navigation frame:
+  </p>
+  <ul>
+    <li>
+      <span>L</span>
+      Toggle list view
+    </li>
+    <li>
+      <span>C</span>
+      Show class list
+    </li>
+    <li>
+      <span>I</span>
+      Show mixin list
+    </li>
+    <li>
+      <span>F</span>
+      Show file list
+    </li>
+    <li>
+      <span>M</span>
+      Show method list
+    </li>
+    <li>
+      <span>E</span>
+      Show extras list
+    </li>
+  </ul>
+  <p>
+    You can focus and blur the search input:
+  </p>
+  <ul>
+    <li>
+      <span>S</span>
+      Focus search input
+    </li>
+    <li>
+      <span>Esc</span>
+      Blur search input
+    </li>
+  </ul>
+</div>
+  </body>
+</html>
