@@ -61,6 +61,9 @@
     if (n == null) {
       n = 500;
     }
+    if (id == null) {
+      id = callback;
+    }
     if (g.updateTimeout[id] != null) {
       clearTimeout(g.updateTimeout[id]);
     }
@@ -73,6 +76,17 @@
     var expf;
     expf = -((x - mean) * (x - mean) / (2 * sigma * sigma));
     return (1.0 / (sigma * sqrtTwoPi)) * Math.exp(expf);
+  };
+
+  this.isEmpty = function(map) {
+    var key, value;
+    for (key in map) {
+      value = map[key];
+      if (map.hasOwnProperty(key)) {
+        return false;
+      }
+    }
+    return true;
   };
 
 }).call(this);

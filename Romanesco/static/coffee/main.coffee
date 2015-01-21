@@ -39,11 +39,17 @@ initTools = () ->
 	g.allToolsJ = g.allToolsContainerJ.find(".all-tool-list")
 
 	# init g.favoriteTools to see where to put the tools (in the 'favorite tools' panel or in 'other tools')
+	g.favoriteTools = []
 	if localStorage?
 		try
 			g.favoriteTools = JSON.parse(localStorage.favorites)
 		catch error
 			console.log error
+	
+	defaultFavoriteTools = [PrecisePath, ThicknessPath, Meander, GeometricLines, RectangleShape, EllipseShape, StarShape, SpiralShape]
+	
+	while g.favoriteTools.length < 8
+		g.pushIfAbsent(g.favoriteTools, defaultFavoriteTools.pop().rname)
 
 	# create all tools
 	g.tools = new Object()
@@ -58,19 +64,22 @@ initTools = () ->
 	new ScreenshotTool()
 	
 	# path tools
-	new PathTool(PrecisePath)
-	new PathTool(RectangleShape)
-	new PathTool(SpiralShape)
-	new PathTool(SketchPath)
+	for pathClass in pathClasses
+		new PathTool(pathClass)
 
-	new PathTool(SpiralPath)
-	new PathTool(ShapePath)
-	new PathTool(StarShape)
-	new PathTool(EllipseShape)
+	# new PathTool(PrecisePath)
+	# new PathTool(RectangleShape)
+	# new PathTool(SpiralShape)
+	# new PathTool(SketchPath)
 
-	new PathTool(RollerPath)
-	new PathTool(FuzzyPath)
-	new PathTool(Checkpoint)
+	# new PathTool(SpiralPath)
+	# new PathTool(ShapePath)
+	# new PathTool(StarShape)
+	# new PathTool(EllipseShape)
+
+	# new PathTool(ThicknessPath)
+	# new PathTool(FuzzyPath)
+	# new PathTool(Checkpoint)
 
 	# init tool typeahead
 	initToolTypeahead = ()->
@@ -165,7 +174,7 @@ initPosition = ()->
 
 	if loadEntireArea
 		g.entireArea = boxRectangle
-		g.load(boxRectangle)
+		g.quick_load(boxRectangle)
 
 	# boxData = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
 	# console.log boxData
@@ -207,6 +216,8 @@ paper.install(window)
 # all global variables and functions are stored in *g* which is a synonym of *window*
 # all jQuery elements names end with a capital J: elementNameJ
 init = ()->
+	# g.romanescoURL = 'http://romanesc.co/'
+	g.romanescoURL = 'http://localhost:8000/'
 	g.windowJ = $(window)
 	g.stageJ = $("#stage")
 	g.sidebarJ = $("#sidebar")
@@ -240,6 +251,8 @@ init = ()->
 	g.scale = 1000.0 						# the scale to go from project coordinates to planet coordinates
 	g.previousPoint = null 					# the previous mouse event point
 	g.draggingEditor = false 				# boolean, true when user is dragging the code editor
+	g.rasters = {}							# map to store rasters (tiles, rasterized version of the view)
+	g.areasToUpdate = {} 					# map of areas to update { pk->rectangle } (areas which are not rasterize on the server, that we must send if we can rasterize them)
 
 	# g.globalMaskJ = $("#globalMask")
 	# g.globalMaskJ.hide()
@@ -260,16 +273,22 @@ init = ()->
 	# init paper.js
 	paper.setup(canvas)
 	activeLayer = project.activeLayer
+	g.debugLayer = new Layer()				# Paper layer to append debug items
 	g.carLayer = new Layer() 				# Paper layer to append all cars
 	activeLayer.activate()
 	paper.settings.hitTolerance = 5
 	g.grid = new Group() 					# Paper Group to append all grid items
 	g.grid.name = 'grid group'
+	view.zoom = 0.01
 
-	# add custom methods to export Paper point to JSON
+	# add custom methods to export Paper Point and Rectangle to JSON
 	Point.prototype.toJSON = ()->
 		return { x: this.x, y: this.y }
 	Point.prototype.exportJSON = ()->
+		return JSON.stringify(this.toJSON())
+	Rectangle.prototype.toJSON = ()->
+		return { x: this.x, y: this.y, width: this.width, height: this.height }
+	Rectangle.prototype.exportJSON = ()->
 		return JSON.stringify(this.toJSON())
 
 	g.tool = new Tool()
@@ -338,6 +357,22 @@ init = ()->
 	# 			location: { x: view.center.x, y: view.center.y }
 	# 		paypalFormJ.find("input[name='custom']").attr("value", JSON.stringify(data) )
 	# 	)
+	
+	# load path source code
+	$.ajax( url: g.romanescoURL + "static/coffee/path.coffee" ).done (data)->
+
+		lines = data.split(/\n/)
+		expressions = CoffeeScript.nodes(data).expressions
+
+		classMap = {}
+		for pathClass in g.pathClasses
+			classMap[pathClass.name] = pathClass
+
+		for expression in expressions
+			classMap[expression.variable.base.value]?.source = lines[expression.locationData.first_line .. expression.locationData.last_line].join("\n")
+
+		return
+
 
 	initParameters()
 	initCodeEditor()
@@ -347,6 +382,7 @@ init = ()->
 	# initLoadingBar()
 
 	updateGrid()
+	animate()
 
 	return
 

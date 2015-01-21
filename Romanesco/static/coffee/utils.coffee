@@ -41,10 +41,13 @@ this.pushIfAbsent = (array, item) ->
 # @param [Anything] a unique id (usually the id or pk of RItems) to avoid collisions between deffered executions
 # @param [Number] delay before *callback* is called
 this.defferedExecution = (callback, id, n=500) ->
+	id ?= callback
+	# console.log "defferedExecution: " + id + ", updateTimeout[id]: " + g.updateTimeout[id]
 	if g.updateTimeout[id]? then clearTimeout(g.updateTimeout[id])
 	g.updateTimeout[id] = setTimeout(callback, n)
 
 sqrtTwoPi = Math.sqrt(2*Math.PI)
+
 # @param [Number] mean: expected value
 # @param [Number] sigma: standard deviation
 # @param [Number] x: parameter
@@ -53,3 +56,11 @@ this.gaussian = (mean, sigma, x)->
 	expf = -((x-mean)*(x-mean)/(2*sigma*sigma))
 	return ( 1.0/(sigma*sqrtTwoPi) ) * Math.exp(expf)
 
+# check if an object has no property
+# @param map [Object] the object to test
+# @return true if there is no property, false otherwise (provided that no library overloads Object)
+this.isEmpty = (map)->
+	for key, value of map
+		if map.hasOwnProperty(key)
+			return false
+	return true

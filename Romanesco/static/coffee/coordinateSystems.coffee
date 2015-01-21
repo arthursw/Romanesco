@@ -101,3 +101,23 @@ this.projectToViewRectangle = (rectangle)->
 this.getLimit = ()->
 	planet = projectToPlanet(getTopLeftCorner())
 	return posOnPlanetToProject( new Point(-180,-90), new Point(planet.x+1, planet.y+1) )
+
+# get a GeoJson valid box in planet coordinates from *rectangle* 
+# @param rectangle [Paper Rectangle] the rectangle to convert
+# @return [{ points:Array<Array<2 Numbers>>, planet: Object, tl: Point, br: Point }]
+this.boxFromRectangle = (rectangle)->
+	# remove margin to ignore intersections of paths which are close to the edges
+
+	planet = pointToObj( projectToPlanet(rectangle.topLeft) )
+
+	tlOnPlanet = projectToPosOnPlanet(rectangle.topLeft, planet)
+	brOnPlanet = projectToPosOnPlanet(rectangle.bottomRight, planet)
+
+	points = []
+	points.push(pointToArray(tlOnPlanet))
+	points.push(pointToArray(projectToPosOnPlanet(rectangle.topRight, planet)))
+	points.push(pointToArray(brOnPlanet))
+	points.push(pointToArray(projectToPosOnPlanet(rectangle.bottomLeft, planet)))
+	points.push(pointToArray(tlOnPlanet))
+
+	return { points:points, planet: pointToObj(planet), tl: tlOnPlanet, br: brOnPlanet }

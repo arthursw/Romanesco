@@ -73,16 +73,17 @@
         case 'text':
         case 'media':
           Dajaxice.draw.saveDiv(this.save_callback, {
-            'box': this.boxFromRectangle(rectangle),
+            'box': g.boxFromRectangle(rectangle),
             'object_type': object_type,
             'message': message,
             'url': url,
-            'clonePk': clonePk
+            'clonePk': clonePk,
+            'areas': this.getAreas()
           });
           break;
         default:
           Dajaxice.draw.saveBox(this.save_callback, {
-            'box': this.boxFromRectangle(rectangle),
+            'box': g.boxFromRectangle(rectangle),
             'object_type': object_type,
             'message': message,
             'name': name,
@@ -90,7 +91,8 @@
             'clonePk': clonePk,
             'website': website,
             'restrictedArea': restrictedArea,
-            'disableToolbar': disableToolbar
+            'disableToolbar': disableToolbar,
+            'areas': this.getAreas()
           });
       }
     };
@@ -196,25 +198,6 @@
       RDiv.modalJ.modal('hide');
     };
 
-    RDiv.boxFromRectangle = function(rectangle) {
-      var brOnPlanet, planet, points, tlOnPlanet;
-      planet = pointToObj(projectToPlanet(rectangle.topLeft));
-      tlOnPlanet = projectToPosOnPlanet(rectangle.topLeft, planet);
-      brOnPlanet = projectToPosOnPlanet(rectangle.bottomRight, planet);
-      points = [];
-      points.push(pointToArray(tlOnPlanet));
-      points.push(pointToArray(projectToPosOnPlanet(rectangle.topRight, planet)));
-      points.push(pointToArray(brOnPlanet));
-      points.push(pointToArray(projectToPosOnPlanet(rectangle.bottomLeft, planet)));
-      points.push(pointToArray(tlOnPlanet));
-      return {
-        points: points,
-        planet: pointToObj(planet),
-        tl: tlOnPlanet,
-        br: brOnPlanet
-      };
-    };
-
     RDiv.boxOverlapsTwoPlanets = function(box) {
       var limit;
       limit = getLimit();
@@ -318,6 +301,25 @@
 
     RDiv.prototype.getBounds = function() {
       return new Rectangle(this.position.x, this.position.y, this.divJ.outerWidth(), this.divJ.outerHeight());
+    };
+
+    RDiv.prototype.getAreas = function() {
+      var areas, b, bounds, l, r, t, x, y, _i, _j;
+      bounds = this.getBounds();
+      t = Math.floor(bounds.top / g.scale);
+      l = Math.floor(bounds.left / g.scale);
+      b = Math.floor(bounds.bottom / g.scale);
+      r = Math.floor(bounds.right / g.scale);
+      areas = {};
+      for (x = _i = l; l <= r ? _i <= r : _i >= r; x = l <= r ? ++_i : --_i) {
+        for (y = _j = t; t <= b ? _j <= b : _j >= b; y = t <= b ? ++_j : --_j) {
+          if (areas[x] == null) {
+            areas[x] = {};
+          }
+          areas[x][y] = true;
+        }
+      }
+      return areas;
     };
 
     RDiv.prototype.moveTo = function(position, userAction) {
@@ -556,12 +558,13 @@
         return;
       }
       data = {
-        box: this.constructor.boxFromRectangle(new Rectangle(tl, br)),
+        box: g.boxFromRectangle(new Rectangle(tl, br)),
         pk: this.pk,
         object_type: this.object_type,
         message: this.message,
         url: this.url,
-        data: this.getStringifiedData()
+        data: this.getStringifiedData(),
+        areas: this.getAreas()
       };
       this.changed = null;
       if (this.object_type === 'text' || this.object_type === 'media') {
@@ -677,7 +680,7 @@
     function RSelectionRectangle(rectangle, handler) {
       this.rectangle = rectangle;
       g.tools['Select'].select();
-      RSelectionRectangle.__super__.constructor.call(this, rectangle.topLeft, rectangle.size);
+      RSelectionRectangle.__super__.constructor.call(this, rectangle.topLeft, rectangle.size.multiply(1 * view.zoom));
       this.divJ.addClass("selection-rectangle");
       this.buttonJ = $("<button>");
       this.buttonJ.text("Take snapshot");
@@ -688,15 +691,6 @@
       this.select();
       return;
     }
-
-    RSelectionRectangle.prototype.updateTransform = function() {
-      var css, viewPos;
-      viewPos = view.projectToView(this.position);
-      css = 'translate(' + viewPos.x + 'px,' + viewPos.y + 'px)';
-      this.divJ.css({
-        'transform': css
-      });
-    };
 
     RSelectionRectangle.prototype.deselect = function() {
       if (this.deselected) {
@@ -751,6 +745,8 @@
           this.modalJ.find('.url-name-group').show();
           this.modalJ.find('.name-group').hide();
           this.modalJ.find('.url-group').show();
+          this.modalJ.find('.url-group label').text("URL");
+          this.modalJ.find('.url-group input').attr("placeholder", "http://");
           this.modalJ.find('.message-group').show();
           cost = area;
           break;
@@ -1153,6 +1149,21 @@
       this.divJ.addClass("link");
       this.setPopover();
       this.linkJ = $('<a href="' + this.url + '"></a>');
+      this.linkJ.click((function(_this) {
+        return function(event) {
+          var location, p, pos;
+          if (_this.linkJ.attr("href").indexOf("http://romanesc.co/#") === 0) {
+            location = _this.linkJ.attr("href").replace("http://romanesc.co/#", "");
+            pos = location.split(',');
+            p = new Point();
+            p.x = parseFloat(pos[0]);
+            p.y = parseFloat(pos[1]);
+            g.RMoveTo(p, 1000);
+            event.preventDefault();
+            return false;
+          }
+        };
+      })(this));
       this.contentJ.append(this.linkJ);
       return;
     }
@@ -1676,17 +1687,17 @@
           label: 'URL',
           "default": 'http://',
           onChange: function() {
-            return RMedia.selectedDivs = g.selectedDivs;
+            RMedia.selectedDivs = g.selectedDivs;
           },
           onFinishChange: function(value) {
-            var selectedDiv, _i, _len, _ref, _results;
+            var selectedDiv, _i, _len, _ref;
             _ref = RMedia.selectedDivs;
-            _results = [];
             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
               selectedDiv = _ref[_i];
-              _results.push(selectedDiv != null ? selectedDiv.urlChanged(value, true) : void 0);
+              if (selectedDiv != null) {
+                selectedDiv.urlChanged(value, true);
+              }
             }
-            return _results;
           }
         },
         fitImage: {
@@ -1702,6 +1713,8 @@
       this.modalJ.find('.url-name-group').hide();
       this.modalJ.find('.name-group').hide();
       this.modalJ.find('.url-group').show();
+      this.modalJ.find('.url-group label').text("URL or <iframe>");
+      this.modalJ.find('.url-group input').attr("placeholder", "http:// or <iframe>");
       this.modalJ.find('.message-group').hide();
       this.modalJ.find('#divModalTypeSelector').hide();
       this.modalJ.find('.checkbox.restrict-area').hide();
@@ -1782,7 +1795,7 @@
         case 'fitImage':
           this.toggleFitImage();
       }
-      return RMedia.__super__.parameterChanged.call(this, update);
+      RMedia.__super__.parameterChanged.call(this, update);
     };
 
     RMedia.prototype.hasImageUrlExt = function(url) {
@@ -1869,9 +1882,6 @@
       }
       this.checkIsImage();
       if (updateDiv) {
-        if ((g.me != null) && datFolder.name !== 'General') {
-          g.chatSocket.emit("parameter change", g.me, item.pk, name, value);
-        }
         this.update();
       }
     };

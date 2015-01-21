@@ -10,15 +10,27 @@
     }
   };
 
-  this.startChatting = function(username) {
+  this.startChatting = function(username, realUsername, focusOnChat) {
+    if (realUsername == null) {
+      realUsername = true;
+    }
+    if (focusOnChat == null) {
+      focusOnChat = true;
+    }
     return g.chatSocket.emit("nickname", username, function(set) {
       if (set) {
         window.clearTimeout(g.chatConnectionTimeout);
         g.chatMainJ.removeClass("hidden");
         g.chatMainJ.find("#chatConnectingMessage").addClass("hidden");
-        g.chatJ.find("#chatLogin").addClass("hidden");
+        if (realUsername) {
+          g.chatJ.find("#chatLogin").addClass("hidden");
+        } else {
+          g.chatJ.find("#chatLogin p.default-username-message").html("You are logged as <strong>" + username + "</strong>");
+        }
         g.chatJ.find("#chatUserNameError").addClass("hidden");
-        return g.chatMessageJ.focus();
+        if (focusOnChat) {
+          return g.chatMessageJ.focus();
+        }
       } else {
         return g.chatJ.find("#chatUserNameError").removeClass("hidden");
       }
@@ -26,7 +38,7 @@
   };
 
   this.initSocket = function() {
-    var addMessage, connectionError, sendMessage, submitChatUserName, usernameJ;
+    var addMessage, adjectives, connectionError, sendMessage, submitChatUserName, things, username, usernameJ;
     g.chatJ = g.sidebarJ.find("#chatContent");
     g.chatMainJ = g.chatJ.find("#chatMain");
     g.chatRoomJ = g.chatMainJ.find("#chatRoom");
@@ -97,9 +109,27 @@
     };
     g.chatConnectionTimeout = setTimeout(connectionError, 2000);
     if (g.chatJ.find("#chatUserNameInput").length > 0) {
+      g.chatJ.find("a.sign-in").click(function(event) {
+        $("#user-login-group > button").click();
+        event.preventDefault();
+        return false;
+      });
+      g.chatJ.find("a.change-username").click(function(event) {
+        $("#chatUserName").show();
+        $("#chatUserNameInput").focus();
+        event.preventDefault();
+        return false;
+      });
       usernameJ = g.chatJ.find("#chatUserName");
-      submitChatUserName = function() {
-        g.startChatting(usernameJ.find('#chatUserNameInput').val());
+      submitChatUserName = function(username, focusOnChat) {
+        if (focusOnChat == null) {
+          focusOnChat = true;
+        }
+        $("#chatUserName").hide();
+        if (username == null) {
+          username = usernameJ.find('#chatUserNameInput').val();
+        }
+        g.startChatting(username, false, focusOnChat);
       };
       usernameJ.find('#chatUserNameInput').keypress(function(event) {
         if (event.which === 13) {
@@ -110,6 +140,10 @@
       usernameJ.find("#chatUserNameSubmit").submit(function(event) {
         return submitChatUserName();
       });
+      adjectives = ["Cool", "Masked", "Bloody", "Super", "Mega", "Giga", "Ultra", "Big", "Blue", "Black", "White", "Red", "Purple", "Golden", "Silver", "Dangerous", "Crazy", "Fast", "Quick", "Little", "Funny", "Extreme", "Awsome", "Outstanding", "Crunchy", "Vicious", "Zombie", "Funky", "Sweet"];
+      things = ["Hamster", "Moose", "Lama", "Duck", "Bear", "Eagle", "Tiger", "Rocket", "Bullet", "Knee", "Foot", "Hand", "Fox", "Lion", "King", "Queen", "Wizard", "Elephant", "Thunder", "Storm", "Lumberjack", "Pistol", "Banana", "Orange", "Pinapple", "Sugar", "Leek", "Blade"];
+      username = adjectives.random() + " " + things.random();
+      submitChatUserName(username, false);
     }
     g.chatSocket.on("begin", function(from, event, tool, data) {
       console.log("begin");

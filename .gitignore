@@ -58,3 +58,6 @@ target/
 bin/
 include/
 Romanesco/static/images/sources/
+Romanesco/media/
+Romanesco/js/*.map
+Romanesco/static/docs/

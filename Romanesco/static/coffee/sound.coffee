@@ -4,10 +4,10 @@ class RSound
 	window.AudioContext = window.AudioContext || window.webkitAudioContext
 	@context = new AudioContext()
 
-	# @param [Array of string] the list of urls of the files to load. (one sound file, many formats: list of urls to each format of the same file)
-	# The first url will be loaded, and taken as source if the load succeeds.
-	# Otherwise the second url will be loaded and so on until a file succeeds or all urls have been tested.
-	# @param [function] called after the file is loaded
+	# @param urlList [Array<String>] the list of urls of the files to load. (one sound file, many formats: list of urls to each format of the same file)
+	#                                The first url will be loaded, and taken as source if the load succeeds.
+	#                                Otherwise the second url will be loaded and so on until a file succeeds or all urls have been tested.
+	# @param onLoadCallback [function] called after the file is loaded
 	constructor: (@urlList, @onLoadCallback)->
 		@context = @constructor.context
 		@load()
@@ -21,7 +21,7 @@ class RSound
 	# load the url number *index*
 	# this will be called with *index+1* if decoding fails
 	# @bufferOnLoad will be called on success
-	# @param [Number] index of the url to load
+	# @param index [Number] index of the url to load
 	loadBuffer: (@index)->
 		if @index>=@urlList.length then return
 
@@ -43,16 +43,16 @@ class RSound
 
 	# buffer load callback: decode the audio data
 	# @bufferOnDecoded is called on success
-	# @param [XMLHttpRequest response] XMLHttpRequest response
+	# @param response [XMLHttpRequest response] XMLHttpRequest response
 	bufferOnLoad: (response)=>
 		@context.decodeAudioData( response, @bufferOnDecoded, @bufferOnError )
 		return
 
 	# buffer decoded callback: 
-	# store buffer if decoding was successfull
+	# store buffer if decoding was successful
 	# load next url otherwise
 	# play sound if @playOnLoad is true
-	# @param [Buffer] the newly created buffer
+	# @param buffer [Buffer] the newly created buffer
 	bufferOnDecoded: (@buffer)=>
 		if not @buffer
 			console.log 'Error decoding url number ' + @index + ', trying next url.'

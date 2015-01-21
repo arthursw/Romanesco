@@ -22,11 +22,12 @@ Notations:
   var init, initPosition, initTools;
 
   initTools = function() {
-    var error, initToolTypeahead, sortStart, sortStop;
+    var defaultFavoriteTools, error, initToolTypeahead, pathClass, sortStart, sortStop, _i, _len;
     g.toolsJ = $(".tool-list");
     g.favoriteToolsJ = $("#FavoriteTools .tool-list");
     g.allToolsContainerJ = $("#AllTools");
     g.allToolsJ = g.allToolsContainerJ.find(".all-tool-list");
+    g.favoriteTools = [];
     if (typeof localStorage !== "undefined" && localStorage !== null) {
       try {
         g.favoriteTools = JSON.parse(localStorage.favorites);
@@ -34,6 +35,10 @@ Notations:
         error = _error;
         console.log(error);
       }
+    }
+    defaultFavoriteTools = [PrecisePath, ThicknessPath, Meander, GeometricLines, RectangleShape, EllipseShape, StarShape, SpiralShape];
+    while (g.favoriteTools.length < 8) {
+      g.pushIfAbsent(g.favoriteTools, defaultFavoriteTools.pop().rname);
     }
     g.tools = new Object();
     new MoveTool();
@@ -44,23 +49,16 @@ Notations:
     new TextTool(RText);
     new MediaTool(RMedia);
     new ScreenshotTool();
-    new PathTool(PrecisePath);
-    new PathTool(RectangleShape);
-    new PathTool(SpiralShape);
-    new PathTool(SketchPath);
-    new PathTool(SpiralPath);
-    new PathTool(ShapePath);
-    new PathTool(StarShape);
-    new PathTool(EllipseShape);
-    new PathTool(RollerPath);
-    new PathTool(FuzzyPath);
-    new PathTool(Checkpoint);
+    for (_i = 0, _len = pathClasses.length; _i < _len; _i++) {
+      pathClass = pathClasses[_i];
+      new PathTool(pathClass);
+    }
     initToolTypeahead = function() {
-      var promise, tool, toolValues, _i, _len, _ref;
+      var promise, tool, toolValues, _j, _len1, _ref;
       toolValues = [];
       _ref = g.allToolsJ.children();
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        tool = _ref[_i];
+      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+        tool = _ref[_j];
         toolValues.push({
           value: $(tool).attr("data-type")
         });
@@ -82,10 +80,10 @@ Notations:
         }
         g.allToolsJ.children().hide();
         g.typeaheadToolEngine.get(query, function(suggestions) {
-          var suggestion, _j, _len1, _results;
+          var suggestion, _k, _len2, _results;
           _results = [];
-          for (_j = 0, _len1 = suggestions.length; _j < _len1; _j++) {
-            suggestion = suggestions[_j];
+          for (_k = 0, _len2 = suggestions.length; _k < _len2; _k++) {
+            suggestion = suggestions[_k];
             console.log(suggestion);
             _results.push(g.allToolsJ.children("[data-type='" + suggestion.value + "']").show());
           }
@@ -94,10 +92,10 @@ Notations:
       });
     };
     Dajaxice.draw.getTools(function(result) {
-      var script, scripts, _i, _len;
+      var script, scripts, _j, _len1;
       scripts = JSON.parse(result.tools);
-      for (_i = 0, _len = scripts.length; _i < _len; _i++) {
-        script = scripts[_i];
+      for (_j = 0, _len1 = scripts.length; _j < _len1; _j++) {
+        script = scripts[_j];
         g.runScript(script);
       }
       initToolTypeahead();
@@ -106,22 +104,22 @@ Notations:
       $("#sortable1, #sortable2").addClass("drag-over");
     };
     sortStop = function(event, ui) {
-      var li, names, tool, toolValues, _i, _j, _len, _len1, _ref, _ref1;
+      var li, names, tool, toolValues, _j, _k, _len1, _len2, _ref, _ref1;
       $("#sortable1, #sortable2").removeClass("drag-over");
       if (typeof localStorage === "undefined" || localStorage === null) {
         return;
       }
       names = [];
       _ref = g.favoriteToolsJ.children();
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        li = _ref[_i];
+      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+        li = _ref[_j];
         names.push($(li).attr("data-type"));
       }
       localStorage.favorites = JSON.stringify(names);
       toolValues = [];
       _ref1 = g.allToolsJ.children();
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        tool = _ref1[_j];
+      for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
+        tool = _ref1[_k];
         toolValues.push({
           value: $(tool).attr("data-type")
         });
@@ -156,7 +154,7 @@ Notations:
     loadEntireArea = g.canvasJ.attr("data-load-entire-area");
     if (loadEntireArea) {
       g.entireArea = boxRectangle;
-      g.load(boxRectangle);
+      g.quick_load(boxRectangle);
     }
     siteString = g.canvasJ.attr("data-site");
     site = JSON.parse(siteString);
@@ -191,6 +189,7 @@ Notations:
 
   init = function() {
     var activeLayer;
+    g.romanescoURL = 'http://localhost:8000/';
     g.windowJ = $(window);
     g.stageJ = $("#stage");
     g.sidebarJ = $("#sidebar");
@@ -224,6 +223,8 @@ Notations:
     g.scale = 1000.0;
     g.previousPoint = null;
     g.draggingEditor = false;
+    g.rasters = {};
+    g.areasToUpdate = {};
     Dajaxice.setup({
       'default_exception_callback': function(error) {
         console.log('Dajaxice error!');
@@ -244,11 +245,13 @@ Notations:
     }
     paper.setup(canvas);
     activeLayer = project.activeLayer;
+    g.debugLayer = new Layer();
     g.carLayer = new Layer();
     activeLayer.activate();
     paper.settings.hitTolerance = 5;
     g.grid = new Group();
     g.grid.name = 'grid group';
+    view.zoom = 0.01;
     Point.prototype.toJSON = function() {
       return {
         x: this.x,
@@ -256,6 +259,17 @@ Notations:
       };
     };
     Point.prototype.exportJSON = function() {
+      return JSON.stringify(this.toJSON());
+    };
+    Rectangle.prototype.toJSON = function() {
+      return {
+        x: this.x,
+        y: this.y,
+        width: this.width,
+        height: this.height
+      };
+    };
+    Rectangle.prototype.exportJSON = function() {
       return JSON.stringify(this.toJSON());
     };
     g.tool = new Tool();
@@ -278,12 +292,32 @@ Notations:
       keyboard: false
     });
     g.sound = new RSound(['/static/sounds/viper.ogg']);
+    $.ajax({
+      url: g.romanescoURL + "static/coffee/path.coffee"
+    }).done(function(data) {
+      var classMap, expression, expressions, lines, pathClass, _i, _j, _len, _len1, _ref, _ref1;
+      lines = data.split(/\n/);
+      expressions = CoffeeScript.nodes(data).expressions;
+      classMap = {};
+      _ref = g.pathClasses;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        pathClass = _ref[_i];
+        classMap[pathClass.name] = pathClass;
+      }
+      for (_j = 0, _len1 = expressions.length; _j < _len1; _j++) {
+        expression = expressions[_j];
+        if ((_ref1 = classMap[expression.variable.base.value]) != null) {
+          _ref1.source = lines.slice(expression.locationData.first_line, +expression.locationData.last_line + 1 || 9e9).join("\n");
+        }
+      }
+    });
     initParameters();
     initCodeEditor();
     initTools();
     initSocket();
     initPosition();
     updateGrid();
+    animate();
   };
 
   $(document).ready(function() {

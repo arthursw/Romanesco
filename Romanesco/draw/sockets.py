@@ -4,7 +4,7 @@ import json
 import re
 import ast
 
-from django.utils import simplejson
+# from django.utils import simplejson
 from django.core import serializers
 from django.contrib.auth.models import User
 from django.db.models import F
@@ -50,6 +50,8 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     def on_nickname(self, nickname):
         nickname = escape(nickname)
         self.log(u'Nickname: {0}'.format(nickname))
+        if 'nickname' in self.socket.session:
+            self.nicknames.remove(nickname)
         self.nicknames.append(nickname)
         self.socket.session['nickname'] = nickname
         self.broadcast_event('announcement', '%s has connected' % nickname)
@@ -234,7 +236,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #         return {'state': 'error', 'message': 'Element does not exist for this user'}
 
     #     if p.locked and user != p.owner:
-    #         return simplejson.dumps({'state': 'error', 'message': 'Not owner of path'})
+    #         return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
     #     if points:
     #         p.points = points
@@ -253,10 +255,10 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #     p = Path.objects.get(pk=pk)
 
     #     if not p:
-    #         return simplejson.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
+    #         return json.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
 
     #     if p.locked and user != p.owner:
-    #         return simplejson.dumps({'state': 'error', 'message': 'Not owner of path'})
+    #         return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
     #     p.delete()
         
@@ -264,7 +266,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
 
     # def on_save_box(request, box, object_type, message, name="", url=""):
     #     if not request.user.is_authenticated():
-    #         return simplejson.dumps({'state': 'not_logged_in'})
+    #         return json.dumps({'state': 'not_logged_in'})
 
     #     if object_type=='link':
     #         valid, errorMessage = validateURL(url)
@@ -278,7 +280,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #     geometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
     #     lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry )
     #     if lockedAreas.count()>0:
-    #         return simplejson.dumps( {'state': 'error', 'message': 'This area was already locked'} )
+    #         return json.dumps( {'state': 'error', 'message': 'This area was already locked'} )
 
     #     b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, url=url, message=message, name=name)
     #     b.save()
@@ -291,5 +293,5 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #     Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry).update(set__locked=True)
     #     Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry).update(set__locked=True)
 
-    #     return simplejson.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'name': name, 'url': url, 'owner': request.user.username, 'pk':str(b.pk), 'box':box } )
+    #     return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'name': name, 'url': url, 'owner': request.user.username, 'pk':str(b.pk), 'box':box } )
 

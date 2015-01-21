@@ -17,7 +17,8 @@
 # The mother class of all RTools
 class RTool
 
-	# parameters must return an object listing all parameters specific to the tool, organized according to the following format:
+	# parameters must return an object listing all parameters specific to the tool
+	# those parameters will be accessible to the users from the options bar
 	###
 	parameters = 
 		'First folder':
@@ -86,6 +87,7 @@ class RTool
 			popoverOptions.content = description
 
 		@btnJ.popover( popoverOptions )
+		return
 
 	# @return [string] the description of the tool
 	description: ()->
@@ -149,11 +151,13 @@ class CodeTool extends RTool
 
 	constructor: ()->
 		super("Script")
+		return
 
 	# show code editor on select
 	select: ()->
 		super()
 		g.toolEditor()
+		return
 
 @CodeTool = CodeTool
 
@@ -166,6 +170,7 @@ class MoveTool extends RTool
 		super("Move", { x: 32, y: 32 }, "move")
 		@prevPoint = { x: 0, y: 0 } 	# the previous point the mouse was at
 		@dragging = false 				# a boolean to see if user is dragging mouse
+		return
 
 	# Select tool and disable RDiv interactions (to be able to scroll even when user clicks on them, for exmaple disable textarea default behaviour)
 	select: ()->
@@ -173,6 +178,7 @@ class MoveTool extends RTool
 		g.stageJ.addClass("moveTool")
 		for div in g.divs
 			div.disableInteraction()
+		return
 
 	# Reactivate RDiv interactions
 	deselect: ()->
@@ -244,7 +250,8 @@ class CarTool extends RTool
 		return parameters
 
 	constructor: () -> 
-		super("Car", { x: 0, y: 0 }, "none") 		# no cursor when car is selected (might change)
+		super("Car") 		# no cursor when car is selected (might change)
+		return
 
 	# Select car tool
 	# load the car image, and initialize the car and the sound
@@ -369,15 +376,18 @@ class SelectTool extends RTool
 		handles: true
 		segments: true
 		curves: true
+		selected: true
 		tolerance: 5
 
 	constructor: () -> 
 		super("Select")
 		@selectedItem = null 		# should be deprecated
+		return
 
 	select: ()->
 		@selectedItem = g.selectedItems().first()
 		super(@selectedItem?.constructor or @constructor, @selectedItem)
+		return
 
 	# Create selection rectangle path (remove if existed)
 	# @param [Paper event] event containing down and current positions to draw the rectangle 
@@ -423,6 +433,7 @@ class SelectTool extends RTool
 		else 												# otherwise: remove selection group and create selection rectangle
 			@removeSelectionGroup()
 			@createSelectionRectangle(event)
+		return
 
 	# Update selection:
 	# - update selected RItems if there is no selection rectangle
@@ -455,6 +466,9 @@ class SelectTool extends RTool
 				if item.getBounds().intersects(rectangle)
 					item.select(false)
 					itemsToSelect.push(item)
+				# if the user just clicked (not dragged a selection rectangle): just select the first item
+				if rectangle.area == 0
+					break
 
 			# Add all items which intersect with the selection rectangle (2nd version)
 
@@ -539,6 +553,8 @@ class PathTool extends RTool
 					name += @name.substring(0,2)
 				shortNameJ = $('<span class="short-name">').text(name + ".")
 				@btnJ.append(shortNameJ)
+
+			if @name == 'Precise path' then @RPath.iconUrl = null 	# must remove the icon of precise path otherwise all children class will inherit the same icon
 
 			# if the tool is just created (in editor) add in favorite. Otherwise check is it was saved as a favorite tool in the localStorage (g.favoriteTools).
 			favorite = justCreated | g.favoriteTools?.indexOf(@name)>=0
@@ -668,9 +684,11 @@ class DivTool extends RTool
 	constructor: (@name, @RDiv) ->
 		super(@name, { x: 24, y: 0 }, "crosshair")
 		# test: @isDiv = true
+		return
 
 	select: ()->
 		super(@RDiv)
+		return
 
 	# Begin div action:
 	# - create new selection rectangle
@@ -687,6 +705,7 @@ class DivTool extends RTool
 		g.currentPaths[from].strokeColor = 'black'
 
 		if g.me? and from==g.me then g.chatSocket.emit( "begin", g.me, g.eventToObject(event), @name, g.currentPaths[from].data )
+		return
 
 	# Update div action:
 	# - update selection rectangle
@@ -701,6 +720,7 @@ class DivTool extends RTool
 		g.currentPaths[from].segments[3].point.y = point.y
 
 		if g.me? and from==g.me then g.chatSocket.emit( "update", g.me, point, @name )
+		return
 
 	# End div action:
 	# - remove selection rectangle
@@ -742,6 +762,7 @@ class LockTool extends DivTool
 	constructor: () -> 
 		super("Lock", RLock)
 		@textItem = null
+		return
 
 	# Update lock action:
 	# - display lock cost (in romanescoins) in selection rectangle
@@ -758,6 +779,7 @@ class LockTool extends DivTool
 		@textItem.fillColor = 'black'
 		@textItem.content = '' + cost + ' romanescoins'
 		super(event, from)
+		return
 
 	# End lock action:
 	# - remove lock cost and init RLock modal if it is valid (does not overlap two planets, and does not intersects with an RLock)
@@ -769,6 +791,7 @@ class LockTool extends DivTool
 		if super(event, from)
 			RLock.initModal(g.currentPaths[from].bounds)
 			delete g.currentPaths[from]
+		return
 
 @LockTool = LockTool
 
@@ -804,6 +827,7 @@ class TextTool extends DivTool
 
 	constructor: () -> 
 		super("Text", RText)
+		return
 
 	# End RText action:
 	# - save RText if it is valid (does not overlap two planets, and does not intersects with an RLock)
@@ -814,6 +838,7 @@ class TextTool extends DivTool
 		if super(event, from)
 			RText.save(g.currentPaths[from].bounds, "text")
 			delete g.currentPaths[from]
+		return
 
 @TextTool = TextTool
 
@@ -822,6 +847,7 @@ class MediaTool extends DivTool
 
 	constructor: () -> 
 		super("Media", RMedia)
+		return
 
 	# End RMedia action:
 	# - init RMedia modal if it is valid (does not overlap two planets, and does not intersects with an RLock)
@@ -832,6 +858,7 @@ class MediaTool extends DivTool
 		if super(event, from)
 			RMedia.initModal(g.currentPaths[from].bounds)
 			delete g.currentPaths[from]
+		return
 
 @MediaTool = MediaTool
 
@@ -858,31 +885,37 @@ class ScreenshotTool extends RTool
 			@modalJ.find('a[name="publish-on-twitter"]').attr("data-text", @getDescription())
 			return
 
-		ZeroClipboard.config( swfPath: "http://127.0.0.1:8000/static/libs/ZeroClipboard/ZeroClipboard.swf" )
+		ZeroClipboard.config( swfPath: g.romanescoURL + "/static/libs/ZeroClipboard/ZeroClipboard.swf" )
 		# ZeroClipboard.destroy()
+		return
 	
-	# Get description input value, or default description: "Artwork made in Romanesco"
+	# Get description input value, or default description: "Artwork made with Romanesco: http://romanesc.co/#0.0,0.0"
 	getDescription: ()->
-		return if @descriptionJ.val().length>0 then @descriptionJ.val() else "Artwork made in Romanesco"
+		return if @descriptionJ.val().length>0 then @descriptionJ.val() else "Artwork made with Romanesco: " + @locationURL
 
 	# create selection rectangle
 	begin: (event) ->
+		from = g.me
 		g.currentPaths[from] = new Path.Rectangle(event.point, event.point)
 		g.currentPaths[from].name = 'screenshot tool selection rectangle'
 		g.currentPaths[from].dashArray = [4, 10]
 		g.currentPaths[from].strokeColor = 'black'
 		g.currentPaths[from].strokeWidth = 1
+		return
 
 	# update selection rectangle
 	update: (event) ->
+		from = g.me
 		g.currentPaths[from].lastSegment.point = event.point
 		g.currentPaths[from].lastSegment.next.point.y = event.point.y
 		g.currentPaths[from].lastSegment.previous.point.x = event.point.x
+		return
 
 	# - remove selection rectangle
 	# - return if rectangle is too small
 	# - create the RSelectionRectangle (so that the user can adjust the screenshot box to fit his needs)
 	end: (event) ->
+		from = g.me
 		# remove selection rectangle
 		g.currentPaths[from].remove()
 		delete g.currentPaths[from]
@@ -902,16 +935,14 @@ class ScreenshotTool extends RTool
 	extractImage: ()=>
 		# extract the image (create a temporaty canvas, html5 only, no paper.js)
 		@rectangle = @div.getBounds()
-		viewRectangle = g.projectToViewRectangle(@rectangle)
-		@div.remove()
-		canvasTemp = document.createElement('canvas')
-		canvasTemp.width = viewRectangle.width
-		canvasTemp.height = viewRectangle.height
-		contextTemp = canvasTemp.getContext('2d')
-		contextTemp.putImageData(g.context.getImageData(viewRectangle.x, viewRectangle.y, viewRectangle.width, viewRectangle.height), 0, 0)
+		@dataURL = g.areaToImageDataUrl(@rectangle)
 		
+		@div.remove()
+
+		@locationURL = g.romanescoURL + location.hash
+
+		@descriptionJ.attr('placeholder', 'Artwork made with Romanesco: ' + @locationURL)
 		# initialize modal (data url and image)
-		@dataURL = canvasTemp.toDataURL("image/png")
 		copyDataBtnJ = @modalJ.find('button[name="copy-data-url"]')
 		copyDataBtnJ.attr("data-clipboard-text", @dataURL)
 		imgJ = @modalJ.find("img.png")
@@ -923,7 +954,7 @@ class ScreenshotTool extends RTool
 		# initialize twitter button
 		twitterLinkJ = @modalJ.find('a[name="publish-on-twitter"]')
 		twitterLinkJ.empty().text("Publish on Twitter")
-		twitterLinkJ.attr "data-url", "http://romanesc.co/" + location.hash
+		twitterLinkJ.attr "data-url", @locationURL
 		twitterScriptJ = $('<script type="text/javascript">window.twttr=(function(d,s,id){var t,js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id)){return}js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);return window.twttr||(t={_e:[],ready:function(f){t._e.push(f)}})}(document,"script","twitter-wjs"));</script>')
 		twitterLinkJ.append(twitterScriptJ)
 
@@ -971,8 +1002,8 @@ class ScreenshotTool extends RTool
 			name: "Romanesco"
 			caption: caption
 			description: ("Romanesco is an infinite collaborative drawing app.")
-			link: "http://61b2fd1e.ngrok.com/"
-			picture: "http://61b2fd1e.ngrok.com/" + result.url
+			link: @locationURL
+			picture: g.romanescoURL + result.url
 		, (response) ->
 			if response and response.post_id
 				romanesco_alert "Your Post was successfully published!", "success"
@@ -1014,6 +1045,7 @@ class ScreenshotTool extends RTool
 		# 			# handle response
 		# 		return
 		# )
+		return
 
 	# - log in to facebook (if not already logged in)
 	# - save image to publish photo when/if logged in
@@ -1039,7 +1071,7 @@ class ScreenshotTool extends RTool
 			"/me/photos",
 			"POST",
 			{
-				"url": "http://61b2fd1e.ngrok.com/" + result.url
+				"url": g.romanescoURL + result.url
 				"message": caption
 			},
 			(response)->
@@ -1068,7 +1100,7 @@ class ScreenshotTool extends RTool
 		pinterestModalJ.addClass("pinterest-modal")
 		pinterestModalJ.find(".modal-title").text("Publish on Pinterest")
 		# siteUrl = encodeURI('http://romanesc.co/')
-		siteUrl = encodeURI('http://61b2fd1e.ngrok.com/')
+		siteUrl = encodeURI(g.romanescoURL)
 		imageUrl = siteUrl+result.url
 		caption = @getDescription()
 		description = encodeURI(caption)
@@ -1131,6 +1163,13 @@ class ScreenshotTool extends RTool
 		# put the retrieved items in a group
 		svgGroup = new Group()
 
+		# draw items which were not drawn
+		for item in itemsToSave
+			if not item.drawing? then item.draw()
+		
+		view.update()
+
+		# add items to svg group
 		for item in itemsToSave
 			svgGroup.addChild(item.drawing.clone())
 		

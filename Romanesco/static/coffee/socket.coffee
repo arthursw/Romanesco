@@ -12,15 +12,18 @@ this.updateRoom = ()->
 		g.room = room
 
 # initialize chat: emit "nickname" (username) and on callback: initialize chat or show error
-this.startChatting = (username)->
+this.startChatting = (username, realUsername=true, focusOnChat=true)->
 	g.chatSocket.emit("nickname", username, (set) ->
 		if set
 			window.clearTimeout(g.chatConnectionTimeout)
 			g.chatMainJ.removeClass("hidden")
 			g.chatMainJ.find("#chatConnectingMessage").addClass("hidden")
-			g.chatJ.find("#chatLogin").addClass("hidden")
+			if realUsername
+				g.chatJ.find("#chatLogin").addClass("hidden")
+			else
+				g.chatJ.find("#chatLogin p.default-username-message").html("You are logged as <strong>" + username + "</strong>")
 			g.chatJ.find("#chatUserNameError").addClass("hidden")
-			g.chatMessageJ.focus()
+			if focusOnChat then g.chatMessageJ.focus()
 		else
 			g.chatJ.find("#chatUserNameError").removeClass("hidden")
 	)
@@ -120,10 +123,24 @@ this.initSocket = ()->
 
 	# if user not logged: ask for username, start chatting when user entered a username
 	if g.chatJ.find("#chatUserNameInput").length>0
+
+		g.chatJ.find("a.sign-in").click (event)->
+			$("#user-login-group > button").click()
+			event.preventDefault()
+			return false
+
+		g.chatJ.find("a.change-username").click (event)->
+			$("#chatUserName").show()
+			$("#chatUserNameInput").focus()
+			event.preventDefault()
+			return false
+
 		usernameJ = g.chatJ.find("#chatUserName")
 
-		submitChatUserName = ()->
-			g.startChatting( usernameJ.find('#chatUserNameInput').val() )
+		submitChatUserName = (username, focusOnChat=true)->
+			$("#chatUserName").hide()
+			username ?= usernameJ.find('#chatUserNameInput').val()
+			g.startChatting( username, false, focusOnChat )
 			return
 
 		usernameJ.find('#chatUserNameInput').keypress( (event) -> 
@@ -133,6 +150,14 @@ this.initSocket = ()->
 		)
 
 		usernameJ.find("#chatUserNameSubmit").submit( (event) -> submitChatUserName() )
+
+		adjectives = ["Cool","Masked","Bloody","Super","Mega","Giga","Ultra","Big","Blue","Black","White","Red","Purple","Golden","Silver","Dangerous","Crazy","Fast","Quick","Little","Funny","Extreme","Awsome","Outstanding","Crunchy","Vicious","Zombie","Funky","Sweet"];
+		
+		things = ["Hamster","Moose","Lama","Duck","Bear","Eagle","Tiger","Rocket","Bullet","Knee","Foot","Hand","Fox","Lion","King","Queen","Wizard","Elephant","Thunder","Storm","Lumberjack","Pistol","Banana","Orange","Pinapple","Sugar","Leek","Blade"]
+		
+		username = adjectives.random() + " " + things.random()
+
+		submitChatUserName(username, false)
 
 	## Tool creation websocket messages
 	# on begin, update and end: call *tool*.begin(objectToEvent(*event*), *from*, *data*)

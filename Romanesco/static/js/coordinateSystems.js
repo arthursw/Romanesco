@@ -86,6 +86,25 @@
     return posOnPlanetToProject(new Point(-180, -90), new Point(planet.x + 1, planet.y + 1));
   };
 
+  this.boxFromRectangle = function(rectangle) {
+    var brOnPlanet, planet, points, tlOnPlanet;
+    planet = pointToObj(projectToPlanet(rectangle.topLeft));
+    tlOnPlanet = projectToPosOnPlanet(rectangle.topLeft, planet);
+    brOnPlanet = projectToPosOnPlanet(rectangle.bottomRight, planet);
+    points = [];
+    points.push(pointToArray(tlOnPlanet));
+    points.push(pointToArray(projectToPosOnPlanet(rectangle.topRight, planet)));
+    points.push(pointToArray(brOnPlanet));
+    points.push(pointToArray(projectToPosOnPlanet(rectangle.bottomLeft, planet)));
+    points.push(pointToArray(tlOnPlanet));
+    return {
+      points: points,
+      planet: pointToObj(planet),
+      tl: tlOnPlanet,
+      br: brOnPlanet
+    };
+  };
+
 }).call(this);
 
 //# sourceMappingURL=coordinateSystems.map

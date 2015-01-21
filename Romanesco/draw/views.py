@@ -27,7 +27,6 @@ def index(request, sitename=None):
 # 	areasToLoad = [[xf,yf], [xf+1,yf], [xf,yf+1], [xf+1,yf+1]]
 # 	points = ajax.load(request,areasToLoad)
 # 	return render_to_response(	"index.html", {'x':xf, 'y':yf, 'points':points}, RequestContext(request) )
-
 # return render(request, 'index.html')
 # return render_to_response( 'index.html', {}, context_instance = RequestContext(request))
 
@@ -50,7 +49,7 @@ def romanescoinsCancel(request):
 # import os
 # import errno
 # import json
-# from django.utils import simplejson
+# from django.utils import json
 # # from dajaxice.decorators import dajaxice_register
 # from django.core import serializers
 # # from dajaxice.core import dajaxice_functions
@@ -121,7 +120,7 @@ def romanescoinsCancel(request):
 # 	userID += 1
 
 
-# 	# return simplejson.dumps( {  'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user } )
+# 	# return json.dumps( {  'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user } )
 # 	return { 'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user }
 
 # #@dajaxice_register
@@ -133,13 +132,13 @@ def romanescoinsCancel(request):
 
 # 	lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }, owner__ne=request.user.username )
 # 	if lockedAreas.count()>0:
-# 		# return simplejson.dumps( { 'state': 'error', 'message': 'Your drawing intersects with a locked area'} )
+# 		# return json.dumps( { 'state': 'error', 'message': 'Your drawing intersects with a locked area'} )
 # 		return {'state': 'error', 'message': 'Your drawing intersects with a locked area'}
 
 # 	p = Path(planetX=planetX, planetY=planetY, points=points, owner=request.user.username, object_type=object_type, data=data )
 # 	p.save()
 
-# 	# return simplejson.dumps( { 'state': 'success', 'pID': pID, 'pk': str(p.pk) } )
+# 	# return json.dumps( { 'state': 'success', 'pID': pID, 'pk': str(p.pk) } )
 # 	return {'state': 'success', 'pID': pID, 'pk': str(p.pk) }
 
 # #@dajaxice_register
@@ -149,11 +148,11 @@ def romanescoinsCancel(request):
 # 	try:
 # 		p = Path.objects.get(pk=pk)
 # 	except Path.DoesNotExist:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Update impossible: element does not exist for this user'})
+# 		# return json.dumps({'state': 'error', 'message': 'Update impossible: element does not exist for this user'})
 # 		return{'state': 'error', 'message': 'Update impossible: element does not exist for this user'}
 
 # 	if p.locked and request.user.username != p.owner:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Not owner of path'})
+# 		# return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 # 		return{'state': 'error', 'message': 'Not owner of path'}
 
 # 	if points or planet:
@@ -162,7 +161,7 @@ def romanescoinsCancel(request):
 
 # 		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }, owner__ne=request.user.username )
 # 		if lockedAreas.count()>0:
-# 			# return simplejson.dumps( { 'state': 'error', 'message': 'Your drawing intersects with a locked area'} )
+# 			# return json.dumps( { 'state': 'error', 'message': 'Your drawing intersects with a locked area'} )
 # 			return {'state': 'error', 'message': 'Your drawing intersects with a locked area'}
 
 # 	if points:
@@ -175,7 +174,7 @@ def romanescoinsCancel(request):
 
 # 	p.save()
 
-# 	# return simplejson.dumps( { 'state': 'success'} )
+# 	# return json.dumps( { 'state': 'success'} )
 # 	return {'state': 'success'}
 
 # #@dajaxice_register
@@ -185,23 +184,23 @@ def romanescoinsCancel(request):
 # 	try:
 # 		p = Path.objects.get(pk=pk)
 # 	except Path.DoesNotExist:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Delete impossible: element does not exist for this user'})
+# 		# return json.dumps({'state': 'error', 'message': 'Delete impossible: element does not exist for this user'})
 # 		return{'state': 'error', 'message': 'Delete impossible: element does not exist for this user'}
 
 # 	if p.locked and request.user.username != p.owner:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Not owner of path'})
+# 		# return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 # 		return{'state': 'error', 'message': 'Not owner of path'}
 
 # 	p.delete()
 	
-# 	# return simplejson.dumps( {  'state': 'success', 'pk': pk } )
+# 	# return json.dumps( {  'state': 'success', 'pk': pk } )
 # 	return { 'state': 'success', 'pk': pk }
 
 # #@dajaxice_register
 # @ajax
 # def saveBox(request, box, object_type, message, name="", url="", clonePk=None, website=False, restrictedArea=False, disableToolbar=False):
 # 	if not request.user.is_authenticated():
-# 		# return simplejson.dumps({'state': 'not_logged_in'})
+# 		# return json.dumps({'state': 'not_logged_in'})
 # 		return{'state': 'not_logged_in'}
 
 # 	points = box['points']
@@ -212,7 +211,7 @@ def romanescoinsCancel(request):
 # 	geometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
 # 	lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry, owner__ne=request.user.username )
 # 	if lockedAreas.count()>0:
-# 		# return simplejson.dumps( {'state': 'error', 'message': 'This area intersects with another locked area'} )
+# 		# return json.dumps( {'state': 'error', 'message': 'This area intersects with another locked area'} )
 # 		return {'state': 'error', 'message': 'This area intersects with another locked area'}
 
 # 	if len(url)==0:
@@ -221,11 +220,11 @@ def romanescoinsCancel(request):
 # 	loadEntireArea = object_type == 'video-game'
 
 # 	try:
-# 		data = simplejson.dumps( { 'loadEntireArea': loadEntireArea } )
+# 		data = json.dumps( { 'loadEntireArea': loadEntireArea } )
 # 		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, url=url, message=message, name=name, website=website, data=data)
 # 		b.save()
 # 	except ValidationError:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'invalid_url'})
+# 		# return json.dumps({'state': 'error', 'message': 'invalid_url'})
 # 		return{'state': 'error', 'message': 'invalid_url'}
 
 # 	if website:
@@ -240,14 +239,14 @@ def romanescoinsCancel(request):
 # 	Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry).update(set__locked=True, set__owner=request.user.username)
 # 	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry).update(set__locked=True, set__owner=request.user.username)
 
-# 	# return simplejson.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'name': name, 'url': url, 'owner': request.user.username, 'pk':str(b.pk), 'box':box, 'clonePk': clonePk, 'website': website } )
+# 	# return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'name': name, 'url': url, 'owner': request.user.username, 'pk':str(b.pk), 'box':box, 'clonePk': clonePk, 'website': website } )
 # 	return {'state': 'success', 'object_type':object_type, 'message': message, 'name': name, 'url': url, 'owner': request.user.username, 'pk':str(b.pk), 'box':box, 'clonePk': clonePk, 'website': website }
 
 # #@dajaxice_register
 # @ajax
 # def updateBox(request, object_type, pk, box=None, message=None, name=None, url=None, data=None):
 # 	if not request.user.is_authenticated():
-# 		# return simplejson.dumps({'state': 'not_logged_in'})
+# 		# return json.dumps({'state': 'not_logged_in'})
 # 		return {'state': 'not_logged_in'}
 	
 # 	if box:
@@ -260,13 +259,13 @@ def romanescoinsCancel(request):
 # 		# check if new box intersects with another one
 # 		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry, owner__ne=request.user.username )
 # 		if lockedAreas.count()>0:
-# 			# return simplejson.dumps( {'state': 'error', 'message': 'This area intersects with a locked area'} )
+# 			# return json.dumps( {'state': 'error', 'message': 'This area intersects with a locked area'} )
 # 			return {'state': 'error', 'message': 'This area intersects with a locked area'}
 
 # 	try:
 # 		b = Box.objects.get(pk=pk, owner=request.user.username)
 # 	except Box.DoesNotExist:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
+# 		# return json.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
 # 		return {'state': 'error', 'message': 'Element does not exist for this user'}
 
 # 	if box:
@@ -297,7 +296,7 @@ def romanescoinsCancel(request):
 # 	try:
 # 		b.save()
 # 	except ValidationError:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'invalid_url'})
+# 		# return json.dumps({'state': 'error', 'message': 'invalid_url'})
 # 		return{'state': 'error', 'message': 'invalid_url'}
 
 # 	if box:
@@ -327,20 +326,20 @@ def romanescoinsCancel(request):
 # 		# 		oldDiv.locked = False
 # 		# 		oldDiv.save()
 
-# 	# return simplejson.dumps( {'state': 'success', 'object_type':object_type } )
+# 	# return json.dumps( {'state': 'success', 'object_type':object_type } )
 # 	return {'state': 'success', 'object_type':object_type }
 
 # #@dajaxice_register
 # @ajax
 # def deleteBox(request, pk):
 # 	if not request.user.is_authenticated():
-# 		# return simplejson.dumps({'state': 'not_logged_in'})
+# 		# return json.dumps({'state': 'not_logged_in'})
 # 		return{'state': 'not_logged_in'}
 
 # 	try:
 # 		b = Box.objects.get(pk=pk, owner=request.user.username)
 # 	except Box.DoesNotExist:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
+# 		# return json.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
 # 		return{'state': 'error', 'message': 'Element does not exist for this user'}
 
 # 	points = b.box['coordinates'][0]
@@ -352,12 +351,12 @@ def romanescoinsCancel(request):
 # 	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=oldGeometry).update(set__locked=False)
 
 # 	if request.user.username != b.owner:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Not owner of div'})
+# 		# return json.dumps({'state': 'error', 'message': 'Not owner of div'})
 # 		return{'state': 'error', 'message': 'Not owner of div'}
 
 # 	b.delete()
 	
-# 	# return simplejson.dumps( { 'state': 'success', 'pk': pk } )
+# 	# return json.dumps( { 'state': 'success', 'pk': pk } )
 # 	return { 'state': 'success', 'pk': pk }
 
 # #@dajaxice_register
@@ -374,16 +373,16 @@ def romanescoinsCancel(request):
 # 		if area.owner == request.user.username:
 # 			locked = True
 # 		else:
-# 			# return simplejson.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
+# 			# return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
 # 			return {'state': 'error', 'message': 'Your div intersects with a locked area'}
 
 # 	# if lockedAreas.count()>0:
-# 	# 	return simplejson.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
+# 	# 	return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
 
 # 	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, message=message, url=url, data=data, locked=locked)
 # 	d.save()
 
-# 	# return simplejson.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'url': url, 'owner': request.user.username, 'pk':str(d.pk), 'box': box, 'data': data, 'clonePk': clonePk } )
+# 	# return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'url': url, 'owner': request.user.username, 'pk':str(d.pk), 'box': box, 'data': data, 'clonePk': clonePk } )
 # 	return {'state': 'success', 'object_type':object_type, 'message': message, 'url': url, 'owner': request.user.username, 'pk':str(d.pk), 'box': box, 'data': data, 'clonePk': clonePk }
 
 # #@dajaxice_register
@@ -393,11 +392,11 @@ def romanescoinsCancel(request):
 # 	try:
 # 		d = Div.objects.get(pk=pk)
 # 	except Div.DoesNotExist:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Element does not exist'})
+# 		# return json.dumps({'state': 'error', 'message': 'Element does not exist'})
 # 		return{'state': 'error', 'message': 'Element does not exist'}
 
 # 	if d.locked and request.user.username != d.owner:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Not owner of div'})
+# 		# return json.dumps({'state': 'error', 'message': 'Not owner of div'})
 # 		return{'state': 'error', 'message': 'Not owner of div'}
 
 # 	if box:
@@ -411,7 +410,7 @@ def romanescoinsCancel(request):
 # 			if area.owner == request.user.username:
 # 				d.locked = True
 # 			else:
-# 				# return simplejson.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
+# 				# return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
 # 				return {'state': 'error', 'message': 'Your div intersects with a locked area'}
 
 # 	if url:
@@ -431,7 +430,7 @@ def romanescoinsCancel(request):
 	
 # 	d.save()
 
-# 	# return simplejson.dumps( {'state': 'success' } )
+# 	# return json.dumps( {'state': 'success' } )
 # 	return {'state': 'success' }
 
 # #@dajaxice_register
@@ -441,16 +440,16 @@ def romanescoinsCancel(request):
 # 	try:
 # 		d = Div.objects.get(pk=pk)
 # 	except Div.DoesNotExist:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'Element does not exist for this user.'})
+# 		# return json.dumps({'state': 'error', 'message': 'Element does not exist for this user.'})
 # 		return{'state': 'error', 'message': 'Element does not exist for this user.'}
 
 # 	if d.locked and request.user.username != d.owner:
-# 		# return simplejson.dumps({'state': 'error', 'message': 'You are not the owner of this div.'})
+# 		# return json.dumps({'state': 'error', 'message': 'You are not the owner of this div.'})
 # 		return{'state': 'error', 'message': 'You are not the owner of this div.'}
 
 # 	d.delete()
 	
-# 	# return simplejson.dumps( { 'state': 'success', 'pk': pk } )
+# 	# return json.dumps( { 'state': 'success', 'pk': pk } )
 # 	return { 'state': 'success', 'pk': pk }
 
 # # --- images --- #
@@ -479,9 +478,9 @@ def romanescoinsCancel(request):
 # 	# inputfile = open(imageName, 'rb')
 # 	# imageData = inputfile.read().encode('base64')
 # 	# inputfile.close()
-# 	# return simplejson.dumps( { 'image': imageData, 'url': imageName } )
+# 	# return json.dumps( { 'image': imageData, 'url': imageName } )
 	
-# 	# return simplejson.dumps( { 'url': imageName } )
+# 	# return json.dumps( { 'url': imageName } )
 # 	return { 'url': imageName }
 
 # # --- tools --- #
@@ -492,10 +491,10 @@ def romanescoinsCancel(request):
 # 	try:
 # 		tool = Tool(owner=request.user.username, name=name, className=className, source=source, compiledSource=compiledSource)
 # 	except OperationError:
-# 		# return simplejson.dumps( { 'state': 'error', 'message': 'A tool with the name ' + name + ' or the className ' + className + ' already exists.' } )
+# 		# return json.dumps( { 'state': 'error', 'message': 'A tool with the name ' + name + ' or the className ' + className + ' already exists.' } )
 # 		return { 'state': 'error', 'message': 'A tool with the name ' + name + ' or the className ' + className + ' already exists.' }
 # 	tool.save()
-# 	# return simplejson.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.' } )
+# 	# return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.' } )
 # 	return { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.' }
 
 # #@dajaxice_register
@@ -504,7 +503,7 @@ def romanescoinsCancel(request):
 # 	try:
 # 		tool = Tool.objects.get(name=name)		
 # 	except Tool.DoesNotExist:
-# 		# return simplejson.dumps( { 'state': 'error', 'message': 'The tool with the name ' + name + ' or the className ' + className + ' does not exist.' } )
+# 		# return json.dumps( { 'state': 'error', 'message': 'The tool with the name ' + name + ' or the className ' + className + ' does not exist.' } )
 # 		return { 'state': 'error', 'message': 'The tool with the name ' + name + ' or the className ' + className + ' does not exist.' }
 
 # 	tool.nRequests += 1
@@ -514,14 +513,14 @@ def romanescoinsCancel(request):
 # 	newTool = Tool(owner=request.user.username, name=newName, originalName=name, className=newClassName, source=source, compiledSource=compiledSource)
 # 	newTool.save()
 
-# 	# return simplejson.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
+# 	# return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
 # 	return { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' }
 
 # #@dajaxice_register
 # @ajax
 # def getTools(request):
 # 	tools = Tool.objects(accepted=True)
-# 	# return simplejson.dumps( { 'state': 'success', 'tools': tools.to_json() } )
+# 	# return json.dumps( { 'state': 'success', 'tools': tools.to_json() } )
 # 	return { 'state': 'success', 'tools': tools.to_json() }
 
 # # --- admin --- #
@@ -530,28 +529,28 @@ def romanescoinsCancel(request):
 # @ajax
 # def getWaitingTools(request):
 # 	if request.user.username != 'arthur.sw':
-# 		# return simplejson.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting tools.' } )
+# 		# return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting tools.' } )
 # 		return { 'state': 'error', 'message': 'You must be administrator to get the waiting tools.' }
 # 	tools = Tool.objects(accepted=False)
-# 	# return simplejson.dumps( { 'state': 'success', 'tools': tools.to_json() } )
+# 	# return json.dumps( { 'state': 'success', 'tools': tools.to_json() } )
 # 	return { 'state': 'success', 'tools': tools.to_json() }
 
 # #@dajaxice_register
 # @ajax
 # def acceptTool(request, name):
 # 	if request.user.username != 'arthur.sw':
-# 		# return simplejson.dumps( { 'state': 'error', 'message': 'You must be administrator to accept tools.' } )
+# 		# return json.dumps( { 'state': 'error', 'message': 'You must be administrator to accept tools.' } )
 # 		return { 'state': 'error', 'message': 'You must be administrator to accept tools.' }
 # 	try:
 # 		tool = Tool.objects.get(name=name)
 # 	except Tool.DoesNotExist:
-# 		# return simplejson.dumps( { 'state': 'success', 'message': 'New tool does not exist.' } )
+# 		# return json.dumps( { 'state': 'success', 'message': 'New tool does not exist.' } )
 # 		return { 'state': 'success', 'message': 'New tool does not exist.' }
 # 	if tool.originalName:
 # 		try:
 # 			originalTool = Tool.objects.get(name=tool.originalName)
 # 		except Tool.DoesNotExist:
-# 			# return simplejson.dumps( { 'state': 'success', 'message': 'Original tool does not exist.' } )
+# 			# return json.dumps( { 'state': 'success', 'message': 'Original tool does not exist.' } )
 # 			return { 'state': 'success', 'message': 'Original tool does not exist.' }
 # 		originalTool.source = tool.source
 # 		originalTool.compiledSource = tool.compiledSource
@@ -560,7 +559,7 @@ def romanescoinsCancel(request):
 # 	else:
 # 		tool.accepted = True
 # 		tool.save()
-# 	# return simplejson.dumps( { 'state': 'success' } )
+# 	# return json.dumps( { 'state': 'success' } )
 # 	return { 'state': 'success' }
 
 # # --- loadSite --- #
@@ -583,7 +582,7 @@ def romanescoinsCancel(request):
 	
 # 	if ipn_obj.payment_status == "Completed":
 
-# 		data = simplejson.loads(ipn_obj.custom)
+# 		data = json.loads(ipn_obj.custom)
 		
 # 		import pdb; pdb.set_trace()
 

@@ -31,24 +31,23 @@ this.initParameters = () ->
 		default: '0.0, 0.0'
 		permanent: true
 		onFinishChange: (value)->
-			g.moving = false
+			g.ignoreHashChange = false
 			location.hash = value
 			return
 	g.parameters.zoom = 
 		type: 'slider'
 		label: 'Zoom'
-		min: 10
-		max: 200
+		min: 1
+		max: 500
 		default: 100
 		permanent: true
 		onChange: (value)->
-			g.parameters.zoom.value = value
 			g.project.view.zoom = value/100.0
 			g.updateGrid()
 			for div in g.divs
 				div.updateTransform()
 			return
-		onFinishChange: (value) -> return g.load()
+		onFinishChange: (value) -> return g.quick_load()
 	g.parameters.displayGrid = 
 		type: 'checkbox'
 		label: 'Display grid'
@@ -298,23 +297,36 @@ this.initParameters = () ->
 	g.generalFolder = g.gui.addFolder('General')
 	controller = g.generalFolder.add({location: g.parameters.location.default}, 'location').name("Location").onFinishChange( g.parameters.location.onFinishChange )
 	g.parameters.location.controller = controller
-	g.generalFolder.add({zoom: 100}, 'zoom', 10, 200).name("Zoom").onChange( (value)->
-		g.project.view.zoom = value/100.0
-		g.updateGrid()
-		for div in g.divs
-			div.updateTransform()
-		return
-	).onFinishChange( (value) -> g.load() )
+	g.generalFolder.add({zoom: 100}, 'zoom', g.parameters.zoom.min, g.parameters.zoom.max).name("Zoom").onChange( g.parameters.zoom.onChange ).onFinishChange( g.parameters.zoom.onFinishChange )
 	g.generalFolder.add({displayGrid: g.parameters.displayGrid.default}, 'displayGrid', true).name("Display grid").onChange(g.parameters.displayGrid.onChange)
 	g.generalFolder.add({fastMode: g.parameters.fastMode.default}, 'fastMode', true).name("Fast mode").onChange(g.parameters.fastMode.onChange)
 	g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max).name(g.parameters.snap.label).onChange(g.parameters.snap.onChange)
-	$("#dat-gui").append(g.gui.domElement)
+	
+	g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement)
+	toggleGuiButtonJ = $(g.gui.domElement).find("button.dat-gui-toggle")
+
+	toggleGuiButtonJ.click ()->
+		parentJ = $(g.gui.domElement).parent()
+		if parentJ.hasClass("dg-sidebar")
+			$(".dat-gui.dg-right").append(g.gui.domElement)
+			localStorage.optionsBarPosition = 'right'
+		else if parentJ.hasClass("dg-right")
+			$(".dat-gui.dg-sidebar").append(g.gui.domElement)
+			localStorage.optionsBarPosition = 'sidebar'
+		return
+	
+	if localStorage.optionsBarPosition? and localStorage.optionsBarPosition == 'sidebar'
+		$(".dat-gui.dg-sidebar").append(g.gui.domElement)
+	else
+		$(".dat-gui.dg-right").append(g.gui.domElement)
+	
 	g.generalFolder.open()
 	g.gui.constructor.prototype.removeFolder = (name)->
 		this.__folders[name].close()
 		this.__ul.removeChild(this.__folders[name].domElement.parentElement)
 		delete this.__folders[name]
 		this.onResize()
+
 
 	# --- /DAT GUI --- #
 
@@ -453,11 +465,11 @@ this.setControllerValue = (controller, parameter, value, item, checked=false)->
 
 # doctodo: copy deault parameter doc here
 # add a controller to dat.gui (corresponding to a parameter, from a tool or an item)
-# @param [String] name of the parameter (short name without spaces, same as RItem.data[name] )
-# @param [Parameter] the parameter to add
-# @param [RItem] optional RItem, the controller will be initialized with *item.data* if any
-# @param [DatFolder] folder in which to add the controller
-# @param [resetValues] (optional) reset value to default (create a new default if parameter has a defaultFunction)
+# @param name [String] name of the parameter (short name without spaces, same as RItem.data[name] )
+# @param parameter [Parameter] the parameter to add
+# @param item [RItem] optional RItem, the controller will be initialized with *item.data* if any
+# @param datFolder [DatFolder] folder in which to add the controller
+# @param resetValues [Boolean] (optional) true if must reset value to default (create a new default if parameter has a defaultFunction)
 this.addItem = (name, parameter, item, datFolder, resetValues)->
 	
 	# intialize the default value
@@ -524,9 +536,32 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 			checkboxJ = $('<input type="checkbox">')
 			checkboxJ.insertBefore(inputJ)
 			checkboxJ[0].checked = if item? and datFolder.name != 'General' then item.data[name]? else parameter.defaultCheck
+			
+			# colorGUI = new dat.GUI({ autoPlace: false })
+			# color = :
+			# 	hue: 0
+			# 	saturation: 0
+			# 	lightness: 0
+			# 	red: 0
+			# 	green: 0
+			# 	blue: 0
+
+			# colorGUI.add(color, 'hue', 0, 1).onChange( (value)-> tinycolor.("hsv 0 1 1"))
+			# colorGUI.add(color, 'saturation', 0, 1)
+			# colorGUI.add(color, 'lightness', 0, 1)
+			# colorGUI.add(color, 'red', 0, 1)
+			# colorGUI.add(color, 'green', 0, 1)
+			# colorGUI.add(color, 'blue', 0, 1)
+
+			# $("body").appendChild(colorGUI.domElement)
+			# colorGuiJ = $(colorGUI.domElement)
+			# colorGuiJ.css( position: 'absolute', left: inputJ.offset().left, top: inputJ.offset().top )
+
 			colorPicker = inputJ.ColorPickerSliders({
 				title: parameter.label,
-				placement: 'right',
+				placement: 'left',
+				size: 'sm',
+				# hsvpanel: true
 				color: tinycolor(if value? then value else parameter.default).toRgbString(),
 				order: {
 					hsl: 1,
@@ -546,16 +581,28 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 				},
 				customswatches: "different-swatches-groupname",
 				swatches: ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5' ],
-				onchange: (container, color) -> 
+				onchange: (container, color) ->
 					parameter.onChange(color.tiny.toRgbString())
 					checkboxJ[0].checked = true
-			})
+			}).click ()->
+				guiJ = $(g.gui.domElement)
+				colorPickerPopoverJ = $(".cp-popover-container .popover")
+				if guiJ.parent().hasClass("dg-sidebar")
+					position = guiJ.offset().left + guiJ.outerWidth()
+					colorPickerPopoverJ.css( left: position )
+					colorPickerPopoverJ.removeClass("left").addClass("right")
+					# $(".cp-popover-container .arrow").hide()
+				else
+					position = guiJ.offset().left - colorPickerPopoverJ.width()
+					colorPickerPopoverJ.css( left: position )
+				return
 			checkboxJ.change ()-> if this.checked then parameter.onChange(colorPicker.val()) else parameter.onChange(null)
 			datFolder.__controllers[datFolder.__controllers.length-1].rValue = () -> return if checkboxJ[0].checked then colorPicker.val() else null
 			controller.rSetValue = (value, item, checked)-> 
 				if checked
 					if value? then colorPicker.trigger("colorpickersliders.updateColor", value)
 				checkboxJ[0].checked = checked
+				return
 		when 'slider', 'checkbox', 'dropdown', 'button', 'button-group', 'radio-button-group', 'input', 'input-typeahead'		# create any other controller
 			obj[name] = value
 			firstOptionalParameter = if parameter.min? then parameter.min else parameter.values
@@ -573,8 +620,8 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 	return
 
 # update parameters according to the selected tool or items
-# @param [{ tool: RTool constructor, item: RItem } or Array of { tool: RTool constructor, item: RItem }] list of tools from which controllers will be created or updated
-# @param [Boolean] reset controller values or let them untouched (values must be reset when selecting a new tool, but not when creating another similar shape... this must be improved)
+# @param tools [{ tool: RTool constructor, item: RItem } or Array of { tool: RTool constructor, item: RItem }] list of tools from which controllers will be created or updated
+# @param resetValues [Boolean] true to reset controller values, false to let them untouched (values must be reset when selecting a new tool, but not when creating another similar shape... this must be improved)
 this.updateParameters = (tools, resetValues=false)->
 	
 	# add every controllers in g.unusedControllers (we will potentially remove them all)
@@ -608,10 +655,11 @@ this.updateParameters = (tools, resetValues=false)->
 				if folder.__controllers.length==0
 					g.gui.removeFolder(folderName)
 
-	# refresh dat.gui size and visibility in 500 milliseconds, (to fix a bug: sometimes dat.gui is too small, with a scrollbar or is not visible)
-	setTimeout( ()->
-		$(g.gui.domElement).find("ul:first").css( 'height': 'initial' )
-		$(g.gui.domElement).css( 'opacity': 1, 'z-index': 'auto' )
-	,
-	500)
+	# if dat.gui is in sidebar refresh its size and visibility in 500 milliseconds, (to fix a bug: sometimes dat.gui is too small, with a scrollbar or is not visible)
+	if $(g.gui.domElement).parent().hasClass('dg-sidebar')
+		setTimeout( ()->
+			$(g.gui.domElement).find("ul:first").css( 'height': 'initial' )
+			$(g.gui.domElement).css( 'opacity': 1, 'z-index': 'auto' )
+		,
+		500)
 	return

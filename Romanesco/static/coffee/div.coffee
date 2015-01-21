@@ -21,12 +21,12 @@ class RDiv
 	@object_type = 'div' 					# string describing the type of RDiv (can be 'lock', 'link', 'website', 'video-game', 'text', 'media')
 	@modalJ = $('#divModal') 				# initialize the modal jQuery element
 	@modalJ.on('shown.bs.modal', (event)=> @modalJ.find('input.form-control:visible:first').focus() ) 	# focus on the first visible element when the modal shows up
-	@modalJ.find('.submit-shortcut').keypress( (event) => 		# submit modal when enter is pressed
+	@modalJ.find('.submit-shortcut').keypress( (event) => 				# submit modal when enter is pressed
 		if event.which == 13 	# enter key
 			event.preventDefault()
 			@modalSubmit()
 	)
-	@modalJ.find('.btn-primary').click( (event)=> @modalSubmit()	) # submit modal when click submit button
+	@modalJ.find('.btn-primary').click( (event)=> @modalSubmit() ) 		# submit modal when click submit button
 
 	# parameters are defined as in {RTool}
 	@parameters: ()->
@@ -85,16 +85,16 @@ class RDiv
 			return
 		switch object_type
 			when 'text', 'media'
-				# ajaxPost '/saveDiv', { 'box': @boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk }, @save_callback
-				Dajaxice.draw.saveDiv( @save_callback, { 'box': @boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk } )
+				# ajaxPost '/saveDiv', { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk }, @save_callback
+				Dajaxice.draw.saveDiv( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk, 'areas': @getAreas() } )
 			else
-				# ajaxPost '/saveBox', { 'box': @boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar }, @save_callback
-				Dajaxice.draw.saveBox( @save_callback, { 'box': @boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar } )
+				# ajaxPost '/saveBox', { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar }, @save_callback
+				Dajaxice.draw.saveBox( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar, 'areas': @getAreas() } )
 
 		# if object_type == 'text' or object_type == 'media'
-		# 	Dajaxice.draw.saveDiv( @save_callback, { 'box': @boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk } )
+		# 	Dajaxice.draw.saveDiv( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk } )
 		# else if object_type == 'lock' or object_type == 'link'
-		# 	Dajaxice.draw.saveBox( @save_callback, { 'box': @boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar } )
+		# 	Dajaxice.draw.saveBox( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar } )
 		return
 
 	# save callback: check for errors and create div if success
@@ -190,26 +190,6 @@ class RDiv
 			@save(@modalJ.rectangle, object_type, message, name, url, false, website, restrictedArea, disableToolbar)
 		@modalJ.modal('hide')
 		return
-
-	# get a GeoJson valid box in planet coordinates from *rectangle* 
-	# @param rectangle [Paper Rectangle] the rectangle to convert
-	# @return [{ points:Array<Array<2 Numbers>>, planet: Object, tl: Point, br: Point }]
-	@boxFromRectangle: (rectangle)->
-		# remove margin to ignore intersections of paths which are close to the edges
-
-		planet = pointToObj( projectToPlanet(rectangle.topLeft) )
-
-		tlOnPlanet = projectToPosOnPlanet(rectangle.topLeft, planet)
-		brOnPlanet = projectToPosOnPlanet(rectangle.bottomRight, planet)
-
-		points = []
-		points.push(pointToArray(tlOnPlanet))
-		points.push(pointToArray(projectToPosOnPlanet(rectangle.topRight, planet)))
-		points.push(pointToArray(brOnPlanet))
-		points.push(pointToArray(projectToPosOnPlanet(rectangle.bottomLeft, planet)))
-		points.push(pointToArray(tlOnPlanet))
-
-		return { points:points, planet: pointToObj(planet), tl: tlOnPlanet, br: brOnPlanet }
 
 	# test if the box overlaps two planets
 	# @param box [Paper Rectangle] the box to test
@@ -319,6 +299,21 @@ class RDiv
 	# return [Rectangle] the bounds of the RDiv
 	getBounds: ()->
 		return new Rectangle(@position.x, @position.y, @divJ.outerWidth(), @divJ.outerHeight())
+
+	# common to all RItems
+	# @return [Array<{x: x, y: y}>] the list of areas on which the item lies
+	getAreas: ()->
+		bounds = @getBounds()
+		t = Math.floor(bounds.top / g.scale)
+		l = Math.floor(bounds.left / g.scale)
+		b = Math.floor(bounds.bottom / g.scale)
+		r = Math.floor(bounds.right / g.scale)
+		areas = {}
+		for x in [l .. r]
+			for y in [t .. b]
+				areas[x] ?= {}
+				areas[x][y] = true
+		return areas
 
 	# common to all RItems
 	# move the RDiv to *position* and update if *userAction*
@@ -583,12 +578,13 @@ class RDiv
 		
 		# intiialize data to be saved
 		data = 
-			box: @constructor.boxFromRectangle(new Rectangle(tl,br))
+			box: g.boxFromRectangle(new Rectangle(tl,br))
 			pk: @pk
 			object_type: @object_type
 			message: @message
 			url: @url
 			data: @getStringifiedData()
+			areas: @getAreas()
 
 		@changed = null
 		
@@ -690,7 +686,7 @@ class RSelectionRectangle extends RDiv
 	# create the div and add a "Take snapshot" button
 	constructor: (@rectangle, handler) ->
 		g.tools['Select'].select()
-		super(rectangle.topLeft, rectangle.size)
+		super(rectangle.topLeft, rectangle.size.multiply(1*view.zoom))
 		@divJ.addClass("selection-rectangle")
 		@buttonJ = $("<button>")
 		@buttonJ.text("Take snapshot")
@@ -700,11 +696,11 @@ class RSelectionRectangle extends RDiv
 		return
 
 	# update the div transformation, without taking the zoom into account
-	updateTransform: ()->
-		viewPos = view.projectToView(@position)
-		css = 'translate(' + viewPos.x + 'px,' + viewPos.y + 'px)'
-		@divJ.css( 'transform': css )
-		return
+	# updateTransform: ()->
+	# 	viewPos = view.projectToView(@position)
+	# 	css = 'translate(' + viewPos.x + 'px,' + viewPos.y + 'px)'
+	# 	@divJ.css( 'transform': css )
+	# 	return
 
 	# deselect the div: remove it
 	deselect: ()->
@@ -721,7 +717,7 @@ class RSelectionRectangle extends RDiv
 
 # RLock are locked area which can only be modified by their author 
 # all RItems on the area are also locked, and can be unlocked if the user drags them outside the div
-#
+
 # There are different RLocks:
 # - RLock: a simple RLock which just locks the area and the items underneath, and displays a popover with a message when the user clicks on it
 # - RLink: extends RLock but works as a link: the one who clicks on it is redirected to the website
@@ -732,12 +728,13 @@ class RSelectionRectangle extends RDiv
 #    - the tool bar will be hidden to users navigating to site with the "hide toolbar" option
 # - RVideogame:
 #    - a video game is an area which can interact with other RItems (very experimental)
-#    - video games are always loaded entirely (the whole area is loaded at the same time with its items)
-#
+#    - video games are always loaded entirely (the whole area is loaded at once with its items)
+
 # an RLock can be set in background mode ({RLock#updateBackgroundMode}):
 # - this hide the jQuery div and display a equivalent rectangle on the paper project instead (named controlPath in the code)
 # - it is usefull to add and edit items on the area
 #
+
 class RLock extends RDiv
 
 	@modalTitle = "Lock an area"
@@ -773,6 +770,8 @@ class RLock extends RDiv
 				@modalJ.find('.url-name-group').show()
 				@modalJ.find('.name-group').hide()
 				@modalJ.find('.url-group').show()
+				@modalJ.find('.url-group label').text("URL")
+				@modalJ.find('.url-group input').attr("placeholder", "http://")
 				@modalJ.find('.message-group').show()
 				cost = area
 			when 'website'
@@ -1076,6 +1075,17 @@ class RLink extends RLock
 		@divJ.addClass("link")
 		@setPopover()
 		@linkJ = $('<a href="' + @url + '"></a>')
+		@linkJ.click (event)=>
+			if @linkJ.attr("href").indexOf("http://romanesc.co/#") == 0
+				location = @linkJ.attr("href").replace("http://romanesc.co/#", "")
+				pos = location.split(',')
+				p = new Point()
+				p.x = parseFloat(pos[0])
+				p.y = parseFloat(pos[1])
+				g.RMoveTo(p, 1000)
+				event.preventDefault()
+				return false
+			return
 		@contentJ.append(@linkJ)
 		return
 
@@ -1506,10 +1516,15 @@ class RMedia extends RDiv
 				type: 'input'
 				label: 'URL'
 				default: 'http://'
-				onChange: ()-> RMedia.selectedDivs = g.selectedDivs 	# onFinishChange is called on blur (focus out), it is a problem when user selects url input
-																	# in the sidebar and then select another RMedia 
-																	# (since it would call urlChanged on the newly selected RMedia since blur and g.selectedDiv is new)
-				onFinishChange: (value)-> selectedDiv?.urlChanged(value, true) for selectedDiv in RMedia.selectedDivs
+				onChange: ()-> 
+					# onFinishChange is called on blur (focus out), it is a problem when user selects url input
+					# in the sidebar and then select another RMedia 
+					# (since it would call urlChanged on the newly selected RMedia since blur and g.selectedDiv is new)
+					RMedia.selectedDivs = g.selectedDivs
+					return
+				onFinishChange: (value)-> 
+					selectedDiv?.urlChanged(value, true) for selectedDiv in RMedia.selectedDivs
+					return
 			fitImage:
 				type: 'checkbox'
 				label: 'Fit image'
@@ -1522,6 +1537,8 @@ class RMedia extends RDiv
 		@modalJ.find('.url-name-group').hide()
 		@modalJ.find('.name-group').hide()
 		@modalJ.find('.url-group').show()
+		@modalJ.find('.url-group label').text("URL or <iframe>")
+		@modalJ.find('.url-group input').attr("placeholder", "http:// or <iframe>")
 		@modalJ.find('.message-group').hide()
 		@modalJ.find('#divModalTypeSelector').hide()
 		@modalJ.find('.checkbox.restrict-area').hide()
@@ -1588,6 +1605,7 @@ class RMedia extends RDiv
 			when 'fitImage'
 				@toggleFitImage()
 		super(update)
+		return
 
 	# return [Boolean] true if the url ends with an image extension: "jpeg", "jpg", "gif" or "png" 
 	hasImageUrlExt: (url)->
@@ -1665,7 +1683,7 @@ class RMedia extends RDiv
 
 		# websocket urlchange
 		if updateDiv
-			if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
+			# if g.me? then g.chatSocket.emit( "parameter change", g.me, @pk, "url", @url ) # will not work unless url is in @data.url
 			@update()
 		return
 

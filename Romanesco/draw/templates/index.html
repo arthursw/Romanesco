@@ -121,6 +121,7 @@
           </ul>
         </div> -->
         <div id="fb-root"></div>
+        <!-- Sidebar -->
         <div id="sidebar" class="sidebar">
           
           <button type="button" class="sidebar-handle btn btn-default">
@@ -250,9 +251,9 @@
                     <div class="panel-body">
 
                       <ul id="sortable2" class="favorite-tool-list tool-list connectedSortable">
-                        <li data-type="Precise path" class="tool-btn"><img src="{% static 'images/icons/inverted/editCurve.png' %}" alt="editCurve"></li>
+                        <!-- <li data-type="Precise path" class="tool-btn"><img src="{% static 'images/icons/inverted/editCurve.png' %}" alt="editCurve"></li>
                         <li data-type="Rectangle" data-cursor="rectangle" class="tool-btn"><img src="{% static 'images/icons/inverted/rectangle.png' %}" alt="rectangle"></li>
-                        <li data-type="Spiral" data-cursor="spiral" class="tool-btn"><img src="{% static 'images/icons/inverted/spiral.png' %}" alt="spiral"></li>
+                        <li data-type="Spiral" data-cursor="spiral" class="tool-btn"><img src="{% static 'images/icons/inverted/spiral.png' %}" alt="spiral"></li> -->
                         <!-- <li data-type="Checkpoint"><span class="short-name">Ch.</span><span class="tool-name">Checkpoint</span></li> -->
                       </ul>
 
@@ -281,15 +282,12 @@
                         </div>
                       </div>
 
-                      </ul>
-
                     </div>
                   </div>
                   
                 </div>
 
-
-                <div id="dat-gui"></div>
+                <div class="dat-gui dg-sidebar"></div>
 
                 <div class="panel panel-default in last-panel">
                   <div class="panel-heading">
@@ -319,7 +317,8 @@
                               </ul>
                             </div> -->
 
-                          <p>Sign in or choose a user name</p>
+                          <p class="default-username-message"></p>
+                          <p><a class="sign-in" href="">Sign in</a> or <a class="change-username" href="">choose another user name</a></p>
 
                           <div id="chatUserName" class="input-group romanesco-ui">
                             <input id="chatUserNameInput" type="text" class="form-control" placeholder="Username">
@@ -338,8 +337,8 @@
                         <p id="chatConnectingMessage">Connecting...</p>
 
                         <div id="messages">
-                          <div id="chatRoom"><span>Room:</span></div>
-                          <div id="chatUserNames"><span>Online:</span></div>
+                          <p id="chatRoom"><span>Room:</span></p>
+                          <p id="chatUserNames"><span>Online:</span></p>
                           <div id="chatMessagesScroll" class="mCustomScrollbar"><div id="chatMessages" class=""></div></div>
                         </div>
 
@@ -362,7 +361,9 @@
             </div> <!-- /mCustomScrollbar -->
           </div> <!-- /item-list -->
 
-        </div>
+        </div> <!-- / Sidebar -->
+
+        <div class="dat-gui dg-right"></div>
 
         <div id="stage" class="main">
           <div class="hidden lock-separator video-game-separator website-separator"></div>
@@ -494,7 +495,7 @@
 
                 <div class="form-group url-group">
                   <label for="divModalURL">URL</label>
-                  <input id="divModalURL" type="url" class="url form-control submit-shortcut" placeholder="http://">
+                  <input id="divModalURL" type="url" class="url form-control submit-shortcut" placeholder="http:// or <iframe>">
                 </div>
                 
                 <div class="form-group message-group">
@@ -586,7 +587,7 @@
                 </div>
                 <div class="form-group url-name-group">
                   <label for="screenshotModalDescription">Description (Optional)</label>
-                  <input id="screenshotModalDescription" type="text" class="form-control" name="message"placeholder="Artwork made in Romanesco">
+                  <input id="screenshotModalDescription" type="text" class="form-control" name="message"placeholder="Artwork made with Romanesco">
                 </div>
               </div>
               <div class="modal-footer">
@@ -604,8 +605,6 @@
         </div> <!-- /Input div modal -->
 
         <!-- Custom modal -->
-
-      </div><!-- /Modals -->
         <div class="modal fade" id="customModal" tabindex="-1" role="dialog" aria-labelledby="customModalLabel" aria-hidden="true">
           <div class="modal-dialog">
             <div class="modal-content">
@@ -623,6 +622,8 @@
           </div>
         </div> <!-- /Custom modal -->
 
+      </div><!-- /Modals -->
+
 
       <div class="hidden">
         
@@ -635,6 +636,8 @@
         </div>
 
         <div class="lock-content content" data-toggle="popover" data-container="body"></div>
+        
+        <button class="dat-gui-toggle" type="button"> <span class="glyphicon glyphicon-transfer" aria-hidden="true"></span></button>
 
         <div class="slider-group">
           <label for="" class="slider"></label>
@@ -714,7 +717,8 @@
     <script src="{% static 'libs/socket.io.js' %}"></script>
     <script>WEB_SOCKET_SWF_LOCATION="{{ STATIC_URL }}flashsocket/WebSocketMain.swf"; window.room = "0";</script>
     <script src="{% static 'libs/bootstrap/js/bootstrap.min.js' %}"></script>
-    <script src="{% static 'libs/tinycolor.js' %}"></script>
+    <script src="{% static 'libs/tinycolor.js' %}"></script> -->
+    <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/tinycolor/0.11.1/tinycolor.min.js"></script> -->
     <script src="{% static 'libs/bootstrap-colorpickersliders/bootstrap.colorpickersliders.nocielch.js' %}"></script>
     <script src="{% static 'libs/bootstrap-slider.js' %}"></script>
     <script src="{% static 'libs/dat.gui.js' %}"></script>
@@ -727,12 +731,22 @@
     <script src="{% static 'libs/typeahead.bundle.min.js' %}"></script>
 
     <script src="{% static 'libs/coffee-script.js' %}"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/ace/1.1.3/ace.js"></script>
+    <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/ace/1.1.3/ace.js"></script> -->
+    <script src="{% static 'libs/ace/src-min-noconflict/ace.js' %}"></script>
     <script src="{% static 'libs/ZeroClipboard/ZeroClipboard.js' %}"></script>
     <!-- <script src="{% static 'libs/howler.min.js' %}"></script> -->
-    <script src="{% static 'libs/howler.js' %}"></script>
+    <!-- <script src="{% static 'libs/howler.js' %}"></script> -->
 
     <script type="text/javascript" async defer src="//assets.pinterest.com/js/pinit.js"></script>
+    
+    <!--    
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/1.15.0/plugins/CSSPlugin.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/1.15.0/easing/EasePack.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/1.15.0/TweenLite.min.js"></script>
+    -->
+
+    <script src="{% static 'libs/RequestAnimationFrame.js' %}"></script>
+    <script src="{% static 'libs/tween.min.js' %}"></script>
     
 
     <!-- <script src="{% static 'libs/soundjs-0.5.2.min.js' %}"></script> -->
@@ -747,6 +761,8 @@
 
     
     <!-- app scripts -->
+    <!-- <script id="pathSources" src="{% static 'coffee/path.coffee' %}"></script> -->
+
     <script src="{% static 'js/facebook.js' %}"></script>
     <script src="{% static 'js/utils.js' %}"></script>
     <script src="{% static 'js/coordinateSystems.js' %}"></script>

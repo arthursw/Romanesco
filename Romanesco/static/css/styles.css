@@ -11,7 +11,7 @@ body {
   background-color: #33383e;
   color: white;
   text-align: left;
-  z-index: 100;
+  z-index: 1002;
   -webkit-transition: left 0.5s ease-out, top 0.25s linear;
   -khtml-transition: left 0.5s ease-out, top 0.25s linear;
   -moz-transition: left 0.5s ease-out, top 0.25s linear;
@@ -533,7 +533,7 @@ body {
 }
 .sidebar #mCSB_1_container {
   margin-left: 4px;
-  margin-right: -4px;
+  margin-right: 10px;
 }
 .sidebar #mCSB_1_scrollbar_vertical {
   width: 5px;
@@ -639,90 +639,6 @@ body {
   position: relative;
   margin-right: 5px;
 }
-.sidebar .dg.main {
-  position: relative;
-  float: left;
-  width: 100%;
-  background-color: #33383e;
-}
-.sidebar .dg.main .dg .c input,
-.sidebar .dg.main .dg .c button,
-.sidebar .dg.main .dg .c select,
-.sidebar .dg.main .dg .c textarea {
-  color: #eee;
-  font: 11px 'Lucida Grande', sans-serif;
-  text-shadow: 0 -1px 0 #111111;
-  background-color: #24282d;
-}
-.sidebar .dg.main select,
-.sidebar .dg.main .btn {
-  text-shadow: none;
-}
-.sidebar .dg.main input[type=checkbox] {
-  margin-top: 7px;
-}
-.sidebar .dg.main .dg .c input.color-input {
-  width: 87%;
-  text-shadow: none;
-  color: white;
-}
-.sidebar .dg.main .close-button {
-  position: relative;
-  display: none;
-}
-.sidebar .dg.main .dg li {
-  background-color: #33383e;
-}
-.sidebar .dg.main .dg li.title {
-  background-color: #24282d;
-}
-.sidebar .dg.main .dg li .slider {
-  background-color: #24282d;
-}
-.sidebar .dg.main #fontStyle,
-.sidebar .dg.main #textAlign {
-  vertical-align: top;
-  top: 1px;
-}
-.sidebar .dg.main #fontStyle .btn,
-.sidebar .dg.main #textAlign .btn {
-  background-color: #24282d;
-  color: #fff;
-  text-shadow: none;
-}
-.sidebar .dg.main #fontStyle .btn img,
-.sidebar .dg.main #textAlign .btn img {
-  top: 0px;
-}
-.sidebar .dg.main #fontStyle .btn:hover,
-.sidebar .dg.main #textAlign .btn:hover {
-  background-color: #2fa1d6;
-}
-.sidebar .dg.main #fontStyle .btn:active,
-.sidebar .dg.main #textAlign .btn:active {
-  background-color: #2fa1d6;
-}
-.sidebar .dg.main #fontStyle .btn.active,
-.sidebar .dg.main #textAlign .btn.active {
-  background-color: #2fa1d6;
-}
-.sidebar .dg.main #fontStyle button,
-.sidebar .dg.main #textAlign button {
-  height: 22px;
-}
-.sidebar .dg.main .btn-group-xs button {
-  width: 22px;
-  padding: 0;
-}
-.sidebar .dg.main .btn-group-xs button img {
-  width: 20px;
-  height: 20px;
-  margin-top: -1px;
-}
-.sidebar .dg.main .align-btn-group {
-  margin-top: -5px;
-  border-color: #575757;
-}
 .sidebar .panel .panel-heading {
   padding: 2px;
 }
@@ -797,7 +713,7 @@ body {
 .sidebar .romanesco-ui.open button,
 .sidebar .romanesco-ui .dropdown-menu,
 .sidebar .romanesco-ui.open .dropdown-menu {
-  background: #33383e;
+  background: transparent;
   border-radius: 0;
   color: #eeeeee;
   border-color: rgba(255, 255, 255, 0.2);
@@ -943,6 +859,115 @@ body {
 .sidebar #user-login-group .dropdown-menu li > a:hover {
   background-color: #2fa1d6;
 }
+.modal-footer {
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+.modal-footer .btn + .btn,
+.modal-footer .btn {
+  margin-top: 0;
+}
+.dat-gui.dg-right {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 1001;
+}
+.dat-gui .dat-gui-toggle {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  height: 21px;
+  color: white;
+  background-color: black;
+  border: none;
+  border-radius: 0;
+}
+.dat-gui .dg.main {
+  position: relative;
+  float: left;
+  width: 100%;
+  background-color: #33383e;
+  margin-right: 0;
+}
+.dat-gui .dg.main .dg .c input,
+.dat-gui .dg.main .dg .c button,
+.dat-gui .dg.main .dg .c select,
+.dat-gui .dg.main .dg .c textarea {
+  color: #eee;
+  font: 11px 'Lucida Grande', sans-serif;
+  text-shadow: 0 -1px 0 #111111;
+  background-color: #24282d;
+}
+.dat-gui .dg.main select,
+.dat-gui .dg.main .btn {
+  text-shadow: none;
+}
+.dat-gui .dg.main input[type=checkbox] {
+  margin-top: 7px;
+}
+.dat-gui .dg.main .dg .c input.color-input {
+  width: 87%;
+  text-shadow: none;
+  color: white;
+}
+.dat-gui .dg.main .close-button {
+  position: relative;
+  display: none;
+}
+.dat-gui .dg.main .dg li {
+  background-color: #33383e;
+}
+.dat-gui .dg.main .dg li.title {
+  background-color: #24282d;
+}
+.dat-gui .dg.main .dg li .slider {
+  background-color: #24282d;
+}
+.dat-gui .dg.main #fontStyle,
+.dat-gui .dg.main #textAlign {
+  vertical-align: top;
+  top: 1px;
+}
+.dat-gui .dg.main #fontStyle .btn,
+.dat-gui .dg.main #textAlign .btn {
+  background-color: #24282d;
+  color: #fff;
+  text-shadow: none;
+}
+.dat-gui .dg.main #fontStyle .btn img,
+.dat-gui .dg.main #textAlign .btn img {
+  top: 0px;
+}
+.dat-gui .dg.main #fontStyle .btn:hover,
+.dat-gui .dg.main #textAlign .btn:hover {
+  background-color: #2fa1d6;
+}
+.dat-gui .dg.main #fontStyle .btn:active,
+.dat-gui .dg.main #textAlign .btn:active {
+  background-color: #2fa1d6;
+}
+.dat-gui .dg.main #fontStyle .btn.active,
+.dat-gui .dg.main #textAlign .btn.active {
+  background-color: #2fa1d6;
+}
+.dat-gui .dg.main #fontStyle button,
+.dat-gui .dg.main #textAlign button {
+  height: 22px;
+}
+.dat-gui .dg.main .btn-group-xs button {
+  width: 22px;
+  padding: 0;
+}
+.dat-gui .dg.main .btn-group-xs button img {
+  width: 20px;
+  height: 20px;
+  margin-top: -1px;
+}
+.dat-gui .dg.main .align-btn-group {
+  margin-top: -5px;
+  border-color: #575757;
+}
 .item-list {
   position: absolute;
   top: 75px;
@@ -963,10 +988,6 @@ body {
 #urlModal .modal-footer {
   margin-top: 0;
 }
-.container-fluid div.item,
-#stage div.item {
-  z-index: 1001;
-}
 #codeEditor {
   right: 50%;
   position: absolute;
@@ -986,6 +1007,8 @@ body {
 }
 #codeEditor .source-selector {
   margin-right: 10px;
+  width: inherit;
+  max-width: 100%;
 }
 #codeEditor .handle {
   position: absolute;
@@ -1051,8 +1074,8 @@ body {
 #codeEditor button.close {
   float: right;
   position: relative;
-  top: 5px;
-  right: 5px;
+  top: -3px;
+  right: 0px;
   color: white;
   opacity: 1;
   background-color: rgba(0, 0, 0, 0.6);

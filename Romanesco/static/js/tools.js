@@ -80,6 +80,7 @@
         popoverOptions.content = description;
       }
       this.btnJ.popover(popoverOptions);
+      return;
     }
 
     RTool.prototype.description = function() {
@@ -139,11 +140,12 @@
 
     function CodeTool() {
       CodeTool.__super__.constructor.call(this, "Script");
+      return;
     }
 
     CodeTool.prototype.select = function() {
       CodeTool.__super__.select.call(this);
-      return g.toolEditor();
+      g.toolEditor();
     };
 
     return CodeTool;
@@ -165,19 +167,18 @@
         y: 0
       };
       this.dragging = false;
+      return;
     }
 
     MoveTool.prototype.select = function() {
-      var div, _i, _len, _ref, _results;
+      var div, _i, _len, _ref;
       MoveTool.__super__.select.call(this);
       g.stageJ.addClass("moveTool");
       _ref = g.divs;
-      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         div = _ref[_i];
-        _results.push(div.disableInteraction());
+        div.disableInteraction();
       }
-      return _results;
     };
 
     MoveTool.prototype.deselect = function() {
@@ -269,10 +270,8 @@
     };
 
     function CarTool() {
-      CarTool.__super__.constructor.call(this, "Car", {
-        x: 0,
-        y: 0
-      }, "none");
+      CarTool.__super__.constructor.call(this, "Car");
+      return;
     }
 
     CarTool.prototype.select = function() {
@@ -372,18 +371,20 @@
       handles: true,
       segments: true,
       curves: true,
+      selected: true,
       tolerance: 5
     };
 
     function SelectTool() {
       SelectTool.__super__.constructor.call(this, "Select");
       this.selectedItem = null;
+      return;
     }
 
     SelectTool.prototype.select = function() {
       var _ref;
       this.selectedItem = g.selectedItems().first();
-      return SelectTool.__super__.select.call(this, ((_ref = this.selectedItem) != null ? _ref.constructor : void 0) || this.constructor, this.selectedItem);
+      SelectTool.__super__.select.call(this, ((_ref = this.selectedItem) != null ? _ref.constructor : void 0) || this.constructor, this.selectedItem);
     };
 
     SelectTool.prototype.createSelectionRectangle = function(event) {
@@ -434,10 +435,12 @@
             }
           }
         }
-        return typeof (_base = hitResult.item.controller).selectBegin === "function" ? _base.selectBegin(event) : void 0;
+        if (typeof (_base = hitResult.item.controller).selectBegin === "function") {
+          _base.selectBegin(event);
+        }
       } else {
         this.removeSelectionGroup();
-        return this.createSelectionRectangle(event);
+        this.createSelectionRectangle(event);
       }
     };
 
@@ -475,6 +478,9 @@
           if (item.getBounds().intersects(rectangle)) {
             item.select(false);
             itemsToSelect.push(item);
+          }
+          if (rectangle.area === 0) {
+            break;
           }
         }
         itemsToSelect = itemsToSelect.map(function(item) {
@@ -541,6 +547,9 @@
           }
           shortNameJ = $('<span class="short-name">').text(name + ".");
           this.btnJ.append(shortNameJ);
+        }
+        if (this.name === 'Precise path') {
+          this.RPath.iconUrl = null;
         }
         favorite = justCreated | ((_ref = g.favoriteTools) != null ? _ref.indexOf(this.name) : void 0) >= 0;
         if (favorite) {
@@ -668,10 +677,11 @@
         x: 24,
         y: 0
       }, "crosshair");
+      return;
     }
 
     DivTool.prototype.select = function() {
-      return DivTool.__super__.select.call(this, this.RDiv);
+      DivTool.__super__.select.call(this, this.RDiv);
     };
 
     DivTool.prototype.begin = function(event, from) {
@@ -685,7 +695,7 @@
       g.currentPaths[from].dashArray = [4, 10];
       g.currentPaths[from].strokeColor = 'black';
       if ((g.me != null) && from === g.me) {
-        return g.chatSocket.emit("begin", g.me, g.eventToObject(event), this.name, g.currentPaths[from].data);
+        g.chatSocket.emit("begin", g.me, g.eventToObject(event), this.name, g.currentPaths[from].data);
       }
     };
 
@@ -699,7 +709,7 @@
       g.currentPaths[from].segments[1].point.x = point.x;
       g.currentPaths[from].segments[3].point.y = point.y;
       if ((g.me != null) && from === g.me) {
-        return g.chatSocket.emit("update", g.me, point, this.name);
+        g.chatSocket.emit("update", g.me, point, this.name);
       }
     };
 
@@ -743,6 +753,7 @@
     function LockTool() {
       LockTool.__super__.constructor.call(this, "Lock", RLock);
       this.textItem = null;
+      return;
     }
 
     LockTool.prototype.update = function(event, from) {
@@ -759,7 +770,7 @@
       this.textItem.justification = 'right';
       this.textItem.fillColor = 'black';
       this.textItem.content = '' + cost + ' romanescoins';
-      return LockTool.__super__.update.call(this, event, from);
+      LockTool.__super__.update.call(this, event, from);
     };
 
     LockTool.prototype.end = function(event, from) {
@@ -772,7 +783,7 @@
       }
       if (LockTool.__super__.end.call(this, event, from)) {
         RLock.initModal(g.currentPaths[from].bounds);
-        return delete g.currentPaths[from];
+        delete g.currentPaths[from];
       }
     };
 
@@ -787,6 +798,7 @@
 
     function TextTool() {
       TextTool.__super__.constructor.call(this, "Text", RText);
+      return;
     }
 
     TextTool.prototype.end = function(event, from) {
@@ -795,7 +807,7 @@
       }
       if (TextTool.__super__.end.call(this, event, from)) {
         RText.save(g.currentPaths[from].bounds, "text");
-        return delete g.currentPaths[from];
+        delete g.currentPaths[from];
       }
     };
 
@@ -810,6 +822,7 @@
 
     function MediaTool() {
       MediaTool.__super__.constructor.call(this, "Media", RMedia);
+      return;
     }
 
     MediaTool.prototype.end = function(event, from) {
@@ -818,7 +831,7 @@
       }
       if (MediaTool.__super__.end.call(this, event, from)) {
         RMedia.initModal(g.currentPaths[from].bounds);
-        return delete g.currentPaths[from];
+        delete g.currentPaths[from];
       }
     };
 
@@ -879,34 +892,40 @@
         };
       })(this));
       ZeroClipboard.config({
-        swfPath: "http://127.0.0.1:8000/static/libs/ZeroClipboard/ZeroClipboard.swf"
+        swfPath: g.romanescoURL + "/static/libs/ZeroClipboard/ZeroClipboard.swf"
       });
+      return;
     }
 
     ScreenshotTool.prototype.getDescription = function() {
       if (this.descriptionJ.val().length > 0) {
         return this.descriptionJ.val();
       } else {
-        return "Artwork made in Romanesco";
+        return "Artwork made with Romanesco: " + this.locationURL;
       }
     };
 
     ScreenshotTool.prototype.begin = function(event) {
+      var from;
+      from = g.me;
       g.currentPaths[from] = new Path.Rectangle(event.point, event.point);
       g.currentPaths[from].name = 'screenshot tool selection rectangle';
       g.currentPaths[from].dashArray = [4, 10];
       g.currentPaths[from].strokeColor = 'black';
-      return g.currentPaths[from].strokeWidth = 1;
+      g.currentPaths[from].strokeWidth = 1;
     };
 
     ScreenshotTool.prototype.update = function(event) {
+      var from;
+      from = g.me;
       g.currentPaths[from].lastSegment.point = event.point;
       g.currentPaths[from].lastSegment.next.point.y = event.point.y;
-      return g.currentPaths[from].lastSegment.previous.point.x = event.point.x;
+      g.currentPaths[from].lastSegment.previous.point.x = event.point.x;
     };
 
     ScreenshotTool.prototype.end = function(event) {
-      var r;
+      var from, r;
+      from = g.me;
       g.currentPaths[from].remove();
       delete g.currentPaths[from];
       g.view.draw();
@@ -918,16 +937,12 @@
     };
 
     ScreenshotTool.prototype.extractImage = function() {
-      var canvasTemp, contextTemp, copyDataBtnJ, imgJ, maxHeight, twitterLinkJ, twitterScriptJ, viewRectangle;
+      var copyDataBtnJ, imgJ, maxHeight, twitterLinkJ, twitterScriptJ;
       this.rectangle = this.div.getBounds();
-      viewRectangle = g.projectToViewRectangle(this.rectangle);
+      this.dataURL = g.areaToImageDataUrl(this.rectangle);
       this.div.remove();
-      canvasTemp = document.createElement('canvas');
-      canvasTemp.width = viewRectangle.width;
-      canvasTemp.height = viewRectangle.height;
-      contextTemp = canvasTemp.getContext('2d');
-      contextTemp.putImageData(g.context.getImageData(viewRectangle.x, viewRectangle.y, viewRectangle.width, viewRectangle.height), 0, 0);
-      this.dataURL = canvasTemp.toDataURL("image/png");
+      this.locationURL = g.romanescoURL + location.hash;
+      this.descriptionJ.attr('placeholder', 'Artwork made with Romanesco: ' + this.locationURL);
       copyDataBtnJ = this.modalJ.find('button[name="copy-data-url"]');
       copyDataBtnJ.attr("data-clipboard-text", this.dataURL);
       imgJ = this.modalJ.find("img.png");
@@ -939,7 +954,7 @@
       this.modalJ.find("a.png").attr("href", this.dataURL);
       twitterLinkJ = this.modalJ.find('a[name="publish-on-twitter"]');
       twitterLinkJ.empty().text("Publish on Twitter");
-      twitterLinkJ.attr("data-url", "http://romanesc.co/" + location.hash);
+      twitterLinkJ.attr("data-url", this.locationURL);
       twitterScriptJ = $('<script type="text/javascript">window.twttr=(function(d,s,id){var t,js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id)){return}js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);return window.twttr||(t={_e:[],ready:function(f){t._e.push(f)}})}(document,"script","twitter-wjs"));</script>');
       twitterLinkJ.append(twitterScriptJ);
       this.modalJ.modal('show');
@@ -973,13 +988,13 @@
       var caption;
       romanesco_alert("Your image was successfully uploaded to Romanesco, posting to Facebook...", "info");
       caption = this.getDescription();
-      return FB.ui({
+      FB.ui({
         method: "feed",
         name: "Romanesco",
         caption: caption,
         description: "Romanesco is an infinite collaborative drawing app.",
-        link: "http://61b2fd1e.ngrok.com/",
-        picture: "http://61b2fd1e.ngrok.com/" + result.url
+        link: this.locationURL,
+        picture: g.romanescoURL + result.url
       }, function(response) {
         if (response && response.post_id) {
           romanesco_alert("Your Post was successfully published!", "success");
@@ -1010,7 +1025,7 @@
       romanesco_alert("Your image was successfully uploaded to Romanesco, posting to Facebook...", "info");
       caption = this.getDescription();
       FB.api("/me/photos", "POST", {
-        "url": "http://61b2fd1e.ngrok.com/" + result.url,
+        "url": g.romanescoURL + result.url,
         "message": caption
       }, function(response) {
         if (response && !response.error) {
@@ -1033,7 +1048,7 @@
       pinterestModalJ.modal('show');
       pinterestModalJ.addClass("pinterest-modal");
       pinterestModalJ.find(".modal-title").text("Publish on Pinterest");
-      siteUrl = encodeURI('http://61b2fd1e.ngrok.com/');
+      siteUrl = encodeURI(g.romanescoURL);
       imageUrl = siteUrl + result.url;
       caption = this.getDescription();
       description = encodeURI(caption);
@@ -1065,7 +1080,7 @@
     };
 
     ScreenshotTool.prototype.downloadSVG = function() {
-      var blob, bounds, canvasTemp, fileName, item, itemsToSave, link, position, rectanglePath, svg, svgGroup, tempProject, url, _i, _j, _len, _len1, _ref, _ref1;
+      var blob, bounds, canvasTemp, fileName, item, itemsToSave, link, position, rectanglePath, svg, svgGroup, tempProject, url, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
       rectanglePath = new Path.Rectangle(this.rectangle);
       itemsToSave = [];
       _ref = project.activeLayer.children;
@@ -1079,6 +1094,13 @@
       svgGroup = new Group();
       for (_j = 0, _len1 = itemsToSave.length; _j < _len1; _j++) {
         item = itemsToSave[_j];
+        if (item.drawing == null) {
+          item.draw();
+        }
+      }
+      view.update();
+      for (_k = 0, _len2 = itemsToSave.length; _k < _len2; _k++) {
+        item = itemsToSave[_k];
         svgGroup.addChild(item.drawing.clone());
       }
       rectanglePath.remove();

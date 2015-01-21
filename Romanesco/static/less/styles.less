@@ -30,7 +30,7 @@ body {
 	background-color: @sidebar-background-color;
 	color: white;
 	text-align: left;
-	z-index: 100;
+	z-index: 1002;		// above the options bar
 
 	.alert-controls {
 		position: absolute;
@@ -487,7 +487,7 @@ body {
 	
 	#mCSB_1_container {
 		margin-left: 4px;
-		margin-right: -4px;
+		margin-right: 10px;
 	}
 	#mCSB_1_scrollbar_vertical {
 		width: 5px;
@@ -626,103 +626,6 @@ body {
 		}
 	}
 
-	// ---- dat.GUI ---- //
-	.dg.main {
-
-		position: relative;
-		float: left;
-		width: 100%;
-		background-color: @sidebar-background-color;
-
-		// input, button, select, textarea {
-		// 	color: #eee;
-		// 	font: 11px 'Lucida Grande', sans-serif;
-		// 	text-shadow: 0 -1px 0 #111;
-		// 	background-color: @sidebar-dark-background-color;
-		// }
-		.dg .c {
-			input, button, select, textarea {
-				color: #eee;
-				font: 11px 'Lucida Grande', sans-serif;
-				text-shadow: 0 -1px 0 #111;
-				background-color: @sidebar-dark-background-color;
-			}
-		}
-
-		select, .btn {
-			text-shadow: none;
-		}
-
-		input[type=checkbox] {
-			margin-top: 7px;
-		}
-
-		.dg .c input.color-input {
-			width: 87%;
-			text-shadow: none;
-			color: white;
-		}
-
-		.close-button {
-			position: relative;
-			display: none;
-		}
-
-		.dg li {
-			background-color: @sidebar-background-color;
-
-			&.title {
-				background-color: @sidebar-dark-background-color;
-			}
-
-			.slider {
-				background-color: @sidebar-dark-background-color;
-			}
-		}
-
-		#fontStyle, #textAlign {
-			vertical-align: top;
-			top: 1px;
-			.btn {
-				background-color: @sidebar-dark-background-color;
-				color: #fff;
-				text-shadow: none;
-				img {
-					top: 0px;
-				}
-				&:hover {
-					background-color: @hover-blue;
-				}
-				&:active {
-					background-color: @hover-blue;
-				}
-				&.active {
-					background-color: @hover-blue;
-				}
-			}
-			button {
-				height: 22px;
-			}
-		}
-
-		.btn-group-xs {
-			button {
-				width: 22px;
-				padding: 0;
-				img {
-					width: 20px;
-					height: 20px;
-					margin-top: -1px;
-				}
-			}
-		}
-		.align-btn-group {
-			margin-top: -5px;
-			border-color: #575757;
-			// background-color: #F9F9F9;
-		}
-
-	}
 	.panel {
 		.panel-heading {
 			padding: 2px;
@@ -892,7 +795,7 @@ body {
 
 	.romanesco-ui, .romanesco-ui.open {
 		input, button, .dropdown-menu {
-			background: @sidebar-background-color;
+			background: transparent; //@sidebar-background-color;
 			border-radius: 0;
 			color: rgb(238, 238, 238);
 			border-color: rgba(255, 255, 255, 0.2);
@@ -1047,6 +950,141 @@ body {
 	} 
 }
 
+// the colorpicker popover must have a left transition
+// .cp-popover-container .popover {
+// 	.vendor(transition, left 0.1s ease-out);
+// }
+
+// bootstrap fix:
+.modal-footer {
+	padding-top: 15px;
+	padding-bottom: 15px;
+	.btn+.btn, .btn {
+		margin-top: 0;
+	}
+}
+
+// ---- dat.GUI ---- //
+.dat-gui {
+	
+	&.dg-right {
+		position: absolute;
+		top: 5px;
+		right: 5px;
+		z-index: 1001; 			// one above the sidebar
+	}
+	
+	.dat-gui-toggle {
+		position: absolute;
+		top: 3px;
+		right: 3px;
+		height: 21px;
+		color: white;
+		background-color: black;
+		border: none;
+		border-radius: 0;
+	}
+
+	.dg.main {
+
+		position: relative;
+		float: left;
+		width: 100%;
+		background-color: @sidebar-background-color;
+		margin-right: 0;
+
+		// input, button, select, textarea {
+		// 	color: #eee;
+		// 	font: 11px 'Lucida Grande', sans-serif;
+		// 	text-shadow: 0 -1px 0 #111;
+		// 	background-color: @sidebar-dark-background-color;
+		// }
+		.dg .c {
+			input, button, select, textarea {
+				color: #eee;
+				font: 11px 'Lucida Grande', sans-serif;
+				text-shadow: 0 -1px 0 #111;
+				background-color: @sidebar-dark-background-color;
+			}
+		}
+
+		select, .btn {
+			text-shadow: none;
+		}
+
+		input[type=checkbox] {
+			margin-top: 7px;
+		}
+
+		.dg .c input.color-input {
+			width: 87%;
+			text-shadow: none;
+			color: white;
+		}
+
+		.close-button {
+			position: relative;
+			display: none;
+		}
+
+		.dg li {
+			background-color: @sidebar-background-color;
+
+			&.title {
+				background-color: @sidebar-dark-background-color;
+			}
+
+			.slider {
+				background-color: @sidebar-dark-background-color;
+			}
+		}
+
+		#fontStyle, #textAlign {
+			vertical-align: top;
+			top: 1px;
+			.btn {
+				background-color: @sidebar-dark-background-color;
+				color: #fff;
+				text-shadow: none;
+				img {
+					top: 0px;
+				}
+				&:hover {
+					background-color: @hover-blue;
+				}
+				&:active {
+					background-color: @hover-blue;
+				}
+				&.active {
+					background-color: @hover-blue;
+				}
+			}
+			button {
+				height: 22px;
+			}
+		}
+
+		.btn-group-xs {
+			button {
+				width: 22px;
+				padding: 0;
+				img {
+					width: 20px;
+					height: 20px;
+					margin-top: -1px;
+				}
+			}
+		}
+		.align-btn-group {
+			margin-top: -5px;
+			border-color: #575757;
+			// background-color: #F9F9F9;
+		}
+
+	}
+}
+// ---- /dat.GUI ---- //
+
 .item-list {
 	position: absolute;
 	top: 75px;
@@ -1075,11 +1113,11 @@ body {
 	}
 }
 
-.container-fluid, #stage {
-	div.item {
-		z-index: 1001;
-	}
-}
+// .container-fluid, #stage {
+// 	div.item {
+// 		z-index: 1001;
+// 	}
+// }
 
 #codeEditor {
 	right: 50%;
@@ -1096,6 +1134,8 @@ body {
 
 	.source-selector {
 		margin-right: 10px;
+		width: inherit;
+		max-width: 100%;
 	}
 	.handle {
 		position: absolute;
@@ -1167,8 +1207,8 @@ body {
 	button.close {
 		float: right;
 		position: relative;
-		top: 5px;
-		right: 5px;
+		top: -3px;
+		right: 0px;
 		color: white;
 		opacity: 1;
 		background-color: rgba(0, 0, 0, 0.6);
@@ -1187,6 +1227,7 @@ body {
 		left: 5px;
 	}
 }
+
 
 #screenshotModal, .pinterest-modal {
 

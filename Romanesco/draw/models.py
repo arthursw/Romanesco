@@ -24,7 +24,7 @@ class UserProfile(models.Model):
     romanescoins = models.IntegerField(default=0)
  
     def __unicode__(self):
-        return "{}'s profile".format(self.user.username)
+        return "{}'s profile".format(self.user.userType)
  
     class Meta:
         db_table = 'user_profile'
@@ -70,10 +70,12 @@ class Path(Document):
     planetX = DecimalField()
     planetY = DecimalField()
     points = LineStringField()
+    rType = StringField(default='Path')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
     object_type = StringField(default='brush')
     locked = BooleanField(default=False)
+    areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
 
@@ -85,15 +87,28 @@ class Box(Document):
     planetX = DecimalField()
     planetY = DecimalField()
     box = PolygonField()
+    rType = StringField(default='Box')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
     url = URLField(verify_exists=True, required=False)
     name = StringField()
     message = StringField()
+    areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
     
+    meta = {
+        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
+    }
+
+class AreaToUpdate(Document):
+    planetX = DecimalField()
+    planetY = DecimalField()
+    box = PolygonField()
+    rType = StringField(default='AreaToUpdate')
+    areas = ListField(ReferenceField('Area'))
+
     meta = {
         'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
     }
@@ -102,12 +117,14 @@ class Div(Document):
     planetX = DecimalField()
     planetY = DecimalField()
     box = PolygonField()
+    rType = StringField(default='Div')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
     url = StringField(required=False)
     message = StringField()
     locked = BooleanField(default=False)
+    areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
 
@@ -141,4 +158,17 @@ class Site(Document):
     
     meta = {
         'indexes': [[ ("name", 1) ]]
+    }
+
+class Area(Document):
+    x = DecimalField()
+    y = DecimalField()
+    items = ListField(GenericReferenceField())
+    # paths = ListField(ReferenceField(Path))
+    # boxes = ListField(ReferenceField(Box))
+    # divs = ListField(ReferenceField(Div))
+    # areasToUpdate = ListField(ReferenceField(AreaToUpdate))
+
+    meta = {
+        'indexes': [[ ("x", 1), ("y", 1) ]]
     }

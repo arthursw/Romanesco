@@ -16,7 +16,7 @@ Here are all global functions (which do not belong to classes and are not event 
 # Called when user clicks on up/down arrow of the message box
 # Change the text and the class of the alert box to the ones from alert number *index*
 #
-# @param [Number] alert index 
+# @param index [Number] alert index 
 this.showAlert = (index) ->
 	if g.alerts.length<=0 || index<0 || index>=g.alerts.length then return  	# check that index is valid
 
@@ -28,11 +28,17 @@ this.showAlert = (index) ->
 	g.alertsContainer.find(".alert-number").text(g.currentAlert+1)
 	return
 
+# animate function for Tween.js
+this.animate = (time)->
+	requestAnimationFrame( animate )
+	TWEEN.update(time)
+	return
+
 # Display an alert with message, type and delay
 #
-# @param [String] alert message 
-# @param [String] can be 'success', 'info' (default), 'warning', 'danger', 'error' or null ('error' has the same effect as 'danger')
-# @param [Number] alert stays on screen *delay* millisecond
+# @param message [String] alert message 
+# @param type [String] can be 'success', 'info' (default), 'warning', 'danger', 'error' or null ('error' has the same effect as 'danger')
+# @param delay [Number] alert stays on screen *delay* millisecond
 this.romanesco_alert = (message, type="", delay=2000) ->
 	# set type ('info' to default, 'error' == 'danger')
 	if type.length==0
@@ -67,7 +73,7 @@ this.romanesco_alert = (message, type="", delay=2000) ->
 # Only specific data is copied: modifiers (in paper.js event), position (pageX/Y or event.point), downPoint, delta, and target
 # convert the class name to selector to be able to find the target on the other clients [to be modified]
 #
-# @param [jQuery or Paper.js event] event to convert
+# @param event [jQuery or Paper.js event] event to convert
 this.eventToObject = (event)->
 	eo =
 		modifiers: event.modifiers
@@ -84,7 +90,7 @@ this.eventToObject = (event)->
 
 # Convert an object to an event (to receive event info through websockets)
 #
-# @param [object event] event to convert
+# @param event [object event] event to convert
 this.objectToEvent = (event)->
 	event.point = new Point(event.point)
 	event.downPoint = new Point(event.downPoint)
@@ -93,7 +99,7 @@ this.objectToEvent = (event)->
 
 # Test if the special key is pressed. Special key is command key on a mac, and control key on other systems.
 #
-# @param [jQuery or Paper.js event] key event
+# @param event [jQuery or Paper.js event] key event
 # @return [Boolean] *specialKey*
 this.specialKey = (event)->
 	if event.pageX? and event.pageY?
@@ -116,8 +122,8 @@ this.getSnap = ()->
 
 # Returns snapped value
 #
-# @param [Number] value to snap
-# @param [Number] optional snap, default is getSnap()
+# @param value [Number] value to snap
+# @param snap [Number] optional snap, default is getSnap()
 # @return [Number] snapped value
 this.snap1D = (value, snap)->
 	snap ?= g.getSnap()
@@ -128,8 +134,8 @@ this.snap1D = (value, snap)->
 
 # Returns snapped point
 #
-# @param [Point] point to snap
-# @param [Number] optional snap, default is getSnap()
+# @param point [Point] point to snap
+# @param snap [Number] optional snap, default is getSnap()
 # @return [Paper point] snapped point
 this.snap2D = (point, snap)->
 	snap ?= g.getSnap()
@@ -140,8 +146,8 @@ this.snap2D = (point, snap)->
 
 # Returns snapped event
 #
-# @param [Paper Event] event to snap
-# @param [String] (optional) username of the one who emitted of the event
+# @param event [Paper Event] event to snap
+# @param from [String] (optional) username of the one who emitted of the event
 # @return [Paper event] snapped event
 this.snap = (event, from=g.me)->
 	if from!=g.me then return event
@@ -167,7 +173,7 @@ this.snap = (event, from=g.me)->
 
 # Hide every path except *me* and set fastModeOn to true
 #
-# @param [RItem] the only item not to hide
+# @param me [RItem] the only item not to hide
 g.hideOthers = (me)->
 	for name, item of g.paths
 		if item != me
@@ -209,14 +215,14 @@ g.getLimitPaths = ()->
 
 # Test if *rectangle* overlaps two planets
 # 
-# @param [Rectangle] rectangle to test
+# @param rectangle [Rectangle] rectangle to test
 # @return [Boolean] true if overlaps
 g.rectangleOverlapsTwoPlanets = (rectangle)->
 	return g.overlapsTwoPlanets(new Path.Rectangle(rectangle))
 
 # Test if *path* overlaps two planets
 # 
-# @param [Paper path] path to test
+# @param path [Paper path] path to test
 # @return [Boolean] true if overlaps
 g.pathOverlapsTwoPlanets = (path)->
 	limitPaths = g.getLimitPaths()
@@ -356,7 +362,7 @@ g.updateGrid = ()->
 	return
 
 # Get the game under *point*
-# @param [Point] point to test
+# @param point [Point] point to test
 # @return [RVideoGame] the video game at *point*
 this.gameAt = (point)->
 	for div in g.divs
@@ -456,9 +462,21 @@ this.gameAt = (point)->
 ## Move/scroll the romanesco view
 
 # Move the romanesco view to *pos*
-# @param [Point] destination
-g.RMoveTo = (pos) ->
-	g.RMoveBy(pos.subtract(view.center))
+# @param pos [Point] destination
+# @param delay [Number] time of the animation to go to destination in millisecond
+g.RMoveTo = (pos, delay) ->
+	if not delay?
+		g.RMoveBy(pos.subtract(view.center))
+	else
+		console.log pos
+		console.log delay
+		initialPosition = view.center
+		tween = new TWEEN.Tween( initialPosition ).to( pos, delay ).easing( TWEEN.Easing.Exponential.InOut ).onUpdate( ()->
+			g.RMoveTo(this)
+			console.log this.x + ', ' + this.y
+			return
+		).start()
+	return
 
 # Move the romanesco view from *delta*
 # if user is in a restricted area (a website or videogame with restrictedArea), the move will be constrained in this area
@@ -471,7 +489,7 @@ g.RMoveTo = (pos) ->
 # - update websocket room
 # - update hash in 0.5 seconds
 # - set location in the general options
-# @param [Point] delta
+# @param delta [Point]
 g.RMoveBy = (delta) ->
 	
 	# if user is in a restricted area (a website or videogame with restrictedArea), the move will be constrained in this area
@@ -526,28 +544,31 @@ g.RMoveBy = (delta) ->
 	else if g.entireArea? and not newEntireArea?
 		g.entireArea = null
 
-	if newEntireArea? then load(g.entireArea) else load()
+	if newEntireArea? then quick_load(g.entireArea) else quick_load()
 
 	g.updateRoom() 											# update websocket room
 
-	g.defferedExecution(g.updateHash, 500) 					# update hash in 500 milliseconds
+	g.defferedExecution(g.updateHash, 'updateHash', 500) 					# update hash in 500 milliseconds
+	g.willUpdateAreasToUpdate = true
+	g.defferedExecution(g.updateAreasToUpdate, 'updateAreasToUpdate', 500) 					# update areas to update in 500 milliseconds
+
 	g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)) # update location in sidebar
 	return
 
 ## Hash
 
 # Update hash (the string after '#' in the url bar) according to the location of the (center of the) view
-# set *g.moving* flag to ignore this change in *window.onhashchange* callback
+# set *g.ignoreHashChange* flag to ignore this change in *window.onhashchange* callback
 g.updateHash = ()->
-	g.moving = true
+	g.ignoreHashChange = true
 	location.hash = '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)
 	return
 
 # Update hash (the string after '#' in the url bar) according to the location of the (center of the) view
-# set *g.moving* flag to ignore this change in *window.onhashchange* callback
+# set *g.ignoreHashChange* flag to ignore this change in *window.onhashchange* callback
 window.onhashchange = (event) ->
-	if g.moving
-		g.moving = false
+	if g.ignoreHashChange
+		g.ignoreHashChange = false
 		return
 	pos = location.hash.substr(1).split(',')
 	p = new Point()
@@ -574,7 +595,7 @@ this.deselectAll = ()->
 	return
 
 # Toggle (hide/show) sidebar (called when user clicks on the sidebar handle)
-# @param [Boolean] show the sidebar, defaults to the opposite of the current state (true if hidden, false if shown)
+# @param show [Boolean] show the sidebar, defaults to the opposite of the current state (true if hidden, false if shown)
 this.toggleSidebar = (show)->
 	show ?= not g.sidebarJ.hasClass("r-hidden")
 	if show
@@ -588,6 +609,350 @@ this.toggleSidebar = (show)->
 		g.alertsContainer.removeClass("r-sidebar-hidden")
 		g.sidebarHandleJ.find("span").removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-left")
 	return
+
+# get a list of rectangles obtained from the cut of rectangle 2 in rectangle 1
+# the rectangles A, B, C and D are the resulting rectangles
+#
+# example 1 when the rectangle 1 is bigger than the rectangle 2 in every directions:
+#  ----------------------
+#  |		A			|
+#  |--------------------|
+#  |    |         |     |
+#  |  B | Rect 2  |  C  |
+#  |    |         |     |
+#  |--------------------|
+#  |        D           |
+#  ----------------------
+#  
+# example 2 when the bottom-left corner of the rectangle 1 is outside the rectangle 2:
+#  
+#  -----------
+#  |         |------
+#  | Rect 2  |  C  |
+#  |         |     |
+#  ----------------|
+#     |     D      |
+#     --------------
+# @param rectangle1 [Paper Rectangle] the rectangle 1
+# @param rectangle2 [Paper Rectangle] the rectangle 2
+# @return [Array<Paper Rectangle>] the resulting list of rectangles of the cut of rectangle 2 in rectangle 1
+this.getRectangleListFromIntersection = (rectangle1, rectangle2)->
+	
+	rectangles = []
+	
+	# if the rectangles do not interect or if rectangle 1 is contained within rectangle 2: return an empty list
+	if (not rectangle1.intersects(rectangle2)) or (rectangle2.contains(rectangle1)) then return rectangles
+
+	# push all rectangles A, B, C, D as if we were in example 1, and then remove rectangle which have negative width or height
+
+	rA = new Rectangle()
+	rA.topLeft = rectangle1.topLeft
+	rA.bottomRight = new Point(rectangle1.right, rectangle2.top)
+	rectangles.push(rA)
+
+	rB = new Rectangle()
+	rB.topLeft = new Point(rectangle1.left, Math.max(rectangle2.top, rectangle1.top))
+	rB.bottomRight = new Point(rectangle2.left, Math.min(rectangle2.bottom, rectangle1.bottom))
+	rectangles.push(rB)
+
+	rC = new Rectangle()
+	rC.topLeft = new Point(rectangle2.right, Math.max(rectangle2.top, rectangle1.top))
+	rC.bottomRight = new Point(rectangle1.right, Math.min(rectangle2.bottom, rectangle1.bottom))
+	rectangles.push(rC)
+
+	rD = new Rectangle()
+	rD.topLeft = new Point(rectangle1.left, rectangle2.bottom)
+	rD.bottomRight = rectangle1.bottomRight
+	rectangles.push(rD)
+
+	# remove rectangles which have negative width or height
+	i = rectangles.length-1
+	while i>=0
+		rectangle = rectangles[i]
+
+		if rectangle.width<=0 or rectangle.height<=0
+			rectangles.splice(i,1)
+		i--
+
+	return rectangles
+
+# Get the image in *rectangle* of the view in a data url
+# @param rectangle [Paper Rectangle] a rectangle in project coordinate representing the area to extract
+# @param intersectView [Boolean] (optional) a boolean indicating whether to intersect *rectangle* with the view bounds
+# @return [String] the data url of the view image defined by area
+this.areaToImageDataUrl = (rectangle, intersectView=true)->
+	if intersectView then rectangle = rectangle.intersect(view.bounds)
+	if rectangle.height <=0 or rectangle.width <=0 
+		console.log 'Warning: trying to extract empty area!!!'
+		return null
+
+	viewRectangle = g.projectToViewRectangle(rectangle)
+
+	canvasTemp = document.createElement('canvas')
+	canvasTemp.width = viewRectangle.width
+	canvasTemp.height = viewRectangle.height
+	contextTemp = canvasTemp.getContext('2d')
+	contextTemp.putImageData(g.context.getImageData(viewRectangle.x, viewRectangle.y, viewRectangle.width, viewRectangle.height), 0, 0)
+	
+	dataURL = canvasTemp.toDataURL("image/png")
+	return dataURL
+
+# Get the image in *rectangle* of the view in a data url and the a list of areas (rectangle) which could not be rasterized because they are outside the view
+# @param rectangle [Paper Rectangle] a rectangle in project coordinate representing the area to extract
+# @return [String or { dataURL: String, areasNotRasterized: Array<Paper Rectangle>}] an object with the dataUrl and the areas not rasterized
+this.areaToImageDataUrlWithAreasNotRasterized = (rectangle)->
+	rectangle = g.expandRectangleToInteger(rectangle)
+	intersection = rectangle.intersect(view.bounds)
+	intersection = g.shrinkRectangleToInteger(intersection)
+
+	if view.zoom != 1
+		g.romanesco_alert("You are creating or modifying an item in a zoom different than 100. \nThis will not be rasterized, other users will have to render it \n(please consider drawing and modifying items at zoom 100 for better loading performances).", "warning", 3000)
+		return { dataURL: null, rectangle: intersection, areasNotRasterized: [g.boxFromRectangle(rectangle)] }
+
+	# deselect items (in paper.js view) and keep them in an array to reselect them after rasterization
+	selectedItems = []
+	for item in project.getItems({selected: true})
+		if item.constructor?.name != "Group" and item.constructor?.name != "Layer"
+			selectedItems.push( { item: item, fullySelected: item.fullySelected } )
+	
+	project.activeLayer.selected = false
+	g.carLayer.visible = false
+	g.debugLayer.visible = false
+	view.draw()
+	
+	# rasterize (only what it is possible to rasterize)
+	dataURL = areaToImageDataUrl(intersection, false)
+	
+	# debugRaster = new Raster( source: dataURL, position: rectangle.intersect(view.bounds).center )
+	# debugRaster.selected = true
+	# debugRaster.opacity = 0.5
+	# debugRaster.on('mousedrag', (event)-> this.position = event.point )
+	# g.debugLayer.addChild(debugRaster)
+	
+	g.debugLayer.visible = true
+	g.carLayer.visible = true
+	
+	# reselect items
+	for itemObject in selectedItems
+		if itemObject.fullySelected
+			itemObject.item.fullySelected = true
+		else
+			itemObject.item.selected = true
+
+	# make a list of rectangles (areas) which we can not extract since it is outside the view
+	areasNotRasterized = g.getRectangleListFromIntersection(rectangle, intersection)
+
+	# convert the list of area in a GeoJSON compatible format
+	areasNotRasterizedBox = (g.boxFromRectangle(area) for area in areasNotRasterized)
+	# or: areasNotRasterizedBox = areasNotRasterized.map( (areaNotRasterized)-> return g.boxFromRectangle(area) )
+
+	return { dataURL: dataURL, rectangle: intersection, areasNotRasterized: areasNotRasterizedBox }
+
+# - delete areas to delete (areas which were overlapping with the areas which were just added)
+# - add areas to update in g.areasToUpdate, from result of server
+# called in load_callback, and on updateAreasToUpdate callback (when we rasterize part of an area, we must add the new remaining areas)
+# @param result [Object] the server result of the load (when called from load_callback) or the updateAreasToUpdate (when called from updateAreasToUpdate)
+this.addAreasToUpdate = (results)->
+	if typeof(results)=='string' then results = JSON.parse(results)
+	if not g.checkError(results) then return
+	if results.state == 'log' and results.message == 'Delete impossible: area does not exist' then return 	# dirty way to ignore when the area was deleted (probaby updated by another user before) 
+
+	console.log 'areas to delete: ' + results.areasDeleted?.length
+	# delete areas to delete (areas which were overlapping with the areas which were just added)
+	if results.areasDeleted?
+		for areaToDeletePk in results.areasDeleted
+			console.log 'delete area: ' + areaToDeletePk
+			if g.areasToUpdate[areaToDeletePk]?
+				debugRectangle = debugLayer.getItem( name: areaToDeletePk )
+				if debugRectangle?
+					debugRectangle.strokeColor = 'green'
+					setTimeout(((debugRectangle)-> return ()-> debugRectangle.remove())(debugRectangle), 2000)
+				else
+					console.log 'Error: could not find debug rectangle'
+				delete g.areasToUpdate[areaToDeletePk]
+			else
+				console.log 'Error: area to delete could not be found'
+				debugger
+
+	# add areas to update in g.areasToUpdate
+	if results.areasToUpdate?
+		for a in results.areasToUpdate
+			areas = JSON.parse(a)
+			# areas is either an array (when addAreasToUpdate is called from load_callback) or an area (otherwise)
+			if areas.constructor != Array then areas = [areas]
+			console.log 'areas to add: ' + areas.length
+			for area in areas
+				if g.areasToUpdate[area._id.$oid]? then continue 	# do not add if it is already there (meaning we add areas from load_callback)
+				planet = new Point(area.planetX, area.planetY)
+				
+				tl = posOnPlanetToProject(area.box.coordinates[0][0], planet)
+				br = posOnPlanetToProject(area.box.coordinates[0][2], planet)
+
+				rectangle = new Rectangle(tl, br)
+
+				console.log 'add: ' + area._id.$oid + ', rectangle: ' + rectangle.toString()
+				g.areasToUpdate[area._id.$oid] = rectangle
+
+				# debug
+				debugRectangle = new Path.Rectangle(rectangle)
+				debugRectangle.strokeColor = 'red'
+				debugRectangle.strokeWidth = 1
+				debugRectangle.name = area._id.$oid
+				g.debugLayer.addChild(debugRectangle)
+
+	return
+
+# update rasters on the server
+# called in two cases:
+# - by RPath.update when a path must be updated, the rasters must also be updated
+# - by updateAreasToUpdate: when the view is moved on top of an area to update, the rasters are updated
+# - on server response, the callback will also add the new areas to update to g.areasToUpdate (the remaining areas)
+# @param rectangle [Paper Rectangle] the rectangle to update
+# @param areaPk [ID] the primary key of the area that we updated (used when called from updateAreasToUpdate)
+this.updateRasters = (rectangle, areaPk=null)->
+	extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
+	console.log 'request to add ' + extraction.areasNotRasterized?.length + ' areas'
+	if extraction.dataURL == "data:,"
+		console.log "Warning: trying to add an area outside the screen!"
+	Dajaxice.draw.updateRasters(g.addAreasToUpdate, { 'data': extraction.dataURL, 'position': extraction.rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized, 'areaToDeletePk': areaPk } )
+	return
+
+# draw/update the areas to update:
+# for all areas to update: if it is in the view, refresh the view and delete area
+# if the area was not entirely in the view, the remaining areas are sent to the server to be added
+# on server callback, the remaining areas will be added to g.areasToUpdate (in addAreasToUpdate)
+this.updateAreasToUpdate = ()->
+
+	viewUpdated = false
+
+	for pk, rectangle of g.areasToUpdate
+		intersection = rectangle.intersect(view.bounds)
+		
+		console.log 'try to update area ' + pk + ', rectangle: ' + rectangle.toString() + '...'
+		if (rectangle.width > 1 and intersection.width <= 1) or (rectangle.height > 1 and intersection.height <= 1)
+			console.log '...not in view'
+			continue
+
+		if view.zoom == 1
+			debugRectangle = debugLayer.getItem( name: pk )
+			if debugRectangle?
+				debugRectangle.strokeColor = 'blue'
+				# setTimeout((()-> debugRectangle.remove()), 2000)
+				setTimeout(((debugRectangle)-> return ()-> debugRectangle.remove())(debugRectangle), 2000)
+			else
+				console.log 'Error: could not find debug rectangle'
+		
+		# draw all items on this area
+		# for item in newItems
+		# 	if item.getBounds().intersects(intersection)
+		# 		item.draw()
+		
+		# refresh view (only once)
+		if not viewUpdated
+			g.updateView()
+			view.draw()
+			viewUpdated = true
+
+		# newAreas = g.getRectangleListFromIntersection(rectangle, intersection)
+
+		# newAreasBox = []
+		# for area in newAreas
+		# 	newAreasBox.push(g.boxFromRectangle(area))
+
+		# Dajaxice.draw.updateAreasToUpdate(addAreasToUpdate, { 'pk': area.pk, 'newAreas': newAreasBox } )
+		
+		updateRasters(rectangle, pk)
+
+		console.log '...updated'
+		delete g.areasToUpdate[pk]
+
+	g.willUpdateAreasToUpdate = false
+	return
+
+# hide rasters and redraw all items (except ritem if specified)
+# @param item [RItem] (optional) the item not to update (draw)
+this.updateView = (ritem=null)->
+	console.log "updateView: remove rasters and redraw"
+
+	# remove all rasters
+	for x, rasterColumn of g.rasters
+		for y, raster of rasterColumn
+			raster.remove()
+			delete g.rasters[x][y]
+			if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
+
+	# redraw paths (could redraw all RItems)
+	for pk, item of g.paths 		# could be g.items
+		item.draw()
+
+	return
+
+# # deprecated
+# # 1. remove rasters on which @ lies
+# # 2. redraw all items which lie on those rasters
+# # @param bounds [Paper rectangle] the area to update
+# # @param item [RItem] (optional) the item not to update (draw)
+# this.updateClientRasters = (bounds, ritem=null)->
+	
+# 	console.log "updateClientRasters"
+
+# 	# find top, left, bottom and right positions of the area in the quantized space
+# 	scale = g.scale
+# 	t = Math.floor(bounds.top / scale) * scale
+# 	l = Math.floor(bounds.left / scale) * scale
+# 	b = Math.floor(bounds.bottom / scale) * scale
+# 	r = Math.floor(bounds.right / scale) * scale
+
+# 	# for all rasters on which @ relies
+# 	areasToLoad = []
+# 	for x in [l .. r] by scale
+# 		for y in [t .. b] by scale
+# 			raster = g.rasters[x]?[y]
+
+# 			if not raster then continue
+
+# 			console.log "remove raster: " + x + "," + y
+
+# 			raster.remove()
+# 			delete g.rasters[x][y]
+# 			if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
+
+# 			rasterRectangle = new Rectangle(x, y, 1000, 1000)
+
+# 			for pk, item of g.items
+# 				console.log "item: " + item.name
+# 				console.log item.getBounds()
+# 				console.log rasterRectangle
+# 				console.log item.getBounds().intersects(rasterRectangle)
+# 				if item != ritem and item.getBounds().intersects(rasterRectangle)
+# 					item.draw()
+# 	return
+
+# return a rectangle with integer coordinates and dimensions: left and top positions will be ceiled, right and bottom position will be floored
+# @param rectangle [Paper Rectangle] the rectangle to round
+# @return [Paper Rectangle] the resulting shrinked rectangle
+this.shrinkRectangleToInteger = (rectangle)->
+	return new Rectangle(new Point(Math.ceil(rectangle.left), Math.ceil(rectangle.top)), new Point(Math.floor(rectangle.right), Math.floor(rectangle.bottom)))
+
+# return a rectangle with integer coordinates and dimensions: left and top positions will be floored, right and bottom position will be ceiled
+# @param rectangle [Paper Rectangle] the rectangle to round
+# @return [Paper Rectangle] the resulting expanded rectangle
+this.expandRectangleToInteger = (rectangle)->
+	return new Rectangle(new Point(Math.floor(rectangle.left), Math.floor(rectangle.top)), new Point(Math.ceil(rectangle.right), Math.ceil(rectangle.bottom)))
+
+# round *x* to the lower multiple of *m*
+# @param x [Number] the value to round
+# @param m [Number] the multiple
+# @return [Number] the multiple of *m* below *x*
+this.roundToLowerMultiple = (x, m)->
+	return Math.floor(x / m) * m
+
+# round *x* to the greater multiple of *m*
+# @param x [Number] the value to round
+# @param m [Number] the multiple
+# @return [Number] the multiple of *m* above *x*
+this.roundToGreaterMultiple = (x, m)->
+	return Math.ceil(x / m) * m
 
 ## Debug
 
@@ -619,8 +984,42 @@ this.checkRasters = ()->
 			console.log item.controller
 			# item.controller.rasterize()
 	return
-	
 
+# select rasters
+this.selectRasters = ()->
+	rasters = []
+	for item in project.activeLayer.children
+		if item.constructor.name == "Raster"
+			item.selected = true
+			rasters.push(item)
+	return rasters
+
+this.printPathList = ()->
+	names = []
+	for pathClass in g.pathClasses
+		names.push(pathClass.rname)
+	console.log names
+	return
+
+this.testRectangleIntersection = ()->
+	r = new Rectangle(0,0,250,400)
+	pr = new Path.Rectangle(r)
+	pr.strokeColor = 'blue'
+	pr.strokeWidth = 5
+
+	r2 = new Rectangle(-30,10,10,10)
+	pr2 = new Path.Rectangle(r2)
+	pr2.strokeColor = 'green'
+	pr2.strokeWidth = 5
+	
+	rectangles = g.getRectangleListFromIntersection(r2,r)
+	
+	for rectangle in rectangles
+		p = new Path.Rectangle(rectangle)
+		p.strokeColor = 'red'
+		p.strokeWidth = 1
+	
+	return
 
 # one complicated solution to handle the loading:
 # this.showMask = (show)->

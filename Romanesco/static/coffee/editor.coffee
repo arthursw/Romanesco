@@ -18,16 +18,19 @@ this.initCodeEditor = ()->
 		return
 
 	# initialize source selector
-	g.sourceSelectorJ.append($("<option>").append(PrecisePath.name))
-	g.sourceSelectorJ.append($("<option>").append(RectangleShape.name))
-	g.sourceSelectorJ.append($("<option>").append(SpiralShape.name))
-	g.sourceSelectorJ.append($("<option>").append(SketchPath.name))
-	g.sourceSelectorJ.append($("<option>").append(SpiralPath.name))
-	g.sourceSelectorJ.append($("<option>").append(ShapePath.name))
-	g.sourceSelectorJ.append($("<option>").append(StarShape.name))
-	g.sourceSelectorJ.append($("<option>").append(EllipseShape.name))
-	g.sourceSelectorJ.append($("<option>").append(RollerPath.name))
-	g.sourceSelectorJ.append($("<option>").append(FuzzyPath.name))
+	for pathClass in pathClasses
+		g.sourceSelectorJ.append($("<option>").append(pathClass.name))
+
+	# g.sourceSelectorJ.append($("<option>").append(PrecisePath.name))
+	# g.sourceSelectorJ.append($("<option>").append(RectangleShape.name))
+	# g.sourceSelectorJ.append($("<option>").append(SpiralShape.name))
+	# g.sourceSelectorJ.append($("<option>").append(SketchPath.name))
+	# g.sourceSelectorJ.append($("<option>").append(SpiralPath.name))
+	# g.sourceSelectorJ.append($("<option>").append(ShapePath.name))
+	# g.sourceSelectorJ.append($("<option>").append(StarShape.name))
+	# g.sourceSelectorJ.append($("<option>").append(EllipseShape.name))
+	# g.sourceSelectorJ.append($("<option>").append(ThicknessPath.name))
+	# g.sourceSelectorJ.append($("<option>").append(FuzzyPath.name))
 
 	# add saved sources to source selector
 	if localStorage.romanescoCode? and localStorage.romanescoCode.length>0 
@@ -238,10 +241,10 @@ this.compileSource = ()->
 				throw
 					location: 'NA', 
 					message: """scriptName or class name is not correctly set.
-					Your script can be either a normal script or a tool class.
-					A normal script must begin with 'scriptName = "yourScriptName"'.
-					A tool class must begin with "class YourToolName extends SuperClass".\nSuperClass can be "PrecisePath", "SpeedPath" or "RShape".
-					There must not be any comment or white character after the first line.
+					Your script can be either a general script or a path script.
+					A general script must begin with 'scriptName = "yourScriptName"'.
+					A path script must begin with "class YourPathName extends SuperClass".\nSuperClass can be "PrecisePath", "SpeedPath" or "RShape".
+					There must not be any comment or white character at the end of the first line.
 					"""
 
 		# if /(drawBegin: \(\)->|drawUpdate: \(length\)->|drawEnd: \(\)->)/.exec(source).length==0
