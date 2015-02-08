@@ -10,7 +10,7 @@ from django.core import serializers
 from dajaxice.core import dajaxice_functions
 from django.contrib.auth.models import User
 from django.db.models import F
-from models import Path, Box, Div, UserProfile, Tool, Site, AreaToUpdate, Area
+from models import Path, Box, Div, UserProfile, Tool, Site, AreaToUpdate
 import ast
 from pprint import pprint
 from django.contrib.auth import authenticate, login, logout
@@ -28,6 +28,8 @@ import time
 from PIL import Image
 import cStringIO
 import StringIO
+import traceback
+
 # from wand.image import Image
 
 logger = logging.getLogger(__name__)
@@ -40,31 +42,185 @@ def makeBox(tlX, tlY, brX, brY):
 	return { "type": "Polygon", "coordinates": [ [ [tlX, tlY], [brX, tlY], [brX, brY], [tlX, brY], [tlX, tlY] ] ] }
 
 userID = 0
+isUpdatingRasters = False
+# dummyArea = None
 # defaultPathTools = ["Checkpoint", "EllipseShape", "FaceShape", "GeometricLines", "GridPath", "Meander", "PrecisePath", "RectangleShape", "ShapePath", "SpiralShape", "StarShape", "ThicknessPath"]
 defaultPathTools = ["Precise path", "Thickness path", "Meander", "Grid path", "Geometric lines", "Shape path", "Rectangle", "Ellipse", "Star", "Spiral", "Face generator", "Checkpoint"]
 
+@dajaxice_register
+def multipleCalls(request, functionsAndArguments):
+	results = []
+	for fa in functionsAndArguments:
+		results = locals()[fa.function](*fa.arguments)
+	return json.dumps(results)
 
 @dajaxice_register
-def quick_load(request, box, boxes, zoom):
+def benchmark_load(request, areasToLoad):
+
+	start = time.time()
 
 	items = {}
 
-	for b in boxes:
+	for b in areasToLoad:
 		try:
 			area = Area.objects.get(x=b['x'], y=b['y'])
 		except:
 			continue
 
 		for item in area.items:
-			if not items.has_key(item.pk):
+			if hasattr(item, 'pk') and not items.has_key(item.pk):
 				items[item.pk] = item.to_json()
 
-	# areas = Area.objects(x__gte=l, x__lt=r, y__gte=t, y__lt=b)
+	end = time.time()
+	print "Time elapsed area load: " + str(end - start)
+	print 'retrieved' + str(len(items)) + 'items'
 
-	l = box['left']
-	t = box['top']
-	r = box['right']
-	b = box['bottom']
+	start = time.time()
+
+	items = {}
+	n = 0
+	for area in areasToLoad:
+				
+		tlX = area['pos']['x']
+		tlY = area['pos']['y']
+
+		planetX = area['planet']['x']
+		planetY = area['planet']['y']
+
+		geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
+
+		# load items
+		paths = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry)
+
+		for item in paths:
+			if hasattr(item, 'pk') and not items.has_key(item.pk):
+				items[item.pk] = item.to_json()
+			n = n + 1
+
+
+	end = time.time()
+	print "Time elapsed geo json load path only: " + str(end - start)
+	print 'retrieved ' + str(len(items)) + ' items out of ' + str(n)
+
+	return json.dumps({"message": "success"})
+
+# @dajaxice_register
+# def quick_load(request, box, boxes, zoom):
+
+# 	items = {}
+
+# 	left = box['left']
+# 	top = box['top']
+# 	right = box['right']
+# 	bottom = box['bottom']
+
+# 	if zoom > 0.04:
+# 		for b in boxes:
+# 			try:
+# 				area = Area.objects.get(x=b['x'], y=b['y'])
+# 			except:
+# 				continue
+
+# 			for item in area.items:
+# 				if hasattr(item, 'pk') and not items.has_key(item.pk):
+# 					items[item.pk] = item.to_json()
+# 	else:
+# 		areas = Area.objects(x__gte=left, x__lte=right, y__gte=top, y__lte=bottom)
+
+
+# 		for area in areas:
+# 			for item in area.items:
+# 				if hasattr(item, 'pk') and not items.has_key(item.pk):
+# 					items[item.pk] = item.to_json()
+
+# 	# load rasters
+# 	rasters = []
+
+# 	step = 1
+
+# 	if zoom > 0.2:
+# 		step = 1
+# 	elif zoom > 0.04:
+# 		step = 5
+# 	else:
+# 		step = 25
+
+# 	for x1 in range(left,right+step,step):
+# 		for y1 in range(top,bottom+step,step):
+
+# 			x5 = roundToLowerMultiple(x1, 5)
+# 			y5 = roundToLowerMultiple(y1, 5)
+
+# 			x25 = roundToLowerMultiple(x1, 25)
+# 			y25 = roundToLowerMultiple(y1, 25)
+
+# 			if zoom > 0.2:
+# 				position = { 'x': x1, 'y': y1 }
+# 				rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
+# 			elif zoom > 0.04:
+# 				position = { 'x': x5, 'y': y5 }
+# 				rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
+# 			else:
+# 				position = { 'x': x25, 'y': y25 }
+# 				rasterPath = 'media/rasters/zoom4/'
+
+# 			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
+			
+# 			if os.path.isfile(os.getcwd() + '/' + rasterName):
+# 				rasters.append( { 'url': rasterName, 'position': position } )
+
+# 	global userID
+# 	user = request.user.username
+# 	if not user:
+# 		user = userID
+# 	userID += 1
+
+# 	# global dummyArea
+# 	# if not dummyArea:
+# 	# 	try:
+# 	# 		dummyArea = Area.objects.get(x=-180000.5, y=-900000.5)
+# 	# 	except Area.DoesNotExist:
+# 	# 		dummyArea = Area(x=-180000.5, y=-900000.5)
+# 	# 	dummyArea.save()
+
+# 	return json.dumps( { 'items': items.values(), 'rasters': rasters, 'zoom': zoom, 'user': user } )
+
+@dajaxice_register
+def load(request, box, areasToLoad, zoom):
+
+	items = {}
+
+	start = time.time()
+
+	for area in areasToLoad:
+				
+		tlX = area['pos']['x']
+		tlY = area['pos']['y']
+
+		planetX = area['planet']['x']
+		planetY = area['planet']['y']
+
+		geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
+		# geometry = makeBox(tlX, tlY, tlX+0.5, tlY+0.5)
+
+		# load items
+		p = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry)
+		d = Div.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+		b = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+		a = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+		
+		for path in p:
+			if not items.has_key(path.pk):
+				items[path.pk] = path.to_json()
+		for div in d:
+			if not items.has_key(div.pk):
+				items[div.pk] = div.to_json()
+		for box in b:
+			if not items.has_key(box.pk):
+				items[box.pk] = box.to_json()
+		for area in a:
+			if not items.has_key(area.pk):
+				items[area.pk] = area.to_json()
 
 	# load rasters
 	rasters = []
@@ -78,8 +234,13 @@ def quick_load(request, box, boxes, zoom):
 	else:
 		step = 25
 
-	for x1 in range(l,r+step,step):
-		for y1 in range(t,b+step,step):
+	left = box['left']
+	top = box['top']
+	right = box['right']
+	bottom = box['bottom']
+
+	for x1 in range(left,right+step,step):
+		for y1 in range(top,bottom+step,step):
 
 			x5 = roundToLowerMultiple(x1, 5)
 			y5 = roundToLowerMultiple(y1, 5)
@@ -102,99 +263,6 @@ def quick_load(request, box, boxes, zoom):
 			if os.path.isfile(os.getcwd() + '/' + rasterName):
 				rasters.append( { 'url': rasterName, 'position': position } )
 
-	global userID
-	user = request.user.username
-	if not user:
-		user = userID
-	userID += 1
-
-	return json.dumps( { 'items': items.values(), 'rasters': rasters, 'zoom': zoom, 'user': user } )
-
-@dajaxice_register
-def load(request, areasToLoad, zoom):
-
-	paths = []
-	divs = []
-	boxes = []
-	areas = []
-	rasters = []
-	rasterPositions = []
-
-	ppks = []
-	dpks = []
-	bpks = []
-	apks = []
-
-	start = time.time()
-
-	for area in areasToLoad:
-				
-		tlX = area['pos']['x']
-		tlY = area['pos']['y']
-
-		planetX = area['planet']['x']
-		planetY = area['planet']['y']
-
-		geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
-		# geometry = makeBox(tlX, tlY, tlX+0.5, tlY+0.5)
-
-		# load items
-		p = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry, pk__nin=ppks)
-		d = Div.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry, pk__nin=dpks)
-		b = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry, pk__nin=bpks)
-		a = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry, pk__nin=apks)
-		
-		if len(p)>0:
-			paths.append(p.to_json())
-			ppks += p.scalar("id")
-		if len(b)>0:
-			boxes.append(b.to_json())
-			bpks += b.scalar("id")
-		if len(d)>0:
-			divs.append(d.to_json())
-			dpks += d.scalar("id")
-		if len(a)>0:
-			areas.append(a.to_json())
-			apks += a.scalar("id")
-
-		# load rasters
-		x1 = int(area['x'])
-		y1 = int(area['y'])
-
-		x5 = roundToLowerMultiple(x1, 5)
-		y5 = roundToLowerMultiple(y1, 5)
-
-		x25 = roundToLowerMultiple(x1, 25)
-		y25 = roundToLowerMultiple(y1, 25)
-
-		rasterPath = None
-		rasterName = None
-
-		if zoom > 0.2:
-			position = { 'x': x1, 'y': y1 }
-			if position not in rasterPositions:
-				rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
-		elif zoom > 0.04:
-			position = { 'x': x5, 'y': y5 }
-			if position not in rasterPositions:
-				rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
-		else:
-			position = { 'x': x25, 'y': y25 }
-			if position not in rasterPositions:
-				rasterPath = 'media/rasters/zoom4/'
-		
-		print 'area: ' + str(area)
-		print 'position: ' + str(position)
-		print 'raster path: ' + str(rasterPath)
-		print rasterPositions
-
-		if rasterPath != None:
-			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
-			print 'raster name: ' + rasterName
-			if os.path.isfile(os.getcwd() + '/' + rasterName):
-				rasterPositions.append(position)
-				rasters.append( { 'url': rasterName, 'position': position } )
-
 	end = time.time()
 	print "Time elapsed: " + str(end - start)
 
@@ -203,78 +271,260 @@ def load(request, areasToLoad, zoom):
 	if not user:
 		user = userID
 	userID += 1
-	return json.dumps( { 'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user, 'rasters': rasters, 'areasToUpdate': areas, 'zoom': zoom } )
 
-# add areas with item
-def addAreas(areas, item):
+	# return json.dumps( { 'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user, 'rasters': rasters, 'areasToUpdate': areas, 'zoom': zoom } )
+	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'zoom': zoom } )
 
-	if not areas:
-		print "ERROR: no areas to update."
-		return
+
+# @return [Array<{x: x, y: y}>] the list of areas on which the bounds lie
+def getAreas(bounds):
+	areas = {}
+	scale = 1000
+	l = int(floor(bounds['x'] / scale))
+ 	t = int(floor(bounds['y'] / scale))
+	r = int(floor((bounds['x']+bounds['width']) / scale))
+	b = int(floor((bounds['y']+bounds['height']) / scale))
+
+	areas = {}
+	for x in range(l, r+1):
+		for y in range(t, b+1):
+			if not areas.has_key(x):
+				areas[x] = {}
+			areas[x][y] = True
+	return areas
+
+# # add areas with item
+# def addAreas(bounds, item):
+# 	print "<<<"
+# 	print "add areas of item: " + str(item.pk)
+
+# 	areas = getAreas(bounds)
+
+# 	areasToAdd = []
+# 	for x, column in areas.iteritems():
+# 		for y in column:
+# 			area = Area.objects(x=x, y=y).modify(upsert=True, new=True, push__items=item)
+# 			print 'area: ' + str(x) + ', ' + str(y) + ': ' + str(area.pk)
+# 			# Area.objects(x=a['x'], y=a['y']).update_one(push__paths=p, upsert=True) # good but how to get id?
+# 			# try:
+# 			# 	area = Area.objects.get(x=x, y=y)
+# 			# except Area.DoesNotExist:		
+# 			# 	area = Area(x=x, y=y)
+# 			# area.items.append(item)
+# 			# area.save()
+# 			areasToAdd.append(area)
+# 			# item.areas.append(area)
+
+# 	# item.save()
+# 	document = type(item)
+# 	print "update areas to item.areas"
+# 	document.objects(pk=item.pk).update_one(push_all__areas=areasToAdd)
+# 	print "end addAreas"
+# 	print ">>>"
+
+# 	# check that DB is ok
+# 	try:
+# 		i = document.objects.get(pk=item.pk)
+# 	except document.DoesNotExist:
+# 		print 'item was deleted before add check.'
+# 		return
+
+# 	for a in areasToAdd:
+# 		try:
+# 			aa = Area.objects.get(pk=a.pk)
+# 		except Area.DoesNotExist:
+# 			print 'Area.DoesNotExist'
+# 			import pdb; pdb.set_trace()
+# 		if aa not in i.areas:
+# 			print 'aa not in items.areas'
+# 			import pdb; pdb.set_trace()
+
+# 	for x, column in areas.iteritems():
+# 		for y in column:
+# 			try:
+# 				aa = Area.objects.get(x=x, y=y)
+# 			except Area.DoesNotExist:
+# 				print 'Area.DoesNotExist'
+# 				import pdb; pdb.set_trace()
+# 			if i not in aa.items:
+# 				print 'Area not updated!'
+# 				import pdb; pdb.set_trace()
+# 			if aa not in i.areas:
+# 				print 'aa not in items.areas'
+# 				import pdb; pdb.set_trace()
+# 	return
+
+# # update areas with item
+# # areas: the list of areas which now intersect with item
+# def updateAreas(bounds, item):
+# 	print "<<<"
+# 	print "update areas of item: " + str(item.pk)
+# 	areas = getAreas(bounds)
+
+# 	document = type(item)
 	
-	for x, column in areas.iteritems():
-		for y in column:
-			# area = Area.objects(x=a['x'], y=a['y']).modify(upsert=True, push__items=item)
-			# Area.objects(x=a['x'], y=a['y']).update_one(push__paths=p, upsert=True) # good but how to get id?
-			try:
-				area = Area.objects.get(x=x, y=y)
-			except Area.DoesNotExist:		
-				area = Area(x=x, y=y)
-			area.items.append(item)
-			area.save()
+# 	areasToRemove = []
+# 	areasToRemovePks = []
 
-			item.areas.append(area)
-			item.save()
-
-	return
-
-# update areas with item
-# areas: the list of areas which now intersect with item
-def updateAreas(areas, item):
-
-	if areas:
-		print "ERROR: no areas to update."
-		return
-
-	# remove areas which do not intersect with item anymore
-	for area in item.areas:
-		if areas.has_key(area.x) and areas[area.x].has_key(area.y): 	# if the area still intersects: do not remove it
-			del areas[area.x][area.y]
-		else: 															# otherwise: remove it
-			area.items.remove(item)
-			item.areas.remove(area)
-			if len(area.items)==0:
-				area.delete()
-			else:
-				area.save()
+# 	# remove areas which do not intersect with item anymore
+# 	for area in item.areas:
+# 		if areas.has_key(area.x) and areas[area.x].has_key(area.y): 	# if the area still intersects: do not remove it
+# 			del areas[area.x][area.y]
+# 		else: 															# otherwise: remove it
+# 			areasToRemove.append(area)
+# 			if not hasattr(area, 'pk'):
+# 				print 'WARNING: area in item.areas was deleted'
+# 				continue
+# 			areasToRemovePks.append(area.pk)
+# 			# print 'remove item: ' + str(area.x) + ', ' + str(area.y) + ': ' + str(area.pk) + ' from area.items...'
+# 			# try:
+# 			# 	area.items.remove(item)
+# 			# except ValueError:
+# 			# 	print 'WARNING: item is not in area.items'
+# 			# 	continue
+# 			# print 'removed'
+# 			# if len(area.items)==0:
+# 			# 	print 'delete area: ' + str(area.pk)
+# 			# 	area.delete()
+# 			# 	print 'deleted'
+# 			# else:
+# 			# 	print 'save area: ' + str(area.pk)
+# 			# 	area.save()
+# 			# 	print 'saved'
+# 			# Area.objects(pk=area.pk).update_one(pull__items=item)
 	
-	# for all areas which now intersect with item: create or update them, and 
-	for x, column in areas.iteritems():
-		for y in column:
-			# area = Area.objects(x=a['x'], y=a['y']).modify(upsert=True, push__items=item)
-			try:
-				area = Area.objects.get(x=x, y=y)
-			except Area.DoesNotExist:		
-				area = Area(x=x, y=y)
-			area.items.append(item)
-			area.save()
-			item.areas.append(area)
+# 	Area.objects(pk__in=areasToRemovePks).update(pull__items=item)
+# 	Area.objects(pk__in=areasToRemovePks, items__size=0).delete()
 
-	item.save()
-	return
+# 	print "remove old areas from item.areas..."
+# 	document.objects(pk=item.pk).update_one(pull_all__areas=areasToRemove)
+# 	print "...removed old areas from item.areas"
 
-# update areas with item
-def deleteAreas(item):
-	for area in item.areas:
-		area.items.remove(item)
-	if len(area.items)==0:
-		area.delete()
-	else:
-		area.save()
-	return
+# 	areasToAdd = []
+# 	# for all areas which now intersect with item: create or update them, and 
+# 	for x, column in areas.iteritems():
+# 		for y in column:
+# 			area = Area.objects(x=x, y=y).modify(upsert=True, new=True, push__items=item)
+# 			print 'add item: ' + str(item.pk) + ' to area.items: ' + str(area.x) + ', ' + str(area.y) + ': ' + str(area.pk)
+# 			areasToAdd.append(area)
+# 			# try:
+# 			# 	area = Area.objects.get(x=x, y=y)
+# 			# except Area.DoesNotExist:		
+# 			# 	area = Area(x=x, y=y)
+# 			# area.items.append(item)
+# 			# area.save()
+# 			# item.areas.append(area)
+
+# 	print 'add areas in item.areas...'
+# 	document.objects(pk=item.pk).update_one(push_all__areas=areasToAdd)
+# 	print '...areas added'
+
+# 	print "end updateAreas"
+# 	print ">>>"
+
+# 	# check that DB is ok
+# 	# item.save()
+
+# 	try:
+# 		i = document.objects.get(pk=item.pk)
+# 	except document.DoesNotExist:
+# 		print 'item was deleted before update check.'
+# 		return
+
+# 	for x, column in areas.iteritems():
+# 		for y in column:
+# 			try:
+# 				a = Area.objects.get(x=x, y=y)
+# 			except Area.DoesNotExist:
+# 				print 'Area.DoesNotExist'
+# 				import pdb; pdb.set_trace()
+# 			if a not in i.areas:
+# 				print 'area not in items.areas'
+# 				import pdb; pdb.set_trace()
+# 			if i not in a.items:
+# 				print 'item not in area.items'
+# 				import pdb; pdb.set_trace()
+
+# 	for a in areasToRemove:
+# 		try:
+# 			aa = Area.objects.get(pk=a.pk)
+# 		except Area.DoesNotExist:
+# 			if a in i.areas:
+# 				print 'area not deleted from item.areas'
+# 				import pdb; pdb.set_trace()
+# 			continue
+# 		if i in aa.items:
+# 			print 'item not deleted from area.items'
+# 			import pdb; pdb.set_trace()
+# 		if len(aa.items)==0:
+# 			print 'area not deleted'
+# 			import pdb; pdb.set_trace()
+# 	return
+
+# # update areas with item
+# def deleteAreas(item):
+
+# 	print "<<<"
+# 	print "delete areas of item: " + str(item.pk)
+
+# 	areaPks = []
+# 	for a in item.areas:
+# 		if hasattr(a, 'pk'):
+# 			areaPks.append(a.pk)
+
+# 	print 'remove areas: ' + str(areaPks)
+# 	Area.objects(pk__in=areaPks).update(pull__items=item)
+
+# 	print 'delete empty areas...'
+# 	Area.objects(pk__in=areaPks, items__size=0).delete()
+
+# 	# for area in item.areas:
+# 	# 	# a = Area.objects.get(pk=area.pk) # should not be necessary
+# 	# 	# risk of having error with area.items
+# 	# 	if not hasattr(area, 'items'):
+# 	# 		print 'WARNING: area in item.areas was deleted'
+# 	# 		continue
+# 	# 	try:
+# 	# 		print 'remove item: ' + str(item.pk) + ' from area: ' + str(area.pk) + ' ...'
+# 	# 		area.items.remove(item)
+# 	# 	except ValueError:
+# 	# 		print 'WARNING: item is not in area.items'
+# 	# 		continue
+# 	# 	if len(area.items)==0:
+# 	# 		print 'delete area ' + str(area.pk) + '...'
+# 	# 		area.delete()
+# 	# 		print '...area deleted'
+# 	# 	else:
+# 	# 		print 'save area ' + str(area.pk) + '...'
+# 	# 		area.save()
+# 	# 		print '...area saved'
+
+# 	print "end deleteAreas"
+# 	print ">>>"
+
+# 	# check that DB is ok
+# 	document = type(item)
+	
+# 	try:
+# 		i = document.objects.get(pk=item.pk)
+# 	except document.DoesNotExist:
+# 		print 'item was deleted before delete check.'
+# 		return
+# 	for a in i.areas:
+# 		try:
+# 			if not hasattr(a, 'pk'):
+# 				continue
+# 			aa = Area.objects.get(pk=a.pk)
+# 		except Area.DoesNotExist:
+# 			continue
+# 		if i in aa.items:
+# 			print 'item not deleted from area.items'
+# 			import pdb; pdb.set_trace()
+
+# 	return
 
 @dajaxice_register
-def savePath(request, points, pID, planet, object_type, areas, data=None):
+def savePath(request, points, pID, planet, object_type, bounds, data=None):
 # def savePath(request, points, pID, planet, object_type, data=None, rasterData=None, rasterPosition=None, areasNotRasterized=None):
 
 	planetX = planet['x']
@@ -294,7 +544,7 @@ def savePath(request, points, pID, planet, object_type, areas, data=None):
 	p = Path(planetX=planetX, planetY=planetY, points=points, owner=request.user.username, object_type=object_type, data=data )
 	p.save()
 
-	addAreas(areas, p)
+	# addAreas(bounds, p)
 
 	# rasterResult = updateRastersJson(rasterData, rasterPosition, areasNotRasterized)
 
@@ -302,7 +552,7 @@ def savePath(request, points, pID, planet, object_type, areas, data=None):
 	return json.dumps( {'state': 'success', 'pID': pID, 'pk': str(p.pk) } )
 
 @dajaxice_register
-def updatePath(request, pk, points=None, planet=None, areas=None, data=None):
+def updatePath(request, pk, points=None, planet=None, bounds=None, data=None):
 
 	try:
 		p = Path.objects.get(pk=pk)
@@ -328,7 +578,7 @@ def updatePath(request, pk, points=None, planet=None, areas=None, data=None):
 	if data:
 		p.data = data
 
-	updateAreas(areas, p)
+	# updateAreas(bounds, p)
 
 	p.save()
 
@@ -345,13 +595,13 @@ def deletePath(request, pk):
 	if p.locked and request.user.username != p.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
-	deleteAreas(p)
+	# deleteAreas(p)
 	p.delete()
 	
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
-def saveBox(request, box, object_type, message, areas, name="", url="", clonePk=None, website=False, restrictedArea=False, disableToolbar=False):
+def saveBox(request, box, object_type, message, bounds, name="", url="", clonePk=None, website=False, restrictedArea=False, disableToolbar=False):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
 
@@ -378,7 +628,7 @@ def saveBox(request, box, object_type, message, areas, name="", url="", clonePk=
 	except ValidationError:
 		return json.dumps({'state': 'error', 'message': 'invalid_url'})
 
-	addAreas(areas, b)
+	# addAreas(bounds, b)
 
 	if website:
 		site = Site(box=b, restrictedArea=restrictedArea, disableToolbar=disableToolbar, loadEntireArea=loadEntireArea, name=name)
@@ -395,7 +645,7 @@ def saveBox(request, box, object_type, message, areas, name="", url="", clonePk=
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'name': name, 'url': url, 'owner': request.user.username, 'pk':str(b.pk), 'box':box, 'clonePk': clonePk, 'website': website } )
 
 @dajaxice_register
-def updateBox(request, object_type, pk, box=None, areas=None, message=None, name=None, url=None, data=None):
+def updateBox(request, object_type, pk, box=None, bounds=None, message=None, name=None, url=None, data=None):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
 	
@@ -441,7 +691,7 @@ def updateBox(request, object_type, pk, box=None, areas=None, message=None, name
 	if data:
 		b.data = data
 
-	updateAreas(areas, b)
+	# updateAreas(bounds, b)
 
 	try:
 		b.save()
@@ -498,13 +748,13 @@ def deleteBox(request, pk):
 	if request.user.username != b.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of div'})
 
-	deleteAreas(b)
+	# deleteAreas(b)
 	b.delete()
 	
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
-def saveDiv(request, box, object_type, areas, message=None, url=None, data=None, clonePk=None):
+def saveDiv(request, box, object_type, bounds, message=None, url=None, data=None, clonePk=None):
 
 	points = box['points']
 	planetX = box['planet']['x']
@@ -524,12 +774,12 @@ def saveDiv(request, box, object_type, areas, message=None, url=None, data=None,
 	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, message=message, url=url, data=data, locked=locked)
 	d.save()
 
-	addAreas(areas, d)
+	# addAreas(bounds, d)
 
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'url': url, 'owner': request.user.username, 'pk':str(d.pk), 'box': box, 'data': data, 'clonePk': clonePk } )
 
 @dajaxice_register
-def updateDiv(request, object_type, pk, box=None, areas=None, message=None, url=None, data=None):
+def updateDiv(request, object_type, pk, box=None, bounds=None, message=None, url=None, data=None):
 
 	try:
 		d = Div.objects.get(pk=pk)
@@ -567,7 +817,7 @@ def updateDiv(request, object_type, pk, box=None, areas=None, message=None, url=
 	if data:
 		d.data = data
 	
-	updateAreas(areas, d)
+	# updateAreas(bounds, d)
 
 	d.save()
 
@@ -584,16 +834,33 @@ def deleteDiv(request, pk):
 	if d.locked and request.user.username != d.owner:
 		return json.dumps({'state': 'error', 'message': 'You are not the owner of this div.'})
 
-	deleteAreas(d)
+	# deleteAreas(d)
 	d.delete()
 	
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 # --- rasters --- #
 
+# Get the position in project coordinate system of *point* on *planet*
+# This is the opposite of projectToPlanetJson
+def posOnPlanetToProject(xp, yp, planetX, planetY):
+	scale = 1000.0
+	x = planetX*360.0+xp
+	y = planetY*180.0+yp
+	x *= scale
+	y *= scale
+	return (x,y)
+
+@dajaxice_register
+def batchUpdateRasters(request, args):
+	results = []
+	for arg in args:
+		results.append(updateRastersJson(arg['data'], arg['position'], arg['areasNotRasterized'], arg['areaToDeletePk']))
+	return json.dumps(results)
+
 @dajaxice_register
 def updateRasters(request, data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
-	result = updateRastersJson(data, position, areasNotRasterized, areaToDeletePk);
+	result = updateRastersJson(data, position, areasNotRasterized, areaToDeletePk)
 	return json.dumps(result)
 	
 def roundToLowerMultiple(x, m):
@@ -605,14 +872,38 @@ def roundToGreaterMultiple(x, m):
 
 # @dajaxice_register
 def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
+	print "updateRastersJson"
+
+	# for line in traceback.format_stack():
+	# 	print line.strip()
+
+	# global isUpdatingRasters
+	
+	# if isUpdatingRasters:
+	# 	print 'Error: isUpdatingRasters!'
+	# 	import pdb; pdb.set_trace()
+	
+	# isUpdatingRasters = True
 
 	if areaToDeletePk:
 		try:
-			areaToUpdate = AreaToUpdate.objects.get(pk=areaToDeletePk)
+			areaToDelete = AreaToUpdate.objects.get(pk=areaToDeletePk)
 		except AreaToUpdate.DoesNotExist:
 			return json.dumps({'state': 'log', 'message': 'Delete impossible: area does not exist'})
+		print '<<<'
+		print "1. attempt to delete areas from area to delete " + str(areaToDelete.pk) + "..."
+		# deleteAreas(areaToDelete)
+		print "2. attempt to delete areas to delete " + str(areaToDelete.pk) + "..."
+		areaToDelete.delete()
 
-		areaToUpdate.delete()
+		try:
+			a = AreaToUpdate.objects.get(pk=areaToDeletePk)
+			print 'WHAT?'
+			import pdb; pdb.set_trace()
+		except AreaToUpdate.DoesNotExist:
+			print 'ok'
+		print '3. finished deleting area to delete'
+		print '>>>'
 
 	areasDeleted = []
 	areasToUpdate = []
@@ -625,6 +916,9 @@ def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToD
 			planetY = area['planet']['y']
 
 			# merge all overlapping areas into one (and delete them)
+			print '<<<'
+			print 'start merging all regions overlapping with the new area to update: '
+			print 'points: ' + str(points)
 			overlappingAreas = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=[points])
 			left = xMin = points[0][0]
 			right = xMax = points[2][0]
@@ -632,21 +926,26 @@ def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToD
 			bottom = yMax = points[2][1]
 			for overlappingArea in overlappingAreas:
 				
-				c = overlappingArea.box['coordinates'][0]
-				cleft = c[0][0]
-				ctop = c[0][1]
-				cright = c[2][0]
-				cbottom = c[2][1]
+				cbox = overlappingArea.box['coordinates'][0]
+				cleft = cbox[0][0]
+				ctop = cbox[0][1]
+				cright = cbox[2][0]
+				cbottom = cbox[2][1]
 				
 				# if the areas just share an edge: continue
-				uleft = max(left, cleft)
-				utop = max(top, ctop)
-				uright = min(right, cright)
-				ubottom = min(bottom, cbottom)
+				# check if intersection has a positive area
+				ileft = max(left, cleft)
+				itop = max(top, ctop)
+				iright = min(right, cright)
+				ibottom = min(bottom, cbottom)
 				
-				if (uright-uleft) * (ubottom-utop) <= 0.001:
+				if (iright-ileft) <= 0 or (ibottom-itop) <= 0 or (iright-ileft) * (ibottom-itop) <= 0.001:
 					continue
 
+				print '!!! OVERLAPPING !!!'
+				print '!!! OVERLAPPING !!!'
+				print '!!! OVERLAPPING !!!'
+				
 				if not xMin or cleft < xMin:
 					xMin = cleft
 				if not xMax or cright > xMax:
@@ -657,12 +956,46 @@ def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToD
 					yMax = cbottom
 
 				areasDeleted.append(str(overlappingArea.pk))
-				overlappingArea.delete()
-
+				print 'start deleting areas of overlapping area: ' + str(overlappingArea.pk)
+				# deleteAreas(overlappingArea)
+				print 'start deleting overlapping area: ' + str(overlappingArea.pk) + '...'
+				try:
+					overlappingArea.delete()
+				except Area.DoesNotExist:
+					print "Impossible to delete area: " + str(overlappingArea.pk) + ", skipping area merging"
+					xMin = points[0][0]
+					xMax = points[2][0]
+					yMin = points[0][1]
+					yMax = points[2][1]
+					break
+				print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
+			
+			print 'creating new area to update...'
 			areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[[ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]])
 			areaToUpdate.save()
+			# print '...created new area to update'
+			
+			# topLeft = posOnPlanetToProject(xMin, yMin, planetX, planetY)
+			# bottomRight = posOnPlanetToProject(xMax, yMax, planetX, planetY)
+			# print "planet"
+			# print planetX
+			# print planetY
+			# print "rectangle"
+			# print xMin
+			# print yMin
+			# print xMax
+			# print yMax
+			# print "rectangle in project coordinates"
+			# print topLeft
+			# print bottomRight
+			# bounds = {'x': topLeft[0], 'y': topLeft[1], 'width': bottomRight[0]-topLeft[0], 'height': bottomRight[1]-topLeft[1]}
+			
+			# print 'adding new area to area to update...'
+			# addAreas(bounds, areaToUpdate)
+			# print '...added new area to area to update'
 			
 			areasToUpdate.append( areaToUpdate.to_json() )
+			print '>>>'
 
 	if (not data) or (data == "data:,"):
 		return { 'state': 'success', 'areasToUpdate': areasToUpdate, 'areasDeleted': areasDeleted }
@@ -1179,6 +1512,7 @@ def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToD
 	end = time.time()
 
 	print "Time elapsed: " + str(end - start)
+	# isUpdatingRasters = False
 
 	return { 'state': 'success', 'areasToUpdate': areasToUpdate, 'areasDeleted': areasDeleted }
 
@@ -1204,6 +1538,11 @@ def loadRasters(request, areasToLoad):
 	print "Time elapsed: " + str(end - start)
 
 	return json.dumps( { 'images': images } )
+
+@dajaxice_register
+def getAreasToUpdate(request):
+	areas = AreaToUpdate.objects()
+	return areas.to_json()
 
 # @dajaxice_register
 # def updateAreasToUpdate(request, pk, newAreas):

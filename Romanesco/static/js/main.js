@@ -132,7 +132,8 @@ Notations:
       appendTo: g.sidebarJ,
       helper: "clone",
       start: sortStart,
-      stop: sortStop
+      stop: sortStop,
+      delay: 250
     }).disableSelection();
     g.tools['Move'].select();
   };
@@ -154,7 +155,7 @@ Notations:
     loadEntireArea = g.canvasJ.attr("data-load-entire-area");
     if (loadEntireArea) {
       g.entireArea = boxRectangle;
-      g.quick_load(boxRectangle);
+      g.load(boxRectangle);
     }
     siteString = g.canvasJ.attr("data-site");
     site = JSON.parse(siteString);
@@ -225,6 +226,12 @@ Notations:
     g.draggingEditor = false;
     g.rasters = {};
     g.areasToUpdate = {};
+    g.rastersToUpload = [];
+    g.areasToRasterize = [];
+    g.isUpdatingRasters = false;
+    g.viewUpdated = false;
+    g.areasToUpdateRectangles = {};
+    g.catchErrors = false;
     Dajaxice.setup({
       'default_exception_callback': function(error) {
         console.log('Dajaxice error!');
@@ -251,7 +258,7 @@ Notations:
     paper.settings.hitTolerance = 5;
     g.grid = new Group();
     g.grid.name = 'grid group';
-    view.zoom = 0.01;
+    view.zoom = 1;
     Point.prototype.toJSON = function() {
       return {
         x: this.x,
@@ -422,7 +429,11 @@ Notations:
           _ref6 = g.selectedItems();
           for (_m = 0, _len4 = _ref6.length; _m < _len4; _m++) {
             item = _ref6[_m];
-            item["delete"]();
+            if (item.selectedSegment != null) {
+              item.deleteSelectedPoint(true);
+            } else {
+              item["delete"]();
+            }
           }
       }
       return event.preventDefault();

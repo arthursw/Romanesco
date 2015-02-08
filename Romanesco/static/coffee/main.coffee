@@ -139,7 +139,7 @@ initTools = () ->
 
 		return
 
-	$( "#sortable1, #sortable2" ).sortable( connectWith: ".connectedSortable", appendTo: g.sidebarJ, helper: "clone", start: sortStart, stop: sortStop ).disableSelection()
+	$( "#sortable1, #sortable2" ).sortable( connectWith: ".connectedSortable", appendTo: g.sidebarJ, helper: "clone", start: sortStart, stop: sortStop, delay: 250 ).disableSelection()
 
 	g.tools['Move'].select() 		# select the move tool
 	return
@@ -174,7 +174,7 @@ initPosition = ()->
 
 	if loadEntireArea
 		g.entireArea = boxRectangle
-		g.quick_load(boxRectangle)
+		g.load(boxRectangle)
 
 	# boxData = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
 	# console.log boxData
@@ -253,6 +253,13 @@ init = ()->
 	g.draggingEditor = false 				# boolean, true when user is dragging the code editor
 	g.rasters = {}							# map to store rasters (tiles, rasterized version of the view)
 	g.areasToUpdate = {} 					# map of areas to update { pk->rectangle } (areas which are not rasterize on the server, that we must send if we can rasterize them)
+	g.rastersToUpload = [] 					# an array of { data: dataURL, position: position } containing the rasters to upload on the server 
+	g.areasToRasterize = [] 				# an array of Rectangle to rasterize
+	g.isUpdatingRasters = false 			# true if we are updating rasters (in loopUpdateRasters)
+	g.viewUpdated = false 					# true if the view was updated ( rasters removed and items drawn in g.updateView() ) and we don't need to update anymore (until new rasters are added in load_callback)
+
+	g.areasToUpdateRectangles = {} 			# debug map: area to update pk -> rectangle path
+	g.catchErrors = false 					# the error will not be caught when drawing an RPath (let chrome catch them at the right time)
 
 	# g.globalMaskJ = $("#globalMask")
 	# g.globalMaskJ.hide()
@@ -279,7 +286,7 @@ init = ()->
 	paper.settings.hitTolerance = 5
 	g.grid = new Group() 					# Paper Group to append all grid items
 	g.grid.name = 'grid group'
-	view.zoom = 0.01
+	view.zoom = 1 # 0.01
 
 	# add custom methods to export Paper Point and Rectangle to JSON
 	Point.prototype.toJSON = ()->
@@ -463,7 +470,10 @@ $(document).ready () ->
 				g.tools['Select'].select()
 			when 'delete', 'backspace'
 				for item in g.selectedItems()
-					item.delete()
+					if item.selectedSegment?
+						item.deleteSelectedPoint(true)
+					else
+						item.delete()
 		
 		event.preventDefault()
 	

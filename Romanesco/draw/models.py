@@ -75,7 +75,7 @@ class Path(Document):
     date = DateTimeField(default=datetime.datetime.now)
     object_type = StringField(default='brush')
     locked = BooleanField(default=False)
-    areas = ListField(ReferenceField('Area'))
+    # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
 
@@ -94,7 +94,7 @@ class Box(Document):
     url = URLField(verify_exists=True, required=False)
     name = StringField()
     message = StringField()
-    areas = ListField(ReferenceField('Area'))
+    # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
     
@@ -106,8 +106,9 @@ class AreaToUpdate(Document):
     planetX = DecimalField()
     planetY = DecimalField()
     box = PolygonField()
+
     rType = StringField(default='AreaToUpdate')
-    areas = ListField(ReferenceField('Area'))
+    # areas = ListField(ReferenceField('Area'))
 
     meta = {
         'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
@@ -124,7 +125,7 @@ class Div(Document):
     url = StringField(required=False)
     message = StringField()
     locked = BooleanField(default=False)
-    areas = ListField(ReferenceField('Area'))
+    # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
 
@@ -160,15 +161,15 @@ class Site(Document):
         'indexes': [[ ("name", 1) ]]
     }
 
-class Area(Document):
-    x = DecimalField()
-    y = DecimalField()
-    items = ListField(GenericReferenceField())
-    # paths = ListField(ReferenceField(Path))
-    # boxes = ListField(ReferenceField(Box))
-    # divs = ListField(ReferenceField(Div))
-    # areasToUpdate = ListField(ReferenceField(AreaToUpdate))
+# class Area(Document):
+#     x = DecimalField()
+#     y = DecimalField()
+#     items = ListField(GenericReferenceField())
+#     # paths = ListField(ReferenceField(Path))
+#     # boxes = ListField(ReferenceField(Box))
+#     # divs = ListField(ReferenceField(Div))
+#     # areasToUpdate = ListField(ReferenceField(AreaToUpdate))
 
-    meta = {
-        'indexes': [[ ("x", 1), ("y", 1) ]]
-    }
+#     meta = {
+#         'indexes': [[ ("x", 1), ("y", 1) ]]
+#     }

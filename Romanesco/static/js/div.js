@@ -78,7 +78,7 @@
             'message': message,
             'url': url,
             'clonePk': clonePk,
-            'areas': this.getAreas()
+            'bounds': this.getBounds()
           });
           break;
         default:
@@ -92,7 +92,7 @@
             'website': website,
             'restrictedArea': restrictedArea,
             'disableToolbar': disableToolbar,
-            'areas': this.getAreas()
+            'bounds': this.getBounds()
           });
       }
     };
@@ -301,25 +301,6 @@
 
     RDiv.prototype.getBounds = function() {
       return new Rectangle(this.position.x, this.position.y, this.divJ.outerWidth(), this.divJ.outerHeight());
-    };
-
-    RDiv.prototype.getAreas = function() {
-      var areas, b, bounds, l, r, t, x, y, _i, _j;
-      bounds = this.getBounds();
-      t = Math.floor(bounds.top / g.scale);
-      l = Math.floor(bounds.left / g.scale);
-      b = Math.floor(bounds.bottom / g.scale);
-      r = Math.floor(bounds.right / g.scale);
-      areas = {};
-      for (x = _i = l; l <= r ? _i <= r : _i >= r; x = l <= r ? ++_i : --_i) {
-        for (y = _j = t; t <= b ? _j <= b : _j >= b; y = t <= b ? ++_j : --_j) {
-          if (areas[x] == null) {
-            areas[x] = {};
-          }
-          areas[x][y] = true;
-        }
-      }
-      return areas;
     };
 
     RDiv.prototype.moveTo = function(position, userAction) {
@@ -564,7 +545,7 @@
         message: this.message,
         url: this.url,
         data: this.getStringifiedData(),
-        areas: this.getAreas()
+        bounds: this.getBounds()
       };
       this.changed = null;
       if (this.object_type === 'text' || this.object_type === 'media') {

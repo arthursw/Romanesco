@@ -47,7 +47,7 @@ this.initParameters = () ->
 			for div in g.divs
 				div.updateTransform()
 			return
-		onFinishChange: (value) -> return g.quick_load()
+		onFinishChange: (value) -> return g.load()
 	g.parameters.displayGrid = 
 		type: 'checkbox'
 		label: 'Display grid'
@@ -642,8 +642,9 @@ this.updateParameters = (tools, resetValues=false)->
 			folderExists = g.gui.__folders[folderName]?
 			datFolder = if folderExists then g.gui.__folders[folderName] else g.gui.addFolder(folderName) 	# get or create folder
 			for name, parameter of folder  							# for all parameters of the folder
-				addItem(name, parameter, item, datFolder, resetValues)
-			if not folderExists 	# open folder if it did not exist
+				if name != 'folderIsClosedByDefault'
+					addItem(name, parameter, item, datFolder, resetValues)
+			if not folderExists and not folder.folderIsClosedByDefault				# open folder if it did not exist (and is opened by default)
 				datFolder.open()
 
 	# remove all controllers which are not used anymore

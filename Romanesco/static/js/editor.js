@@ -39,7 +39,7 @@
     g.editor.setTheme("ace/theme/monokai");
     g.editor.getSession().setUseSoftTabs(false);
     g.editor.getSession().setMode("ace/mode/coffee");
-    g.editor.getSession().setValue("class TestPath extends PrecisePath\n  @rname = 'Test path'\n  @rdescription = \"Test path.\"\n\n  drawBegin: ()->\n\n    @initializeDrawing(false)\n\n    @path = @addPath()\n    return\n\n  drawUpdate: (length)->\n\n    point = @controlPath.getPointAt(length)\n    @path.add(point)\n    return\n\n  drawEnd: ()->\n    return\n", 1);
+    g.editor.getSession().setValue("class TestPath extends PrecisePath\n  @rname = 'Test path'\n  @rdescription = \"Test path.\"\n\n  drawBegin: ()->\n\n    @initializeDrawing(false)\n\n    @path = @addPath()\n    return\n\n  drawUpdateStep: (length)->\n\n    point = @controlPath.getPointAt(length)\n    @path.add(point)\n    return\n\n  drawEnd: ()->\n    return\n", 1);
     saveChanges = function() {
       var className, firstLineRegExp, firstLineResult, romanescoCode;
       romanescoCode = (localStorage.romanescoCode != null) && localStorage.romanescoCode.length > 0 ? JSON.parse(localStorage.romanescoCode) : {};

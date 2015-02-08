@@ -67,6 +67,25 @@ this.romanesco_alert = (message, type="", delay=2000) ->
 		g.alertTimeOut = setTimeout( ( () -> g.alertsContainer.removeClass("show") ) , delay )
 	return
 
+# check for any error in an ajax callback and display the appropriate error message
+# @return [Boolean] true if there was no error, false otherwise
+this.checkError = (result)->
+	console.log result
+	if not result? then return true
+	if result.state == 'not_logged_in'
+		romanesco_alert("You must be logged in to update drawings to the database.", "info")
+		return false
+	if result.state == 'error'
+		if result.message == 'invalid_url'
+			romanesco_alert("Your URL is invalid or does not point to an existing page.", "error")
+		else
+			romanesco_alert("Error: " + result.message, "error")
+		return false
+	else if result.state == 'system_error'
+		console.log result.message
+		return false
+	return true
+
 ## Event to object conversion (to send event info through websockets)
 
 # Convert an event (jQuery event or Paper.js event) to an object
@@ -497,7 +516,7 @@ g.RMoveBy = (delta) ->
 		
 		# check if the restricted area contains view.center (if not, move to center)
 		if not g.restrictedArea.contains(view.center)
-			# delta = g.restrictedArea.center.subtract(view.size.multiply(0.5)).subtract(view.topLeft)
+			# delta = g.restrictedArea.center.subtract(view.size.multiply(0.5)).subtract(view.bounds.topLeft)
 			delta = g.restrictedArea.center.subtract(view.center)
 		else
 			# test if new pos is still in restricted area
@@ -544,14 +563,20 @@ g.RMoveBy = (delta) ->
 	else if g.entireArea? and not newEntireArea?
 		g.entireArea = null
 
-	if newEntireArea? then quick_load(g.entireArea) else quick_load()
+	if newEntireArea? then load(g.entireArea) else load()
 
 	g.updateRoom() 											# update websocket room
 
 	g.defferedExecution(g.updateHash, 'updateHash', 500) 					# update hash in 500 milliseconds
-	g.willUpdateAreasToUpdate = true
-	g.defferedExecution(g.updateAreasToUpdate, 'updateAreasToUpdate', 500) 					# update areas to update in 500 milliseconds
-
+	
+	# g.willUpdateAreasToUpdate = true
+	# g.defferedExecution(g.updateAreasToUpdate, 'updateAreasToUpdate', 500) 					# update areas to update in 500 milliseconds
+	
+	for pk, rectangle of g.areasToUpdate
+		if rectangle.intersects(view.bounds)
+			g.updateView()
+			break
+	
 	g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)) # update location in sidebar
 	return
 
@@ -677,16 +702,20 @@ this.getRectangleListFromIntersection = (rectangle1, rectangle2)->
 	return rectangles
 
 # Get the image in *rectangle* of the view in a data url
-# @param rectangle [Paper Rectangle] a rectangle in project coordinate representing the area to extract
-# @param intersectView [Boolean] (optional) a boolean indicating whether to intersect *rectangle* with the view bounds
+# @param rectangle [Paper Rectangle] a rectangle in view or project coordinates representing the area to extract
+# @param convertToView [Boolean] (optional) a boolean indicating whether to intersect *rectangle* with the view bounds and convert to view coordinates
 # @return [String] the data url of the view image defined by area
-this.areaToImageDataUrl = (rectangle, intersectView=true)->
-	if intersectView then rectangle = rectangle.intersect(view.bounds)
+this.areaToImageDataUrl = (rectangle, convertToView=true)->
 	if rectangle.height <=0 or rectangle.width <=0 
 		console.log 'Warning: trying to extract empty area!!!'
+		debugger
 		return null
 
-	viewRectangle = g.projectToViewRectangle(rectangle)
+	if convertToView
+		rectangle = rectangle.intersect(view.bounds)
+		viewRectangle = g.projectToViewRectangle(rectangle)
+	else
+		viewRectangle = rectangle
 
 	canvasTemp = document.createElement('canvas')
 	canvasTemp.width = viewRectangle.width
@@ -697,17 +726,51 @@ this.areaToImageDataUrl = (rectangle, intersectView=true)->
 	dataURL = canvasTemp.toDataURL("image/png")
 	return dataURL
 
+# out-of-date
 # Get the image in *rectangle* of the view in a data url and the a list of areas (rectangle) which could not be rasterized because they are outside the view
 # @param rectangle [Paper Rectangle] a rectangle in project coordinate representing the area to extract
-# @return [String or { dataURL: String, areasNotRasterized: Array<Paper Rectangle>}] an object with the dataUrl and the areas not rasterized
+# @return [String or { dataURL: String, areasNotRasterized: Array<Paper Rectangle>}] an object with the dataURL and the areas not rasterized
 this.areaToImageDataUrlWithAreasNotRasterized = (rectangle)->
-	rectangle = g.expandRectangleToInteger(rectangle)
-	intersection = rectangle.intersect(view.bounds)
-	intersection = g.shrinkRectangleToInteger(intersection)
 
 	if view.zoom != 1
 		g.romanesco_alert("You are creating or modifying an item in a zoom different than 100. \nThis will not be rasterized, other users will have to render it \n(please consider drawing and modifying items at zoom 100 for better loading performances).", "warning", 3000)
-		return { dataURL: null, rectangle: intersection, areasNotRasterized: [g.boxFromRectangle(rectangle)] }
+		return { dataURL: null, rectangle: rectangle, areasNotRasterized: [g.boxFromRectangle(rectangle)] }
+
+	viewCenter = view.center
+	view.center = view.bounds.topLeft.round().add(view.size.multiply(0.5))
+
+	rectangle = g.expandRectangleToInteger(rectangle)
+	intersection = rectangle.intersect(view.bounds)
+	intersection = g.shrinkRectangleToInteger(intersection)	
+	viewIntersection = g.roundRectangle(g.projectToViewRectangle(intersection))
+
+	# rectangle = g.projectToViewRectangle(rectangle)
+	# rectangle = g.expandRectangleToInteger(rectangle)
+	# intersection = rectangle.intersect(new Rectangle(0, 0, view.size.width, view.size.height))
+	
+	# intersection = g.shrinkRectangleToInteger(intersection)
+	
+	# viewIntersection = intersection
+	# rectangle = g.roundRectangle(g.viewToProjectRectangle(rectangle))
+	# intersection = g.roundRectangle(g.viewToProjectRectangle(intersection))
+
+	if view.bounds.contains(rectangle) and not g.shrinkRectangleToInteger(intersection).equals(rectangle)
+		console.log "ERROR: good error :-) but unlikely..."
+		debugger
+
+	console.log 'rectangle: ' + rectangle.toString()
+	console.log 'intersection: ' + intersection.toString()
+	console.log 'viewIntersection: ' + viewIntersection.toString()
+
+	if not rectangle.topLeft.round().equals(rectangle.topLeft) or not rectangle.bottomRight.round().equals(rectangle.bottomRight)
+		console.log 'Error: rectangle is not rounded!'
+		debugger
+	if not intersection.topLeft.round().equals(intersection.topLeft) or not intersection.bottomRight.round().equals(intersection.bottomRight)
+		console.log 'Error: rectangle is not rounded!'
+		debugger
+	if not viewIntersection.topLeft.round().equals(viewIntersection.topLeft) or not viewIntersection.bottomRight.round().equals(viewIntersection.bottomRight)
+		console.log 'Error: rectangle is not rounded!'
+		debugger
 
 	# deselect items (in paper.js view) and keep them in an array to reselect them after rasterization
 	selectedItems = []
@@ -718,11 +781,13 @@ this.areaToImageDataUrlWithAreasNotRasterized = (rectangle)->
 	project.activeLayer.selected = false
 	g.carLayer.visible = false
 	g.debugLayer.visible = false
+
 	view.draw()
 	
 	# rasterize (only what it is possible to rasterize)
-	dataURL = areaToImageDataUrl(intersection, false)
+	dataURL = areaToImageDataUrl(viewIntersection, false)
 	
+	view.center = viewCenter
 	# debugRaster = new Raster( source: dataURL, position: rectangle.intersect(view.bounds).center )
 	# debugRaster.selected = true
 	# debugRaster.opacity = 0.5
@@ -745,64 +810,41 @@ this.areaToImageDataUrlWithAreasNotRasterized = (rectangle)->
 	# convert the list of area in a GeoJSON compatible format
 	areasNotRasterizedBox = (g.boxFromRectangle(area) for area in areasNotRasterized)
 	# or: areasNotRasterizedBox = areasNotRasterized.map( (areaNotRasterized)-> return g.boxFromRectangle(area) )
+	
+	for area in areasNotRasterized
+		console.log area
 
 	return { dataURL: dataURL, rectangle: intersection, areasNotRasterized: areasNotRasterizedBox }
 
-# - delete areas to delete (areas which were overlapping with the areas which were just added)
+# doc is out-of-date
 # - add areas to update in g.areasToUpdate, from result of server
-# called in load_callback, and on updateAreasToUpdate callback (when we rasterize part of an area, we must add the new remaining areas)
-# @param result [Object] the server result of the load (when called from load_callback) or the updateAreasToUpdate (when called from updateAreasToUpdate)
-this.addAreasToUpdate = (results)->
-	if typeof(results)=='string' then results = JSON.parse(results)
-	if not g.checkError(results) then return
-	if results.state == 'log' and results.message == 'Delete impossible: area does not exist' then return 	# dirty way to ignore when the area was deleted (probaby updated by another user before) 
-
-	console.log 'areas to delete: ' + results.areasDeleted?.length
-	# delete areas to delete (areas which were overlapping with the areas which were just added)
-	if results.areasDeleted?
-		for areaToDeletePk in results.areasDeleted
-			console.log 'delete area: ' + areaToDeletePk
-			if g.areasToUpdate[areaToDeletePk]?
-				debugRectangle = debugLayer.getItem( name: areaToDeletePk )
-				if debugRectangle?
-					debugRectangle.strokeColor = 'green'
-					setTimeout(((debugRectangle)-> return ()-> debugRectangle.remove())(debugRectangle), 2000)
-				else
-					console.log 'Error: could not find debug rectangle'
-				delete g.areasToUpdate[areaToDeletePk]
-			else
-				console.log 'Error: area to delete could not be found'
-				debugger
-
+# called in load_callback, and on updateRasters_callback (when we rasterize part of an area, we must add the new remaining areas)
+# @param newAreasToUpdate [Array<AreaToUpdate>] the list of new areas to update
+this.addAreasToUpdate = (newAreasToUpdate)->
 	# add areas to update in g.areasToUpdate
-	if results.areasToUpdate?
-		for a in results.areasToUpdate
-			areas = JSON.parse(a)
-			# areas is either an array (when addAreasToUpdate is called from load_callback) or an area (otherwise)
-			if areas.constructor != Array then areas = [areas]
-			console.log 'areas to add: ' + areas.length
-			for area in areas
-				if g.areasToUpdate[area._id.$oid]? then continue 	# do not add if it is already there (meaning we add areas from load_callback)
-				planet = new Point(area.planetX, area.planetY)
-				
-				tl = posOnPlanetToProject(area.box.coordinates[0][0], planet)
-				br = posOnPlanetToProject(area.box.coordinates[0][2], planet)
+	for area in newAreasToUpdate
+		
+		if g.areasToUpdate[area._id.$oid]?
+			continue 	# do not add if it is already there (meaning we add areas from load_callback)
 
-				rectangle = new Rectangle(tl, br)
+		rectangle = g.rectangleFromBox(area)
 
-				console.log 'add: ' + area._id.$oid + ', rectangle: ' + rectangle.toString()
-				g.areasToUpdate[area._id.$oid] = rectangle
+		# console.log 'add: ' + area._id.$oid + ', rectangle: ' + rectangle.toString()
+		g.areasToUpdate[area._id.$oid] = rectangle
+		# debug
+		debugRectangle = new Path.Rectangle(rectangle)
+		debugRectangle.strokeColor = 'red'
+		debugRectangle.strokeWidth = 1
+		debugRectangle.name = area._id.$oid
+		g.debugLayer.addChild(debugRectangle)
 
-				# debug
-				debugRectangle = new Path.Rectangle(rectangle)
-				debugRectangle.strokeColor = 'red'
-				debugRectangle.strokeWidth = 1
-				debugRectangle.name = area._id.$oid
-				g.debugLayer.addChild(debugRectangle)
+		g.areasToUpdateRectangles[area._id.$oid] = debugRectangle
 
 	return
 
+# out-of-date
 # update rasters on the server
+# todo: change doc: called in one case only.
 # called in two cases:
 # - by RPath.update when a path must be updated, the rasters must also be updated
 # - by updateAreasToUpdate: when the view is moved on top of an area to update, the rasters are updated
@@ -812,36 +854,89 @@ this.addAreasToUpdate = (results)->
 this.updateRasters = (rectangle, areaPk=null)->
 	extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
 	console.log 'request to add ' + extraction.areasNotRasterized?.length + ' areas'
+
+	for area in extraction.areasNotRasterized
+		console.log "---"
+		console.log area
+
+		planet = new Point(area.planet)
+		
+		tl = posOnPlanetToProject(area.tl, planet)
+		br = posOnPlanetToProject(area.br, planet)
+		console.log new Rectangle(tl, br).toJSON()
+
 	if extraction.dataURL == "data:,"
 		console.log "Warning: trying to add an area outside the screen!"
-	Dajaxice.draw.updateRasters(g.addAreasToUpdate, { 'data': extraction.dataURL, 'position': extraction.rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized, 'areaToDeletePk': areaPk } )
+
+	Dajaxice.draw.updateRasters(g.updateRasters_callback, { 'data': extraction.dataURL, 'position': extraction.rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized, 'areaToDeletePk': areaPk } )
 	return
 
+# out-of-date
+# - call updateRasters_callback multiple times
+this.batchUpdateRasters_callback = (results)->
+	for result in results
+		updateRasters_callback(result)
+	return
+
+# out-of-date
+# - delete areas to delete (areas which were overlapping with the areas which were just added)
+# call addAreasToUpdate
+this.updateRasters_callback = (results)->
+	if not g.checkError(results) then return
+	if results.state == 'log' and results.message == 'Delete impossible: area does not exist' then return 	# dirty way to ignore when the area was deleted (probaby updated by another user before) 
+
+	# console.log 'areas to delete: ' + results.areasDeleted?.length
+	# delete areas to delete (areas which were overlapping with the areas which were just added)
+	if results.areasDeleted?
+		for areaToDeletePk in results.areasDeleted
+			# console.log 'delete area: ' + areaToDeletePk
+			if g.areasToUpdate[areaToDeletePk]?
+				debugRectangle = debugLayer.getItem( name: areaToDeletePk )
+				if debugRectangle?
+					debugRectangle.strokeColor = 'green'
+					setTimeout(((debugRectangle)-> return ()-> debugRectangle.remove())(debugRectangle), 2000)
+				# else
+				# 	console.log 'Error: could not find debug rectangle'
+				delete g.areasToUpdate[areaToDeletePk]
+			else
+				console.log 'Error: area to delete could not be found'
+				debugger
+
+	newAreasToUpdate = []
+	if results.areasToUpdate?
+		for area in results.areasToUpdate
+			newAreasToUpdate.push(JSON.parse(area))
+	g.addAreasToUpdate(newAreasToUpdate)
+	return
+
+# out-of-date
 # draw/update the areas to update:
 # for all areas to update: if it is in the view, refresh the view and delete area
 # if the area was not entirely in the view, the remaining areas are sent to the server to be added
 # on server callback, the remaining areas will be added to g.areasToUpdate (in addAreasToUpdate)
 this.updateAreasToUpdate = ()->
 
-	viewUpdated = false
+	if view.zoom != 1 then return
 
+	viewUpdated = false
+	args = []
 	for pk, rectangle of g.areasToUpdate
 		intersection = rectangle.intersect(view.bounds)
 		
-		console.log 'try to update area ' + pk + ', rectangle: ' + rectangle.toString() + '...'
+		# console.log 'try to update area ' + pk + ', rectangle: ' + rectangle.toString() + '...'
 		if (rectangle.width > 1 and intersection.width <= 1) or (rectangle.height > 1 and intersection.height <= 1)
-			console.log '...not in view'
+			# console.log '...not in view'
 			continue
 
-		if view.zoom == 1
-			debugRectangle = debugLayer.getItem( name: pk )
-			if debugRectangle?
-				debugRectangle.strokeColor = 'blue'
-				# setTimeout((()-> debugRectangle.remove()), 2000)
-				setTimeout(((debugRectangle)-> return ()-> debugRectangle.remove())(debugRectangle), 2000)
-			else
-				console.log 'Error: could not find debug rectangle'
-		
+		# debugRectangle = debugLayer.getItem( name: pk )
+		debugRectangle = g.areasToUpdateRectangles[pk]
+		if debugRectangle?
+			debugRectangle.strokeColor = 'blue'
+			# setTimeout((()-> debugRectangle.remove()), 2000)
+			setTimeout(((debugRectangle)-> return ()-> debugRectangle.remove())(debugRectangle), 2000)
+		else
+			console.log 'Error: could not find debug rectangles'
+	
 		# draw all items on this area
 		# for item in newItems
 		# 	if item.getBounds().intersects(intersection)
@@ -850,7 +945,6 @@ this.updateAreasToUpdate = ()->
 		# refresh view (only once)
 		if not viewUpdated
 			g.updateView()
-			view.draw()
 			viewUpdated = true
 
 		# newAreas = g.getRectangleListFromIntersection(rectangle, intersection)
@@ -860,11 +954,31 @@ this.updateAreasToUpdate = ()->
 		# 	newAreasBox.push(g.boxFromRectangle(area))
 
 		# Dajaxice.draw.updateAreasToUpdate(addAreasToUpdate, { 'pk': area.pk, 'newAreas': newAreasBox } )
-		
-		updateRasters(rectangle, pk)
 
-		console.log '...updated'
+		# updateRasters(rectangle, pk)
+		extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
+		if extraction.dataURL == "data:,"
+			console.log "Warning: trying to add an area outside the screen!"
+		args.push({ 'data': extraction.dataURL, 'position': extraction.rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized, 'areaToDeletePk': pk })
+
+		# console.log '...updated'
 		delete g.areasToUpdate[pk]
+	
+	areaToDeletePks = []
+	for arg in args
+		if areaToDeletePks.indexOf(arg.areaToDeletePk)>=0
+			console.log 'areaToDeletePk is twice!!'
+			debugger
+		for areaNotRasterized in arg.areasNotRasterized
+			for pk, rectangle in g.areasToUpdate
+				intersection = areaNotRasterized.intersect(rectangle)
+				if intersection.area>0
+					console.log 'rectangles ' + rectangle.toString() + ', and ' + areaNotRasterized.toString() + ' should not intersect'
+					debugger
+		areaToDeletePks.push(arg.areaToDeletePk)
+
+	if args.length>0
+		Dajaxice.draw.batchUpdateRasters(g.batchUpdateRasters_callback, {'args': args})
 
 	g.willUpdateAreasToUpdate = false
 	return
@@ -872,6 +986,9 @@ this.updateAreasToUpdate = ()->
 # hide rasters and redraw all items (except ritem if specified)
 # @param item [RItem] (optional) the item not to update (draw)
 this.updateView = (ritem=null)->
+	if g.viewUpdated
+		return
+
 	console.log "updateView: remove rasters and redraw"
 
 	# remove all rasters
@@ -885,6 +1002,177 @@ this.updateView = (ritem=null)->
 	for pk, item of g.paths 		# could be g.items
 		item.draw()
 
+	g.viewUpdated = true
+	return
+
+# split *rectangle* in 1000 pixels wide tiles if necessary
+# rasterize those tiles and add them to g.rastersToUpload
+# call loopUpdateRasters to send those tiles one by one
+# @param rectangle [Paper Rectangle] the rectangle to rasterize
+this.rasterizeArea = (rectangle)->
+
+	rectangle = g.expandRectangleToInteger(rectangle)
+
+	viewCenter = view.center
+	viewZoom = view.zoom
+	
+	# deselect items (in paper.js view) and keep them in an array to reselect them after rasterization
+	selectedItems = []
+	for item in project.getItems({selected: true})
+		if item.constructor?.name != "Group" and item.constructor?.name != "Layer"
+			selectedItems.push( { item: item, fullySelected: item.fullySelected } )
+	
+	project.activeLayer.selected = false
+
+	view.zoom = 1
+	view.center = view.bounds.topLeft.round().add(view.size.multiply(0.5))
+
+	restoreView = ()->
+		view.zoom = viewZoom
+		view.center = viewCenter
+
+		g.debugLayer.visible = true
+		g.carLayer.visible = true
+
+		# reselect items
+		for itemObject in selectedItems
+			if itemObject.fullySelected
+				itemObject.item.fullySelected = true
+			else
+				itemObject.item.selected = true
+
+		view.draw()
+		view.update()
+		
+		return
+
+	if view.bounds.contains(rectangle)
+		dataURL = areaToImageDataUrl(g.roundRectangle(g.projectToViewRectangle(rectangle)), false)
+		g.rastersToUpload.push( data: dataURL, position: rectangle.topLeft )
+	else
+		# if the rectangle if too big, we do not rasterize it now, a rasterizer bot will do it
+		if rectangle.area > 4*Math.min(view.bounds.area, 1000*1000)
+			Dajaxice.draw.updateRasters(g.updateRasters_callback, { areasNotRasterized: [g.boxFromRectangle(rectangle)] } )
+			restoreView()
+			return
+		
+		# check that the areas where the rectangle lies are loaded
+
+		## find top, left, bottom and right positions of the rectangle in the quantized space
+		t = Math.floor(rectangle.top / scale)
+		l = Math.floor(rectangle.left / scale)
+		b = Math.floor(rectangle.bottom / scale)
+		r = Math.floor(rectangle.right / scale)
+
+		for x in [l .. r]
+			for y in [t .. b]
+				if not g.areaIsQuickLoaded(x: x, y: y)
+					Dajaxice.draw.updateRasters(g.updateRasters_callback, { areasNotRasterized: [g.boxFromRectangle(rectangle)] } )
+					restoreView()
+					return
+
+		view.center = rectangle.topLeft.add(view.size.multiply(0.5))
+		
+		while view.bounds.bottom < rectangle.bottom
+			while view.bounds.right < rectangle.right
+				width = Math.min(Math.min(view.size.width, 1000), rectangle.right - view.bounds.left)
+				height = Math.min(Math.min(view.size.height, 1000), rectangle.bottom - view.bounds.top)
+				dataURL = areaToImageDataUrl(new Rectangle(0, 0, width, height), false)
+				g.rastersToUpload.push( data: dataURL, position: view.bounds.topLeft )
+				view.center = view.center.add(Math.min(view.size.width, 1000), 0)
+			view.center = new Point(rectangle.left+view.size.width*0.5, view.center.y+Math.min(view.size.height, 1000))
+
+	if not g.isUpdatingRasters then g.loopUpdateRasters()
+	
+	restoreView()
+	return
+
+# send rasters in g.rastersToUpload one after the other
+# @param results [Object] the result from the server
+this.loopUpdateRasters = (results)->
+	g.checkError(results)
+	if g.rastersToUpload.length>0
+		g.isUpdatingRasters = true
+		Dajaxice.draw.updateRasters(g.loopUpdateRasters, g.rastersToUpload.shift() )
+	else
+		g.isUpdatingRasters = false
+	return
+
+# get areas to update and rasterize them one by one (updating the view for fun)
+# in this mode, the client works as a bot rasterizing romanesco
+this.rasterizeAreasToUpdate = ()->
+	Dajaxice.draw.getAreasToUpdate(rasterizeAreasToUpdate_callback)
+	return
+
+# getAreasToUpdate callback:
+# - convert the areas to update in project coordinates 
+# - intialize the view on the first area
+# - start the rasterization process (in rasterizeAreasToUpdate_loop)
+# @param areas [Array<Box>] the areas to rasterize
+this.rasterizeAreasToUpdate_callback = (areas)->
+	g.areasToRasterize = areas
+	area = g.areasToRasterize.first()
+	if not area then return
+	rectangle = g.rectangleFromBox(area)
+
+	project.activeLayer.selected = false
+	g.carLayer.visible = false
+	g.debugLayer.visible = false
+
+	view.zoom = 1
+	view.center = rectangle.topLeft.add(view.size.multiply(0.5))
+	this.rasterizeAreasToUpdate_loop()
+	return
+
+# the rasterization process 
+# - rasterize the current view
+# - move the view to the next tile (1000 pixels wide tile) and go to step one
+# - if the current tile has been fully covered, 
+this.rasterizeAreasToUpdate_loop = ()->
+	# if there are too many images on the client, wait to send them to the server
+	if g.rastersToUpload.length>10
+		if not g.isUpdatingRasters then g.loopUpdateRasters()
+		setTimeout(rasterizeAreasToUpdate_loop, 1000)
+		return
+
+	area = g.areasToRasterize.first()
+	if not area
+		console.log 'area is null, g.areasToRasterize is empty?'
+		debugger
+		return
+	rectangle = g.rectangleFromBox(area)
+	width = Math.min(Math.min(view.size.width, 1000), rectangle.right - view.bounds.left)
+	height = Math.min(Math.min(view.size.height, 1000), rectangle.bottom - view.bounds.top)
+	dataURL = areaToImageDataUrl(new Rectangle(0, 0, width, height), false)
+
+	g.rastersToUpload.push( data: dataURL, position: view.bounds.topLeft )
+	view.update()
+
+	view.center = view.center.add(Math.min(view.size.width, 1000), 0)
+	if view.bounds.left > rectangle.right
+		view.center = new Point(rectangle.left+view.size.width*0.5, view.center.y+Math.min(view.size.height, 1000))
+	if view.bounds.top > rectangle.bottom # if we finished
+		g.rastersToUpload.last().areaToDeletePk = area._id.$oid 		# if it is the last tile for this area: delete the AreaToUpdate
+		g.areasToRasterize.shift()
+		if g.areasToRasterize.length>0
+			area = g.areasToRasterize.first()
+			rectangle = g.rectangleFromBox(area)
+			view.center = rectangle.topLeft.add(view.size.multiply(0.5))
+		else
+			waitUntilLastRastersAreUpdloaded = ()->
+				if g.isUpdatingRasters
+					setTimeout(waitUntilLastRastersAreUpdloaded, 1000)
+				else
+					g.loopUpdateRasters()
+				return
+			waitUntilLastRastersAreUpdloaded()
+			g.debugLayer.visible = true
+			g.carLayer.visible = true
+			return
+
+	if not g.isUpdatingRasters then g.loopUpdateRasters()
+
+	setTimeout(rasterizeAreasToUpdate_loop, 0)
 	return
 
 # # deprecated
@@ -932,13 +1220,21 @@ this.updateView = (ritem=null)->
 # @param rectangle [Paper Rectangle] the rectangle to round
 # @return [Paper Rectangle] the resulting shrinked rectangle
 this.shrinkRectangleToInteger = (rectangle)->
-	return new Rectangle(new Point(Math.ceil(rectangle.left), Math.ceil(rectangle.top)), new Point(Math.floor(rectangle.right), Math.floor(rectangle.bottom)))
+	# return new Rectangle(new Point(Math.ceil(rectangle.left), Math.ceil(rectangle.top)), new Point(Math.floor(rectangle.right), Math.floor(rectangle.bottom)))
+	return new Rectangle(rectangle.topLeft.ceil(), rectangle.bottomRight.floor())
 
 # return a rectangle with integer coordinates and dimensions: left and top positions will be floored, right and bottom position will be ceiled
 # @param rectangle [Paper Rectangle] the rectangle to round
 # @return [Paper Rectangle] the resulting expanded rectangle
 this.expandRectangleToInteger = (rectangle)->
-	return new Rectangle(new Point(Math.floor(rectangle.left), Math.floor(rectangle.top)), new Point(Math.ceil(rectangle.right), Math.ceil(rectangle.bottom)))
+	# return new Rectangle(new Point(Math.floor(rectangle.left), Math.floor(rectangle.top)), new Point(Math.ceil(rectangle.right), Math.ceil(rectangle.bottom)))
+	return new Rectangle(rectangle.topLeft.floor(), rectangle.bottomRight.ceil())
+
+# return a rounded rectangle with integer coordinates and dimensions
+# @param rectangle [Paper Rectangle] the rectangle to round
+# @return [Paper Rectangle] the resulting rounded rectangle
+this.roundRectangle = (rectangle)->
+	return new Rectangle(rectangle.topLeft.round(), rectangle.bottomRight.round())
 
 # round *x* to the lower multiple of *m*
 # @param x [Number] the value to round
@@ -955,6 +1251,12 @@ this.roundToGreaterMultiple = (x, m)->
 	return Math.ceil(x / m) * m
 
 ## Debug
+
+this.highlightAreasToUpdate = ()->
+	for pk, rectangle of g.areasToUpdate
+		rectanglePath = project.getItem( name: pk )
+		rectanglePath.strokeColor = 'green'
+	return
 
 # Log all RItems
 this.logItems = ()->
@@ -974,7 +1276,6 @@ this.logItems = ()->
 		console.log item
 		console.log item.controller
 		console.log item.controller?.pk
-	console.log "hiiiiiii"
 	return "--- THE END ---"
 
 # Check if there are items without rasters
@@ -992,6 +1293,7 @@ this.selectRasters = ()->
 		if item.constructor.name == "Raster"
 			item.selected = true
 			rasters.push(item)
+	console.log 'selected rasters:'
 	return rasters
 
 this.printPathList = ()->

@@ -105,6 +105,14 @@
     };
   };
 
+  this.rectangleFromBox = function(box) {
+    var br, planet, tl;
+    planet = new Point(box.planetX, box.planetY);
+    tl = posOnPlanetToProject(box.box.coordinates[0][0], planet);
+    br = posOnPlanetToProject(box.box.coordinates[0][2], planet);
+    return new Rectangle(tl, br);
+  };
+
 }).call(this);
 
 //# sourceMappingURL=coordinateSystems.map

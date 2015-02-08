@@ -95,12 +95,13 @@ class RTool
 
 	# Select the tool:
 	# - deselect selected tool
-	# - deselect all RItems
+	# - deselect all RItems (if deselectItems)
 	# - update cursor
 	# - update parameters
 	# @param [RTool constructor] the constructor used to update gui parameters (@constructor.parameters)
 	# @param [RItem] selected item to update gui parameters
-	select: (constructor=@constructor, selectedItem=null)->
+	# @param [Boolean] deselected selected items (false when selecting MoveTool or SelectTool)
+	select: (constructor=@constructor, selectedItem=null, deselectItems=true)->
 		# check if new tool is defferent from previous
 		differentTool = g.previousTool != g.selectedTool
 		
@@ -110,13 +111,15 @@ class RTool
 		g.selectedTool?.deselect()
 		g.selectedTool = @
 
-		g.deselectAll()
 
 		if @cursorName?
 			g.stageJ.css('cursor', 'url(static/images/cursors/'+@cursorName+'.png) '+@cursorPosition.x+' '+@cursorPosition.y+','+@cursorDefault)
 		else
 			g.stageJ.css('cursor', @cursorDefault)
-		
+
+		if deselectItems
+			g.deselectAll()
+
 		g.updateParameters( { tool: constructor, item: selectedItem }, differentTool)
 		return
 
@@ -174,7 +177,7 @@ class MoveTool extends RTool
 
 	# Select tool and disable RDiv interactions (to be able to scroll even when user clicks on them, for exmaple disable textarea default behaviour)
 	select: ()->
-		super()
+		super(@constructor, null, false)
 		g.stageJ.addClass("moveTool")
 		for div in g.divs
 			div.disableInteraction()
@@ -386,17 +389,35 @@ class SelectTool extends RTool
 
 	select: ()->
 		@selectedItem = g.selectedItems().first()
-		super(@selectedItem?.constructor or @constructor, @selectedItem)
+		super(@selectedItem?.constructor or @constructor, @selectedItem, false)
 		return
 
 	# Create selection rectangle path (remove if existed)
 	# @param [Paper event] event containing down and current positions to draw the rectangle 
 	createSelectionRectangle: (event)->
+		rectangle = new Rectangle(event.downPoint, event.point)
 		g.currentPaths[g.me]?.remove()
-		g.currentPaths[g.me] = new Path.Rectangle(event.downPoint, event.point)
-		g.currentPaths[g.me].name = 'select tool selection rectangle'
-		g.currentPaths[g.me].strokeColor = g.selectionBlue
-		g.currentPaths[g.me].dashArray = [10, 4]
+		g.currentPaths[g.me] = new Group()
+		rectanglePath = new Path.Rectangle(rectangle)
+		rectanglePath.name = 'select tool selection rectangle'
+		rectanglePath.strokeColor = g.selectionBlue
+		rectanglePath.dashArray = [10, 4]
+		g.currentPaths[g.me].addChild(rectanglePath)
+
+		itemsToHighlight = []
+
+		# Add all items which have bounds intersecting with the selection rectangle (1st version)
+		for name, item of g.items
+			bounds = item.getBounds()
+			if bounds.intersects(rectangle)
+				rectanglePath = new Path.Rectangle(bounds)
+				rectanglePath.name = 'select tool selection rectangle highlight'
+				rectanglePath.strokeColor = 'red'
+				rectanglePath.dashArray = [10, 4]
+				g.currentPaths[g.me].addChild(rectanglePath)
+			# if the user just clicked (not dragged a selection rectangle): just select the first item
+			if rectangle.area == 0
+				break
 		return
 	
 	# remove the selection group: deselect divs, move selected items to active layer and remove selection group
@@ -414,6 +435,7 @@ class SelectTool extends RTool
 	# - otherwise: deselect other items (= remove selection group) and create selection rectangle
 	# must be reshaped (right not impossible to add a group of RItems to the current selection group)
 	begin: (event) ->
+		if event.event.which == 2 then return 		# if the wheel button was clicked: return
 		console.log "select begin"
 		# perform hit test to see if there is any item under the mouse
 		path.prepareHitTest() for name, path of g.paths
@@ -421,9 +443,11 @@ class SelectTool extends RTool
 		path.finishHitTest() for name, path of g.paths
 		
 		if hitResult and hitResult.item.controller? 		# if user hits a path: select it
+			console.log 'hits a path'
 			@selectedItem = hitResult.item.controller
 
 			if not event.modifiers.shift 	# if shift is not pressed: deselect previous items
+				console.log 'no shift: deselect'
 				if g.selectionGroup?
 					if not g.selectionGroup.isAncestor(hitResult.item) then @removeSelectionGroup() 	# if the item is not in selection group: deselect selection group
 				else 
@@ -431,6 +455,7 @@ class SelectTool extends RTool
 
 			hitResult.item.controller.selectBegin?(event)
 		else 												# otherwise: remove selection group and create selection rectangle
+			console.log 'does not hit a path'
 			@removeSelectionGroup()
 			@createSelectionRectangle(event)
 		return
@@ -885,7 +910,7 @@ class ScreenshotTool extends RTool
 			@modalJ.find('a[name="publish-on-twitter"]').attr("data-text", @getDescription())
 			return
 
-		ZeroClipboard.config( swfPath: g.romanescoURL + "/static/libs/ZeroClipboard/ZeroClipboard.swf" )
+		ZeroClipboard.config( swfPath: g.romanescoURL + "static/libs/ZeroClipboard/ZeroClipboard.swf" )
 		# ZeroClipboard.destroy()
 		return
 	

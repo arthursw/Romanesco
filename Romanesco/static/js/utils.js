@@ -51,6 +51,54 @@
     return this[Math.floor(Math.random() * this.length)];
   };
 
+  Array.prototype.max = function() {
+    var item, max, _i, _len;
+    max = this[0];
+    for (_i = 0, _len = this.length; _i < _len; _i++) {
+      item = this[_i];
+      if (item > max) {
+        max = item;
+      }
+    }
+    return max;
+  };
+
+  Array.prototype.min = function() {
+    var item, min, _i, _len;
+    min = this[0];
+    for (_i = 0, _len = this.length; _i < _len; _i++) {
+      item = this[_i];
+      if (item < min) {
+        min = item;
+      }
+    }
+    return min;
+  };
+
+  Array.prototype.maxc = function(biggerThan) {
+    var item, max, _i, _len;
+    max = this[0];
+    for (_i = 0, _len = this.length; _i < _len; _i++) {
+      item = this[_i];
+      if (biggerThan(item, max)) {
+        max = item;
+      }
+    }
+    return max;
+  };
+
+  Array.prototype.minc = function(smallerThan) {
+    var item, min, _i, _len;
+    min = this[0];
+    for (_i = 0, _len = this.length; _i < _len; _i++) {
+      item = this[_i];
+      if (smallerThan(item, min)) {
+        min = item;
+      }
+    }
+    return min;
+  };
+
   this.pushIfAbsent = function(array, item) {
     if (array.indexOf(item) < 0) {
       array.push(item);

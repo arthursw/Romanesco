@@ -1,24 +1,4 @@
 
-# --- global --- #
-
-# check for any error in an ajax callback and display the appropriate error message
-# @return [Boolean] true if there was no error, false otherwise
-this.checkError = (result)->
-	console.log result
-	if result.state == 'not_logged_in'
-		romanesco_alert("You must be logged in to update drawings to the database.", "info")
-		return false
-	if result.state == 'error'
-		if result.message == 'invalid_url'
-			romanesco_alert("Your URL is invalid or does not point to an existing page.", "error")
-		else
-			romanesco_alert("Error: " + result.message, "error")
-		return false
-	else if result.state == 'system_error'
-		console.log result.message
-		return false
-	return true
-
 # --- load --- #
 
 # @return [Boolean] true if the area was already loaded, false otherwise
@@ -200,7 +180,8 @@ this.load = (area=null) ->
 
 	console.log "load areas: " + areasToLoad.length
 
-	Dajaxice.draw.load(load_callback, { areasToLoad: areasToLoad, zoom: view.zoom })
+	box = { left: l/1000, top: t/1000, right: r/1000, bottom: b/1000 }
+	Dajaxice.draw.load(load_callback, { box: box, areasToLoad: areasToLoad, zoom: view.zoom })
 	# ajaxPost '/load', args, load_callback
 	return
 
@@ -245,318 +226,7 @@ this.load_callback = (results)->
 		g.rasters[position.x] ?= {}
 		g.rasters[position.x][position.y] = raster
 
-	newItems = []
-
-	# add RLocks: RLock, RLink, RWebsite and RVideoGame
-	for b in results.boxes
-		for box in JSON.parse(b)
-
-			if itemIsLoaded(box._id.$oid)
-				continue
-
-			if box.box.coordinates[0].length<5
-				console.log "Error: box has less than 5 points"
-			
-			planet = new Point(box.planetX, box.planetY)
-			
-			tl = posOnPlanetToProject(box.box.coordinates[0][0], planet)
-			br = posOnPlanetToProject(box.box.coordinates[0][2], planet)
-			
-			data = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
-
-			lock = null
-			switch box.object_type
-				when 'link'
-					lock = new RLink(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, box.name, box.url, data)
-				when 'lock'
-					lock = new RLock(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, false, data)
-				when 'website'
-					lock = new RWebsite(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
-				when 'video-game'
-					lock = new RVideoGame(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
-			
-			if data?.loadEntireArea
-				g.entireAreas.push(lock)
-
-			newItems.push(lock)
-
-	# add and draw RPath
-	for p in results.paths
-		for path in JSON.parse(p)
-
-			if itemIsLoaded(path._id.$oid)
-				continue
-
-			planet = new Point(path.planetX, path.planetY)
-
-			# parse data
-			date = path.date.$date
-			if path.data? and path.data.length>0
-				data = JSON.parse(path.data)
-				data.planet = planet
-
-			points = []
-
-			# convert points from planet coordinates to project coordinates
-			for point in path.points.coordinates
-				points.push( posOnPlanetToProject(point, planet) )
-
-			# create the RPath with the corresponding RTool
-			rpath = null
-			if g.tools[path.object_type]?
-				rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points)
-				if rpath.constructor.name == "Checkpoint"
-					console.log rpath
-			else
-				console.log "Unknown path type: " + path.object_type
-
-			newItems.push(rpath)
-
-	# add the RDivs (RText and RMedia)
-	for d in results.divs
-		for div in JSON.parse(d)
-
-			if itemIsLoaded(div._id.$oid)
-				continue
-
-			if div.box.coordinates[0].length<5
-				console.log "Error: box has less than 5 points"
-			
-			planet = new Point(div.planetX, div.planetY)
-			
-			tl = posOnPlanetToProject(div.box.coordinates[0][0], planet)
-			br = posOnPlanetToProject(div.box.coordinates[0][2], planet)
-			
-			data = if div.data? and div.data.length>0 then JSON.parse(div.data) else null
-			
-			divJ = null
-			rdiv = null
-			if div.object_type == 'text'
-				rdiv = new RText(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.message, data)
-				divJ = rdiv.divJ
-			else if div.object_type == 'media'				
-				rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.url, data)
-				divJ = rdiv.divJ
-
-			newItems.push(rdiv)
-
-	# update areas to update (draw items which lie on those areas)
-	g.addAreasToUpdate(results)
-	if not g.willUpdateAreasToUpdate
-		g.updateAreasToUpdate()
-
-	# loadFonts()
-	view.draw()
-	
-	clearTimeout(g.loadingBarTimeout)
-	g.loadingBarTimeout = null
-	$("#loadingBar").hide()
-
-	# g.stopLoadingBar()
-	return
-
-
-# (quick) load an area from the server
-this.quick_load = () ->
-
-	# manage zoom
-	newZoom = view.zoom
-	if view.zoom > 0.2
-		newZoom = 1
-	else if view.zoom > 0.04
-		newZoom = 0.2
-	else
-		newZoom = 0.04
-
-	zoomLoad = false
-	if g.lastZoom != newZoom
-		zoomLoad = true
-	
-	g.lastZoom = newZoom
-
-	if g.previousLoadPosition? and g.previousLoadPosition.subtract(view.center).length<50 and not zoomLoad
-		return
-
-	# g.startLoadingBar()
-
-	debug = false
-
-	scale = if not debug then g.scale else 500
-
-	g.previousLoadPosition = view.center
-
-	if not area?
-		bounds = if not debug then view.bounds else view.bounds.scale(0.3,0.3)
-	else
-		bounds = area
-
-	if debug
-		g.unloadRectangle?.remove()
-		g.viewRectangle?.remove()
-		g.limitRectangle?.remove()
-	
-	# define unload limit rectangle
-	unloadDist = Math.round(2*scale)#/g.project.view.zoom)
-	
-	if not g.entireArea
-		limit = bounds.expand(unloadDist)
-	else
-		limit = g.entireArea
-
-	itemsOutsideLimit = []
-
-	# load
-	# find top, left, bottom and right positions of the area in the quantized space
-	t = Math.floor(bounds.top / scale)
-	l = Math.floor(bounds.left / scale)
-	b = Math.floor(bounds.bottom / scale)
-	r = Math.floor(bounds.right / scale)
-	box = { left: l, top: t, right: r, bottom: b }
-
-	if debug
-		g.viewRectangle = new Path.Rectangle(bounds)
-		g.viewRectangle.name = 'debug load view rectangle'
-		g.viewRectangle.strokeWidth = 1
-		g.viewRectangle.strokeColor = 'blue'
-		g.debugLayer.addChild(g.viewRectangle)
-
-		g.limitRectangle = new Path.Rectangle(new Point(l, t), new Point(r, b))
-		g.limitRectangle.name = 'debug load limit rectangle'
-		g.limitRectangle.strokeWidth = 2
-		g.limitRectangle.strokeColor = 'blue'
-		g.limitRectangle.dashArray = [10, 4]
-		g.debugLayer.addChild(g.limitRectangle)
-	
-	# add areas to load
-	# check if there are area to load or not (if nothing to load: return)
-	areasToLoad = []
-	for x in [l .. r]
-		for y in [t .. b]
-			area = { x: x, y: y }
-			if not areaIsQuickLoaded(area)			
-
-				if debug
-					areaRectangle = new Path.Rectangle(x, y, scale, scale)
-					areaRectangle.name = 'debug load area rectangle'
-					areaRectangle.strokeWidth = 1
-					areaRectangle.strokeColor = 'green'
-					g.debugLayer.addChild(areaRectangle)
-					area.rectangle = areaRectangle
-				g.loadedAreas.push(area)
-				areasToLoad.push(area)
-
-	if areasToLoad.length<=0 and not zoomLoad		# return if there is nothing to load
-		return
-
-	# unload:
-
-	# remove RItems which are not on within limit anymore AND in area which must be unloaded
-	# (do not remove items on an area which is not unloaded, otherwise they wont be reloaded if user comes back on it)
-	for own pk, item of g.items
-		if not item.getBounds().intersects(limit)
-			itemsOutsideLimit.push(item)
-
-	if debug
-		g.unloadRectangle = new Path.Rectangle(limit)
-		g.unloadRectangle.name = 'debug load unload rectangle'
-		g.unloadRectangle.strokeWidth = 1
-		g.unloadRectangle.strokeColor = 'red'
-		g.unloadRectangle.dashArray = [10, 4]
-		g.debugLayer.addChild(g.unloadRectangle)
-
-	if debug
-		removeRectangle = (rectangle)->
-			removeRect = ()-> rectangle.remove()
-			setTimeout(removeRect, 1500)
-			return
-	
-	# remove rasters which are outside the limit
-	for x, rasterColumn of g.rasters
-		for y, raster of rasterColumn
-			if not raster.rRectangle.intersects(limit)
-				raster.remove()
-				delete g.rasters[x][y]
-				if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
-
-	# remove loaded areas which must be unloaded
-	i = g.loadedAreas.length
-	while i--
-		loadedArea = g.loadedAreas[i]
-		rectangle = new Rectangle(loadedArea.x, loadedArea.y, scale, scale)
-		
-		if not rectangle.intersects(limit)
-
-			if debug
-				area.rectangle.strokeColor = 'red'
-				removeRectangle(area.rectangle)
-
-			# remove area from loaded areas
-			g.loadedAreas.splice(i,1)
-
-			# remove items on this area
-			# items to remove must not intersect with the limit, and can overlap two areas:
-			j = itemsOutsideLimit.length
-			while j--
-				item = itemsOutsideLimit[j]
-				if item.getBounds().intersects(rectangle)
-					item.remove()
-					itemsOutsideLimit.splice(j,1)
-	
-	itemsOutsideLimit = null
-
-	if not g.loadingBarTimeout?
-		showLoadingBar = ()->
-			$("#loadingBar").show()
-			return
-		g.loadingBarTimeout = setTimeout(showLoadingBar , 0)
-
-	Dajaxice.draw.quick_load(quick_load_callback, { box: box, boxes: areasToLoad, zoom: newZoom })
-	# ajaxPost '/load', args, load_callback
-	return
-
-# (quick) load callback: add loaded RItems
-this.quick_load_callback = (results)->
-
-	checkError(results)
-
-	# set g.me (the server sends the username at each load)
-	if not g.me?
-		g.me = results.user
-		if g.chatJ.find("#chatUserNameInput").length==0
-			g.startChatting( g.me )
-
-	# remove rasters which are at different zoom
-	for x, rasterColumn of g.rasters
-		for y, raster of rasterColumn
-			if raster.rZoom != results.zoom
-				raster.remove()
-				delete g.rasters[x][y]
-				if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
-	
-	# add rasters
-	# todo: ask only required rasters (currently, all rasters of all areas are requested, and then ignored if already added :/ )
-	for raster in results.rasters
-		position = new Point(raster.position).multiply(1000)
-		if g.rasters[position.x]?[position.y]?.rZoom == results.zoom then continue
-		raster = new Raster(g.romanescoURL + raster.url)		# Paper rasters are positionned from centers, thus we must add 500 to the top left corner position
-		if results.zoom > 0.2
-			raster.position = position.add(1000/2)
-			raster.rRectangle = new Rectangle(position, new Size(1000,1000))
-		else if results.zoom > 0.04
-			raster.scale(5)
-			raster.position = position.add(5000/2)
-			raster.rRectangle = new Rectangle(position, new Size(5000,5000))
-		else
-			raster.scale(25)
-			raster.position = position.add(25000/2)
-			raster.rRectangle = new Rectangle(position, new Size(25000,25000))
-		console.log "raster.position: " + raster.position.toString() + ", raster.scaling" + raster.scaling.toString()
-		raster.name = 'raster: ' + raster.position.toString() + ', zoom: ' + results.zoom
-		raster.rZoom = results.zoom
-		g.rasters[position.x] ?= {}
-		g.rasters[position.x][position.y] = raster
-
-	newItems = []
+	newAreasToUpdate = []
 
 	for i in results.items
 		item = JSON.parse(i)
@@ -590,7 +260,6 @@ this.quick_load_callback = (results)->
 				if data?.loadEntireArea
 					g.entireAreas.push(lock)
 
-				newItems.push(lock)
 			when 'Div'			# add RDivs (RText and RMedia)
 				div = item
 				if div.box.coordinates[0].length<5
@@ -611,8 +280,6 @@ this.quick_load_callback = (results)->
 				else if div.object_type == 'media'				
 					rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.url, data)
 					divJ = rdiv.divJ
-
-				newItems.push(rdiv)
 
 			when 'Path' 		# add RPaths
 				path = item
@@ -638,13 +305,15 @@ this.quick_load_callback = (results)->
 						console.log rpath
 				else
 					console.log "Unknown path type: " + path.object_type
-
-				newItems.push(rpath)
+			when 'AreaToUpdate'
+				newAreasToUpdate.push(item)
 
 	# update areas to update (draw items which lie on those areas)
-	g.addAreasToUpdate(results)
-	if not g.willUpdateAreasToUpdate
-		g.updateAreasToUpdate()
+	g.addAreasToUpdate(newAreasToUpdate)
+	for pk, rectangle of g.areasToUpdate
+		if rectangle.intersects(view.bounds)
+			g.updateView()
+			break
 
 	# loadFonts()
 	view.draw()
@@ -654,6 +323,447 @@ this.quick_load_callback = (results)->
 	$("#loadingBar").hide()
 
 	# g.stopLoadingBar()
+	return
+
+# Another way to load objects 
+
+	# # add RLocks: RLock, RLink, RWebsite and RVideoGame
+	# for b in results.boxes
+	# 	for box in JSON.parse(b)
+
+	# 		if itemIsLoaded(box._id.$oid)
+	# 			continue
+
+	# 		if box.box.coordinates[0].length<5
+	# 			console.log "Error: box has less than 5 points"
+			
+	# 		planet = new Point(box.planetX, box.planetY)
+			
+	# 		tl = posOnPlanetToProject(box.box.coordinates[0][0], planet)
+	# 		br = posOnPlanetToProject(box.box.coordinates[0][2], planet)
+			
+	# 		data = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
+
+	# 		lock = null
+	# 		switch box.object_type
+	# 			when 'link'
+	# 				lock = new RLink(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, box.name, box.url, data)
+	# 			when 'lock'
+	# 				lock = new RLock(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, false, data)
+	# 			when 'website'
+	# 				lock = new RWebsite(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
+	# 			when 'video-game'
+	# 				lock = new RVideoGame(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
+			
+	# 		if data?.loadEntireArea
+	# 			g.entireAreas.push(lock)
+
+	# 		newItems.push(lock)
+
+	# # add and draw RPath
+	# for p in results.paths
+	# 	for path in JSON.parse(p)
+
+	# 		if itemIsLoaded(path._id.$oid)
+	# 			continue
+
+	# 		planet = new Point(path.planetX, path.planetY)
+
+	# 		# parse data
+	# 		date = path.date.$date
+	# 		if path.data? and path.data.length>0
+	# 			data = JSON.parse(path.data)
+	# 			data.planet = planet
+
+	# 		points = []
+
+	# 		# convert points from planet coordinates to project coordinates
+	# 		for point in path.points.coordinates
+	# 			points.push( posOnPlanetToProject(point, planet) )
+
+	# 		# create the RPath with the corresponding RTool
+	# 		rpath = null
+	# 		if g.tools[path.object_type]?
+	# 			rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points)
+	# 			if rpath.constructor.name == "Checkpoint"
+	# 				console.log rpath
+	# 		else
+	# 			console.log "Unknown path type: " + path.object_type
+
+	# 		newItems.push(rpath)
+
+	# # add the RDivs (RText and RMedia)
+	# for d in results.divs
+	# 	for div in JSON.parse(d)
+
+	# 		if itemIsLoaded(div._id.$oid)
+	# 			continue
+
+	# 		if div.box.coordinates[0].length<5
+	# 			console.log "Error: box has less than 5 points"
+			
+	# 		planet = new Point(div.planetX, div.planetY)
+			
+	# 		tl = posOnPlanetToProject(div.box.coordinates[0][0], planet)
+	# 		br = posOnPlanetToProject(div.box.coordinates[0][2], planet)
+			
+	# 		data = if div.data? and div.data.length>0 then JSON.parse(div.data) else null
+			
+	# 		divJ = null
+	# 		rdiv = null
+	# 		if div.object_type == 'text'
+	# 			rdiv = new RText(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.message, data)
+	# 			divJ = rdiv.divJ
+	# 		else if div.object_type == 'media'				
+	# 			rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.url, data)
+	# 			divJ = rdiv.divJ
+
+	# 		newItems.push(rdiv)
+
+# # (quick) load an area from the server
+# this.quick_load = () ->
+
+# 	# manage zoom
+# 	newZoom = view.zoom
+# 	if view.zoom > 0.2
+# 		newZoom = 1
+# 	else if view.zoom > 0.04
+# 		newZoom = 0.2
+# 	else
+# 		newZoom = 0.04
+
+# 	zoomLoad = false
+# 	if g.lastZoom != newZoom
+# 		zoomLoad = true
+	
+# 	g.lastZoom = newZoom
+
+# 	# return if we must not load (we are too close from the previous load position)
+# 	if g.previousLoadPosition? and g.previousLoadPosition.subtract(view.center).length<50 and not zoomLoad
+# 		return
+
+# 	# g.startLoadingBar()
+
+# 	debug = false
+
+# 	# define the load rectangle / bounds
+# 	scale = if not debug then g.scale else 500
+
+# 	g.previousLoadPosition = view.center
+
+# 	if not area?
+# 		bounds = if not debug then view.bounds else view.bounds.scale(0.3,0.3)
+# 	else
+# 		bounds = area
+
+# 	if debug
+# 		g.unloadRectangle?.remove()
+# 		g.viewRectangle?.remove()
+# 		g.limitRectangle?.remove()
+	
+# 	# check if we must load rasters (true if rasters do not cover the load rectangle)
+# 	rasterLoad = false
+# 	totalArea = bounds.area
+	
+# 	for x, rasterColumn of g.rasters
+# 		for y, raster of rasterColumn
+# 			totalArea -= bounds.intersect(raster.rRectangle).area
+	
+# 	if totalArea>0 then rasterLoad = true
+
+# 	# define unload limit rectangle
+# 	unloadDist = Math.round(2*scale)#/g.project.view.zoom)
+	
+# 	if not g.entireArea
+# 		limit = bounds.expand(unloadDist)
+# 	else
+# 		limit = g.entireArea
+
+# 	itemsOutsideLimit = []
+
+# 	# load
+# 	# find top, left, bottom and right positions of the area in the quantized space
+# 	t = Math.floor(bounds.top / scale)
+# 	l = Math.floor(bounds.left / scale)
+# 	b = Math.floor(bounds.bottom / scale)
+# 	r = Math.floor(bounds.right / scale)
+# 	box = { left: l, top: t, right: r, bottom: b }
+
+# 	if debug
+# 		g.viewRectangle = new Path.Rectangle(bounds)
+# 		g.viewRectangle.name = 'debug load view rectangle'
+# 		g.viewRectangle.strokeWidth = 1
+# 		g.viewRectangle.strokeColor = 'blue'
+# 		g.debugLayer.addChild(g.viewRectangle)
+
+# 		g.limitRectangle = new Path.Rectangle(new Point(l, t), new Point(r, b))
+# 		g.limitRectangle.name = 'debug load limit rectangle'
+# 		g.limitRectangle.strokeWidth = 2
+# 		g.limitRectangle.strokeColor = 'blue'
+# 		g.limitRectangle.dashArray = [10, 4]
+# 		g.debugLayer.addChild(g.limitRectangle)
+	
+# 	# add areas to load
+# 	# check if there are area to load or not (if nothing to load: return)
+# 	areasToLoad = []
+# 	for x in [l .. r]
+# 		for y in [t .. b]
+# 			area = { x: x, y: y }
+# 			if not areaIsQuickLoaded(area)			
+
+# 				if debug
+# 					areaRectangle = new Path.Rectangle(x*scale, y*scale, scale, scale)
+# 					areaRectangle.name = 'debug load area rectangle'
+# 					areaRectangle.strokeWidth = 1
+# 					areaRectangle.strokeColor = 'green'
+# 					g.debugLayer.addChild(areaRectangle)
+# 					area.rectangle = areaRectangle
+# 				g.loadedAreas.push(area)
+# 				areasToLoad.push(area)
+
+# 	if areasToLoad.length<=0 and not zoomLoad and not rasterLoad		# return if there is nothing to load
+# 		return
+
+# 	# unload:
+
+# 	# remove RItems which are not on within limit anymore AND in area which must be unloaded
+# 	# (do not remove items on an area which is not unloaded, otherwise they wont be reloaded if user comes back on it)
+# 	for own pk, item of g.items
+# 		if not item.getBounds().intersects(limit)
+# 			itemsOutsideLimit.push(item)
+
+# 	if debug
+# 		g.unloadRectangle = new Path.Rectangle(limit)
+# 		g.unloadRectangle.name = 'debug load unload rectangle'
+# 		g.unloadRectangle.strokeWidth = 1
+# 		g.unloadRectangle.strokeColor = 'red'
+# 		g.unloadRectangle.dashArray = [10, 4]
+# 		g.debugLayer.addChild(g.unloadRectangle)
+
+# 	if debug
+# 		removeRectangle = (rectangle)->
+# 			removeRect = ()-> rectangle.remove()
+# 			setTimeout(removeRect, 1500)
+# 			return
+	
+# 	# remove rasters which are outside the limit
+# 	for x, rasterColumn of g.rasters
+# 		for y, raster of rasterColumn
+# 			if not raster.rRectangle.intersects(limit)
+# 				raster.remove()
+# 				delete g.rasters[x][y]
+# 				if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
+
+# 	# remove loaded areas which must be unloaded
+# 	i = g.loadedAreas.length
+# 	while i--
+# 		loadedArea = g.loadedAreas[i]
+# 		rectangle = new Rectangle(loadedArea.x*scale, loadedArea.y*scale, scale, scale)
+		
+# 		if not rectangle.intersects(limit)
+
+# 			if debug
+# 				area.rectangle.strokeColor = 'red'
+# 				removeRectangle(area.rectangle)
+
+# 			# remove area from loaded areas
+# 			g.loadedAreas.splice(i,1)
+
+# 			# remove items on this area
+# 			# items to remove must not intersect with the limit, and can overlap two areas:
+# 			j = itemsOutsideLimit.length
+# 			while j--
+# 				item = itemsOutsideLimit[j]
+# 				if item.getBounds().intersects(rectangle)
+# 					item.remove()
+# 					itemsOutsideLimit.splice(j,1)
+	
+# 	itemsOutsideLimit = null
+
+# 	if not g.loadingBarTimeout?
+# 		showLoadingBar = ()->
+# 			$("#loadingBar").show()
+# 			return
+# 		g.loadingBarTimeout = setTimeout(showLoadingBar , 0)
+
+# 	console.log "areasToLoad:"
+# 	console.log areasToLoad.toString()
+# 	console.log "loadedAreas:"
+# 	console.log g.loadedAreas.toString()
+
+# 	Dajaxice.draw.quick_load(quick_load_callback, { box: box, boxes: areasToLoad, zoom: newZoom })
+# 	# ajaxPost '/load', args, load_callback
+# 	return
+
+# # (quick) load callback: add loaded RItems
+# this.quick_load_callback = (results)->
+
+# 	checkError(results)
+
+# 	# set g.me (the server sends the username at each load)
+# 	if not g.me?
+# 		g.me = results.user
+# 		if g.chatJ.find("#chatUserNameInput").length==0
+# 			g.startChatting( g.me )
+
+# 	# remove rasters which are at different zoom
+# 	for x, rasterColumn of g.rasters
+# 		for y, raster of rasterColumn
+# 			if raster.rZoom != results.zoom
+# 				raster.remove()
+# 				delete g.rasters[x][y]
+# 				if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
+	
+# 	# add rasters
+# 	# todo: ask only required rasters (currently, all rasters of all areas are requested, and then ignored if already added :/ )
+# 	for raster in results.rasters
+# 		position = new Point(raster.position).multiply(1000)
+# 		if g.rasters[position.x]?[position.y]?.rZoom == results.zoom then continue
+# 		raster = new Raster(g.romanescoURL + raster.url)		# Paper rasters are positionned from centers, thus we must add 500 to the top left corner position
+# 		if results.zoom > 0.2
+# 			raster.position = position.add(1000/2)
+# 			raster.rRectangle = new Rectangle(position, new Size(1000,1000))
+# 		else if results.zoom > 0.04
+# 			raster.scale(5)
+# 			raster.position = position.add(5000/2)
+# 			raster.rRectangle = new Rectangle(position, new Size(5000,5000))
+# 		else
+# 			raster.scale(25)
+# 			raster.position = position.add(25000/2)
+# 			raster.rRectangle = new Rectangle(position, new Size(25000,25000))
+# 		# console.log "raster.position: " + raster.position.toString() + ", raster.scaling" + raster.scaling.toString()
+# 		raster.name = 'raster: ' + raster.position.toString() + ', zoom: ' + results.zoom
+# 		raster.rZoom = results.zoom
+# 		g.rasters[position.x] ?= {}
+# 		g.rasters[position.x][position.y] = raster
+# 		g.viewUpdated = false
+
+# 	newAreasToUpdate = []
+
+# 	for i in results.items
+# 		item = JSON.parse(i)
+# 		if g.items[item._id.$oid]? 	# if item is loaded: continue
+# 			continue
+# 		switch item.rType
+			
+# 			when 'Box' 			# add RLocks: RLock, RLink, RWebsite and RVideoGame
+# 				box = item
+# 				if box.box.coordinates[0].length<5
+# 					console.log "Error: box has less than 5 points"
+				
+# 				planet = new Point(box.planetX, box.planetY)
+				
+# 				tl = posOnPlanetToProject(box.box.coordinates[0][0], planet)
+# 				br = posOnPlanetToProject(box.box.coordinates[0][2], planet)
+				
+# 				data = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
+
+# 				lock = null
+# 				switch box.object_type
+# 					when 'link'
+# 						lock = new RLink(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, box.name, box.url, data)
+# 					when 'lock'
+# 						lock = new RLock(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, false, data)
+# 					when 'website'
+# 						lock = new RWebsite(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
+# 					when 'video-game'
+# 						lock = new RVideoGame(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
+				
+# 				if data?.loadEntireArea
+# 					g.entireAreas.push(lock)
+
+# 			when 'Div'			# add RDivs (RText and RMedia)
+# 				div = item
+# 				if div.box.coordinates[0].length<5
+# 					console.log "Error: box has less than 5 points"
+				
+# 				planet = new Point(div.planetX, div.planetY)
+				
+# 				tl = posOnPlanetToProject(div.box.coordinates[0][0], planet)
+# 				br = posOnPlanetToProject(div.box.coordinates[0][2], planet)
+				
+# 				data = if div.data? and div.data.length>0 then JSON.parse(div.data) else null
+				
+# 				divJ = null
+# 				rdiv = null
+# 				if div.object_type == 'text'
+# 					rdiv = new RText(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.message, data)
+# 					divJ = rdiv.divJ
+# 				else if div.object_type == 'media'				
+# 					rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.url, data)
+# 					divJ = rdiv.divJ
+
+# 			when 'Path' 		# add RPaths
+# 				path = item
+# 				planet = new Point(path.planetX, path.planetY)
+
+# 				# parse data
+# 				date = path.date.$date
+# 				if path.data? and path.data.length>0
+# 					data = JSON.parse(path.data)
+# 					data.planet = planet
+
+# 				points = []
+
+# 				# convert points from planet coordinates to project coordinates
+# 				for point in path.points.coordinates
+# 					points.push( posOnPlanetToProject(point, planet) )
+
+# 				# create the RPath with the corresponding RTool
+# 				rpath = null
+# 				if g.tools[path.object_type]?
+# 					rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points)
+# 					if rpath.constructor.name == "Checkpoint"
+# 						console.log rpath
+# 				else
+# 					console.log "Unknown path type: " + path.object_type
+# 			when 'AreaToUpdate'
+# 				newAreasToUpdate.push(item)
+
+# 	# update areas to update (draw items which lie on those areas)
+# 	# if not g.willUpdateAreasToUpdate
+# 	# 	g.updateAreasToUpdate()
+	
+# 	g.addAreasToUpdate(newAreasToUpdate)
+# 	for pk, rectangle of g.areasToUpdate
+# 		if rectangle.intersects(view.bounds)
+# 			g.updateView()
+# 			break
+
+# 	# loadFonts()
+# 	view.draw()
+	
+# 	clearTimeout(g.loadingBarTimeout)
+# 	g.loadingBarTimeout = null
+# 	$("#loadingBar").hide()
+
+# 	# g.stopLoadingBar()
+# 	return
+
+this.benchmark_load = ()->
+	bounds = view.bounds
+	scale = g.scale
+	t = g.roundToLowerMultiple(bounds.top, scale)
+	l = g.roundToLowerMultiple(bounds.left, scale)
+	b = g.roundToLowerMultiple(bounds.bottom, scale)
+	r = g.roundToLowerMultiple(bounds.right, scale)
+
+	# add areas to load
+	areasToLoad = []
+
+	for x in [l .. r] by scale
+		for y in [t .. b] by scale
+			planet = projectToPlanet(new Point(x,y))
+			pos = projectToPosOnPlanet(new Point(x,y))
+
+			area = { pos: pos, planet: planet, x: x/1000, y: y/1000 }
+
+			areasToLoad.push(area)
+
+	console.log "areasToLoad: "
+	console.log areasToLoad
+
+	Dajaxice.draw.benchmark_load(g.checkError, { areasToLoad: areasToLoad })
 	return
 
 

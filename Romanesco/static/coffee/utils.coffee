@@ -26,9 +26,37 @@ Array.prototype.first = () ->
 Array.prototype.last = () ->
 	return this[this.length-1]
 
-# @return [Array item] random element of then array
+# @return [Array item] random element of the array
 Array.prototype.random = () ->
 	return this[Math.floor(Math.random()*this.length)]
+
+# @return [Array item] maximum
+Array.prototype.max = () ->
+	max = this[0]
+	for item in this
+		if item>max then max = item
+	return max
+
+# @return [Array item] minimum
+Array.prototype.min = () ->
+	min = this[0]
+	for item in this
+		if item<min then min = item
+	return min
+
+# @return [Array item] maximum
+Array.prototype.maxc = (biggerThan) ->
+	max = this[0]
+	for item in this
+		if biggerThan(item,max) then max = item
+	return max
+
+# @return [Array item] minimum
+Array.prototype.minc = (smallerThan) ->
+	min = this[0]
+	for item in this
+		if smallerThan(item,min) then min = item
+	return min
 
 # previously Array.prototype.pushIfAbsent, but there seem to be a colision with jQuery... 
 # push if array does not contain item

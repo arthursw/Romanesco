@@ -87,13 +87,16 @@
       return null;
     };
 
-    RTool.prototype.select = function(constructor, selectedItem) {
+    RTool.prototype.select = function(constructor, selectedItem, deselectItems) {
       var differentTool, _ref;
       if (constructor == null) {
         constructor = this.constructor;
       }
       if (selectedItem == null) {
         selectedItem = null;
+      }
+      if (deselectItems == null) {
+        deselectItems = true;
       }
       differentTool = g.previousTool !== g.selectedTool;
       if (this !== g.selectedTool) {
@@ -103,11 +106,13 @@
         _ref.deselect();
       }
       g.selectedTool = this;
-      g.deselectAll();
       if (this.cursorName != null) {
         g.stageJ.css('cursor', 'url(static/images/cursors/' + this.cursorName + '.png) ' + this.cursorPosition.x + ' ' + this.cursorPosition.y + ',' + this.cursorDefault);
       } else {
         g.stageJ.css('cursor', this.cursorDefault);
+      }
+      if (deselectItems) {
+        g.deselectAll();
       }
       g.updateParameters({
         tool: constructor,
@@ -172,7 +177,7 @@
 
     MoveTool.prototype.select = function() {
       var div, _i, _len, _ref;
-      MoveTool.__super__.select.call(this);
+      MoveTool.__super__.select.call(this, this.constructor, null, false);
       g.stageJ.addClass("moveTool");
       _ref = g.divs;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -384,18 +389,37 @@
     SelectTool.prototype.select = function() {
       var _ref;
       this.selectedItem = g.selectedItems().first();
-      SelectTool.__super__.select.call(this, ((_ref = this.selectedItem) != null ? _ref.constructor : void 0) || this.constructor, this.selectedItem);
+      SelectTool.__super__.select.call(this, ((_ref = this.selectedItem) != null ? _ref.constructor : void 0) || this.constructor, this.selectedItem, false);
     };
 
     SelectTool.prototype.createSelectionRectangle = function(event) {
-      var _ref;
+      var bounds, item, itemsToHighlight, name, rectangle, rectanglePath, _ref, _ref1;
+      rectangle = new Rectangle(event.downPoint, event.point);
       if ((_ref = g.currentPaths[g.me]) != null) {
         _ref.remove();
       }
-      g.currentPaths[g.me] = new Path.Rectangle(event.downPoint, event.point);
-      g.currentPaths[g.me].name = 'select tool selection rectangle';
-      g.currentPaths[g.me].strokeColor = g.selectionBlue;
-      g.currentPaths[g.me].dashArray = [10, 4];
+      g.currentPaths[g.me] = new Group();
+      rectanglePath = new Path.Rectangle(rectangle);
+      rectanglePath.name = 'select tool selection rectangle';
+      rectanglePath.strokeColor = g.selectionBlue;
+      rectanglePath.dashArray = [10, 4];
+      g.currentPaths[g.me].addChild(rectanglePath);
+      itemsToHighlight = [];
+      _ref1 = g.items;
+      for (name in _ref1) {
+        item = _ref1[name];
+        bounds = item.getBounds();
+        if (bounds.intersects(rectangle)) {
+          rectanglePath = new Path.Rectangle(bounds);
+          rectanglePath.name = 'select tool selection rectangle highlight';
+          rectanglePath.strokeColor = 'red';
+          rectanglePath.dashArray = [10, 4];
+          g.currentPaths[g.me].addChild(rectanglePath);
+        }
+        if (rectangle.area === 0) {
+          break;
+        }
+      }
     };
 
     SelectTool.prototype.removeSelectionGroup = function() {
@@ -410,6 +434,9 @@
 
     SelectTool.prototype.begin = function(event) {
       var hitResult, name, path, _base, _ref, _ref1;
+      if (event.event.which === 2) {
+        return;
+      }
       console.log("select begin");
       _ref = g.paths;
       for (name in _ref) {
@@ -423,8 +450,10 @@
         path.finishHitTest();
       }
       if (hitResult && (hitResult.item.controller != null)) {
+        console.log('hits a path');
         this.selectedItem = hitResult.item.controller;
         if (!event.modifiers.shift) {
+          console.log('no shift: deselect');
           if (g.selectionGroup != null) {
             if (!g.selectionGroup.isAncestor(hitResult.item)) {
               this.removeSelectionGroup();
@@ -439,6 +468,7 @@
           _base.selectBegin(event);
         }
       } else {
+        console.log('does not hit a path');
         this.removeSelectionGroup();
         this.createSelectionRectangle(event);
       }
@@ -892,7 +922,7 @@
         };
       })(this));
       ZeroClipboard.config({
-        swfPath: g.romanescoURL + "/static/libs/ZeroClipboard/ZeroClipboard.swf"
+        swfPath: g.romanescoURL + "static/libs/ZeroClipboard/ZeroClipboard.swf"
       });
       return;
     }

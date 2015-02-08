@@ -28,8 +28,8 @@ this.projectToPlanet = (point)->
 
 # Get the position of *point* on *planet*
 #
-# @param [Point] point to convert
-# @param [Point] plant to convert
+# @param point [Point] point to convert
+# @param planet [Point] planet to convert
 # @return [Point object] the position of *point* on the planet
 this.projectToPosOnPlanet = (point, planet)->
 	planet ?= this.projectToPlanet(point)
@@ -44,7 +44,7 @@ this.projectToPosOnPlanet = (point, planet)->
 # Get an object { pos: pos, planet: planet } with the planet on which *point* lies and the position of *point* on this planet
 # This is the opposite of posOnPlanetToProject
 # 
-# @param [Point] point to convert
+# @param point [Point] point to convert
 # @return [{ pos: Point, planet: Planet }] the planet on which *point* lies and the position of *point* on the planet
 this.projectToPlanetJson = (point)->
 	planet = projectToPlanet(point)
@@ -104,7 +104,7 @@ this.getLimit = ()->
 
 # get a GeoJson valid box in planet coordinates from *rectangle* 
 # @param rectangle [Paper Rectangle] the rectangle to convert
-# @return [{ points:Array<Array<2 Numbers>>, planet: Object, tl: Point, br: Point }]
+# @return [{ points:Array<Array<2 Numbers>>, planet: Object, tl: Point, br: Point }] the resulting object
 this.boxFromRectangle = (rectangle)->
 	# remove margin to ignore intersections of paths which are close to the edges
 
@@ -121,3 +121,15 @@ this.boxFromRectangle = (rectangle)->
 	points.push(pointToArray(tlOnPlanet))
 
 	return { points:points, planet: pointToObj(planet), tl: tlOnPlanet, br: brOnPlanet }
+
+# WARNING: not used, not tested
+# get a rectangle from a GeoJson valid box in planet coordinates
+# @param box [{ points:Array<Array<2 Numbers>>, planet: Object, tl: Point, br: Point }] the box to convert
+# @return [Rectangle] the resulting rectangle
+this.rectangleFromBox = (box)->
+	planet = new Point(box.planetX, box.planetY)
+	
+	tl = posOnPlanetToProject(box.box.coordinates[0][0], planet)
+	br = posOnPlanetToProject(box.box.coordinates[0][2], planet)
+
+	return new Rectangle(tl, br)

@@ -58,6 +58,29 @@ Here are all global functions (which do not belong to classes and are not event 
     }
   };
 
+  this.checkError = function(result) {
+    console.log(result);
+    if (result == null) {
+      return true;
+    }
+    if (result.state === 'not_logged_in') {
+      romanesco_alert("You must be logged in to update drawings to the database.", "info");
+      return false;
+    }
+    if (result.state === 'error') {
+      if (result.message === 'invalid_url') {
+        romanesco_alert("Your URL is invalid or does not point to an existing page.", "error");
+      } else {
+        romanesco_alert("Error: " + result.message, "error");
+      }
+      return false;
+    } else if (result.state === 'system_error') {
+      console.log(result.message);
+      return false;
+    }
+    return true;
+  };
+
   this.eventToObject = function(event) {
     var eo;
     eo = {
@@ -366,7 +389,7 @@ Here are all global functions (which do not belong to classes and are not event 
   };
 
   g.RMoveBy = function(delta) {
-    var area, div, newEntireArea, newView, restrictedAreaShrinked, _i, _j, _len, _len1, _ref, _ref1;
+    var area, div, newEntireArea, newView, pk, rectangle, restrictedAreaShrinked, _i, _j, _len, _len1, _ref, _ref1, _ref2;
     if (g.restrictedArea != null) {
       if (!g.restrictedArea.contains(view.center)) {
         delta = g.restrictedArea.center.subtract(view.center);
@@ -410,14 +433,20 @@ Here are all global functions (which do not belong to classes and are not event 
       g.entireArea = null;
     }
     if (newEntireArea != null) {
-      quick_load(g.entireArea);
+      load(g.entireArea);
     } else {
-      quick_load();
+      load();
     }
     g.updateRoom();
     g.defferedExecution(g.updateHash, 'updateHash', 500);
-    g.willUpdateAreasToUpdate = true;
-    g.defferedExecution(g.updateAreasToUpdate, 'updateAreasToUpdate', 500);
+    _ref2 = g.areasToUpdate;
+    for (pk in _ref2) {
+      rectangle = _ref2[pk];
+      if (rectangle.intersects(view.bounds)) {
+        g.updateView();
+        break;
+      }
+    }
     g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2));
   };
 
@@ -520,19 +549,22 @@ Here are all global functions (which do not belong to classes and are not event 
     return rectangles;
   };
 
-  this.areaToImageDataUrl = function(rectangle, intersectView) {
+  this.areaToImageDataUrl = function(rectangle, convertToView) {
     var canvasTemp, contextTemp, dataURL, viewRectangle;
-    if (intersectView == null) {
-      intersectView = true;
-    }
-    if (intersectView) {
-      rectangle = rectangle.intersect(view.bounds);
+    if (convertToView == null) {
+      convertToView = true;
     }
     if (rectangle.height <= 0 || rectangle.width <= 0) {
       console.log('Warning: trying to extract empty area!!!');
+      debugger;
       return null;
     }
-    viewRectangle = g.projectToViewRectangle(rectangle);
+    if (convertToView) {
+      rectangle = rectangle.intersect(view.bounds);
+      viewRectangle = g.projectToViewRectangle(rectangle);
+    } else {
+      viewRectangle = rectangle;
+    }
     canvasTemp = document.createElement('canvas');
     canvasTemp.width = viewRectangle.width;
     canvasTemp.height = viewRectangle.height;
@@ -543,17 +575,39 @@ Here are all global functions (which do not belong to classes and are not event 
   };
 
   this.areaToImageDataUrlWithAreasNotRasterized = function(rectangle) {
-    var area, areasNotRasterized, areasNotRasterizedBox, dataURL, intersection, item, itemObject, selectedItems, _i, _j, _len, _len1, _ref, _ref1, _ref2;
-    rectangle = g.expandRectangleToInteger(rectangle);
-    intersection = rectangle.intersect(view.bounds);
-    intersection = g.shrinkRectangleToInteger(intersection);
+    var area, areasNotRasterized, areasNotRasterizedBox, dataURL, intersection, item, itemObject, selectedItems, viewCenter, viewIntersection, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
     if (view.zoom !== 1) {
       g.romanesco_alert("You are creating or modifying an item in a zoom different than 100. \nThis will not be rasterized, other users will have to render it \n(please consider drawing and modifying items at zoom 100 for better loading performances).", "warning", 3000);
       return {
         dataURL: null,
-        rectangle: intersection,
+        rectangle: rectangle,
         areasNotRasterized: [g.boxFromRectangle(rectangle)]
       };
+    }
+    viewCenter = view.center;
+    view.center = view.bounds.topLeft.round().add(view.size.multiply(0.5));
+    rectangle = g.expandRectangleToInteger(rectangle);
+    intersection = rectangle.intersect(view.bounds);
+    intersection = g.shrinkRectangleToInteger(intersection);
+    viewIntersection = g.roundRectangle(g.projectToViewRectangle(intersection));
+    if (view.bounds.contains(rectangle) && !g.shrinkRectangleToInteger(intersection).equals(rectangle)) {
+      console.log("ERROR: good error :-) but unlikely...");
+      debugger;
+    }
+    console.log('rectangle: ' + rectangle.toString());
+    console.log('intersection: ' + intersection.toString());
+    console.log('viewIntersection: ' + viewIntersection.toString());
+    if (!rectangle.topLeft.round().equals(rectangle.topLeft) || !rectangle.bottomRight.round().equals(rectangle.bottomRight)) {
+      console.log('Error: rectangle is not rounded!');
+      debugger;
+    }
+    if (!intersection.topLeft.round().equals(intersection.topLeft) || !intersection.bottomRight.round().equals(intersection.bottomRight)) {
+      console.log('Error: rectangle is not rounded!');
+      debugger;
+    }
+    if (!viewIntersection.topLeft.round().equals(viewIntersection.topLeft) || !viewIntersection.bottomRight.round().equals(viewIntersection.bottomRight)) {
+      console.log('Error: rectangle is not rounded!');
+      debugger;
     }
     selectedItems = [];
     _ref = project.getItems({
@@ -572,7 +626,8 @@ Here are all global functions (which do not belong to classes and are not event 
     g.carLayer.visible = false;
     g.debugLayer.visible = false;
     view.draw();
-    dataURL = areaToImageDataUrl(intersection, false);
+    dataURL = areaToImageDataUrl(viewIntersection, false);
+    view.center = viewCenter;
     g.debugLayer.visible = true;
     g.carLayer.visible = true;
     for (_j = 0, _len1 = selectedItems.length; _j < _len1; _j++) {
@@ -593,6 +648,10 @@ Here are all global functions (which do not belong to classes and are not event 
       }
       return _results;
     })();
+    for (_k = 0, _len2 = areasNotRasterized.length; _k < _len2; _k++) {
+      area = areasNotRasterized[_k];
+      console.log(area);
+    }
     return {
       dataURL: dataURL,
       rectangle: intersection,
@@ -600,23 +659,72 @@ Here are all global functions (which do not belong to classes and are not event 
     };
   };
 
-  this.addAreasToUpdate = function(results) {
-    var a, area, areaToDeletePk, areas, br, debugRectangle, planet, rectangle, tl, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
-    if (typeof results === 'string') {
-      results = JSON.parse(results);
+  this.addAreasToUpdate = function(newAreasToUpdate) {
+    var area, debugRectangle, rectangle, _i, _len;
+    for (_i = 0, _len = newAreasToUpdate.length; _i < _len; _i++) {
+      area = newAreasToUpdate[_i];
+      if (g.areasToUpdate[area._id.$oid] != null) {
+        continue;
+      }
+      rectangle = g.rectangleFromBox(area);
+      g.areasToUpdate[area._id.$oid] = rectangle;
+      debugRectangle = new Path.Rectangle(rectangle);
+      debugRectangle.strokeColor = 'red';
+      debugRectangle.strokeWidth = 1;
+      debugRectangle.name = area._id.$oid;
+      g.debugLayer.addChild(debugRectangle);
+      g.areasToUpdateRectangles[area._id.$oid] = debugRectangle;
     }
+  };
+
+  this.updateRasters = function(rectangle, areaPk) {
+    var area, br, extraction, planet, tl, _i, _len, _ref, _ref1;
+    if (areaPk == null) {
+      areaPk = null;
+    }
+    extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle);
+    console.log('request to add ' + ((_ref = extraction.areasNotRasterized) != null ? _ref.length : void 0) + ' areas');
+    _ref1 = extraction.areasNotRasterized;
+    for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+      area = _ref1[_i];
+      console.log("---");
+      console.log(area);
+      planet = new Point(area.planet);
+      tl = posOnPlanetToProject(area.tl, planet);
+      br = posOnPlanetToProject(area.br, planet);
+      console.log(new Rectangle(tl, br).toJSON());
+    }
+    if (extraction.dataURL === "data:,") {
+      console.log("Warning: trying to add an area outside the screen!");
+    }
+    Dajaxice.draw.updateRasters(g.updateRasters_callback, {
+      'data': extraction.dataURL,
+      'position': extraction.rectangle.topLeft,
+      'areasNotRasterized': extraction.areasNotRasterized,
+      'areaToDeletePk': areaPk
+    });
+  };
+
+  this.batchUpdateRasters_callback = function(results) {
+    var result, _i, _len;
+    for (_i = 0, _len = results.length; _i < _len; _i++) {
+      result = results[_i];
+      updateRasters_callback(result);
+    }
+  };
+
+  this.updateRasters_callback = function(results) {
+    var area, areaToDeletePk, debugRectangle, newAreasToUpdate, _i, _j, _len, _len1, _ref, _ref1;
     if (!g.checkError(results)) {
       return;
     }
     if (results.state === 'log' && results.message === 'Delete impossible: area does not exist') {
       return;
     }
-    console.log('areas to delete: ' + ((_ref = results.areasDeleted) != null ? _ref.length : void 0));
     if (results.areasDeleted != null) {
-      _ref1 = results.areasDeleted;
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        areaToDeletePk = _ref1[_i];
-        console.log('delete area: ' + areaToDeletePk);
+      _ref = results.areasDeleted;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        areaToDeletePk = _ref[_i];
         if (g.areasToUpdate[areaToDeletePk] != null) {
           debugRectangle = debugLayer.getItem({
             name: areaToDeletePk
@@ -628,8 +736,6 @@ Here are all global functions (which do not belong to classes and are not event 
                 return debugRectangle.remove();
               };
             })(debugRectangle), 2000);
-          } else {
-            console.log('Error: could not find debug rectangle');
           }
           delete g.areasToUpdate[areaToDeletePk];
         } else {
@@ -638,89 +744,84 @@ Here are all global functions (which do not belong to classes and are not event 
         }
       }
     }
+    newAreasToUpdate = [];
     if (results.areasToUpdate != null) {
-      _ref2 = results.areasToUpdate;
-      for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-        a = _ref2[_j];
-        areas = JSON.parse(a);
-        if (areas.constructor !== Array) {
-          areas = [areas];
-        }
-        console.log('areas to add: ' + areas.length);
-        for (_k = 0, _len2 = areas.length; _k < _len2; _k++) {
-          area = areas[_k];
-          if (g.areasToUpdate[area._id.$oid] != null) {
-            continue;
-          }
-          planet = new Point(area.planetX, area.planetY);
-          tl = posOnPlanetToProject(area.box.coordinates[0][0], planet);
-          br = posOnPlanetToProject(area.box.coordinates[0][2], planet);
-          rectangle = new Rectangle(tl, br);
-          console.log('add: ' + area._id.$oid + ', rectangle: ' + rectangle.toString());
-          g.areasToUpdate[area._id.$oid] = rectangle;
-          debugRectangle = new Path.Rectangle(rectangle);
-          debugRectangle.strokeColor = 'red';
-          debugRectangle.strokeWidth = 1;
-          debugRectangle.name = area._id.$oid;
-          g.debugLayer.addChild(debugRectangle);
-        }
+      _ref1 = results.areasToUpdate;
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        area = _ref1[_j];
+        newAreasToUpdate.push(JSON.parse(area));
       }
     }
-  };
-
-  this.updateRasters = function(rectangle, areaPk) {
-    var extraction, _ref;
-    if (areaPk == null) {
-      areaPk = null;
-    }
-    extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle);
-    console.log('request to add ' + ((_ref = extraction.areasNotRasterized) != null ? _ref.length : void 0) + ' areas');
-    if (extraction.dataURL === "data:,") {
-      console.log("Warning: trying to add an area outside the screen!");
-    }
-    Dajaxice.draw.updateRasters(g.addAreasToUpdate, {
-      'data': extraction.dataURL,
-      'position': extraction.rectangle.topLeft,
-      'areasNotRasterized': extraction.areasNotRasterized,
-      'areaToDeletePk': areaPk
-    });
+    g.addAreasToUpdate(newAreasToUpdate);
   };
 
   this.updateAreasToUpdate = function() {
-    var debugRectangle, intersection, pk, rectangle, viewUpdated, _ref;
+    var areaNotRasterized, areaToDeletePks, arg, args, debugRectangle, extraction, intersection, pk, rectangle, viewUpdated, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
+    if (view.zoom !== 1) {
+      return;
+    }
     viewUpdated = false;
+    args = [];
     _ref = g.areasToUpdate;
     for (pk in _ref) {
       rectangle = _ref[pk];
       intersection = rectangle.intersect(view.bounds);
-      console.log('try to update area ' + pk + ', rectangle: ' + rectangle.toString() + '...');
       if ((rectangle.width > 1 && intersection.width <= 1) || (rectangle.height > 1 && intersection.height <= 1)) {
-        console.log('...not in view');
         continue;
       }
-      if (view.zoom === 1) {
-        debugRectangle = debugLayer.getItem({
-          name: pk
-        });
-        if (debugRectangle != null) {
-          debugRectangle.strokeColor = 'blue';
-          setTimeout((function(debugRectangle) {
-            return function() {
-              return debugRectangle.remove();
-            };
-          })(debugRectangle), 2000);
-        } else {
-          console.log('Error: could not find debug rectangle');
-        }
+      debugRectangle = g.areasToUpdateRectangles[pk];
+      if (debugRectangle != null) {
+        debugRectangle.strokeColor = 'blue';
+        setTimeout((function(debugRectangle) {
+          return function() {
+            return debugRectangle.remove();
+          };
+        })(debugRectangle), 2000);
+      } else {
+        console.log('Error: could not find debug rectangles');
       }
       if (!viewUpdated) {
         g.updateView();
-        view.draw();
         viewUpdated = true;
       }
-      updateRasters(rectangle, pk);
-      console.log('...updated');
+      extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle);
+      if (extraction.dataURL === "data:,") {
+        console.log("Warning: trying to add an area outside the screen!");
+      }
+      args.push({
+        'data': extraction.dataURL,
+        'position': extraction.rectangle.topLeft,
+        'areasNotRasterized': extraction.areasNotRasterized,
+        'areaToDeletePk': pk
+      });
       delete g.areasToUpdate[pk];
+    }
+    areaToDeletePks = [];
+    for (_i = 0, _len = args.length; _i < _len; _i++) {
+      arg = args[_i];
+      if (areaToDeletePks.indexOf(arg.areaToDeletePk) >= 0) {
+        console.log('areaToDeletePk is twice!!');
+        debugger;
+      }
+      _ref1 = arg.areasNotRasterized;
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        areaNotRasterized = _ref1[_j];
+        _ref2 = g.areasToUpdate;
+        for (rectangle = _k = 0, _len2 = _ref2.length; _k < _len2; rectangle = ++_k) {
+          pk = _ref2[rectangle];
+          intersection = areaNotRasterized.intersect(rectangle);
+          if (intersection.area > 0) {
+            console.log('rectangles ' + rectangle.toString() + ', and ' + areaNotRasterized.toString() + ' should not intersect');
+            debugger;
+          }
+        }
+      }
+      areaToDeletePks.push(arg.areaToDeletePk);
+    }
+    if (args.length > 0) {
+      Dajaxice.draw.batchUpdateRasters(g.batchUpdateRasters_callback, {
+        'args': args
+      });
     }
     g.willUpdateAreasToUpdate = false;
   };
@@ -729,6 +830,9 @@ Here are all global functions (which do not belong to classes and are not event 
     var item, pk, raster, rasterColumn, x, y, _ref, _ref1;
     if (ritem == null) {
       ritem = null;
+    }
+    if (g.viewUpdated) {
+      return;
     }
     console.log("updateView: remove rasters and redraw");
     _ref = g.rasters;
@@ -748,14 +852,195 @@ Here are all global functions (which do not belong to classes and are not event 
       item = _ref1[pk];
       item.draw();
     }
+    g.viewUpdated = true;
+  };
+
+  this.rasterizeArea = function(rectangle) {
+    var b, dataURL, height, item, l, r, restoreView, selectedItems, t, viewCenter, viewZoom, width, x, y, _i, _j, _k, _len, _ref, _ref1, _ref2;
+    rectangle = g.expandRectangleToInteger(rectangle);
+    viewCenter = view.center;
+    viewZoom = view.zoom;
+    selectedItems = [];
+    _ref = project.getItems({
+      selected: true
+    });
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      item = _ref[_i];
+      if (((_ref1 = item.constructor) != null ? _ref1.name : void 0) !== "Group" && ((_ref2 = item.constructor) != null ? _ref2.name : void 0) !== "Layer") {
+        selectedItems.push({
+          item: item,
+          fullySelected: item.fullySelected
+        });
+      }
+    }
+    project.activeLayer.selected = false;
+    view.zoom = 1;
+    view.center = view.bounds.topLeft.round().add(view.size.multiply(0.5));
+    restoreView = function() {
+      var itemObject, _j, _len1;
+      view.zoom = viewZoom;
+      view.center = viewCenter;
+      g.debugLayer.visible = true;
+      g.carLayer.visible = true;
+      for (_j = 0, _len1 = selectedItems.length; _j < _len1; _j++) {
+        itemObject = selectedItems[_j];
+        if (itemObject.fullySelected) {
+          itemObject.item.fullySelected = true;
+        } else {
+          itemObject.item.selected = true;
+        }
+      }
+      view.draw();
+      view.update();
+    };
+    if (view.bounds.contains(rectangle)) {
+      dataURL = areaToImageDataUrl(g.roundRectangle(g.projectToViewRectangle(rectangle)), false);
+      g.rastersToUpload.push({
+        data: dataURL,
+        position: rectangle.topLeft
+      });
+    } else {
+      if (rectangle.area > 4 * Math.min(view.bounds.area, 1000 * 1000)) {
+        Dajaxice.draw.updateRasters(g.updateRasters_callback, {
+          areasNotRasterized: [g.boxFromRectangle(rectangle)]
+        });
+        restoreView();
+        return;
+      }
+      t = Math.floor(rectangle.top / scale);
+      l = Math.floor(rectangle.left / scale);
+      b = Math.floor(rectangle.bottom / scale);
+      r = Math.floor(rectangle.right / scale);
+      for (x = _j = l; l <= r ? _j <= r : _j >= r; x = l <= r ? ++_j : --_j) {
+        for (y = _k = t; t <= b ? _k <= b : _k >= b; y = t <= b ? ++_k : --_k) {
+          if (!g.areaIsQuickLoaded({
+            x: x,
+            y: y
+          })) {
+            Dajaxice.draw.updateRasters(g.updateRasters_callback, {
+              areasNotRasterized: [g.boxFromRectangle(rectangle)]
+            });
+            restoreView();
+            return;
+          }
+        }
+      }
+      view.center = rectangle.topLeft.add(view.size.multiply(0.5));
+      while (view.bounds.bottom < rectangle.bottom) {
+        while (view.bounds.right < rectangle.right) {
+          width = Math.min(Math.min(view.size.width, 1000), rectangle.right - view.bounds.left);
+          height = Math.min(Math.min(view.size.height, 1000), rectangle.bottom - view.bounds.top);
+          dataURL = areaToImageDataUrl(new Rectangle(0, 0, width, height), false);
+          g.rastersToUpload.push({
+            data: dataURL,
+            position: view.bounds.topLeft
+          });
+          view.center = view.center.add(Math.min(view.size.width, 1000), 0);
+        }
+        view.center = new Point(rectangle.left + view.size.width * 0.5, view.center.y + Math.min(view.size.height, 1000));
+      }
+    }
+    if (!g.isUpdatingRasters) {
+      g.loopUpdateRasters();
+    }
+    restoreView();
+  };
+
+  this.loopUpdateRasters = function(results) {
+    g.checkError(results);
+    if (g.rastersToUpload.length > 0) {
+      g.isUpdatingRasters = true;
+      Dajaxice.draw.updateRasters(g.loopUpdateRasters, g.rastersToUpload.shift());
+    } else {
+      g.isUpdatingRasters = false;
+    }
+  };
+
+  this.rasterizeAreasToUpdate = function() {
+    Dajaxice.draw.getAreasToUpdate(rasterizeAreasToUpdate_callback);
+  };
+
+  this.rasterizeAreasToUpdate_callback = function(areas) {
+    var area, rectangle;
+    g.areasToRasterize = areas;
+    area = g.areasToRasterize.first();
+    if (!area) {
+      return;
+    }
+    rectangle = g.rectangleFromBox(area);
+    project.activeLayer.selected = false;
+    g.carLayer.visible = false;
+    g.debugLayer.visible = false;
+    view.zoom = 1;
+    view.center = rectangle.topLeft.add(view.size.multiply(0.5));
+    this.rasterizeAreasToUpdate_loop();
+  };
+
+  this.rasterizeAreasToUpdate_loop = function() {
+    var area, dataURL, height, rectangle, waitUntilLastRastersAreUpdloaded, width;
+    if (g.rastersToUpload.length > 10) {
+      if (!g.isUpdatingRasters) {
+        g.loopUpdateRasters();
+      }
+      setTimeout(rasterizeAreasToUpdate_loop, 1000);
+      return;
+    }
+    area = g.areasToRasterize.first();
+    if (!area) {
+      console.log('area is null, g.areasToRasterize is empty?');
+      debugger;
+      return;
+    }
+    rectangle = g.rectangleFromBox(area);
+    width = Math.min(Math.min(view.size.width, 1000), rectangle.right - view.bounds.left);
+    height = Math.min(Math.min(view.size.height, 1000), rectangle.bottom - view.bounds.top);
+    dataURL = areaToImageDataUrl(new Rectangle(0, 0, width, height), false);
+    g.rastersToUpload.push({
+      data: dataURL,
+      position: view.bounds.topLeft
+    });
+    view.update();
+    view.center = view.center.add(Math.min(view.size.width, 1000), 0);
+    if (view.bounds.left > rectangle.right) {
+      view.center = new Point(rectangle.left + view.size.width * 0.5, view.center.y + Math.min(view.size.height, 1000));
+    }
+    if (view.bounds.top > rectangle.bottom) {
+      g.rastersToUpload.last().areaToDeletePk = area._id.$oid;
+      g.areasToRasterize.shift();
+      if (g.areasToRasterize.length > 0) {
+        area = g.areasToRasterize.first();
+        rectangle = g.rectangleFromBox(area);
+        view.center = rectangle.topLeft.add(view.size.multiply(0.5));
+      } else {
+        waitUntilLastRastersAreUpdloaded = function() {
+          if (g.isUpdatingRasters) {
+            setTimeout(waitUntilLastRastersAreUpdloaded, 1000);
+          } else {
+            g.loopUpdateRasters();
+          }
+        };
+        waitUntilLastRastersAreUpdloaded();
+        g.debugLayer.visible = true;
+        g.carLayer.visible = true;
+        return;
+      }
+    }
+    if (!g.isUpdatingRasters) {
+      g.loopUpdateRasters();
+    }
+    setTimeout(rasterizeAreasToUpdate_loop, 0);
   };
 
   this.shrinkRectangleToInteger = function(rectangle) {
-    return new Rectangle(new Point(Math.ceil(rectangle.left), Math.ceil(rectangle.top)), new Point(Math.floor(rectangle.right), Math.floor(rectangle.bottom)));
+    return new Rectangle(rectangle.topLeft.ceil(), rectangle.bottomRight.floor());
   };
 
   this.expandRectangleToInteger = function(rectangle) {
-    return new Rectangle(new Point(Math.floor(rectangle.left), Math.floor(rectangle.top)), new Point(Math.ceil(rectangle.right), Math.ceil(rectangle.bottom)));
+    return new Rectangle(rectangle.topLeft.floor(), rectangle.bottomRight.ceil());
+  };
+
+  this.roundRectangle = function(rectangle) {
+    return new Rectangle(rectangle.topLeft.round(), rectangle.bottomRight.round());
   };
 
   this.roundToLowerMultiple = function(x, m) {
@@ -764,6 +1049,18 @@ Here are all global functions (which do not belong to classes and are not event 
 
   this.roundToGreaterMultiple = function(x, m) {
     return Math.ceil(x / m) * m;
+  };
+
+  this.highlightAreasToUpdate = function() {
+    var pk, rectangle, rectanglePath, _ref;
+    _ref = g.areasToUpdate;
+    for (pk in _ref) {
+      rectangle = _ref[pk];
+      rectanglePath = project.getItem({
+        name: pk
+      });
+      rectanglePath.strokeColor = 'green';
+    }
   };
 
   this.logItems = function() {
@@ -794,7 +1091,6 @@ Here are all global functions (which do not belong to classes and are not event 
       console.log(item.controller);
       console.log((_ref5 = item.controller) != null ? _ref5.pk : void 0);
     }
-    console.log("hiiiiiii");
     return "--- THE END ---";
   };
 
@@ -820,6 +1116,7 @@ Here are all global functions (which do not belong to classes and are not event 
         rasters.push(item);
       }
     }
+    console.log('selected rasters:');
     return rasters;
   };
 

@@ -86,10 +86,10 @@ class RDiv
 		switch object_type
 			when 'text', 'media'
 				# ajaxPost '/saveDiv', { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk }, @save_callback
-				Dajaxice.draw.saveDiv( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk, 'areas': @getAreas() } )
+				Dajaxice.draw.saveDiv( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk, 'bounds': @getBounds() } )
 			else
 				# ajaxPost '/saveBox', { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar }, @save_callback
-				Dajaxice.draw.saveBox( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar, 'areas': @getAreas() } )
+				Dajaxice.draw.saveBox( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'name': name, 'url': url, 'clonePk': clonePk, 'website': website, 'restrictedArea': restrictedArea, 'disableToolbar': disableToolbar, 'bounds': @getBounds() } )
 
 		# if object_type == 'text' or object_type == 'media'
 		# 	Dajaxice.draw.saveDiv( @save_callback, { 'box': g.boxFromRectangle(rectangle), 'object_type': object_type, 'message': message, 'url': url, 'clonePk': clonePk } )
@@ -300,20 +300,21 @@ class RDiv
 	getBounds: ()->
 		return new Rectangle(@position.x, @position.y, @divJ.outerWidth(), @divJ.outerHeight())
 
+	# deprecated
 	# common to all RItems
 	# @return [Array<{x: x, y: y}>] the list of areas on which the item lies
-	getAreas: ()->
-		bounds = @getBounds()
-		t = Math.floor(bounds.top / g.scale)
-		l = Math.floor(bounds.left / g.scale)
-		b = Math.floor(bounds.bottom / g.scale)
-		r = Math.floor(bounds.right / g.scale)
-		areas = {}
-		for x in [l .. r]
-			for y in [t .. b]
-				areas[x] ?= {}
-				areas[x][y] = true
-		return areas
+	# getAreas: ()->
+	# 	bounds = @getBounds()
+	# 	t = Math.floor(bounds.top / g.scale)
+	# 	l = Math.floor(bounds.left / g.scale)
+	# 	b = Math.floor(bounds.bottom / g.scale)
+	# 	r = Math.floor(bounds.right / g.scale)
+	# 	areas = {}
+	# 	for x in [l .. r]
+	# 		for y in [t .. b]
+	# 			areas[x] ?= {}
+	# 			areas[x][y] = true
+	# 	return areas
 
 	# common to all RItems
 	# move the RDiv to *position* and update if *userAction*
@@ -584,7 +585,7 @@ class RDiv
 			message: @message
 			url: @url
 			data: @getStringifiedData()
-			areas: @getAreas()
+			bounds: @getBounds()
 
 		@changed = null
 		

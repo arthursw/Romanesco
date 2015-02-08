@@ -78,6 +78,31 @@ class RPath
 				strokeWidth: $.extend(true, {}, g.parameters.strokeWidth)
 				strokeColor: $.extend(true, {}, g.parameters.strokeColor)
 				fillColor: $.extend(true, {}, g.parameters.fillColor)
+			'Shadow':
+				folderIsClosedByDefault: true
+				shadowOffsetX:
+					type: 'slider'
+					label: 'Shadow offset x'
+					min: 0
+					max: 25
+					default: 0
+				shadowOffsetY:
+					type: 'slider'
+					label: 'Shadow offset y'
+					min: 0
+					max: 25
+					default: 0
+				shadowBlur:
+					type: 'slider'
+					label: 'Shadow blur'
+					min: 0
+					max: 50
+					default: 0
+				shadowColor:
+					type: 'color'
+					label: 'Shadow color'
+					default: '#000'
+					defaultCheck: false
 
 	# Create the RPath and initialize the drawing creation if a user is creating it, or draw if the path is being loaded
 	# When user creates a path, the path is given an identifier (@id); when the path is saved, the servers returns a primary key (@pk) and @id will not be used anymore
@@ -91,6 +116,7 @@ class RPath
 		@id = if @data? then @data.id else Math.random() 	# temporary id used until the server sends back the primary key (@pk)
 
 		g.paths[@id] = @ 									# adds the path to the map of all RItems. key is @id for now, it will be replaced with @pk when server responds
+		g.items[@id] = @
 
 		if not @data? 				# if not @data then set @data to the values of the controllers in the gui
 			@data = new Object()
@@ -122,24 +148,29 @@ class RPath
 		return @data.strokeWidth
 
 	# common to all RItems
-	# return [Rectangle] the bounds of the control path (should fit the drawing entirely since the stroke width is pathWidth)
+	# return [Rectangle] the bounds of the control path (does not necessarly fit the drawing entirely, but is centered on it)
 	getBounds: ()->
 		return @controlPath.strokeBounds
 
+	# return [Rectangle] the bounds of the drawing group
+	getDrawingBounds: ()->
+		return @drawing?.strokeBounds
+
+	# deprecated
 	# common to all RItems
-	# @return [Array<{x: x, y: y}>] the list of areas on which the item lies
-	getAreas: ()->
-		bounds = @getBounds()
-		t = Math.floor(bounds.top / g.scale)
-		l = Math.floor(bounds.left / g.scale)
-		b = Math.floor(bounds.bottom / g.scale)
-		r = Math.floor(bounds.right / g.scale)
-		areas = {}
-		for x in [l .. r]
-			for y in [t .. b]
-				areas[x] ?= {}
-				areas[x][y] = true
-		return areas
+	# @return [Map<x><y>] the map of areas on which the item lies
+	# getAreas: ()->
+	# 	bounds = @getBounds()
+	# 	t = Math.floor(bounds.top / g.scale)
+	# 	l = Math.floor(bounds.left / g.scale)
+	# 	b = Math.floor(bounds.bottom / g.scale)
+	# 	r = Math.floor(bounds.right / g.scale)
+	# 	areas = {}
+	# 	for x in [l .. r]
+	# 		for y in [t .. b]
+	# 			areas[x] ?= {}
+	# 			areas[x][y] = true
+	# 	return areas
 
 	# common to all RItems
 	# move the RPath by *delta* and update if *userAction*
@@ -193,6 +224,7 @@ class RPath
 		@controlPath.visible = true
 		# @hitTestGroupVisible = @drawing?.visible
 		# @drawing?.visible = true
+		@speedGroup?.selected = true
 		
 		@hitTestStrokeWidth = @controlPath.strokeWidth
 		if strokeWidth then @controlPath.strokeWidth = strokeWidth
@@ -211,6 +243,7 @@ class RPath
 		@controlPath.visible = @hitTestControlPathVisible
 		# @drawing?.visible = @hitTestGroupVisible
 		@controlPath.strokeWidth = @hitTestStrokeWidth
+		@speedGroup?.selected = false
 		# @raster?.visible = true
 		# @canvasRaster?.visible = true
 		return
@@ -244,7 +277,7 @@ class RPath
 			@selectionRectangleBounds = @controlPath.bounds.clone()
 
 		# expand the selection rectangle to fit the entire drawing, and to avoid interference (overlapping) between control path and selection rectangle
-		bounds = @selectionRectangleBounds.clone().expand(10+@pathWidth()/2)
+		bounds = @selectionRectangleBounds.clone().expand(10+@pathWidth())
 		@selectionRectangle?.remove()
 
 		# create the selection rectangle: rectangle path + handle at the top used for rotations
@@ -274,7 +307,7 @@ class RPath
 		if not @controlPath? then return
 		if @selectionRectangle? then return
 		console.log "select"
-
+		# @controlPath.visible = true
 		# create or update the selection rectangle
 		@selectionRectangleRotation = null
 		@selectionRectangleScale = null
@@ -297,6 +330,8 @@ class RPath
 		if not @selectionRectangle? then return
 		@selectionRectangle?.remove()
 		@selectionRectangle = null
+		@controlPath.visible = false
+		@selectedSegment = null
 		@rasterize()
 		return
 
@@ -440,7 +475,7 @@ class RPath
 	# @param update [Boolean] (optional, default is true) whether to update the RPath in database
 	parameterChanged: (update=true)->
 		if not @drawing then g.updateView()
-		@previousBoundingBox ?= @getBounds()
+		@previousBoundingBox ?= @getDrawingBounds()
 		@draw()		# if draw in simple mode, then how to see the change of parameters which matter?
 		if update then g.defferedExecution(@update, @getPk())
 		return
@@ -458,6 +493,9 @@ class RPath
 		path.strokeColor = @data.strokeColor
 		path.strokeWidth = @data.strokeWidth
 		path.fillColor = @data.fillColor
+		path.shadowOffset = new Point(@data.shadowOffsetX, @data.shadowOffsetY)
+		path.shadowBlur = @data.shadowBlur
+		path.shadowColor = @data.shadowColor
 		@drawing.addChild(path)
 		return path
 
@@ -510,7 +548,7 @@ class RPath
 
 			@canvasRaster?.remove()
 			@canvasRaster = new Raster(canvas, position)
-			@group.addChild(@canvasRaster)
+			@drawing.addChild(@canvasRaster)
 			@context = @canvasRaster.canvas.getContext("2d")
 			@context.strokeStyle = @data.strokeColor
 			@context.fillStyle = @data.fillColor
@@ -632,11 +670,9 @@ class RPath
 		# if not @data?.animate
 		# 	extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
 
-		Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData(), 'areas': @getAreas() } )
+		Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData(), 'bounds': @getBounds() } )
 		# Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData(), 'rasterData': extraction.dataURL, 'rasterPosition': rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized } )
 		
-		if not @data?.animate
-			g.updateRasters(@getBounds())
 		# rectangle = @getBounds()
 		# if not @data?.animate
 		# 	extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
@@ -646,7 +682,10 @@ class RPath
 	# check if the save was successful and set @pk if it is
 	save_callback: (result)=>
 		g.checkError(result)
+		if not result.pk? then return 		# if @pk is null, the path was not saved, do not set pk nor rasterize
 		@setPK(result.pk)
+		if not @data?.animate
+			g.rasterizeArea(@getDrawingBounds())
 		return
 
 	# update the RPath in the database
@@ -657,7 +696,7 @@ class RPath
 		if not @pk? then return 	# null when was deleted (update could be called on selectEnd)
 		if not @prepareUpdate() then return
 
-		Dajaxice.draw.updatePath( @updatePath_callback, {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData(), 'areas': @getAreas() } )
+		Dajaxice.draw.updatePath( @updatePath_callback, {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData(), 'bounds': @getBounds() } )
 		
 		if not @data?.animate
 			
@@ -669,19 +708,19 @@ class RPath
 			speedGroupVisible = @speedGroup?.visible
 			@speedGroup?.visible = false
 
-			rectangle = @getBounds()
+			rectangle = @getDrawingBounds()
 
 			if @previousBoundingBox?
 				union = rectangle.unite(@previousBoundingBox)
 				if rectangle.intersects(@previousBoundingBox) and union.area < @previousBoundingBox.area*2
-					g.updateRasters(union)
+					g.rasterizeArea(union)
 				else
-					g.updateRasters(rectangle)
-					g.updateRasters(@previousBoundingBox)
+					g.rasterizeArea(rectangle)
+					g.rasterizeArea(@previousBoundingBox)
 
 				@previousBoundingBox = null
 			else
-				g.updateRasters(rectangle)
+				g.rasterizeArea(rectangle)
 
 			@selectionHighlight?.visible = selectionHighlightVisible
 			@speedGroup?.visible = speedGroupVisible
@@ -713,6 +752,7 @@ class RPath
 		g.paths[pk] = @
 		g.items[pk] = @
 		delete g.paths[@id]
+		delete g.items[@id]
 		if updateRoom
 			g.chatSocket.emit( "setPathPK", g.me, @id, @pk)
 		return
@@ -735,6 +775,7 @@ class RPath
 			delete g.paths[@pk]
 			delete g.items[@pk]
 		else
+			delete g.items[@id]
 			delete g.paths[@id]
 		return
 
@@ -743,9 +784,10 @@ class RPath
 	# @remove() just removes visually
 	delete: ()->
 		@group.visible = false
-		if not @drawing then g.updateView()
-		g.updateRasters(@getBounds())
+		bounds = @getDrawingBounds()
 		@remove()
+		g.updateView()
+		g.rasterizeArea(bounds)
 		if not @pk? then return
 		console.log @pk
 		# ajaxPost '/deletePath', { pk: @pk } , @deletePath_callback
@@ -904,7 +946,7 @@ class PrecisePath extends RPath
 		# only check 10 random points to speed up security check
 		for i in [1 .. 10]
 			index = Math.floor(Math.random()*points.length)
-			recordedPoint = points[index]
+			recordedPoint = new Point(points[index])
 			resultingPoint = flattenedPath.segments[index].point
 			if recordedPoint.getDistance(resultingPoint, true)>distanceMax
 				# @remove()
@@ -930,7 +972,7 @@ class PrecisePath extends RPath
 	# @param createCanvas [Boolean] (optional, default to true) whether to create a child canavs *@canverRaster*
 	initializeDrawing: (createCanvas=false)->
 		@data.step ?= 20 	# developers do not need to put @data.step in the parameters, but there must be a default value
-		@offset = 0
+		@drawingOffset = 0
 		super(createCanvas)
 		return
 
@@ -946,7 +988,8 @@ class PrecisePath extends RPath
 
 	# default drawUpdate function, will be redefined by children PrecisePath
 	# @param offset [Number] the offset along the control path to begin drawing
-	drawUpdate: (offset)->
+	# @param step [Boolean] whether it is a key step or not (we must draw something special or not)
+	drawUpdate: (offset, step)->
 		console.log "drawUpdate"
 		@path.segments = @controlPath.segments
 		@path.selected = false
@@ -962,15 +1005,18 @@ class PrecisePath extends RPath
 	# - the drawing is performed every *@data.step* along the control path
 	# - each time the user adds a point to the control path (either by moving the mouse in normal mode, or by clicking in polygon mode)
 	#   *checkUpdateDrawing* check by how long the control path was extended, and calls @drawUpdate() if some draw step must be performed
-	# called only when creating the path (not when we load it) (by createUpdate and finishPath)
-	# @param event [Event] the mouse event
-	checkUpdateDrawing: (event)->
+	# called when creating the path (by @createUpdate() and @finishPath()) and in @draw()
+	# @param segment [Paper Segment] the segment on the control path where we want to drawUpdate
+	checkUpdateDrawing: (segment)->
 		step = @data.step
-		controlPathLength = @controlPath.length
+		controlPathOffset = segment.location.offset
 
-		while @offset+step<controlPathLength
-			@offset += step
-			@drawUpdate(@offset)
+		if @drawingOffset+step>controlPathOffset 	# we can not make a step between drawingOffset and the controlPathOffset
+			@drawUpdate(controlPathOffset, false)
+		else
+			while @drawingOffset+step<controlPathOffset
+				@drawingOffset += step
+				@drawUpdate(@drawingOffset, true)
 		return
 
 	# initialize the main group and the control path
@@ -985,7 +1031,9 @@ class PrecisePath extends RPath
 		@controlPath.name = "controlPath"
 		@controlPath.controller = @
 		@controlPath.strokeWidth = @pathWidth()
-		@controlPath.strokeColor = 'black'
+		@controlPath.strokeColor = g.selectionBlue
+		@controlPath.strokeColor.alpha = 0.25
+		@controlPath.strokeCap = 'round'
 		@controlPath.visible = false
 		@controlPath.add(point)
 
@@ -1024,7 +1072,7 @@ class PrecisePath extends RPath
 	# in normal mode:
 	# - check if path is not in an RLock
 	# - add point
-	# - @checkUpdateDrawing(event) (i.e. continue the draw steps to fit the control path)
+	# - @checkUpdateDrawing() (i.e. continue the draw steps to fit the control path)
 	# in polygon mode:
 	# - update the [handleIn](http://paperjs.org/reference/segment/#handlein) and handleOut of the last segment
 	# - draw in simplified (quick) mode
@@ -1046,7 +1094,7 @@ class PrecisePath extends RPath
 			@controlPath.add(point)
 
 			# loading is never true in this case, createUpdate is not called in @loadPath() (but @createBegin() and @createEnd() are called)
-			if not loading then @checkUpdateDrawing(event)
+			if not loading then @checkUpdateDrawing(@controlPath.lastSegment)
 		else
 			# update the [handleIn](http://paperjs.org/reference/segment/#handlein) and handleOut of the last segment
 			lastSegment = @controlPath.lastSegment
@@ -1082,9 +1130,9 @@ class PrecisePath extends RPath
 		else
 			@inLockedArea = false
 			if not loading and @controlPath.segments.length>=2
-				if @speeds? then @computeSpeed()
+				# if @speeds? then @computeSpeed()
 				@controlPath.simplify()
-				if @speeds? then @updateSpeed()
+				# if @speeds? then @updateSpeed()
 			@finishPath(loading)
 		super()
 		return
@@ -1104,9 +1152,8 @@ class PrecisePath extends RPath
 		# @updateZIndex()
 		if @data.smooth then @controlPath.smooth()
 		if not loading
-			@checkUpdateDrawing()
 			@drawEnd()
-			@offset = 0
+			@drawingOffset = 0
 		@draw(false, loading) 	# enable to have the correct @canvasRaster size and to have the exact same result after a load or a change
 		@rasterize()
 		return
@@ -1157,25 +1204,37 @@ class PrecisePath extends RPath
 		reminder = nf-nIteration
 		offset = reminder*step/2
 
-		try 	# catch errors to log them in the code editor console (if user is making a script)
+		@drawingOffset = 0
 
+		process = ()=>
 			@drawBegin()
 
-			# update drawing (@drawUpdate()) every *step* along the control path
-			# n=0
-			while offset<controlPathLength
+			# # update drawing (@drawUpdate()) every *step* along the control path
+			# # n=0
+			# while offset<controlPathLength
 
-				@drawUpdate(offset)
-				offset += step
+			# 	@drawUpdate(offset)
+			# 	offset += step
 
-				# if n%10==0 then g.updateLoadingBar(offset/controlPathLength)
-				# n++
+			# 	# if n%10==0 then g.updateLoadingBar(offset/controlPathLength)
+			# 	# n++
+
+			for segment, i in @controlPath.segments
+				if i==0 then continue
+				@checkUpdateDrawing(segment, true)
 
 			@drawEnd()
-
-		catch error
-			console.error error
-			throw error
+			return
+		
+		if not g.catchErrors
+			process()
+		else
+			try 	# catch errors to log them in the code editor console (if user is making a script)
+				process()
+			catch error
+				console.error error.stack
+				console.error error
+				throw error
 
 		if simplified 
 			@simplifiedModeOff()
@@ -1316,7 +1375,7 @@ class PrecisePath extends RPath
 		
 		# the previous bounding box is used to update the raster at this position
 		# should not be put in selectBegin() since it is not called when moving multiple items (selectBegin() is called only on the first item)
-		@previousBoundingBox ?= @getBounds()
+		@previousBoundingBox ?= @getDrawingBounds()
 
 		if not @drawing then g.updateView()
 
@@ -1567,7 +1626,7 @@ class SpeedPath extends PrecisePath
 	@iconUrl = null
 	@iconAlt = null
 
-	@speedMax = 200
+	@maxSpeed = 200
 	@speedStep = 20
 	@secureStep = 25
 
@@ -1582,6 +1641,12 @@ class SpeedPath extends PrecisePath
 
 		return parameters
 
+	# overloads {PrecisePath#initializeDrawing}
+	initializeDrawing: (createCanvas=false)->
+		@speedOffset = 0
+		super(createCanvas)
+		return
+
 	# overloads {PrecisePath#loadPath}
 	loadPath: (points)->
 		@data ?= {}
@@ -1589,41 +1654,45 @@ class SpeedPath extends PrecisePath
 		super(points)
 		return
 
-	# redefine {PrecisePath#checkUpdateDrawing} to update speed while drawing
-	checkUpdateDrawing: (event)->
+	# overloads {PrecisePath#checkUpdateDrawing} to update speed while drawing
+	checkUpdateDrawing: (segment, isDrawingEverything=false)->
+		if isDrawingEverything
+			super(segment)
+			return
+
 		step = @data.step
-		controlPathLength = @controlPath.length
+		controlPathOffset = segment.location.offset
+		previousControlPathOffset = if segment.previous? then segment.previous.location.offset else 0
+
+		previousSpeed = if @speeds.length>0 then @speeds.pop() else 0
+		currentSpeed = controlPathOffset - previousControlPathOffset
 		
-		if event?
-			delta = event.delta.length
-			startOffset = controlPathLength-delta
-			lastSpeed = @speeds.last()
+		while @speedOffset + @constructor.speedStep < controlPathOffset
+			@speedOffset += @constructor.speedStep
+			f = (@speedOffset-previousControlPathOffset)/currentSpeed
+			speed = previousSpeed*(1-f)+currentSpeed*f
+			@speeds.push(Math.min(speed, @constructor.maxSpeed))
 
-		while @offset+step<controlPathLength
-			@offset += step
+		@speeds.push(Math.min(currentSpeed, @constructor.maxSpeed))
 
-			if event? 	# compute speed
-				f = ( delta-(@offset-startOffset) ) / delta
-				speed = lastSpeed * (1-f) + delta * f
-				@speeds.push(Math.min(speed, @constructor.speedMax))
+		super(segment)
 
-			# update drawing
-			@drawUpdate(@offset)
 		return
 
 	# todo: better handle lock area
 	# overload {PrecisePath#createBegin} and add speed initialization
 	createBegin: (point, event, loading=false)->
-		if not loading then @speeds = (if g.polygonMode then [0] else [@constructor.speedMax/3])
+		if not loading then @speeds = (if @data.polygonMode then [@constructor.maxSpeed/3] else [])
 		super(point, event, loading)
 		return
 
 	# overload {PrecisePath#createEnd} and add speed initialization
 	createEnd: (point, event, loading=false)->
-		if not @data.polygonMode and not loading then @speeds = []
+		# if not @data.polygonMode and not loading then @speeds = []
 		super(point, event, loading)
 		return
 
+	# deprecated
 	# compute the speed (deduced from the space between each point of the control path)
 	# the speed values are sampeled on regular intervals along the control path (same machanism as the drawing points)
 	# the distance between each sample is defined in @constructor.speedStep
@@ -1698,10 +1767,17 @@ class SpeedPath extends PrecisePath
 			currentAverageSpeed += ((speed+previousSpeed)/2.0)*(offset-previousOffset)/step
 			
 			if offset==nextOffset
-				@speeds.push(Math.min(currentAverageSpeed, @constructor.speedMax)) 
+				@speeds.push(Math.min(currentAverageSpeed, @constructor.maxSpeed)) 
 				currentAverageSpeed = 0
 				nextOffset += step
 
+		return
+
+	# show the speed group (called on @select())
+	showSpeed: ()->
+		@speedGroup?.visible = @data.showSpeed
+		if not @speeds? or not @data.showSpeed then return
+		@speedGroup?.bringToFront()
 		return
 
 	# update the speed group (curve and handles to visualize and edit the speeds)
@@ -1818,12 +1894,14 @@ class SpeedPath extends PrecisePath
 			else
 				return @speeds.last()
 		else
-			@constructor.speedMax/2
+			@constructor.maxSpeed/2
+		return
 
 	# overload {PrecisePath#draw} and add speed update when *loading* is false
 	draw: (simplified=false, loading=false)->
+		@speedOffset = 0
 		super(simplified, loading)
-		if not loading then @updateSpeed()
+		if @controlPath.selected then @updateSpeed()
 		return
 
 	# overload {PrecisePath#getData} and adds the speeds in @data.speeds (unused speed values are not stored)
@@ -1836,13 +1914,17 @@ class SpeedPath extends PrecisePath
 	select: (updateOptions=true)->
 		if @selectionRectangle? then return
 		super(updateOptions)
-		@updateSpeed()
-		if @data.showSpeed then @speedGroup?.visible = true
+		@showSpeed()
+		if @data.showSpeed
+			if not @speedGroup? then @updateSpeed()
+			@speedGroup?.visible = true
+		return
 
 	# overload {PrecisePath#deselect} and hide speed group
 	deselect: ()->
 		@speedGroup?.visible = false
 		super()
+		return
 
 	# overload {PrecisePath#initSelection} but add the possibility to select speed handles
 	initSelection: (event, hitResult, userAction=true) ->
@@ -1861,7 +1943,7 @@ class SpeedPath extends PrecisePath
 
 		# the previous bounding box is used to update the raster at this position
 		# should not be put in selectBegin() since it is not called when moving multiple items (selectBegin() is called only on the first item)
-		@previousBoundingBox ?= @getBounds()
+		@previousBoundingBox ?= @getDrawingBounds()
 
 		if not @drawing then g.updateView()
 
@@ -1870,7 +1952,7 @@ class SpeedPath extends PrecisePath
 		else
 			@speedSelectionHighlight?.remove()
 
-			speedMax = @constructor.speedMax
+			maxSpeed = @constructor.maxSpeed
 			
 			# initialize a line between the mouse and the handle, orthogonal to the normal
 			# the length of this line determines how much influence the change will have over the neighbour handles
@@ -1895,8 +1977,8 @@ class SpeedPath extends PrecisePath
 
 			if @speeds[handle.rindex] < 0
 				@speeds[handle.rindex] = 0
-			else if @speeds[handle.rindex] > speedMax
-				@speeds[handle.rindex] = speedMax
+			else if @speeds[handle.rindex] > maxSpeed
+				@speeds[handle.rindex] = maxSpeed
 
 			newHandleToPoint = event.point.subtract(handle.position.add(projection))
 			influenceFactor = newHandleToPoint.length/(@constructor.speedStep*3)
@@ -1918,8 +2000,8 @@ class SpeedPath extends PrecisePath
 						@speeds[index] += sign * delta
 						if @speeds[index] < 0
 							@speeds[index] = 0
-						else if @speeds[index] > speedMax
-							@speeds[index] = speedMax
+						else if @speeds[index] > maxSpeed
+							@speeds[index] = maxSpeed
 				i++
 			
 			# create the line between the mouse and the handle, orthogonal to the normal
@@ -1941,12 +2023,14 @@ class SpeedPath extends PrecisePath
 		@speedSelectionHighlight?.remove()
 		@speedSelectionHighlight = null
 		super(event, userAction)
+		return
 
 	# overload {PrecisePath#remove} and remove speed group
 	remove: ()->
 		@speedGroup?.remove()
 		@speedGroup = null
 		super()
+		return
 
 @SpeedPath = SpeedPath
 
@@ -1975,8 +2059,8 @@ class ThicknessPath extends SpeedPath
 			label: 'Step'
 			min: 30
 			max: 300
-			default: 20
-			simplified: 20
+			default: 30
+			simplified: 30
 			step: 1
 		parameters['Parameters'].trackWidth =
 			type: 'slider'
@@ -1985,17 +2069,25 @@ class ThicknessPath extends SpeedPath
 			max: 10
 			default: 2
 		return parameters
-
+	
+	pathWidth: ()->
+		return @constructor.maxSpeed * @data.trackWidth / 2
+	
 	drawBegin: ()->
 		@initializeDrawing(false)
 		@path = @addPath()
 		@path.add(@controlPath.firstSegment.point)
 		return
 
-	drawUpdate: (offset)->
+	drawUpdate: (offset, step)->
 		# get point, normal and speed at current position
 		point = @controlPath.getPointAt(offset)
 		normal = @controlPath.getNormalAt(offset).normalize()
+
+		if not step
+			if @path.segments.length<=1 then return
+			@path.firstSegment.point = point
+			return
 
 		speed = @speedAt(offset)
 
@@ -2005,8 +2097,10 @@ class ThicknessPath extends SpeedPath
 		bottom = point.subtract(delta)
 
 		# add the two points at the beginning and the end of the path
+		@path.firstSegment.remove()
 		@path.add(top)
 		@path.insert(0, bottom)
+		@path.insert(0, point)
 		@path.smooth()
 
 		return
@@ -2068,7 +2162,8 @@ class Meander extends PrecisePath
 		@spiral = @addPath()
 		return
 
-	drawUpdate: (offset)->
+	drawUpdate: (offset, step)->
+		if not step then return
 
 		point = @controlPath.getPointAt(offset)
 		normal = @controlPath.getNormalAt(offset).normalize()
@@ -2229,7 +2324,9 @@ class GridPath extends SpeedPath
 
 		return
 
-	drawUpdate: (offset)->
+	drawUpdate: (offset, step)->
+		if not step then return
+
 		console.log "drawUpdate"
 
 		speed = @speedAt(offset)
@@ -2241,7 +2338,7 @@ class GridPath extends SpeedPath
 
 			# set the width of the step
 			if @data.speedForWidth
-				width = @data.minWidth + (@data.maxWidth - @data.minWidth) * speed / @constructor.speedMax		# map the speed to [@data.minWidth, @data.maxWidth]
+				width = @data.minWidth + (@data.maxWidth - @data.minWidth) * speed / @constructor.maxSpeed		# map the speed to [@data.minWidth, @data.maxWidth]
 			else
 				width = @data.minWidth
 
@@ -2280,7 +2377,7 @@ class GridPath extends SpeedPath
 		else 	# @data.speedForLength
 
 			# map 'speed' to the interval [@data.minSpeed, @data.maxSpeed]
-			speed = @data.minSpeed + (speed / @constructor.speedMax) * (@data.maxSpeed - @data.minSpeed)
+			speed = @data.minSpeed + (speed / @constructor.maxSpeed) * (@data.maxSpeed - @data.minSpeed)
 			
 			# check when we must update the path (if the current position if greater than the last position we updated + speed)
 			stepOffset = offset-@lastOffset
@@ -2298,7 +2395,7 @@ class GridPath extends SpeedPath
 @GridPath = GridPath
 @pathClasses.push(@GridPath)
 
-# The geometric lines path draws a line between pair of points which are close enough
+# The geometric lines path draws a line between all pair of points which are close enough
 # This means that hundreds of lines will be drawn at each update.
 # To improve drawing efficiency (and because we do not need any complexe editing functionnality for those lines), we use a child canvas for the drawing.
 # We must convert the points in canvas coordinates, draw with the @context of the canvas (and use the native html5 canvas drawing functions, unless we load an external library)
@@ -2338,7 +2435,8 @@ class GeometricLines extends PrecisePath
 		@points = [] 							# will contain the points to check distances
 		return
 
-	drawUpdate: (offset)->
+	drawUpdate: (offset, step)->
+		if not step then return
 
 		point = @controlPath.getPointAt(offset)
 		normal = @controlPath.getNormalAt(offset).normalize()
@@ -2364,6 +2462,340 @@ class GeometricLines extends PrecisePath
 
 @GeometricLines = GeometricLines
 @pathClasses.push(@GeometricLines)
+
+class PaintBrush extends PrecisePath
+	@rname = 'Paint brush'
+	@rdescription = "Paints a thick stroke with customable blur effects."
+	@iconUrl = 'static/images/icons/inverted/brush.png'
+	@iconAlt = 'brush'
+
+	@parameters: ()->
+		parameters = super()
+		delete parameters['Style'].fillColor 	# remove the fill color, we do not need it
+
+		parameters['Parameters'] ?= {}
+		parameters['Parameters'].step =
+			type: 'slider'
+			label: 'Step'
+			min: 1
+			max: 100
+			default: 11
+			simplified: 20
+			step: 1
+		parameters['Parameters'].size =
+			type: 'slider'
+			label: 'Size'
+			min: 1
+			max: 100
+			default: 10
+		parameters['Parameters'].blur =
+			type: 'slider'
+			label: 'Blur'
+			min: 0
+			max: 100
+			default: 20
+
+		return parameters
+
+	pathWidth: ()->
+		return 2 * @data.size
+
+	drawBegin: ()->
+		@initializeDrawing(true)
+		point = @controlPath.firstSegment.point
+		point = @projectToRaster(point)
+		@context.moveTo(point.x, point.y)
+		return
+
+	drawUpdate: (offset, step)->
+		if not step then return
+
+		point = @controlPath.getPointAt(offset)
+		normal = @controlPath.getNormalAt(offset).normalize()
+
+		point = @projectToRaster(point) 		#  convert the points from project to canvas coordinates
+		
+		innerRadius = @data.size * (1 - @data.blur / 100)
+		outerRadius = @data.size
+
+		radialGradient = @context.createRadialGradient(point.x, point.y, innerRadius, point.x, point.y, outerRadius)
+
+		midColor = new Color(@data.strokeColor)
+		midColor.alpha = 0.5
+		endColor = new Color(@data.strokeColor)
+		endColor.alpha = 0
+		radialGradient.addColorStop(0, @data.strokeColor)
+		radialGradient.addColorStop(0.5, midColor.toCSS())
+		radialGradient.addColorStop(1, endColor.toCSS())
+		
+		@context.fillStyle = radialGradient
+		@context.fillRect(point.x-outerRadius, point.y-outerRadius, 2*outerRadius, 2*outerRadius)
+
+		return
+
+	drawEnd: ()->
+		return
+
+@PaintBrush = PaintBrush
+@pathClasses.push(@PaintBrush)
+
+class PaintGun extends SpeedPath
+	@rname = 'Paint gun'
+	@rdescription = "The stroke width is function of the drawing speed: the faster the wider."
+	# "http://thenounproject.com/term/spray-bottle/7835/"
+	# "http://thenounproject.com/term/spray-bottle/93690/"
+	# "http://thenounproject.com/term/spray-paint/3533/"
+	# "http://thenounproject.com/term/spray-paint/18249/"
+	# "http://thenounproject.com/term/spray-paint/18249/"
+	# "http://thenounproject.com/term/spray-paint/17918/"
+
+	@parameters: ()->
+		parameters = super()
+		delete parameters['Style'].fillColor 	# remove the fill color, we do not need it
+		parameters['Edit curve'].showSpeed.value = false
+
+		parameters['Parameters'] ?= {}
+		parameters['Parameters'].step =
+			type: 'slider'
+			label: 'Step'
+			min: 1
+			max: 100
+			default: 11
+			simplified: 20
+			step: 1
+		parameters['Parameters'].trackWidth =
+			type: 'slider'
+			label: 'Track width'
+			min: 0.1
+			max: 3
+			default: 0.25
+		parameters['Parameters'].roundEnd =
+			type: 'checkbox'
+			label: 'Round end'
+			default: false
+		parameters['Parameters'].inverseThickness =
+			type: 'checkbox'
+			label: 'Inverse thickness'
+			default: false
+
+		return parameters
+
+	pathWidth: ()->
+		return @data.trackWidth * @speeds.max()
+
+	drawBegin: ()->
+		@initializeDrawing(true)
+		point = @controlPath.firstSegment.point
+		point = @projectToRaster(point) 		#  convert the points from project to canvas coordinates
+		@context.moveTo(point.x, point.y)
+		
+		@previousTop = point
+		@previousBottom = point
+		@previousMidTop = point
+		@previousMidBottom = point
+
+		@maxSpeed = if @speeds.length>0 then @speeds.max() / 1.5 else @constructor.maxSpeed / 6
+
+		return
+
+	drawStep: (offset, step, end=false)->
+
+		point = @controlPath.getPointAt(offset)
+		normal = @controlPath.getNormalAt(offset).normalize()
+
+		speed = @speedAt(offset)
+
+		point = @projectToRaster(point) 		#  convert the points from project to canvas coordinates
+
+		# create two points at each side of the control path (separated by a length function of the speed)
+		if not @data.inverseThickness
+			delta = normal.multiply(speed * @data.trackWidth / 2)
+		else
+			delta = normal.multiply(Math.max(@maxSpeed-speed, 0) * @data.trackWidth / 2)
+
+		top = point.add(delta)
+		bottom = point.subtract(delta)
+
+		if not end
+			midTop = @previousTop.add(top).multiply(0.5)
+			midBottom = @previousBottom.add(bottom).multiply(0.5)
+		else
+			midTop = top
+			midBottom = bottom
+
+		@context.fillStyle = @data.strokeColor
+
+		@context.beginPath()
+
+		@context.moveTo(@previousMidTop.x, @previousMidTop.y)
+		
+		@context.lineTo(@previousMidBottom.x, @previousMidBottom.y)
+		@context.quadraticCurveTo(@previousBottom.x, @previousBottom.y, midBottom.x, midBottom.y)
+		@context.lineTo(midTop.x, midTop.y)
+		@context.quadraticCurveTo(@previousTop.x, @previousTop.y, @previousMidTop.x, @previousMidTop.y,)
+		
+		@context.fill()
+		@context.stroke()
+		
+		if step
+			@previousTop = top
+			@previousBottom = bottom
+			@previousMidTop = midTop
+			@previousMidBottom = midBottom
+
+		return
+
+	drawUpdate: (offset, step)->
+		@drawStep(offset, step)
+		return
+
+	drawEnd: ()->
+		@drawStep(@controlPath.length, false, true)
+
+		if @data.roundEnd
+			point = @controlPath.lastSegment.point
+			point = @projectToRaster(point)
+			@context.beginPath()
+			@context.fillStyle = @data.strokeColor
+			@context.arc(point.x, point.y, @speeds.last() * @data.trackWidth / 2, 0, 2 * Math.PI)
+			@context.fill()
+		return
+
+@PaintGun = PaintGun
+@pathClasses.push(@PaintGun)
+
+class DynamicBrush extends SpeedPath
+	@rname = 'Dynamic brush'
+	@rdescription = "The stroke width is function of the drawing speed: the faster the wider."
+	# "http://thenounproject.com/term/spray-bottle/7835/"
+	# "http://thenounproject.com/term/spray-bottle/93690/"
+	# "http://thenounproject.com/term/spray-paint/3533/"
+	# "http://thenounproject.com/term/spray-paint/18249/"
+	# "http://thenounproject.com/term/spray-paint/18249/"
+	# "http://thenounproject.com/term/spray-paint/17918/"
+
+	@parameters: ()->
+		parameters = super()
+		delete parameters['Style'].fillColor 	# remove the fill color, we do not need it
+		parameters['Edit curve'].showSpeed.value = false
+
+		parameters['Parameters'] ?= {}
+		# parameters['Parameters'].step =
+		# 	type: 'slider'
+		# 	label: 'Step'
+		# 	min: 1
+		# 	max: 100
+		# 	default: 11
+		# 	simplified: 20
+		# 	step: 1
+		parameters['Parameters'].trackWidth =
+			type: 'slider'
+			label: 'Track width'
+			min: 0.1
+			max: 2.0
+			default: 0.5
+		parameters['Parameters'].mass =
+			type: 'slider'
+			label: 'Mass'
+			min: 1
+			max: 200
+			default: 80
+		parameters['Parameters'].drag =
+			type: 'slider'
+			label: 'Drag'
+			min: 0
+			max: 1.0
+			default: 0.175
+		parameters['Parameters'].roundEnd =
+			type: 'checkbox'
+			label: 'Round end'
+			default: false
+		parameters['Parameters'].inverseThickness =
+			type: 'checkbox'
+			label: 'Inverse thickness'
+			default: false
+		parameters['Parameters'].fixedAngle =
+			type: 'checkbox'
+			label: 'Fixed angle'
+			default: false
+		parameters['Parameters'].angle =
+			type: 'slider'
+			label: 'Angle'
+			min: 0
+			max: 360
+			default: 0
+
+		return parameters
+
+	pathWidth: ()->
+		return @data.trackWidth * @speeds.max()
+
+	drawBegin: ()->
+		@initializeDrawing(true)
+		point = @controlPath.firstSegment.point
+		@point = @projectToRaster(point)
+		@currentPosition = @point
+		@lastPosition = @currentPosition
+		@velocity = new Point()
+		@timerId = setTimer(@drawStep, 5)
+		return
+
+	updateForce: ()->
+		# calculate force and acceleration
+		force = @point.subtract(@currentPosition)
+
+		if force.length<0.000001
+			return false
+
+		acceleration = force.divide(@data.mass)
+
+		# calculate new velocity
+		@velocity = @velocity.add(acceleration)
+		if @velocity.length<0.000001
+			return false
+
+		# apply drag
+		@velocity = @velocity.multiply(1.0-@data.drag)
+
+		# update position
+		@lastPosition = @currentPosition
+		@currentPosition = @currentPosition.add(@velocity)
+		return true
+
+	drawStep: ()=>
+		if not @updateForce() then return
+
+		width = (0.04-@velocity.length)*@data.trackWidth
+		delta = new Point(-@velocity.y, @velocity.x)
+		delta.normalize()
+
+		a = @previousPosition.add(@previousDelta)
+		b = @previousPosition.subtract(@previousDelta)
+		c = @currentPosition.subtract(delta)
+		d = @currentPosition.add(delta)
+
+		@context.beginPath()
+		@context.moveTo(a.x, a.y)
+		@context.lineTo(b.x, b.y)
+		@context.stroke()
+		@context.lineTo(c.x, c.y)
+		@context.lineTo(d.x, d.y)
+		@context.fill()
+
+		@previousDelta = delta
+		return
+
+	drawUpdate: (offset, step)->
+		point = @controlPath.getPointAt(offset)
+		@point = @projectToRaster(point)
+		return
+
+	drawEnd: ()->
+		clearTimer(@timerId)
+		return
+
+@DynamicBrush = DynamicBrush
+@pathClasses.push(@DynamicBrush)
 
 # The shape path draw a rectangle or an ellipse along the control path
 class ShapePath extends SpeedPath
@@ -2422,7 +2854,9 @@ class ShapePath extends SpeedPath
 		@lastOffset = 0
 		return
 
-	drawUpdate: (offset)->
+	drawUpdate: (offset, step)->
+		if not step then return
+
 		console.log "drawUpdate"
 
 		speed = @speedAt(offset)
@@ -2432,7 +2866,7 @@ class ShapePath extends SpeedPath
 			point = @controlPath.getPointAt(offset)
 			normal = @controlPath.getNormalAt(offset)
 
-			width = @data.minWidth + (@data.maxWidth - @data.minWidth) * speed / @constructor.speedMax
+			width = @data.minWidth + (@data.maxWidth - @data.minWidth) * speed / @constructor.maxSpeed
 			rectangle = new Rectangle(point.subtract(new Point(width/2, height/2)), new Size(width, height))
 			if not @data.ellipse
 				shape = @addPath(new Path.Rectangle(rectangle))
@@ -2447,7 +2881,7 @@ class ShapePath extends SpeedPath
 		else 	# @data.speedForLength
 
 			# map 'speed' to the interval [@data.minSpeed, @data.maxSpeed]
-			speed = @data.minSpeed + (speed / @constructor.speedMax) * (@data.maxSpeed - @data.minSpeed)
+			speed = @data.minSpeed + (speed / @constructor.maxSpeed) * (@data.maxSpeed - @data.minSpeed)
 			
 			# check when we must update the path (if the current position if greater than the last position we updated + speed)
 			stepOffset = offset-@lastOffset
@@ -2525,7 +2959,7 @@ class RShape extends RPath
 	# redefine {RPath#updateSelectionRectangle}
 	# the selection rectangle is slightly different for a shape since it is never reset (rotation and scale are stored in database)
 	updateSelectionRectangle: ()->
-		bounds = @rectangle.clone().expand(10+@pathWidth()/2)
+		bounds = @rectangle.clone().expand(10+@pathWidth())
 		@selectionRectangle?.remove()
 		@selectionRectangle = new Path.Rectangle(bounds)
 		@group.addChild(@selectionRectangle)
@@ -2553,7 +2987,7 @@ class RShape extends RPath
 
 		# the previous bounding box is used to update the raster at this position
 		# should not be put in selectBegin() since it is not called when moving multiple items (selectBegin() is called only on the first item)
-		@previousBoundingBox ?= @getBounds()
+		@previousBoundingBox ?= @getDrawingBounds()
 
 		if not @drawing then g.updateView()
 
@@ -2608,14 +3042,21 @@ class RShape extends RPath
 	# initialize the drawing and draw the shape
 	draw: (simplified=false, loading=false)->
 		if loading and not @data?.animate then return
-		try 							# catch errors to log them in console (if the user has code editor open)
+		process = ()=>
 			@initializeDrawing()
 			@createShape()
 			@drawing.rotation = @data.rotation
 			@rasterize()
-		catch error
-			console.error error
-			throw error
+			return
+		if not g.catchErrors
+			process()
+		else
+			try 							# catch errors to log them in console (if the user has code editor open)
+				process()
+			catch error
+				console.error error.stack
+				console.error error
+				throw error
 		return
 
 	# initialize the control path
@@ -2664,7 +3105,9 @@ class RShape extends RPath
 		@controlPath.name = "controlPath"
 		@controlPath.controller = @
 		@controlPath.strokeWidth = @pathWidth()
-		@controlPath.strokeColor = 'black'
+		@controlPath.strokeColor = g.selectionBlue
+		@controlPath.strokeColor.alpha = 0.25
+		@controlPath.strokeCap = 'round'
 		@controlPath.visible = false
 		@data.rotation ?= 0
 		return
@@ -3149,16 +3592,18 @@ class StripeAnimation extends RShape
 			label: 'Stripe width'
 			min: 1
 			max: 100
-			default: 10
+			default: 3
 
 		return parameters
 
 	# animted paths must be initialized
 	initialize: ()->
+		@data.animate = true
 		@setAnimated(@data.animate)
 		
-		modalJ = $('#customModal')
-		modalBodyJ = modalJ.find('.modal-body')
+		@modalJ = $('#customModal')
+		modalBodyJ = @modalJ.find('.modal-body')
+		modalBodyJ.empty()
 		modalInputJ = $("""<input id="stripeAnimationModalURL" type="url" class="url form-control submit-shortcut" placeholder="http://">""")
 		modalAddImageButtonJ = $("""<button type="button" class="btn btn-default">Add image</button>""")
 		modalContentJ = $("""
@@ -3168,27 +3613,79 @@ class StripeAnimation extends RShape
             """)
 		modalContentJ.append(modalInputJ.clone()).append(modalInputJ.clone()).append(modalAddImageButtonJ)
 		modalBodyJ.append(modalContentJ)
-		
 		modalAddImageButtonJ.click (event)->
-			modalContentJ.append(modalInputJ.clone())
+			modalAddImageButtonJ.before(modalInputJ.clone())
 			return
 
-		modalJ.modal('show')
+		@modalJ.modal('show')
+		@modalJ.find('.btn-primary').click( (event)=> @modalSubmit() ) 		# submit modal when click submit button
+		
+		return
 
-		size = rasters[0].size
-		result = new Raster()
-		result.size = size
-		stripes = new Raster()
-		stripes.size = size
-		n = rasters.length
-		width = 10
+	modalSubmit: ()->
+		inputs = @modalJ.find("input.url")
+		@nRasterToLoad = inputs.length
+		@nRasterLoaded = 0
+		@rasters = []
+		for input in inputs
+			raster = new Raster(input.value)
+			raster.onLoad = @rasterOnLoad
+			@rasters.push(raster)
+		return
+
+	rasterOnLoad: ()=>
+		@nRasterLoaded++
+		if @nRasterLoaded < @nRasterToLoad then return
+		
+		@minSize = new Size()
+		for raster in @rasters
+			if @minSize.width == 0 or raster.width < @minSize.width
+				@minSize.width = raster.width
+			if @minSize.height == 0 or raster.height < @minSize.height
+				@minSize.height = raster.height
+
+		for raster in @rasters
+			raster.size = @minSize
+		
+		size = @rasters[0].size
+		
+		@result = new Raster()
+		@result.position = @rectangle.center
+		@result.size = size
+		@result.name = 'stripe animation raster'
+		@result.controller = @
+		@drawing.addChild(@result)
+
+		@stripes = new Raster()
+		@stripes.size = new Size(size.width*3, size.height)
+		@stripes.position = @rectangle.center
+		@stripes.name = 'stripe mask raster'
+		@stripes.controller = @
+		@drawing.addChild(@stripes)
+
+		n = @rasters.length
+		width = @data.stripeWidth
 		black = new Color(0, 0, 0)
 		transparent = new Color(0, 0, 0, 0)
-		for x in [0 .. size.width-1]
-			for y in [0 .. size.height-1]
-				i = g.roundToLowerMultiple(x, width) % n
-				result.setPixel(x, y, rasters[i].getPixel(x, y))
-				stripes.setPixel(x, y, if i==0 then transparent else black)
+		
+		# for x in [0 .. (3*size.width)-1]
+		# 	for y in [0 .. size.height-1]
+		# 		i = g.roundToLowerMultiple(x, width) % n
+		# 		if x < size.width
+		# 			@result.setPixel(x, y, @rasters[i].getPixel(x, y))
+		# 		@stripes.setPixel(x, y, if i==0 then transparent else black)
+
+		nStripes = Math.floor(size.width/width)
+		for i in [0 .. nStripes]
+			w = Math.min(width, size.width-(i+1)*width)
+			stripeData = @rasters[i%n].getImageData(new Rectangle(i*width, 0, w, size.height))
+			@result.setImageData(stripeData, new Point(i*width, 0))
+		stripesContext = @stripes.canvas.getContext("2d")
+		for i in [0 .. 3*nStripes-1]
+			w = Math.min(width, 3*size.width-(i+1)*width)
+			stripesContext.fillStyle = if i%n==0 then "rgb(0, 0, 0)" else "rgba(0, 0, 0, 0)"
+			stripesContext.fillRect(i*width, 0, w, size.height)
+
 		return
 
 	createShape: ()->
@@ -3199,9 +3696,11 @@ class StripeAnimation extends RShape
 	# this is the place where animated paths should be updated
 	onFrame: (event)=>
 		# very simple example of path animation
-		stripes.position.x -= 1
-		if stripes.position.x < 0
-			stripes.position.x = stripes.width
+		if not @stripes? then return
+		@stripes.position.x -= 1
+		if @stripes.bounds.center.x < @rectangle.left
+			@stripes.bounds.center.x = @rectangle.right
 		return
 
 @StripeAnimation = StripeAnimation
+@pathClasses.push(@StripeAnimation)

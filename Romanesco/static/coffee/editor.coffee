@@ -66,7 +66,7 @@ this.initCodeEditor = ()->
 		    @path = @addPath()
 		    return
 
-		  drawUpdate: (length)->
+		  drawUpdateStep: (length)->
 
 		    point = @controlPath.getPointAt(length)
 		    @path.add(point)

@@ -31,7 +31,7 @@
         }
       },
       onFinishChange: function(value) {
-        return g.quick_load();
+        return g.load();
       }
     };
     g.parameters.displayGrid = {
@@ -751,9 +751,11 @@
         datFolder = folderExists ? g.gui.__folders[folderName] : g.gui.addFolder(folderName);
         for (name in folder) {
           parameter = folder[name];
-          addItem(name, parameter, item, datFolder, resetValues);
+          if (name !== 'folderIsClosedByDefault') {
+            addItem(name, parameter, item, datFolder, resetValues);
+          }
         }
-        if (!folderExists) {
+        if (!folderExists && !folder.folderIsClosedByDefault) {
           datFolder.open();
         }
       }
