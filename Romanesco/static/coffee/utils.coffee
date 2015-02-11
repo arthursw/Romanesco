@@ -92,3 +92,11 @@ this.isEmpty = (map)->
 		if map.hasOwnProperty(key)
 			return false
 	return true
+
+# returns a linear interpolation of *v1* and *v2* according to *f*
+# @param v1 [Number] the first value
+# @param v2 [Number] the second value
+# @param f [Number] the parameter (between v1 and v2 ; f==0 returns v1 ; f==0.25 returns 0.75*v1+0.25*v2 ; f==0.5 returns (v1+v2)/2 ; f==1 returns v2)
+# @return a linear interpolation of *v1* and *v2* according to *f*
+this.linearInterpolation = (v1, v2, f)->
+	return v1 * (1-f) + v2 * f

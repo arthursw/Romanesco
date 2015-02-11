@@ -19,11 +19,6 @@ Here are all global functions (which do not belong to classes and are not event 
     g.alertsContainer.find(".alert-number").text(g.currentAlert + 1);
   };
 
-  this.animate = function(time) {
-    requestAnimationFrame(animate);
-    TWEEN.update(time);
-  };
-
   this.romanesco_alert = function(message, type, delay) {
     var alertJ;
     if (type == null) {
@@ -378,12 +373,9 @@ Here are all global functions (which do not belong to classes and are not event 
     if (delay == null) {
       g.RMoveBy(pos.subtract(view.center));
     } else {
-      console.log(pos);
-      console.log(delay);
       initialPosition = view.center;
       tween = new TWEEN.Tween(initialPosition).to(pos, delay).easing(TWEEN.Easing.Exponential.InOut).onUpdate(function() {
         g.RMoveTo(this);
-        console.log(this.x + ', ' + this.y);
       }).start();
     }
   };
@@ -594,9 +586,6 @@ Here are all global functions (which do not belong to classes and are not event 
       console.log("ERROR: good error :-) but unlikely...");
       debugger;
     }
-    console.log('rectangle: ' + rectangle.toString());
-    console.log('intersection: ' + intersection.toString());
-    console.log('viewIntersection: ' + viewIntersection.toString());
     if (!rectangle.topLeft.round().equals(rectangle.topLeft) || !rectangle.bottomRight.round().equals(rectangle.bottomRight)) {
       console.log('Error: rectangle is not rounded!');
       debugger;
@@ -834,7 +823,6 @@ Here are all global functions (which do not belong to classes and are not event 
     if (g.viewUpdated) {
       return;
     }
-    console.log("updateView: remove rasters and redraw");
     _ref = g.rasters;
     for (x in _ref) {
       rasterColumn = _ref[x];

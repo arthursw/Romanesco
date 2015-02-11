@@ -389,7 +389,6 @@ init = ()->
 	# initLoadingBar()
 
 	updateGrid()
-	animate()
 
 	return
 
@@ -481,7 +480,10 @@ $(document).ready () ->
 	# - update animatedItems
 	# - update cars positions
 	view.onFrame = (event)->
+		TWEEN.update(event.time)
+
 		g.selectedTool.onFrame?(event)
+
 		for item in g.animatedItems
 			item.onFrame(event)
 

@@ -909,12 +909,12 @@
       PrecisePath.__super__.initializeDrawing.call(this, createCanvas);
     };
 
-    PrecisePath.prototype.drawBegin = function(createCanvas) {
-      if (createCanvas == null) {
-        createCanvas = false;
+    PrecisePath.prototype.drawBegin = function(redrawing) {
+      if (redrawing == null) {
+        redrawing = false;
       }
       console.log("drawBegin");
-      this.initializeDrawing(createCanvas);
+      this.initializeDrawing(false);
       this.path = this.addPath();
       this.path.segments = this.controlPath.segments;
       this.path.selected = false;
@@ -926,22 +926,27 @@
       this.path.selected = false;
     };
 
-    PrecisePath.prototype.drawEnd = function() {
+    PrecisePath.prototype.drawEnd = function(redrawing) {
+      if (redrawing == null) {
+        redrawing = false;
+      }
       this.path.segments = this.controlPath.segments;
       this.path.selected = false;
     };
 
-    PrecisePath.prototype.checkUpdateDrawing = function(segment) {
+    PrecisePath.prototype.checkUpdateDrawing = function(segment, redrawing) {
       var controlPathOffset, step;
+      if (redrawing == null) {
+        redrawing = true;
+      }
       step = this.data.step;
       controlPathOffset = segment.location.offset;
+      while (this.drawingOffset + step < controlPathOffset) {
+        this.drawingOffset += step;
+        this.drawUpdate(this.drawingOffset, true, redrawing);
+      }
       if (this.drawingOffset + step > controlPathOffset) {
-        this.drawUpdate(controlPathOffset, false);
-      } else {
-        while (this.drawingOffset + step < controlPathOffset) {
-          this.drawingOffset += step;
-          this.drawUpdate(this.drawingOffset, true);
-        }
+        this.drawUpdate(controlPathOffset, false, redrawing);
       }
     };
 
@@ -974,12 +979,12 @@
         }
         if (!this.data.polygonMode) {
           this.initializeControlPath(point);
-          this.drawBegin();
+          this.drawBegin(loading);
         } else {
           if (this.controlPath == null) {
             this.initializeControlPath(point);
             this.controlPath.add(point);
-            this.drawBegin();
+            this.drawBegin(loading);
           } else {
             this.controlPath.add(point);
           }
@@ -1004,7 +1009,7 @@
         }
         this.controlPath.add(point);
         if (!loading) {
-          this.checkUpdateDrawing(this.controlPath.lastSegment);
+          this.checkUpdateDrawing(this.controlPath.lastSegment, false);
         }
       } else {
         lastSegment = this.controlPath.lastSegment;
@@ -1059,7 +1064,7 @@
         this.controlPath.smooth();
       }
       if (!loading) {
-        this.drawEnd();
+        this.drawEnd(loading);
         this.drawingOffset = 0;
       }
       this.draw(false, loading);
@@ -1124,7 +1129,7 @@
       process = (function(_this) {
         return function() {
           var i, segment, _i, _len, _ref1;
-          _this.drawBegin();
+          _this.drawBegin(true);
           _ref1 = _this.controlPath.segments;
           for (i = _i = 0, _len = _ref1.length; _i < _len; i = ++_i) {
             segment = _ref1[i];
@@ -1133,7 +1138,7 @@
             }
             _this.checkUpdateDrawing(segment, true);
           }
-          _this.drawEnd();
+          _this.drawEnd(true);
         };
       })(this);
       if (!g.catchErrors) {
@@ -1298,7 +1303,6 @@
       if (userAction == null) {
         userAction = true;
       }
-      console.log("selectUpdate");
       if (this.previousBoundingBox == null) {
         this.previousBoundingBox = this.getDrawingBounds();
       }
@@ -1347,7 +1351,6 @@
         }
         this.changed = 'moved';
       }
-      console.log(this.changed);
       if (userAction || (this.selectionRectangle != null)) {
         if ((_ref = this.selectionHighlight) != null) {
           _ref.position = this.selectedSegment.point;
@@ -1601,13 +1604,13 @@
       SpeedPath.__super__.loadPath.call(this, points);
     };
 
-    SpeedPath.prototype.checkUpdateDrawing = function(segment, isDrawingEverything) {
+    SpeedPath.prototype.checkUpdateDrawing = function(segment, redrawing) {
       var controlPathOffset, currentSpeed, f, previousControlPathOffset, previousSpeed, speed, step;
-      if (isDrawingEverything == null) {
-        isDrawingEverything = false;
+      if (redrawing == null) {
+        redrawing = false;
       }
-      if (isDrawingEverything) {
-        SpeedPath.__super__.checkUpdateDrawing.call(this, segment);
+      if (redrawing) {
+        SpeedPath.__super__.checkUpdateDrawing.call(this, segment, redrawing);
         return;
       }
       step = this.data.step;
@@ -1618,11 +1621,11 @@
       while (this.speedOffset + this.constructor.speedStep < controlPathOffset) {
         this.speedOffset += this.constructor.speedStep;
         f = (this.speedOffset - previousControlPathOffset) / currentSpeed;
-        speed = previousSpeed * (1 - f) + currentSpeed * f;
+        speed = g.linearInterpolation(previousSpeed, currentSpeed, f);
         this.speeds.push(Math.min(speed, this.constructor.maxSpeed));
       }
       this.speeds.push(Math.min(currentSpeed, this.constructor.maxSpeed));
-      SpeedPath.__super__.checkUpdateDrawing.call(this, segment);
+      SpeedPath.__super__.checkUpdateDrawing.call(this, segment, redrawing);
     };
 
     SpeedPath.prototype.createBegin = function(point, event, loading) {
@@ -1670,7 +1673,7 @@
         pointOffset += distance;
         while (pointOffset > currentOffset) {
           f = (currentOffset - previousPointOffset) / distance;
-          interpolation = previousDistance * (1 - f) + distance * f;
+          interpolation = g.linearInterpolation(previousDistance, distance, f);
           distances.push({
             speed: interpolation,
             offset: currentOffset
@@ -1820,7 +1823,7 @@
       f /= this.constructor.speedStep;
       if (this.speeds != null) {
         if (i < this.speeds.length - 1) {
-          return this.speeds[i] * (1 - f) + this.speeds[i + 1] * f;
+          return g.linearInterpolation(this.speeds[i], this.speeds[i + 1], f);
         } else {
           return this.speeds.last();
         }
@@ -2298,7 +2301,6 @@
       if (!step) {
         return;
       }
-      console.log("drawUpdate");
       speed = this.speedAt(offset);
       addPoint = (function(_this) {
         return function(offset, speed) {
@@ -2685,7 +2687,7 @@
     __extends(DynamicBrush, _super);
 
     function DynamicBrush() {
-      this.drawStep = __bind(this.drawStep, this);
+      this.onFrame = __bind(this.onFrame, this);
       return DynamicBrush.__super__.constructor.apply(this, arguments);
     }
 
@@ -2701,11 +2703,20 @@
       if (parameters['Parameters'] == null) {
         parameters['Parameters'] = {};
       }
+      parameters['Parameters'].step = {
+        type: 'slider',
+        label: 'Step',
+        min: 1,
+        max: 100,
+        "default": 5,
+        simplified: 20,
+        step: 1
+      };
       parameters['Parameters'].trackWidth = {
         type: 'slider',
         label: 'Track width',
-        min: 0.1,
-        max: 2.0,
+        min: 0.0,
+        max: 10.0,
         "default": 0.5
       };
       parameters['Parameters'].mass = {
@@ -2713,14 +2724,21 @@
         label: 'Mass',
         min: 1,
         max: 200,
-        "default": 80
+        "default": 40
       };
       parameters['Parameters'].drag = {
         type: 'slider',
         label: 'Drag',
         min: 0,
-        max: 1.0,
-        "default": 0.175
+        max: 0.4,
+        "default": 0.1
+      };
+      parameters['Parameters'].maxSpeed = {
+        type: 'slider',
+        label: 'Max speed',
+        min: 0,
+        max: 100,
+        "default": 35
       };
       parameters['Parameters'].roundEnd = {
         type: 'checkbox',
@@ -2737,6 +2755,11 @@
         label: 'Fixed angle',
         "default": false
       };
+      parameters['Parameters'].simplify = {
+        type: 'checkbox',
+        label: 'Simplify',
+        "default": true
+      };
       parameters['Parameters'].angle = {
         type: 'slider',
         label: 'Angle',
@@ -2748,67 +2771,198 @@
     };
 
     DynamicBrush.prototype.pathWidth = function() {
-      return this.data.trackWidth * this.speeds.max();
+      var width;
+      if (!this.data.inverseThickness) {
+        width = this.speeds.min();
+        width = this.data.maxSpeed - width;
+      } else {
+        width = this.speeds.max();
+      }
+      width *= this.data.trackWidth;
+      return width * 2;
     };
 
-    DynamicBrush.prototype.drawBegin = function() {
-      var point;
+    DynamicBrush.prototype.drawBegin = function(redrawing) {
+      if (redrawing == null) {
+        redrawing = false;
+      }
       this.initializeDrawing(true);
-      point = this.controlPath.firstSegment.point;
-      this.point = this.projectToRaster(point);
+      this.point = this.controlPath.firstSegment.point;
       this.currentPosition = this.point;
-      this.lastPosition = this.currentPosition;
-      this.velocity = new Point();
-      this.timerId = setTimer(this.drawStep, 5);
+      this.previousPosition = this.currentPosition;
+      this.previousMidPosition = this.currentPosition;
+      this.previousMidDelta = new Point();
+      this.previousDelta = new Point();
+      this.context.fillStyle = 'black';
+      this.context.strokeStyle = this.data.fillColor;
+      if (!redrawing) {
+        this.velocity = new Point();
+        this.velocities = [];
+        this.controlPathReplacement = this.controlPath.clone();
+        this.setAnimated(true);
+      }
+    };
+
+    DynamicBrush.prototype.drawSegment = function(currentPosition, width, delta) {
+      var midBottom, midDelta, midPosition, midTop, previousBottom, previousMidBottom, previousMidTop, previousTop;
+      if (delta == null) {
+        delta = null;
+      }
+      width = this.data.inverseThickness ? width : this.data.maxSpeed - width;
+      width *= this.data.trackWidth;
+      if (width < 0.1) {
+        width = 0.1;
+      }
+      if (this.data.fixedAngle) {
+        delta = new Point(1, 0);
+        delta.angle = this.data.angle;
+      } else {
+        delta = delta.normalize();
+      }
+      delta = delta.multiply(width);
+      midPosition = currentPosition.add(this.previousPosition).divide(2);
+      midDelta = delta.add(this.previousDelta).divide(2);
+      previousMidTop = this.projectToRaster(this.previousMidPosition.add(this.previousMidDelta));
+      previousMidBottom = this.projectToRaster(this.previousMidPosition.subtract(this.previousMidDelta));
+      previousTop = this.projectToRaster(this.previousPosition.add(this.previousDelta));
+      previousBottom = this.projectToRaster(this.previousPosition.subtract(this.previousDelta));
+      midTop = this.projectToRaster(midPosition.add(midDelta));
+      midBottom = this.projectToRaster(midPosition.subtract(midDelta));
+      this.context.beginPath();
+      this.context.moveTo(previousMidTop.x, previousMidTop.y);
+      this.context.lineTo(previousMidBottom.x, previousMidBottom.y);
+      this.context.quadraticCurveTo(previousBottom.x, previousBottom.y, midBottom.x, midBottom.y);
+      this.context.lineTo(midTop.x, midTop.y);
+      this.context.quadraticCurveTo(previousTop.x, previousTop.y, previousMidTop.x, previousMidTop.y);
+      this.context.fill();
+      this.context.stroke();
+      this.previousDelta = delta;
+      this.previousMidPosition = midPosition;
+      this.previousMidDelta = midDelta;
     };
 
     DynamicBrush.prototype.updateForce = function() {
       var acceleration, force;
       force = this.point.subtract(this.currentPosition);
-      if (force.length < 0.000001) {
+      if (force.length < 0.1) {
         return false;
       }
       acceleration = force.divide(this.data.mass);
       this.velocity = this.velocity.add(acceleration);
-      if (this.velocity.length < 0.000001) {
+      if (this.velocity.length < 0.1) {
         return false;
       }
       this.velocity = this.velocity.multiply(1.0 - this.data.drag);
-      this.lastPosition = this.currentPosition;
+      this.previousPosition = this.currentPosition;
       this.currentPosition = this.currentPosition.add(this.velocity);
       return true;
     };
 
     DynamicBrush.prototype.drawStep = function() {
-      var a, b, c, d, delta, width;
-      if (!this.updateForce()) {
+      var continueDrawing, v;
+      if (this.finishedDrawing) {
         return;
       }
-      width = (0.04 - this.velocity.length) * this.data.trackWidth;
-      delta = new Point(-this.velocity.y, this.velocity.x);
-      delta.normalize();
-      a = this.previousPosition.add(this.previousDelta);
-      b = this.previousPosition.subtract(this.previousDelta);
-      c = this.currentPosition.subtract(delta);
-      d = this.currentPosition.add(delta);
-      this.context.beginPath();
-      this.context.moveTo(a.x, a.y);
-      this.context.lineTo(b.x, b.y);
-      this.context.stroke();
-      this.context.lineTo(c.x, c.y);
-      this.context.lineTo(d.x, d.y);
-      this.context.fill();
-      this.previousDelta = delta;
+      continueDrawing = this.updateForce();
+      if (!continueDrawing) {
+        return;
+      }
+      v = this.velocity.length;
+      this.controlPathReplacement.add(this.currentPosition);
+      this.velocities.push(v);
+      this.drawSegment(this.currentPosition, v, new Point(-this.velocity.y, this.velocity.x));
+
+      /*
+      		width = if @data.inverseThickness then v else (10-v)
+      		width *= @data.trackWidth
+      
+      		if not @data.fixedAngle
+      			delta = new Point(-@velocity.y, @velocity.x)
+      		else
+      			delta = new Point(1,0)
+      			delta.angle = @data.angle
+      		delta = delta.normalize().multiply(width)
+      
+      		a = @projectToRaster(@previousPosition.add(@previousDelta))
+      		b = @projectToRaster(@previousPosition.subtract(@previousDelta))
+      		c = @projectToRaster(@currentPosition.subtract(delta))
+      		d = @projectToRaster(@currentPosition.add(delta))
+      
+      		 * @path.add(c)
+      		 * @path.insert(0, d)
+       */
     };
 
-    DynamicBrush.prototype.drawUpdate = function(offset, step) {
-      var point;
-      point = this.controlPath.getPointAt(offset);
-      this.point = this.projectToRaster(point);
+    DynamicBrush.prototype.onFrame = function() {
+      var i, _i;
+      for (i = _i = 0; _i <= 2; i = ++_i) {
+        this.drawStep();
+      }
     };
 
-    DynamicBrush.prototype.drawEnd = function() {
-      clearTimer(this.timerId);
+    DynamicBrush.prototype.drawUpdate = function(offset, step, redrawing) {
+      var v;
+      this.point = this.controlPath.getPointAt(offset);
+      if (redrawing) {
+        v = this.speedAt(offset);
+        this.drawSegment(this.point, v, this.controlPath.getNormalAt(offset));
+        this.previousPosition = this.point;
+
+        /*
+        			width = if @data.inverseThickness then v else (10-v)
+        			width *= @data.trackWidth
+        
+        			if not @data.fixedAngle
+        				delta = @controlPath.getNormalAt(offset).normalize()
+        			else
+        				delta = new Point(1,0)
+        				delta.angle = @data.angle
+        
+        			delta = delta.multiply(width)
+        			top = @point.add(delta)
+        			bottom = @point.subtract(delta)
+        
+        			@path.add(top)
+        			@path.insert(0, bottom)
+         */
+      }
+    };
+
+    DynamicBrush.prototype.drawEnd = function(redrawing) {
+      var f, i, length, location, offset;
+      if (redrawing == null) {
+        redrawing = false;
+      }
+      if (!redrawing) {
+        this.setAnimated(false);
+        this.finishedDrawing = true;
+        length = this.controlPathReplacement.length;
+        offset = 0;
+        this.speeds = [];
+        while (offset < length) {
+          location = this.controlPathReplacement.getLocationAt(offset);
+          i = location.segment.index;
+          f = location.parameter;
+          if (i < this.velocities.length - 1) {
+            this.speeds.push(g.linearInterpolation(this.velocities[i], this.velocities[i + 1], f));
+          } else {
+            this.speeds.push(this.velocities[i]);
+          }
+          offset += this.constructor.speedStep;
+        }
+        this.velocities = [];
+        if (this.data.simplify) {
+          this.controlPathReplacement.simplify();
+        }
+        this.controlPathReplacement.insert(0, this.controlPathReplacement.firstSegment.point);
+        this.controlPathReplacement.insert(0, this.controlPathReplacement.firstSegment.point);
+        this.controlPath.segments = this.controlPathReplacement.segments;
+        this.controlPathReplacement.remove();
+      }
+    };
+
+    DynamicBrush.prototype.remove = function() {
+      clearInterval(this.timerId);
     };
 
     return DynamicBrush;
@@ -2896,7 +3050,6 @@
       if (!step) {
         return;
       }
-      console.log("drawUpdate");
       speed = this.speedAt(offset);
       addShape = (function(_this) {
         return function(offset, height, speed) {
@@ -3027,7 +3180,6 @@
       if (userAction == null) {
         userAction = true;
       }
-      console.log("selectUpdate");
       if (this.previousBoundingBox == null) {
         this.previousBoundingBox = this.getDrawingBounds();
       }
@@ -3647,7 +3799,7 @@
 
     function StripeAnimation() {
       this.onFrame = __bind(this.onFrame, this);
-      this.rasterOnLoad = __bind(this.rasterOnLoad, this);
+      this.rasterLoaded = __bind(this.rasterLoaded, this);
       return StripeAnimation.__super__.constructor.apply(this, arguments);
     }
 
@@ -3669,53 +3821,94 @@
         type: 'slider',
         label: 'Stripe width',
         min: 1,
-        max: 100,
-        "default": 3
+        max: 5,
+        "default": 1
+      };
+      parameters['Parameters'].maskWidth = {
+        type: 'slider',
+        label: 'Mask width',
+        min: 1,
+        max: 4,
+        "default": 1
+      };
+      parameters['Parameters'].speed = {
+        type: 'slider',
+        label: 'Speed',
+        min: 0.01,
+        max: 1.0,
+        "default": 0.1
       };
       return parameters;
     };
 
     StripeAnimation.prototype.initialize = function() {
-      var modalAddImageButtonJ, modalBodyJ, modalContentJ, modalInputJ;
+      var dropZone, handleDragOver, handleFileSelect, modalBodyJ, modalContentJ;
       this.data.animate = true;
       this.setAnimated(this.data.animate);
       this.modalJ = $('#customModal');
       modalBodyJ = this.modalJ.find('.modal-body');
       modalBodyJ.empty();
-      modalInputJ = $("<input id=\"stripeAnimationModalURL\" type=\"url\" class=\"url form-control submit-shortcut\" placeholder=\"http://\">");
-      modalAddImageButtonJ = $("<button type=\"button\" class=\"btn btn-default\">Add image</button>");
-      modalContentJ = $("<div class=\"form-group url-group\">\n                <label for=\"stripeAnimationModalURL\">Add your images</label>\n            </div>");
-      modalContentJ.append(modalInputJ.clone()).append(modalInputJ.clone()).append(modalAddImageButtonJ);
+      modalContentJ = $("<div id=\"stripeAnimationContent\" class=\"form-group url-group\">\n                <label for=\"stripeAnimationModalURL\">Add your images</label>\n                <input id=\"stripeAnimationFileInput\" type=\"file\" class=\"form-control\" name=\"files[]\" multiple/>\n                <div id=\"stripeAnimationDropZone\">Drop your image files here.</div>\n                <div id=\"stripeAnimationGallery\"></div>\n            </div>");
       modalBodyJ.append(modalContentJ);
-      modalAddImageButtonJ.click(function(event) {
-        modalAddImageButtonJ.before(modalInputJ.clone());
-      });
       this.modalJ.modal('show');
-      this.modalJ.find('.btn-primary').click((function(_this) {
-        return function(event) {
-          return _this.modalSubmit();
-        };
-      })(this));
-    };
-
-    StripeAnimation.prototype.modalSubmit = function() {
-      var input, inputs, raster, _i, _len;
-      inputs = this.modalJ.find("input.url");
-      this.nRasterToLoad = inputs.length;
-      this.nRasterLoaded = 0;
-      this.rasters = [];
-      for (_i = 0, _len = inputs.length; _i < _len; _i++) {
-        input = inputs[_i];
-        raster = new Raster(input.value);
-        raster.onLoad = this.rasterOnLoad;
-        this.rasters.push(raster);
+      if (window.File && window.FileReader && window.FileList && window.Blob) {
+        console.log('File upload supported');
+      } else {
+        console.log('File upload not supported');
+        romanesco_alert('File upload not supported', 'error');
       }
+      handleFileSelect = (function(_this) {
+        return function(evt) {
+          var f, files, i, reader, _ref, _ref1;
+          evt.stopPropagation();
+          evt.preventDefault();
+          files = ((_ref = evt.dataTransfer) != null ? _ref.files : void 0) || ((_ref1 = evt.target) != null ? _ref1.files : void 0);
+          _this.nRasterToLoad = files.length;
+          _this.nRasterLoaded = 0;
+          _this.rasters = [];
+          i = 0;
+          f = void 0;
+          while (f = files[i]) {
+            if (!f.type.match('image.*')) {
+              i++;
+              continue;
+            }
+            reader = new FileReader;
+            reader.onload = (function(theFile, stripeAnimation) {
+              return function(e) {
+                var span;
+                span = document.createElement('span');
+                span.innerHTML = ['<img class="thumb" src="', e.target.result, '" title="', escape(theFile.name), '"/>'].join('');
+                $("#stripeAnimationGallery").append(span);
+                stripeAnimation.rasters.push(new Raster(e.target.result));
+                stripeAnimation.nRasterLoaded++;
+                if (stripeAnimation.nRasterLoaded === stripeAnimation.nRasterToLoad) {
+                  stripeAnimation.rasterLoaded();
+                }
+              };
+            })(f, _this);
+            reader.readAsDataURL(f);
+            i++;
+          }
+        };
+      })(this);
+      $("#stripeAnimationFileInput").change(handleFileSelect);
+      handleDragOver = function(evt) {
+        evt.stopPropagation();
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = 'copy';
+      };
+      dropZone = document.getElementById('stripeAnimationDropZone');
+      dropZone.addEventListener('dragover', handleDragOver, false);
+      dropZone.addEventListener('drop', handleFileSelect, false);
     };
 
-    StripeAnimation.prototype.rasterOnLoad = function() {
-      var black, i, n, nStripes, raster, size, stripeData, stripesContext, transparent, w, width, _i, _j, _k, _l, _len, _len1, _ref, _ref1, _ref2;
-      this.nRasterLoaded++;
-      if (this.nRasterLoaded < this.nRasterToLoad) {
+    StripeAnimation.prototype.rasterLoaded = function() {
+      var black, blackStripeWidth, i, n, nStripes, nVisibleFrames, position, raster, size, stripeData, stripesContext, transparent, width, _i, _j, _k, _len, _len1, _ref, _ref1;
+      if ((this.rasters == null) || this.rasters.length === 0) {
+        return;
+      }
+      if (this.nRasterLoaded !== this.nRasterToLoad) {
         return;
       }
       this.minSize = new Size();
@@ -3742,7 +3935,7 @@
       this.result.controller = this;
       this.drawing.addChild(this.result);
       this.stripes = new Raster();
-      this.stripes.size = new Size(size.width * 3, size.height);
+      this.stripes.size = new Size(size.width * 2, size.height);
       this.stripes.position = this.rectangle.center;
       this.stripes.name = 'stripe mask raster';
       this.stripes.controller = this;
@@ -3753,25 +3946,29 @@
       transparent = new Color(0, 0, 0, 0);
       nStripes = Math.floor(size.width / width);
       for (i = _k = 0; 0 <= nStripes ? _k <= nStripes : _k >= nStripes; i = 0 <= nStripes ? ++_k : --_k) {
-        w = Math.min(width, size.width - (i + 1) * width);
-        stripeData = this.rasters[i % n].getImageData(new Rectangle(i * width, 0, w, size.height));
+        stripeData = this.rasters[i % n].getImageData(new Rectangle(i * width, 0, width, size.height));
         this.result.setImageData(stripeData, new Point(i * width, 0));
       }
       stripesContext = this.stripes.canvas.getContext("2d");
-      for (i = _l = 0, _ref2 = 3 * nStripes - 1; 0 <= _ref2 ? _l <= _ref2 : _l >= _ref2; i = 0 <= _ref2 ? ++_l : --_l) {
-        w = Math.min(width, 3 * size.width - (i + 1) * width);
-        stripesContext.fillStyle = i % n === 0 ? "rgb(0, 0, 0)" : "rgba(0, 0, 0, 0)";
-        stripesContext.fillRect(i * width, 0, w, size.height);
+      stripesContext.fillStyle = "rgb(0, 0, 0)";
+      nVisibleFrames = Math.min(this.data.maskWidth, n - 1);
+      blackStripeWidth = width * (n - nVisibleFrames);
+      position = nVisibleFrames * width;
+      while (position < this.stripes.width) {
+        stripesContext.fillRect(position, 0, blackStripeWidth, size.height);
+        position += width * n;
       }
     };
 
-    StripeAnimation.prototype.createShape = function() {};
+    StripeAnimation.prototype.createShape = function() {
+      this.rasterLoaded();
+    };
 
     StripeAnimation.prototype.onFrame = function(event) {
       if (this.stripes == null) {
         return;
       }
-      this.stripes.position.x -= 1;
+      this.stripes.position.x -= this.data.speed;
       if (this.stripes.bounds.center.x < this.rectangle.left) {
         this.stripes.bounds.center.x = this.rectangle.right;
       }

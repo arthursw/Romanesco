@@ -324,7 +324,6 @@ Notations:
     initSocket();
     initPosition();
     updateGrid();
-    animate();
   };
 
   $(document).ready(function() {
@@ -440,6 +439,7 @@ Notations:
     };
     view.onFrame = function(event) {
       var car, direction, item, username, _base, _i, _len, _ref, _ref1;
+      TWEEN.update(event.time);
       if (typeof (_base = g.selectedTool).onFrame === "function") {
         _base.onFrame(event);
       }

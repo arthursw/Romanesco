@@ -137,6 +137,10 @@
     return true;
   };
 
+  this.linearInterpolation = function(v1, v2, f) {
+    return v1 * (1 - f) + v2 * f;
+  };
+
 }).call(this);
 
 //# sourceMappingURL=utils.map

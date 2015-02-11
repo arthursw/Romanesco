@@ -28,11 +28,6 @@ this.showAlert = (index) ->
 	g.alertsContainer.find(".alert-number").text(g.currentAlert+1)
 	return
 
-# animate function for Tween.js
-this.animate = (time)->
-	requestAnimationFrame( animate )
-	TWEEN.update(time)
-	return
 
 # Display an alert with message, type and delay
 #
@@ -487,12 +482,12 @@ g.RMoveTo = (pos, delay) ->
 	if not delay?
 		g.RMoveBy(pos.subtract(view.center))
 	else
-		console.log pos
-		console.log delay
+		# console.log pos
+		# console.log delay
 		initialPosition = view.center
 		tween = new TWEEN.Tween( initialPosition ).to( pos, delay ).easing( TWEEN.Easing.Exponential.InOut ).onUpdate( ()->
 			g.RMoveTo(this)
-			console.log this.x + ', ' + this.y
+			# console.log this.x + ', ' + this.y
 			return
 		).start()
 	return
@@ -758,9 +753,9 @@ this.areaToImageDataUrlWithAreasNotRasterized = (rectangle)->
 		console.log "ERROR: good error :-) but unlikely..."
 		debugger
 
-	console.log 'rectangle: ' + rectangle.toString()
-	console.log 'intersection: ' + intersection.toString()
-	console.log 'viewIntersection: ' + viewIntersection.toString()
+	# console.log 'rectangle: ' + rectangle.toString()
+	# console.log 'intersection: ' + intersection.toString()
+	# console.log 'viewIntersection: ' + viewIntersection.toString()
 
 	if not rectangle.topLeft.round().equals(rectangle.topLeft) or not rectangle.bottomRight.round().equals(rectangle.bottomRight)
 		console.log 'Error: rectangle is not rounded!'
@@ -989,7 +984,7 @@ this.updateView = (ritem=null)->
 	if g.viewUpdated
 		return
 
-	console.log "updateView: remove rasters and redraw"
+	# console.log "updateView: remove rasters and redraw"
 
 	# remove all rasters
 	for x, rasterColumn of g.rasters
@@ -1400,3 +1395,10 @@ this.testRectangleIntersection = ()->
 # 			@rasterize()
 #		g.showMask(false)
 # 		return
+
+# Paper.js onFrame event also wotks with requestAnimationFrame so it is better to use the paper default function
+# deprecated animate function for Tween.js
+# this.animate = (time)->
+# 	requestAnimationFrame( animate )
+# 	TWEEN.update(time)
+# 	return
