@@ -85,11 +85,11 @@ this.initParameters = () ->
 	g.parameters.delete =
 		type: 'button'
 		label: 'Delete items'
-		default: ()-> item.delete() for item in g.selectedItems()
+		default: ()-> item.deleteCommand() for item in g.selectedItems()
 	g.parameters.duplicate =
 		type: 'button'
 		label: 'Duplicate items'
-		default: ()-> item.duplicate() for item in g.selectedItems()
+		default: ()-> item.duplicateCommand() for item in g.selectedItems()
 	g.parameters.snap =
 		type: 'slider'
 		label: 'Snap'
@@ -446,6 +446,14 @@ this.initTextOptions = (data, textStatus, jqXHR) ->
 
 	return
 
+this.setControllerValueByName = (name, value, item, checked=false)->
+	for folderName, folder of g.gui.__folders
+		for controller in folder.__controllers
+			if controller.property == name
+				g.setControllerValue(controller, { min: controller.__min, max: controller.__max }, value, item, checked)
+				break
+	return
+
 # todo: better manage parameter..
 # set the value of the controller without calling its onChange and onFinishChange callback
 # controller.rSetValue (a user defined callback) is called here
@@ -519,9 +527,7 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 			for item in g.selectedItems()
 				if typeof item?.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
 					if parameter.step? then value = value-value%parameter.step
-					item.data[name] = value
-					item.changed = name
-					item.parameterChanged()
+					item.changeParameterCommand(name, value)
 					if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
 			return
 

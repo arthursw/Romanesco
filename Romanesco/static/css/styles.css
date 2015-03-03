@@ -578,6 +578,63 @@ body {
 .sidebar li.tool-btn span.tool-name {
   vertical-align: middle;
 }
+.sidebar .mCustomScrollbar.history,
+.sidebar .mCustomScrollbar.rItems {
+  max-height: 200px;
+  border: 1px solid rgba(128, 128, 128, 0.61);
+  padding: 3px;
+}
+.sidebar .mCustomScrollbar.history ul.command-list,
+.sidebar .mCustomScrollbar.rItems ul.command-list,
+.sidebar .mCustomScrollbar.history ul.rDiv-list,
+.sidebar .mCustomScrollbar.rItems ul.rDiv-list,
+.sidebar .mCustomScrollbar.history ul.rPath-list,
+.sidebar .mCustomScrollbar.rItems ul.rPath-list {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 0;
+}
+.sidebar .mCustomScrollbar.history ul.command-list li,
+.sidebar .mCustomScrollbar.rItems ul.command-list li,
+.sidebar .mCustomScrollbar.history ul.rDiv-list li,
+.sidebar .mCustomScrollbar.rItems ul.rDiv-list li,
+.sidebar .mCustomScrollbar.history ul.rPath-list li,
+.sidebar .mCustomScrollbar.rItems ul.rPath-list li {
+  cursor: pointer;
+  padding: 5px;
+  font-weight: normal;
+  font-style: italic;
+}
+.sidebar .mCustomScrollbar.history ul.command-list li.done,
+.sidebar .mCustomScrollbar.rItems ul.command-list li.done,
+.sidebar .mCustomScrollbar.history ul.rDiv-list li.done,
+.sidebar .mCustomScrollbar.rItems ul.rDiv-list li.done,
+.sidebar .mCustomScrollbar.history ul.rPath-list li.done,
+.sidebar .mCustomScrollbar.rItems ul.rPath-list li.done,
+.sidebar .mCustomScrollbar.history ul.command-list li.selected,
+.sidebar .mCustomScrollbar.rItems ul.command-list li.selected,
+.sidebar .mCustomScrollbar.history ul.rDiv-list li.selected,
+.sidebar .mCustomScrollbar.rItems ul.rDiv-list li.selected,
+.sidebar .mCustomScrollbar.history ul.rPath-list li.selected,
+.sidebar .mCustomScrollbar.rItems ul.rPath-list li.selected {
+  font-weight: bold;
+  font-style: normal;
+}
+.sidebar .mCustomScrollbar.history ul.command-list li:hover,
+.sidebar .mCustomScrollbar.rItems ul.command-list li:hover,
+.sidebar .mCustomScrollbar.history ul.rDiv-list li:hover,
+.sidebar .mCustomScrollbar.rItems ul.rDiv-list li:hover,
+.sidebar .mCustomScrollbar.history ul.rPath-list li:hover,
+.sidebar .mCustomScrollbar.rItems ul.rPath-list li:hover {
+  background-color: #6f5499;
+}
+.sidebar .mCustomScrollbar.history hr,
+.sidebar .mCustomScrollbar.rItems hr {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  margin-left: 3px;
+  margin-right: 5px;
+}
 .sidebar ul.tool-list {
   float: left;
   list-style-type: none;
@@ -867,6 +924,14 @@ body {
 .modal-footer .btn {
   margin-top: 0;
 }
+.dat-gui {
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
 .dat-gui.dg-right {
   position: absolute;
   top: 5px;
@@ -905,6 +970,14 @@ body {
 }
 .dat-gui .dg.main input[type=checkbox] {
   margin-top: 7px;
+}
+.dat-gui .dg.main input[type=text] {
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  -o-user-select: text;
+  user-select: text;
 }
 .dat-gui .dg.main .dg .c input.color-input {
   width: 87%;

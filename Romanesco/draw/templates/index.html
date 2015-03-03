@@ -287,6 +287,49 @@
                   
                 </div>
 
+                <div class="panel panel-default">
+                  <div class="panel-heading">
+                    <h4 class="panel-title collapsed" data-toggle="collapse" data-target="#History">
+                      <a>
+                        History
+                      </a>
+                    </h4>
+                  </div>
+
+                  <div id="History" class="panel-collapse collapse">
+                    <div class="panel-body">
+                      <div class="mCustomScrollbar history">
+                        <ul class="history romanesco-ui command-list">
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                </div>
+
+                <div class="panel panel-default">
+                  <div class="panel-heading">
+                    <h4 class="panel-title collapsed" data-toggle="collapse" data-target="#RItems">
+                      <a>
+                        Items
+                      </a>
+                    </h4>
+                  </div>
+
+                  <div id="RItems" class="panel-collapse collapse">
+                    <div class="panel-body">
+                      <div class="mCustomScrollbar rItems">
+                        <ul class="rDivs romanesco-ui rDiv-list">
+                        </ul>
+                        <hr>
+                        <ul class="rPaths romanesco-ui rPath-list">
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                </div>
+
                 <div class="dat-gui dg-sidebar"></div>
 
                 <div class="panel panel-default in last-panel">
@@ -628,10 +671,10 @@
       <div class="hidden">
         
         <div class="custom-div">
-          <div class="handle tl"></div>
+          <!-- <div class="handle tl"></div>
           <div class="handle tr"></div>
           <div class="handle br"></div>
-          <div class="handle bl"></div>
+          <div class="handle bl"></div> -->
           <div class="mask"></div>
         </div>
 
@@ -695,6 +738,10 @@
 
     </div>
 
+
+    <object id="wacomPlugin" type="application/x-wacomtabletplugin" width="0" height="0" style="position:absolute; left:0px; top:0px">
+      <param name="onload" value="pluginLoaded" />
+    </object>
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
@@ -763,14 +810,15 @@
     <!-- app scripts -->
     <!-- <script id="pathSources" src="{% static 'coffee/path.coffee' %}"></script> -->
 
-    <script src="{% static 'js/facebook.js' %}"></script>
+    <!-- <script src="{% static 'js/facebook.js' %}"></script> -->
     <script src="{% static 'js/utils.js' %}"></script>
     <script src="{% static 'js/coordinateSystems.js' %}"></script>
     <script src="{% static 'js/global.js' %}"></script>
+    <script src="{% static 'js/command.js' %}"></script>
     <script src="{% static 'js/sound.js' %}"></script>
     <script src="{% static 'js/editor.js' %}"></script>
+    <script src="{% static 'js/ritem.js' %}"></script>
     <script src="{% static 'js/path.js' %}"></script>
-    <script src="{% static 'js/pathSources.js' %}"></script>
     <script src="{% static 'js/socket.js' %}"></script>
     <script src="{% static 'js/ajax.js' %}"></script>
     <script src="{% static 'js/div.js' %}"></script>

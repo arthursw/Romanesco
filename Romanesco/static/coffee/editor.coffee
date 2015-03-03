@@ -298,6 +298,7 @@ this.runScript = (script)->
 		# Eval the compiled js.
 		try
 			eval script.compiledSource
+			# model = window[script.compiledSource] # Use square brackets instead?
 			if script.isTool 							# if the script is a tool (or more exactly a path class)
 				if g.tools[script.rname]? 				# remove the tool with the same name if exists, create the new path tool and select it
 					g.tools[script.rname].remove()

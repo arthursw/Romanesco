@@ -59,7 +59,8 @@
       }
       g.chatMessageJ.val('');
       if (from === g.me) {
-        $(".mCustomScrollbar").mCustomScrollbar("scrollTo", "bottom");
+        $("#chatMessagesScroll").mCustomScrollbar("scrollTo", "bottom");
+        $(".sidebar-scrollbar.chatMessagesScroll").mCustomScrollbar("scrollTo", "bottom");
       } else if ($(document.activeElement).parents("#Chat").length > 0) {
         $("#chatMessagesScroll").mCustomScrollbar("scrollTo", "bottom");
       }
@@ -222,9 +223,7 @@
         type = null;
       }
       if (type !== "rFunction") {
-        g.items[pk].data[name] = value;
-        g.items[pk].changed = name;
-        g.items[pk].parameterChanged(false);
+        g.items[pk].changeParameter(name, value, false);
       } else {
         if (typeof (_base = g.items[pk])[name] === "function") {
           _base[name](false, value);

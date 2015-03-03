@@ -65,7 +65,7 @@ this.romanesco_alert = (message, type="", delay=2000) ->
 # check for any error in an ajax callback and display the appropriate error message
 # @return [Boolean] true if there was no error, false otherwise
 this.checkError = (result)->
-	console.log result
+	# console.log result
 	if not result? then return true
 	if result.state == 'not_logged_in'
 		romanesco_alert("You must be logged in to update drawings to the database.", "info")
@@ -610,7 +610,8 @@ this.selectedItems = ()->
 
 # Deselect all RItems (and paper items)
 this.deselectAll = ()->
-	item.deselect?() for item in g.selectedItems()
+	g.previouslySelectedItems = g.selectedItems()
+	item.deselect?() for item in g.previouslySelectedItems
 	project.activeLayer.selected = false
 	return
 

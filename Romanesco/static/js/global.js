@@ -54,7 +54,6 @@ Here are all global functions (which do not belong to classes and are not event 
   };
 
   this.checkError = function(result) {
-    console.log(result);
     if (result == null) {
       return true;
     }
@@ -481,7 +480,8 @@ Here are all global functions (which do not belong to classes and are not event 
 
   this.deselectAll = function() {
     var item, _i, _len, _ref;
-    _ref = g.selectedItems();
+    g.previouslySelectedItems = g.selectedItems();
+    _ref = g.previouslySelectedItems;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       item = _ref[_i];
       if (typeof item.deselect === "function") {

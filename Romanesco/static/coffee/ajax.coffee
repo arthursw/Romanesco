@@ -228,38 +228,44 @@ this.load_callback = (results)->
 
 	newAreasToUpdate = []
 
+	itemsToLoad = []
+
 	for i in results.items
 		item = JSON.parse(i)
 		if g.items[item._id.$oid]? 	# if item is loaded: continue
 			continue
+
+		if item.rType == 'Box'	# add RLocks: RLock, RLink, RWebsite and RVideoGame
+			box = item
+			if box.box.coordinates[0].length<5
+				console.log "Error: box has less than 5 points"
+			
+			planet = new Point(box.planetX, box.planetY)
+			
+			tl = posOnPlanetToProject(box.box.coordinates[0][0], planet)
+			br = posOnPlanetToProject(box.box.coordinates[0][2], planet)
+			
+			data = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
+
+			lock = null
+			switch box.object_type
+				when 'link'
+					lock = new RLink(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, box.name, box.url, data)
+				when 'lock'
+					lock = new RLock(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, false, data)
+				when 'website'
+					lock = new RWebsite(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
+				when 'video-game'
+					lock = new RVideoGame(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
+			
+			if data?.loadEntireArea
+				g.entireAreas.push(lock)
+		else
+			itemsToLoad.push(item)
+
+	for i in itemsToLoad
 		switch item.rType
 			
-			when 'Box' 			# add RLocks: RLock, RLink, RWebsite and RVideoGame
-				box = item
-				if box.box.coordinates[0].length<5
-					console.log "Error: box has less than 5 points"
-				
-				planet = new Point(box.planetX, box.planetY)
-				
-				tl = posOnPlanetToProject(box.box.coordinates[0][0], planet)
-				br = posOnPlanetToProject(box.box.coordinates[0][2], planet)
-				
-				data = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
-
-				lock = null
-				switch box.object_type
-					when 'link'
-						lock = new RLink(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, box.name, box.url, data)
-					when 'lock'
-						lock = new RLock(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, false, data)
-					when 'website'
-						lock = new RWebsite(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
-					when 'video-game'
-						lock = new RVideoGame(tl,new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data)
-				
-				if data?.loadEntireArea
-					g.entireAreas.push(lock)
-
 			when 'Div'			# add RDivs (RText and RMedia)
 				div = item
 				if div.box.coordinates[0].length<5
@@ -271,14 +277,15 @@ this.load_callback = (results)->
 				br = posOnPlanetToProject(div.box.coordinates[0][2], planet)
 				
 				data = if div.data? and div.data.length>0 then JSON.parse(div.data) else null
-				
+				date = div.date.$date
+
 				divJ = null
 				rdiv = null
 				if div.object_type == 'text'
-					rdiv = new RText(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.message, data)
+					rdiv = new RText(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.lock, div.message, data, date)
 					divJ = rdiv.divJ
 				else if div.object_type == 'media'				
-					rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.url, data)
+					rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.lock, div.url, data, date)
 					divJ = rdiv.divJ
 
 			when 'Path' 		# add RPaths
@@ -300,13 +307,17 @@ this.load_callback = (results)->
 				# create the RPath with the corresponding RTool
 				rpath = null
 				if g.tools[path.object_type]?
-					rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points)
+					rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points, path.lock)
 					if rpath.constructor.name == "Checkpoint"
 						console.log rpath
 				else
 					console.log "Unknown path type: " + path.object_type
 			when 'AreaToUpdate'
 				newAreasToUpdate.push(item)
+			else
+				continue
+
+	RDiv.updateZIndex(g.sortedDivs)
 
 	# update areas to update (draw items which lie on those areas)
 	g.addAreasToUpdate(newAreasToUpdate)

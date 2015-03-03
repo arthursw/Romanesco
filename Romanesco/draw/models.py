@@ -74,7 +74,7 @@ class Path(Document):
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
     object_type = StringField(default='brush')
-    locked = BooleanField(default=False)
+    lock = StringField(default=None)
     # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
@@ -124,7 +124,7 @@ class Div(Document):
     object_type = StringField()
     url = StringField(required=False)
     message = StringField()
-    locked = BooleanField(default=False)
+    lock = StringField(default=None)
     # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')

@@ -408,13 +408,10 @@
       _ref1 = g.items;
       for (name in _ref1) {
         item = _ref1[name];
+        item.unhighlight();
         bounds = item.getBounds();
         if (bounds.intersects(rectangle)) {
-          rectanglePath = new Path.Rectangle(bounds);
-          rectanglePath.name = 'select tool selection rectangle highlight';
-          rectanglePath.strokeColor = 'red';
-          rectanglePath.dashArray = [10, 4];
-          g.currentPaths[g.me].addChild(rectanglePath);
+          item.highlight();
         }
         if (rectangle.area === 0) {
           break;
@@ -422,14 +419,9 @@
       }
     };
 
-    SelectTool.prototype.removeSelectionGroup = function() {
+    SelectTool.prototype.emptySelectionLayer = function() {
       g.deselectAll();
-      if (g.selectionGroup == null) {
-        return;
-      }
-      project.activeLayer.addChildren(g.selectionGroup.removeChildren());
-      g.selectionGroup.remove();
-      g.selectionGroup = null;
+      project.activeLayer.addChildren(g.selectionLayer.removeChildren());
     };
 
     SelectTool.prototype.begin = function(event) {
@@ -454,9 +446,9 @@
         this.selectedItem = hitResult.item.controller;
         if (!event.modifiers.shift) {
           console.log('no shift: deselect');
-          if (g.selectionGroup != null) {
-            if (!g.selectionGroup.isAncestor(hitResult.item)) {
-              this.removeSelectionGroup();
+          if (g.selectionLayer.children.length > 0) {
+            if (!g.selectionLayer.isAncestor(hitResult.item)) {
+              this.emptySelectionLayer();
             }
           } else {
             if (g.selectedDivs.length > 0) {
@@ -469,7 +461,7 @@
         }
       } else {
         console.log('does not hit a path');
-        this.removeSelectionGroup();
+        this.emptySelectionLayer();
         this.createSelectionRectangle(event);
       }
     };
@@ -490,7 +482,7 @@
     };
 
     SelectTool.prototype.end = function(event) {
-      var item, itemsToSelect, name, rectangle, _i, _len, _ref, _ref1;
+      var item, itemsToSelect, name, rectangle, _i, _len, _ref, _ref1, _ref2;
       if (!g.currentPaths[g.me]) {
         _ref = g.selectedItems();
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -506,12 +498,14 @@
         for (name in _ref1) {
           item = _ref1[name];
           if (item.getBounds().intersects(rectangle)) {
-            item.select(false);
             itemsToSelect.push(item);
           }
           if (rectangle.area === 0) {
             break;
           }
+        }
+        if (itemsToSelect.length > 0) {
+          g.commandManager.add(new SelectCommand(itemsToSelect, false));
         }
         itemsToSelect = itemsToSelect.map(function(item) {
           return {
@@ -522,6 +516,11 @@
         g.updateParameters(itemsToSelect);
         g.currentPaths[g.me].remove();
         delete g.currentPaths[g.me];
+        _ref2 = g.items;
+        for (name in _ref2) {
+          item = _ref2[name];
+          item.unhighlight();
+        }
       }
     };
 
@@ -625,9 +624,12 @@
       if (data == null) {
         data = null;
       }
+      if (event.event.which === 2) {
+        return;
+      }
       if (!((g.currentPaths[from] != null) && ((_ref = g.currentPaths[from].data) != null ? _ref.polygonMode : void 0))) {
         g.deselectAll();
-        g.currentPaths[from] = new this.RPath(null, data);
+        g.currentPaths[from] = new this.RPath(Date.now(), data);
       }
       g.currentPaths[from].createBegin(event.point, event, false);
       if ((g.me != null) && from === g.me) {
@@ -664,6 +666,7 @@
         if ((g.me != null) && from === g.me) {
           g.currentPaths[from].select(false);
           g.currentPaths[from].save();
+          g.commandManager.add(new CreatePathCommand(g.currentPaths[from]));
           g.chatSocket.emit("end", g.me, g.eventToObject(event), this.name);
         }
         delete g.currentPaths[from];
@@ -682,6 +685,7 @@
       if ((g.me != null) && from === g.me) {
         g.currentPaths[from].select(false);
         g.currentPaths[from].save();
+        g.commandManager.add(new CreatePathCommand(g.currentPaths[from]));
         g.chatSocket.emit("bounce", {
           tool: this.name,
           "function": "finishPath",

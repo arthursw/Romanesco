@@ -59,7 +59,8 @@ this.initSocket = ()->
 		g.chatMessageJ.val('')
 
 		if from == g.me 													# if I am the one talking: scroll both sidebar and chat box to bottom
-			$(".mCustomScrollbar").mCustomScrollbar("scrollTo","bottom")
+			$("#chatMessagesScroll").mCustomScrollbar("scrollTo","bottom")
+			$(".sidebar-scrollbar.chatMessagesScroll").mCustomScrollbar("scrollTo","bottom")
 		else if $(document.activeElement).parents("#Chat").length>0			# else if anything in the chat is active: scroll the chat box to bottom
 			$("#chatMessagesScroll").mCustomScrollbar("scrollTo","bottom")
 		return
@@ -240,9 +241,7 @@ this.initSocket = ()->
 	# experimental *type* == 'rFunction' to call a custom function of the item
 	g.chatSocket.on "parameterChange", (from, pk, name, value, type=null) ->
 		if type != "rFunction"
-			g.items[pk].data[name] = value
-			g.items[pk].changed = name
-			g.items[pk].parameterChanged(false)
+			g.items[pk].changeParameter(name, value, false)
 		else
 			g.items[pk][name]?(false, value)
 		view.draw()

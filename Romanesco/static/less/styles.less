@@ -511,8 +511,7 @@ body {
 				&.drag-over {
 					border: 1px solid @hover-blue;
 				}
-
-			}	
+			}
 		}
 	}
 
@@ -539,7 +538,38 @@ body {
 			vertical-align: middle;
 		}
 	}
-	
+
+	.mCustomScrollbar.history, .mCustomScrollbar.rItems {
+		max-height: 200px;
+		border: 1px solid rgba(128, 128, 128, 0.61);
+		padding: 3px;
+
+		ul.command-list, ul.rDiv-list, ul.rPath-list {
+			list-style: none;
+			padding: 0;
+			margin-bottom: 0;
+			li {
+				cursor: pointer;
+				padding: 5px;
+				font-weight: normal;
+				font-style: italic;
+				&.done, &.selected {
+					font-weight: bold;
+					font-style: normal;
+				}
+				&:hover {
+					background-color: @hover-purple;
+				}
+			}
+		}
+		hr {
+			margin-top: 0px;
+			margin-bottom: 0px;
+			margin-left: 3px;
+			margin-right: 5px;
+		}
+	}
+
 	ul.tool-list {
 
 		float: left;
@@ -966,7 +996,8 @@ body {
 
 // ---- dat.GUI ---- //
 .dat-gui {
-	
+	.vendor(user-select, none);
+
 	&.dg-right {
 		position: absolute;
 		top: 5px;
@@ -1016,6 +1047,10 @@ body {
 			margin-top: 7px;
 		}
 
+		input[type=text] {
+			.vendor(user-select, text);
+		}
+		
 		.dg .c input.color-input {
 			width: 87%;
 			text-shadow: none;

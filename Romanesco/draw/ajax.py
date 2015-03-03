@@ -524,15 +524,19 @@ def getAreas(bounds):
 # 	return
 
 @dajaxice_register
-def savePath(request, points, pID, planet, object_type, bounds, data=None):
+def savePath(request, points, pID, planet, object_type, bounds, date, data=None):
 # def savePath(request, points, pID, planet, object_type, data=None, rasterData=None, rasterPosition=None, areasNotRasterized=None):
 
 	planetX = planet['x']
 	planetY = planet['y']
 
-	lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }, owner__ne=request.user.username )
-	if lockedAreas.count()>0:
-		return json.dumps( {'state': 'error', 'message': 'Your drawing intersects with a locked area'} )
+	lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) # , owner__ne=request.user.username )
+	lock = None
+	for area in lockedAreas:
+		if area.owner == request.user.username:
+			lock = str(area.pk)
+		else:
+			return json.dumps( {'state': 'error', 'message': 'Your path intersects with a locked area which you do not own'} )
 
 	try:
 		tool = Tool.objects.get(name=object_type, accepted=True)
@@ -541,7 +545,7 @@ def savePath(request, points, pID, planet, object_type, bounds, data=None):
 		if not object_type in defaultPathTools:
 			return json.dumps( { 'state': 'warning', 'message': 'The path "' + object_type + '" does not exist.' } )
 
-	p = Path(planetX=planetX, planetY=planetY, points=points, owner=request.user.username, object_type=object_type, data=data )
+	p = Path(planetX=planetX, planetY=planetY, points=points, owner=request.user.username, object_type=object_type, data=data, date=datetime.datetime.fromtimestamp(date/1000.0), lock=lock )
 	p.save()
 
 	# addAreas(bounds, p)
@@ -552,23 +556,27 @@ def savePath(request, points, pID, planet, object_type, bounds, data=None):
 	return json.dumps( {'state': 'success', 'pID': pID, 'pk': str(p.pk) } )
 
 @dajaxice_register
-def updatePath(request, pk, points=None, planet=None, bounds=None, data=None):
+def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, date=None):
 
 	try:
 		p = Path.objects.get(pk=pk)
 	except Path.DoesNotExist:
 		return json.dumps({'state': 'error', 'message': 'Update impossible: element does not exist for this user'})
 
-	if p.locked and request.user.username != p.owner:
+	if p.lock and request.user.username != p.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
 	if points or planet:
 		planetX = planet['x']
 		planetY = planet['y']
 
-		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }, owner__ne=request.user.username )
-		if lockedAreas.count()>0:
-			return json.dumps( {'state': 'error', 'message': 'Your drawing intersects with a locked area'} )
+		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) #, owner__ne=request.user.username )
+		lock = None
+		for area in lockedAreas:
+			if area.owner == request.user.username:
+				p.lock = str(area.pk)
+			else:
+				return json.dumps( {'state': 'error', 'message': 'Your path intersects with a locked area which you do not own'} )
 
 	if points:
 		p.points = points
@@ -577,6 +585,8 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None):
 		p.planetY = planet['y']
 	if data:
 		p.data = data
+	if date:
+		p.date = datetime.datetime.fromtimestamp(date/1000.0)
 
 	# updateAreas(bounds, p)
 
@@ -592,7 +602,7 @@ def deletePath(request, pk):
 	except Path.DoesNotExist:
 		return json.dumps({'state': 'error', 'message': 'Delete impossible: element does not exist for this user'})
 
-	if p.locked and request.user.username != p.owner:
+	if p.lock and request.user.username != p.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
 	# deleteAreas(p)
@@ -623,7 +633,7 @@ def saveBox(request, box, object_type, message, bounds, name="", url="", clonePk
 	# todo: warning: website is not defined in Box model...
 	try:
 		data = json.dumps( { 'loadEntireArea': loadEntireArea } )
-		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, url=url, message=message, name=name, website=website, data=data)
+		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, url=url, message=message, name=name, data=data) # , website=website
 		b.save()
 	except ValidationError:
 		return json.dumps({'state': 'error', 'message': 'invalid_url'})
@@ -639,8 +649,8 @@ def saveBox(request, box, object_type, message, bounds, name="", url="", clonePk
 	# 	path.locked = True
 	# 	path.save()
 
-	Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry).update(set__locked=True, set__owner=request.user.username)
-	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry).update(set__locked=True, set__owner=request.user.username)
+	Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry).update(set__lock=str(b.pk), set__owner=request.user.username)
+	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry).update(set__lock=str(b.pk), set__owner=request.user.username)
 
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'name': name, 'url': url, 'owner': request.user.username, 'pk':str(b.pk), 'box':box, 'clonePk': clonePk, 'website': website } )
 
@@ -709,11 +719,11 @@ def updateBox(request, object_type, pk, box=None, bounds=None, message=None, nam
 		newDivs = Div.objects(planetX=b.planetX, planetY=b.planetY, box__geo_within=geometry)
 		
 		# update old and new paths and divs
-		newPaths.update(set__locked=True, set__owner=request.user.username)
-		newDivs.update(set__locked=True, set__owner=request.user.username)
+		newPaths.update(set__lock=str(b.pk), set__owner=request.user.username)
+		newDivs.update(set__lock=str(b.pk), set__owner=request.user.username)
 
-		oldPaths.filter(pk__nin=newPaths.scalar("id")).update(set__locked=False, set__owner='public')
-		oldDivs.filter(pk__nin=newDivs.scalar("id")).update(set__locked=False, set__owner='public')
+		oldPaths.filter(pk__nin=newPaths.scalar("id")).update(set__lock=None, set__owner='public')
+		oldDivs.filter(pk__nin=newDivs.scalar("id")).update(set__lock=None, set__owner='public')
 
 		# for oldPath in oldPaths:
 		# 	if oldPath not in newPaths:
@@ -742,8 +752,8 @@ def deleteBox(request, pk):
 	planetY = b.planetY
 	oldGeometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
 
-	Path.objects(planetX=planetX, planetY=planetY, points__geo_within=oldGeometry).update(set__locked=False)
-	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=oldGeometry).update(set__locked=False)
+	Path.objects(planetX=planetX, planetY=planetY, points__geo_within=oldGeometry).update(set__lock=None)
+	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=oldGeometry).update(set__lock=None)
 
 	if request.user.username != b.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of div'})
@@ -754,39 +764,39 @@ def deleteBox(request, pk):
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
-def saveDiv(request, box, object_type, bounds, message=None, url=None, data=None, clonePk=None):
+def saveDiv(request, box, object_type, bounds, message=None, url=None, date=None, data=None, clonePk=None):
 
 	points = box['points']
 	planetX = box['planet']['x']
 	planetY = box['planet']['y']
 
 	lockedAreas = Box.objects( planetX=planetX, planetY=planetY, box__geo_intersects=makeBox(points[0][0], points[0][1], points[2][0], points[2][1]) ) # , owner__ne=request.user.username )
-	locked = False
+	lock = None
 	for area in lockedAreas:
 		if area.owner == request.user.username:
-			locked = True
+			lock = str(area.pk)
 		else:
-			return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
+			return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area which you do not own'} )
 
 	# if lockedAreas.count()>0:
 	# 	return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
 
-	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, message=message, url=url, data=data, locked=locked)
+	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, message=message, url=url, data=data, lock=lock, date=datetime.datetime.fromtimestamp(date/1000.0))
 	d.save()
 
 	# addAreas(bounds, d)
 
-	return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'url': url, 'owner': request.user.username, 'pk':str(d.pk), 'box': box, 'data': data, 'clonePk': clonePk } )
+	return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'url': url, 'owner': request.user.username, 'pk':str(d.pk), 'box': box, 'data': data, 'clonePk': clonePk, 'date': str(d.date) } )
 
 @dajaxice_register
-def updateDiv(request, object_type, pk, box=None, bounds=None, message=None, url=None, data=None):
+def updateDiv(request, pk, object_type=None, box=None, bounds=None, message=None, url=None, date=None, data=None):
 
 	try:
 		d = Div.objects.get(pk=pk)
 	except Div.DoesNotExist:
 		return json.dumps({'state': 'error', 'message': 'Element does not exist'})
 
-	if d.locked and request.user.username != d.owner:
+	if d.lock and request.user.username != d.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of div'})
 
 	if box:
@@ -795,12 +805,12 @@ def updateDiv(request, object_type, pk, box=None, bounds=None, message=None, url
 		planetY = box['planet']['y']
 
 		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=makeBox(points[0][0], points[0][1], points[2][0], points[2][1]) ) # , owner__ne=request.user.username )
-		d.locked = False
+		d.lock = None
 		for area in lockedAreas:
 			if area.owner == request.user.username:
-				d.locked = True
+				d.lock = str(area.pk)
 			else:
-				return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
+				return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area which you do not own'} )
 
 	if url:
 		#	No need to update URL?
@@ -814,6 +824,8 @@ def updateDiv(request, object_type, pk, box=None, bounds=None, message=None, url
 		d.planetY = box['planet']['y']
 	if message:
 		d.message = message
+	if date:
+		d.date = datetime.datetime.fromtimestamp(date/1000.0)
 	if data:
 		d.data = data
 	
@@ -831,7 +843,7 @@ def deleteDiv(request, pk):
 	except Div.DoesNotExist:
 		return json.dumps({'state': 'error', 'message': 'Element does not exist for this user.'})
 
-	if d.locked and request.user.username != d.owner:
+	if d.lock and request.user.username != d.owner:
 		return json.dumps({'state': 'error', 'message': 'You are not the owner of this div.'})
 
 	# deleteAreas(d)

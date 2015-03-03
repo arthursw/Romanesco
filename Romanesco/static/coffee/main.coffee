@@ -142,6 +142,86 @@ initTools = () ->
 	$( "#sortable1, #sortable2" ).sortable( connectWith: ".connectedSortable", appendTo: g.sidebarJ, helper: "clone", start: sortStart, stop: sortStop, delay: 250 ).disableSelection()
 
 	g.tools['Move'].select() 		# select the move tool
+
+	# ---  init Wacom tablet API --- #
+
+	g.wacomPlugin = document.getElementById('wacomPlugin')
+	if g.wacomPlugin?
+		g.wacomPenAPI = wacomPlugin.penAPI
+		g.wacomTouchAPI = wacomPlugin.touchAPI
+		g.wacomPointerType = { 0: 'Mouse', 1: 'Pen', 2: 'Puck', 3: 'Eraser' }
+	# # Wacom API documentation:
+
+	# # penAPI properties:
+
+	# penAPI.isWacom
+	# penAPI.isEraser
+	# penAPI.pressure
+	# penAPI.posX
+	# penAPI.posY
+	# penAPI.sysX
+	# penAPI.sysY
+	# penAPI.tabX
+	# penAPI.tabY
+	# penAPI.rotationDeg
+	# penAPI.rotationRad
+	# penAPI.tiltX
+	# penAPI.tiltY
+	# penAPI.tangentialPressure
+	# penAPI.version
+	# penAPI.pointerType
+	# penAPI.tabletModel
+
+	# # add touchAPI event listeners (> IE 11)
+
+	# touchAPI.addEventListener("TouchDataEvent", touchDataEventHandler)
+	# touchAPI.addEventListener("TouchDeviceAttachEvent", touchDeviceAttachHandler)
+	# touchAPI.addEventListener("TouchDeviceDetachEvent", touchDeviceDetachHandler)
+	
+	# # Open / close touch device connection
+
+	# touchAPI.Close(touchDeviceID)
+	# error = touchAPI.Open(touchDeviceID, passThrough) # passThrough == true: observe and pass touch data to system
+	# if error != 0 then console.log "unable to establish connection to wacom plugin"
+
+	# # touch device capacities:
+
+	# deviceCapacities = touchAPI.TouchDeviceCapabilities(touchDeviceID)
+	# deviceCapacities.Version
+	# deviceCapacities.DeviceID
+	# deviceCapacities.MaxFingers
+	# deviceCapacities.ReportedSizeX
+	# deviceCapacities.ReportedSizeY
+	# deviceCapacities.PhysicalSizeX
+	# deviceCapacities.PhysicalSizeY
+	# deviceCapacities.LogicalOriginX
+	# deviceCapacities.LogicalOriginY
+	# deviceCapacities.LogicalWidth
+	# deviceCapacities.LogicalHeight
+
+	# # touch state helper map:
+	# touchStates = [ 0: 'None', 1: 'Down', 2: 'Hold', 3: 'Up']
+	# touchStates[touchState]
+
+	# # Get touch data for as many fingers as supported
+	# touchRawFingerData = touchAPI.TouchRawFingerData(touchDeviceID)
+
+	# if touchRawFingerData.Status == -1 	# Bad data
+	# 	return
+
+	# touchRawFingerData.NumFingers
+	
+	# for finger in touchRawFingerData.FingerList
+	# 	finger.FingerID
+	# 	finger.PosX
+	# 	finger.PosY
+	# 	finger.Width
+	# 	finger.Height
+	# 	finger.Orientation
+	# 	finger.Confidence
+	# 	finger.Sensitivity
+	# 	touchStates[finger.TouchState]
+
 	return
 
 ## Init position
@@ -227,7 +307,7 @@ init = ()->
 	g.templatesJ = $("#templates")
 	g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
 	g.selectedDivs = []
-	g.selectionGroup = null					# paper group containing all selected paper items
+	g.selectionLayer = null					# paper layer containing all selected paper items
 	g.polygonMode = false					# whether to draw in polygon mode or not (in polygon mode: each time the user clicks a point will be created, in default mode: each time the user moves the mouse a point will be created)
 	g.selectionBlue = '#2fa1d6'
 	g.updateTimeout = {} 					# map of id -> timeout id to clear the timeouts
@@ -242,7 +322,8 @@ init = ()->
 	g.items = new Object() 					# map RItem.id or RItem.pk -> RItem, all loaded RItems. The key is RItem.id before RItem is savied in the database, and RItem.pk after
 	g.locks = [] 							# array of loaded RLocks
 	g.divs = [] 							# array of loaded RDivs
-	g.sortedPaths = []						# an array where path are sorted by index (z-index)
+	g.sortedPaths = []						# an array where paths are sorted by index (z-index)
+	g.sortedDivs = []						# an array where divs are sorted by index (z-index)
 	g.animatedItems = [] 					# an array of animated items to be updated each frame
 	g.cars = {} 							# a map of username -> cars which will be updated each frame
 	g.fastMode = false 						# fastMode will hide all items except the one being edited (when user edits an item)
@@ -257,10 +338,36 @@ init = ()->
 	g.areasToRasterize = [] 				# an array of Rectangle to rasterize
 	g.isUpdatingRasters = false 			# true if we are updating rasters (in loopUpdateRasters)
 	g.viewUpdated = false 					# true if the view was updated ( rasters removed and items drawn in g.updateView() ) and we don't need to update anymore (until new rasters are added in load_callback)
+	g.previouslySelectedItems = [] 			# the previously selected items
 
 	g.areasToUpdateRectangles = {} 			# debug map: area to update pk -> rectangle path
 	g.catchErrors = false 					# the error will not be caught when drawing an RPath (let chrome catch them at the right time)
 
+	# initialize sort
+
+	sortStop = (event, ui)=>
+		g.deselectAll()
+		rItem = g.items[ui.item.attr("data-pk")]
+		nextItemJ = ui.item.next()
+		if nextItemJ.length>0
+			rItem.insertAbove(g.items[nextItemJ.attr("data-pk")], null, true)
+		else
+			previousItemJ = ui.item.prev()
+			if previousItemJ.length>0
+				rItem.insertBelow(g.items[previousItemJ.attr("data-pk")], null, true)
+		for item in g.previouslySelectedItems
+			item.select()
+		return
+
+	g.pathList = $("#RItems .rPath-list")
+	g.pathList.sortable( stop: sortStop, delay: 250 )
+	g.pathList.disableSelection()
+	g.divList = $("#RItems .rDiv-list")
+	g.divList.sortable( stop: sortStop, delay: 250 )
+	g.divList.disableSelection()
+
+	g.commandManager = new CommandManager()
+	
 	# g.globalMaskJ = $("#globalMask")
 	# g.globalMaskJ.hide()
 	
@@ -279,10 +386,12 @@ init = ()->
 
 	# init paper.js
 	paper.setup(canvas)
-	activeLayer = project.activeLayer
+	g.mainLayer = project.activeLayer
 	g.debugLayer = new Layer()				# Paper layer to append debug items
 	g.carLayer = new Layer() 				# Paper layer to append all cars
-	activeLayer.activate()
+	g.lockLayer = new Layer()	 			# Paper layer to keep all locked items
+	g.selectionLayer = new Layer() 			# Paper layer to keep all selected items
+	g.mainLayer.activate()
 	paper.settings.hitTolerance = 5
 	g.grid = new Group() 					# Paper Group to append all grid items
 	g.grid.name = 'grid group'
@@ -413,15 +522,20 @@ $(document).ready () ->
 
 	# Paper listeners
 	tool.onMouseDown = (event) ->
+		if g.wacomPenAPI?.isEraser
+			tool.onKeyUp( key: 'delete' )
+			return
 		$(document.activeElement).blur() # prevent to keep focus on the chat when we interact with the canvas
 		# event = g.snap(event) 		# snapping mouseDown event causes some problems
 		g.selectedTool.begin(event)
 
 	tool.onMouseDrag = (event) ->
+		if g.wacomPenAPI?.isEraser then return
 		event = g.snap(event)
 		g.selectedTool.update(event)
 
 	tool.onMouseUp = (event) ->
+		if g.wacomPenAPI?.isEraser then return
 		event = g.snap(event)
 		g.selectedTool.end(event)
 
@@ -441,8 +555,8 @@ $(document).ready () ->
 		# 	if selectedDiv.constructor.name == 'RText'
 		# 		return
 
-		# if the focus is on anything in the sidebar or is a textarea: ignore the delete
-		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea")
+		# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the delete
+		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea") or $(document.activeElement).parents(".dat-gui").length
 			return
 
 		# - move selected RItem by delta if an arrow key was pressed (delta is function of special keys press)
@@ -469,10 +583,10 @@ $(document).ready () ->
 				g.tools['Select'].select()
 			when 'delete', 'backspace'
 				for item in g.selectedItems()
-					if item.selectedSegment?
-						item.deleteSelectedPoint(true)
+					if item.selectionState?.segment?
+						item.deletePointCommand()
 					else
-						item.delete()
+						item.deleteCommand()
 		
 		event.preventDefault()
 	

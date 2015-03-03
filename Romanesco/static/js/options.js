@@ -84,7 +84,7 @@
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           item = _ref[_i];
-          _results.push(item["delete"]());
+          _results.push(item.deleteCommand());
         }
         return _results;
       }
@@ -98,7 +98,7 @@
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           item = _ref[_i];
-          _results.push(item.duplicate());
+          _results.push(item.duplicateCommand());
         }
         return _results;
       }
@@ -529,6 +529,28 @@
     g.availableFonts = data.items;
   };
 
+  this.setControllerValueByName = function(name, value, item, checked) {
+    var controller, folder, folderName, _i, _len, _ref, _ref1;
+    if (checked == null) {
+      checked = false;
+    }
+    _ref = g.gui.__folders;
+    for (folderName in _ref) {
+      folder = _ref[folderName];
+      _ref1 = folder.__controllers;
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        controller = _ref1[_i];
+        if (controller.property === name) {
+          g.setControllerValue(controller, {
+            min: controller.__min,
+            max: controller.__max 
+          }, value, item, checked);
+          break;
+        }
+      }
+    }
+  };
+
   this.setControllerValue = function(controller, parameter, value, item, checked) {
     var onChange, onFinishChange;
     if (checked == null) {
@@ -605,9 +627,7 @@
             if (parameter.step != null) {
               value = value - value % parameter.step;
             }
-            item.data[name] = value;
-            item.changed = name;
-            item.parameterChanged();
+            item.changeParameterCommand(name, value);
             if ((g.me != null) && datFolder.name !== 'General') {
               g.chatSocket.emit("parameter change", g.me, item.pk, name, value);
             }

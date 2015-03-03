@@ -192,7 +192,7 @@
   };
 
   this.load_callback = function(results) {
-    var box, br, data, date, div, divJ, i, item, itemIsLoaded, lock, newAreasToUpdate, path, pk, planet, point, points, position, raster, rdiv, rectangle, rpath, tl, _base, _i, _j, _k, _len, _len1, _len2, _name, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    var box, br, data, date, div, divJ, i, item, itemIsLoaded, itemsToLoad, lock, newAreasToUpdate, path, pk, planet, point, points, position, raster, rdiv, rectangle, rpath, tl, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _name, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
     checkError(results);
     if (results.hasOwnProperty('message') && results.message === 'no_paths') {
       return;
@@ -235,6 +235,7 @@
       g.rasters[position.x][position.y] = raster;
     }
     newAreasToUpdate = [];
+    itemsToLoad = [];
     _ref3 = results.items;
     for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
       i = _ref3[_j];
@@ -242,34 +243,39 @@
       if (g.items[item._id.$oid] != null) {
         continue;
       }
+      if (item.rType === 'Box') {
+        box = item;
+        if (box.box.coordinates[0].length < 5) {
+          console.log("Error: box has less than 5 points");
+        }
+        planet = new Point(box.planetX, box.planetY);
+        tl = posOnPlanetToProject(box.box.coordinates[0][0], planet);
+        br = posOnPlanetToProject(box.box.coordinates[0][2], planet);
+        data = (box.data != null) && box.data.length > 0 ? JSON.parse(box.data) : null;
+        lock = null;
+        switch (box.object_type) {
+          case 'link':
+            lock = new RLink(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, box.name, box.url, data);
+            break;
+          case 'lock':
+            lock = new RLock(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, false, data);
+            break;
+          case 'website':
+            lock = new RWebsite(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data);
+            break;
+          case 'video-game':
+            lock = new RVideoGame(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data);
+        }
+        if (data != null ? data.loadEntireArea : void 0) {
+          g.entireAreas.push(lock);
+        }
+      } else {
+        itemsToLoad.push(item);
+      }
+    }
+    for (_k = 0, _len2 = itemsToLoad.length; _k < _len2; _k++) {
+      i = itemsToLoad[_k];
       switch (item.rType) {
-        case 'Box':
-          box = item;
-          if (box.box.coordinates[0].length < 5) {
-            console.log("Error: box has less than 5 points");
-          }
-          planet = new Point(box.planetX, box.planetY);
-          tl = posOnPlanetToProject(box.box.coordinates[0][0], planet);
-          br = posOnPlanetToProject(box.box.coordinates[0][2], planet);
-          data = (box.data != null) && box.data.length > 0 ? JSON.parse(box.data) : null;
-          lock = null;
-          switch (box.object_type) {
-            case 'link':
-              lock = new RLink(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, box.name, box.url, data);
-              break;
-            case 'lock':
-              lock = new RLock(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, false, data);
-              break;
-            case 'website':
-              lock = new RWebsite(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data);
-              break;
-            case 'video-game':
-              lock = new RVideoGame(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data);
-          }
-          if (data != null ? data.loadEntireArea : void 0) {
-            g.entireAreas.push(lock);
-          }
-          break;
         case 'Div':
           div = item;
           if (div.box.coordinates[0].length < 5) {
@@ -279,13 +285,14 @@
           tl = posOnPlanetToProject(div.box.coordinates[0][0], planet);
           br = posOnPlanetToProject(div.box.coordinates[0][2], planet);
           data = (div.data != null) && div.data.length > 0 ? JSON.parse(div.data) : null;
+          date = div.date.$date;
           divJ = null;
           rdiv = null;
           if (div.object_type === 'text') {
-            rdiv = new RText(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.message, data);
+            rdiv = new RText(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.lock, div.message, data, date);
             divJ = rdiv.divJ;
           } else if (div.object_type === 'media') {
-            rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.locked, div.url, data);
+            rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.lock, div.url, data, date);
             divJ = rdiv.divJ;
           }
           break;
@@ -299,13 +306,13 @@
           }
           points = [];
           _ref4 = path.points.coordinates;
-          for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
-            point = _ref4[_k];
+          for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
+            point = _ref4[_l];
             points.push(posOnPlanetToProject(point, planet));
           }
           rpath = null;
           if (g.tools[path.object_type] != null) {
-            rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points);
+            rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points, path.lock);
             if (rpath.constructor.name === "Checkpoint") {
               console.log(rpath);
             }
@@ -315,8 +322,12 @@
           break;
         case 'AreaToUpdate':
           newAreasToUpdate.push(item);
+          break;
+        default:
+          continue;
       }
     }
+    RDiv.updateZIndex(g.sortedDivs);
     g.addAreasToUpdate(newAreasToUpdate);
     _ref5 = g.areasToUpdate;
     for (pk in _ref5) {

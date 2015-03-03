@@ -6,7 +6,17 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  RDiv = (function() {
+  RDiv = (function(_super) {
+    __extends(RDiv, _super);
+
+    RDiv.zIndexMin = 1;
+
+    RDiv.zIndexMax = 100000;
+
+    RDiv.dateMin = 1425044061386;
+
+    RDiv.rname = 'RDiv';
+
     RDiv.modalTitle = '';
 
     RDiv.modalTitleUpdate = '';
@@ -78,7 +88,8 @@
             'message': message,
             'url': url,
             'clonePk': clonePk,
-            'bounds': this.getBounds()
+            'bounds': rectangle,
+            'date': Date.now()
           });
           break;
         default:
@@ -92,13 +103,13 @@
             'website': website,
             'restrictedArea': restrictedArea,
             'disableToolbar': disableToolbar,
-            'bounds': this.getBounds()
+            'bounds': rectangle
           });
       }
     };
 
     RDiv.save_callback = function(result, owner) {
-      var br, data, div, tl;
+      var br, div, name, tl, value, _ref, _ref1, _ref2;
       if (owner == null) {
         owner = true;
       }
@@ -110,10 +121,10 @@
       div = null;
       switch (result.object_type) {
         case 'text':
-          div = new RText(tl, new Size(br.subtract(tl)), result.owner, result.pk, result.locked, result.message, result.data);
+          div = new RText(tl, new Size(br.subtract(tl)), result.owner, result.pk, result.locked, result.message, result.data, result.date);
           break;
         case 'media':
-          div = new RMedia(tl, new Size(br.subtract(tl)), result.owner, result.pk, result.locked, result.url, result.data);
+          div = new RMedia(tl, new Size(br.subtract(tl)), result.owner, result.pk, result.locked, result.url, result.data, result.date);
           break;
         case 'lock':
           div = new RLock(tl, new Size(br.subtract(tl)), result.owner, result.pk, result.message, true, result.data);
@@ -127,10 +138,22 @@
         case 'link':
           div = new RLink(tl, new Size(br.subtract(tl)), result.owner, result.pk, result.message, result.name, result.url, result.data);
       }
-      if (result.clonePk) {
-        data = g.items[result.clonePk].data;
-        div.data = jQuery.extend({}, data);
-        div.parameterChanged();
+      if (div.constructor.clonedItemData) {
+        _ref = div.constructor.clonedItemData;
+        for (name in _ref) {
+          value = _ref[name];
+          div.changeParameter(name, value);
+        }
+        div.constructor.clonedItemData = null;
+        g.deselectAll();
+        div.select();
+        if ((_ref1 = div.constructor.duplicateCommand) != null) {
+          if ((_ref2 = _ref1[result.clonePk]) != null) {
+            _ref2.setDiv(div);
+          }
+        }
+      } else {
+        g.commandManager.add(new CreateDivCommand(div));
       }
       if (owner) {
         g.chatSocket.emit("createDiv", result);
@@ -169,7 +192,7 @@
     RDiv.modalSubmit = function() {
       var disableToolbar, message, name, object_type, restrictedArea, url, website;
       url = RDiv.modalJ.find("input.url").val();
-      if (url.length > 0 && url.indexOf("http://") !== 0 && url.indexOf("https://") !== 0) {
+      if (url.length > 0 && url.indexOf("http://") !== 0 && url.indexOf("https://") !== 0 && url.indexOf("data:") !== 0) {
         url = "http://" + url;
       }
       name = RDiv.modalJ.find("input.name").val();
@@ -208,8 +231,23 @@
       return false;
     };
 
-    function RDiv(position, size, owner, pk, locked, data) {
-      var controller, folder, height, name, separatorJ, width, _i, _len, _ref, _ref1;
+    RDiv.duplicate = function(bounds, object_type, message, name, url, pk, data) {
+      this.clonedItemData = data;
+      this.save(bounds, object_type, message, name, url, pk);
+    };
+
+    RDiv.updateZIndex = function(sortedDivs) {
+      var div, i, _i, _len;
+      for (i = _i = 0, _len = sortedDivs.length; _i < _len; i = ++_i) {
+        div = sortedDivs[i];
+        div.divJ.css({
+          'z-index': i
+        });
+      }
+    };
+
+    function RDiv(position, size, owner, pk, locked, data, date) {
+      var controller, folder, name, separatorJ, _i, _len, _ref, _ref1;
       this.position = position;
       this.size = size;
       this.owner = owner;
@@ -218,22 +256,20 @@
         locked = false;
       }
       this.data = data;
+      this.date = date;
       this.deselect = __bind(this.deselect, this);
       this.select = __bind(this.select, this);
       this.update = __bind(this.update, this);
+      this.addChangeParameterCommand = __bind(this.addChangeParameterCommand, this);
       this.dragFinished = __bind(this.dragFinished, this);
       this.drag = __bind(this.drag, this);
       this.resize = __bind(this.resize, this);
-      this.selectEnd = __bind(this.selectEnd, this);
-      this.selectUpdate = __bind(this.selectUpdate, this);
-      this.selectBegin = __bind(this.selectBegin, this);
+      RDiv.__super__.constructor.call(this, g.divList, g.sortedDivs);
       this.controller = this;
       this.object_type = this.constructor.object_type;
       separatorJ = g.stageJ.find("." + this.object_type + "-separator");
       this.divJ = g.templatesJ.find(".custom-div").clone().insertAfter(separatorJ);
       this.maskJ = this.divJ.find(".mask");
-      width = this.size.width;
-      height = this.size.height;
       if (this.data == null) {
         this.data = new Object();
         _ref = g.gui.__folders;
@@ -249,11 +285,15 @@
           }
         }
       }
+      this.rectangle = new Rectangle(this.position, this.size);
       this.divJ.css({
-        width: width,
-        height: height
+        width: this.size.width,
+        height: this.size.height
       });
-      this.updateTransform();
+      if (this.date && !RLock.prototype.isPrototypeOf(this)) {
+        this.updateZIndex();
+      }
+      this.updateTransform(false);
       if (this.owner !== g.me && locked) {
         this.divJ.addClass("locked");
       }
@@ -271,36 +311,121 @@
       return;
     }
 
-    RDiv.prototype.duplicate = function() {
-      this.constructor.save(this.getBounds(), this.object_type, this.message, this.name, this.url, this.pk);
+    RDiv.prototype.duplicate = function(bounds, object_type, message, name, url, pk, data) {
+      if (bounds == null) {
+        bounds = null;
+      }
+      if (object_type == null) {
+        object_type = this.object_type;
+      }
+      if (message == null) {
+        message = this.message;
+      }
+      if (name == null) {
+        name = this.name;
+      }
+      if (url == null) {
+        url = this.url;
+      }
+      if (pk == null) {
+        pk = this.pk;
+      }
+      if (data == null) {
+        data = null;
+      }
+      if (bounds == null) {
+        bounds = this.getBounds();
+      }
+      this.constructor.duplicate(bounds, object_type, message, name, url, pk, data);
+    };
+
+    RDiv.prototype.duplicateCommand = function() {
+      g.commandManager.add(new CreateDivCommand(this, "Duplicate div", true));
     };
 
     RDiv.prototype.modify = function() {
       this.constructor.initModal(this.getBounds(), this);
     };
 
-    RDiv.prototype.updateTransform = function() {
-      var css, viewPos;
+    RDiv.prototype.setRectangle = function(rectangle) {
+      RDiv.__super__.setRectangle.call(this, rectangle, false);
+      this.position = this.rectangle.topLeft;
+      this.size = this.rectangle.size;
+      this.updateTransform(true);
+    };
+
+    RDiv.prototype.setRotation = function(rotation) {
+      RDiv.__super__.setRotation.call(this, rotation, false);
+      this.position = this.rectangle.topLeft;
+      this.size = this.rectangle.size;
+      this.updateTransform(true);
+    };
+
+    RDiv.prototype.updateTransform = function(update) {
+      var css, sizeScaled, translation, viewPos;
+      if (update == null) {
+        update = true;
+      }
       viewPos = view.projectToView(this.position);
-      if (view.zoom === 1) {
+      if (view.zoom === 1 && (this.rotation === 0 || (this.rotation == null))) {
         this.divJ.css({
           'left': viewPos.x,
           'top': viewPos.y,
           'transform': 'none'
         });
       } else {
-        css = 'translate(' + viewPos.x + 'px,' + viewPos.y + 'px)';
+        sizeScaled = this.size.multiply(view.zoom);
+        translation = viewPos.add(sizeScaled.divide(2));
+        css = 'translate(' + translation.x + 'px,' + translation.y + 'px)';
+        css += 'translate(-50%, -50%)';
         css += ' scale(' + view.zoom + ')';
+        if (this.rotation) {
+          css += ' rotate(' + this.rotation + 'deg)';
+        }
         this.divJ.css({
           'transform': css,
           'top': 0,
-          'left': 0
+          'left': 0,
+          'transform-origin': '50% 50%'
         });
+      }
+      if (update) {
+        g.defferedExecution(this.update, this.getPk());
       }
     };
 
-    RDiv.prototype.getBounds = function() {
-      return new Rectangle(this.position.x, this.position.y, this.divJ.outerWidth(), this.divJ.outerHeight());
+    RDiv.prototype.getPosition = function() {
+      return this.position.add(this.size.multiply(0.5));
+    };
+
+    RDiv.prototype.getPk = function() {
+      return this.pk;
+    };
+
+    RDiv.prototype.insertAbove = function(div, index, update) {
+      if (index == null) {
+        index = null;
+      }
+      if (update == null) {
+        update = false;
+      }
+      RDiv.__super__.insertAbove.call(this, div, index, update);
+      if (!index) {
+        this.constructor.updateZIndex(this.sortedItems);
+      }
+    };
+
+    RDiv.prototype.insertBelow = function(div, index, update) {
+      if (index == null) {
+        index = null;
+      }
+      if (update == null) {
+        update = false;
+      }
+      RDiv.__super__.insertBelow.call(this, div, index, update);
+      if (!index) {
+        this.constructor.updateZIndex(this.sortedItems);
+      }
     };
 
     RDiv.prototype.moveTo = function(position, userAction) {
@@ -318,6 +443,20 @@
       if (userAction) {
         g.defferedExecution(this.update, this.pk);
       }
+    };
+
+    RDiv.prototype.moveByCommand = function(delta) {
+      this.moveToCommand(this.getPosition().add(delta));
+    };
+
+    RDiv.prototype.moveToCommand = function(position, previousPosition, execute) {
+      if (previousPosition == null) {
+        previousPosition = null;
+      }
+      if (execute == null) {
+        execute = true;
+      }
+      g.commandManager.add(new MoveCommand(this, position, previousPosition, execute));
     };
 
     RDiv.prototype.posOnScreen = function() {
@@ -343,82 +482,6 @@
       return new Point(this.posBeforeScaleX(pos.x), this.posBeforeScaleY(pos.y));
     };
 
-    RDiv.prototype.selectBegin = function(event, userAction) {
-      var point, pos, targetJ;
-      if (userAction == null) {
-        userAction = true;
-      }
-      if (userAction && (g.selectedTool.name === 'Move' || event.which === 2)) {
-        return;
-      }
-      this.dragging = false;
-      this.draggedHandleJ = null;
-      if (userAction && g.selectedDivs.indexOf(this) < 0) {
-        if (!event.shiftKey) {
-          g.deselectAll();
-        }
-        this.select();
-      }
-      point = userAction ? new Point(event.pageX, event.pageY) : view.projectToView(event.point);
-      this.mouseDownPosition = point;
-      targetJ = userAction ? $(event.target) : this.divJ.find(event.target);
-      if (targetJ.is("textarea")) {
-        this.selectingText = true;
-        return true;
-      }
-      this.dragging = true;
-      pos = this.posOnScreen();
-      if (targetJ.hasClass("handle")) {
-        this.draggedHandleJ = targetJ;
-        pos.x += this.draggedHandleJ.position().left;
-        pos.y += this.draggedHandleJ.position().top;
-      }
-      this.dragOffset = {};
-      this.dragOffset.x = point.x - pos.x;
-      this.dragOffset.y = point.y - pos.y;
-    };
-
-    RDiv.prototype.selectUpdate = function(event, userAction) {
-      if (userAction == null) {
-        userAction = true;
-      }
-      if (this.selectingText) {
-        return;
-      }
-      if (!this.dragging) {
-        event.delta.multiply(1 / view.zoom);
-        if (event.delta != null) {
-          this.moveBy(event.delta);
-        }
-        return true;
-      }
-      if (this.draggedHandleJ) {
-        this.resize(event, userAction);
-      } else {
-        this.drag(event, userAction);
-      }
-    };
-
-    RDiv.prototype.selectEnd = function(event, userAction) {
-      if (userAction == null) {
-        userAction = true;
-      }
-      if (!this.dragging) {
-        if (this.selectingText) {
-          this.selectingText = false;
-        }
-        if (event.delta != null) {
-          this.moveBy(event.delta);
-        }
-        return true;
-      }
-      if (this.mouseDownPosition.x !== event.pageX && this.mouseDownPosition.y !== event.pageY) {
-        this.dragFinished(userAction);
-      }
-      this.dragging = false;
-      this.draggedHandleJ = null;
-    };
-
     RDiv.prototype.disableInteraction = function() {
       this.maskJ.show();
     };
@@ -429,6 +492,19 @@
 
     RDiv.prototype.bottomRight = function() {
       return new Point(this.position.x + this.divJ.outerWidth(), this.position.y + this.divJ.outerHeight());
+    };
+
+    RDiv.prototype.resizeTo = function(position, size) {
+      this.position = position;
+      this.size = size;
+      this.updateTransform();
+      this.divJ.css({
+        width: this.size.width,
+        height: this.size.height
+      });
+      this.divJ.find(".handle").css({
+        'z-index': 10
+      });
     };
 
     RDiv.prototype.resize = function(event, userAction) {
@@ -470,16 +546,7 @@
         newWidth = right - newLeft;
         newHeight = this.posBeforeScaleY(point.y - this.dragOffset.y) + this.draggedHandleJ.outerHeight() - newTop;
       }
-      this.position = new Point(newLeft, newTop);
-      this.size = new Size(g.snap1D(newWidth), g.snap1D(newHeight));
-      this.updateTransform();
-      this.divJ.css({
-        width: this.size.width,
-        height: this.size.height
-      });
-      this.divJ.find(".handle").css({
-        'z-index': 10
-      });
+      this.resizeTo(new Point(newLeft, newTop), new Size(g.snap1D(newWidth), g.snap1D(newHeight)));
     };
 
     RDiv.prototype.drag = function(event, userAction) {
@@ -504,18 +571,37 @@
       }
     };
 
-    RDiv.prototype.parameterChanged = function(update) {
-      if (update == null) {
-        update = true;
+    RDiv.prototype.changeParameterCommand = function(name, value) {
+      if (this.data[name] === value) {
+        return;
       }
-      switch (this.changed) {
+      if (this.parameterChangeCommand == null) {
+        this.parameterChangeCommand = new ChangeParameterCommand(this, name);
+      }
+      this.changeParameter(name, value);
+      g.defferedExecution(this.addChangeParameterCommand, this.getPk() + "change parameter: " + name);
+    };
+
+    RDiv.prototype.addChangeParameterCommand = function() {
+      this.parameterChangeCommand.update();
+      g.commandManager.add(this.parameterChangeCommand);
+      this.parameterChangeCommand = null;
+    };
+
+    RDiv.prototype.changeParameter = function(name, value, userAction) {
+      if (userAction == null) {
+        userAction = true;
+      }
+      this.data[name] = value;
+      this.changed = name;
+      switch (name) {
         case 'strokeWidth':
         case 'strokeColor':
         case 'fillColor':
           this.setCss();
       }
-      if (update) {
-        g.defferedExecution(this.update, this.pk);
+      if (userAction) {
+        g.defferedExecution(this.update, this.getPk());
       }
     };
 
@@ -531,22 +617,29 @@
       g.checkError(result);
     };
 
-    RDiv.prototype.update = function() {
+    RDiv.prototype.update = function(type) {
       var br, data, tl;
       tl = this.position;
       br = this.bottomRight();
       if (this.constructor.boxOverlapsTwoPlanets(tl, br)) {
         return;
       }
-      data = {
-        box: g.boxFromRectangle(new Rectangle(tl, br)),
-        pk: this.pk,
-        object_type: this.object_type,
-        message: this.message,
-        url: this.url,
-        data: this.getStringifiedData(),
-        bounds: this.getBounds()
-      };
+      if (type === "z-index") {
+        data = {
+          date: this.date,
+          pk: this.pk
+        };
+      } else {
+        data = {
+          box: g.boxFromRectangle(new Rectangle(tl, br)),
+          pk: this.pk,
+          object_type: this.object_type,
+          message: this.message,
+          url: this.url,
+          data: this.getStringifiedData(),
+          bounds: this.getBounds()
+        };
+      }
       this.changed = null;
       if (this.object_type === 'text' || this.object_type === 'media') {
         Dajaxice.draw.updateDiv(this.updateDiv_callback, data);
@@ -560,7 +653,9 @@
       if (this.divJ.hasClass("selected")) {
         return;
       }
+      RDiv.__super__.select.call(this);
       g.selectedDivs.push(this);
+      g.s = this;
       if (g.selectedTool !== g.tools['Select']) {
         g.tools['Select'].select();
       }
@@ -575,6 +670,7 @@
       if (!this.divJ.hasClass("selected")) {
         return;
       }
+      RDiv.__super__.deselect.call(this);
       this.divJ.removeClass("selected");
       g.selectedDivs.remove(this);
     };
@@ -623,6 +719,11 @@
         delete g.divToUpdate;
       }
       delete g.items[this.pk];
+      RDiv.__super__.remove.call(this);
+    };
+
+    RDiv.prototype.deleteCommand = function() {
+      g.commandManager.add(new DeleteDivCommand(this));
     };
 
     RDiv.prototype["delete"] = function() {
@@ -649,12 +750,14 @@
 
     return RDiv;
 
-  })();
+  })(RItem);
 
   this.RDiv = RDiv;
 
   RSelectionRectangle = (function(_super) {
     __extends(RSelectionRectangle, _super);
+
+    RSelectionRectangle.rname = 'Selection rectangle';
 
     RSelectionRectangle.object_type = 'lock';
 
@@ -691,6 +794,8 @@
 
   RLock = (function(_super) {
     __extends(RLock, _super);
+
+    RLock.rname = 'Lock';
 
     RLock.modalTitle = "Lock an area";
 
@@ -762,10 +867,10 @@
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         lock = _ref[_i];
         if (lock.getBounds().contains(point) && g.me !== lock.owner) {
-          return true;
+          return lock.pk;
         }
       }
-      return false;
+      return null;
     };
 
     RLock.intersectRect = function(rectangle) {
@@ -774,10 +879,10 @@
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         lock = _ref[_i];
         if (lock.getBounds().intersects(new Rectangle(rectangle)) && g.me !== lock.owner) {
-          return true;
+          return lock.pk;
         }
       }
-      return false;
+      return null;
     };
 
     RLock.initModal = function(rectangle, div) {
@@ -841,10 +946,14 @@
       } else if (this.owner !== g.me) {
         this.disableInteraction();
       }
-      if (this.owner === g.me) {
-        this.updateBackgroundMode(true);
-      }
       g.locks.push(this);
+      this.group = new Group();
+      this.group.name = 'lock group';
+      this.sortedPaths = [];
+      this.pathList = $("<ul class=\"rPaths romanesco-ui rPath-list\"></ul>");
+      this.hrJ = $("<hr>");
+      this.hrJ.insertAfter(g.divList);
+      this.pathList.insertAfter(this.hrJ);
       return;
     }
 
@@ -882,7 +991,6 @@
       if ((_ref = this.contentJ) != null) {
         _ref.popover('hide');
       }
-      this.updateBackgroundMode(true);
       return RLock.__super__.deselect.call(this);
     };
 
@@ -946,6 +1054,9 @@
 
     RLock.prototype.updateBackgroundMode = function(value) {
       var _ref;
+      if (value == null) {
+        value = null;
+      }
       if (this.owner !== g.me) {
         return;
       }
@@ -968,15 +1079,15 @@
       view.draw();
     };
 
-    RLock.prototype.parameterChanged = function(update) {
-      if (update == null) {
-        update = true;
+    RLock.prototype.changeParameter = function(name, value, userAction) {
+      if (userAction == null) {
+        userAction = true;
       }
-      switch (this.changed) {
+      RLock.__super__.changeParameter.call(this, name, value, userAction);
+      switch (name) {
         case 'backgroundMode':
           this.updateBackgroundMode();
       }
-      RLock.__super__.parameterChanged.call(this, update);
     };
 
     return RLock;
@@ -987,6 +1098,8 @@
 
   RWebsite = (function(_super) {
     __extends(RWebsite, _super);
+
+    RWebsite.rname = 'Website';
 
     RWebsite.object_type = 'website';
 
@@ -1025,6 +1138,8 @@
 
   RVideoGame = (function(_super) {
     __extends(RVideoGame, _super);
+
+    RVideoGame.rname = 'Video game';
 
     RVideoGame.object_type = 'video-game';
 
@@ -1103,6 +1218,8 @@
 
   RLink = (function(_super) {
     __extends(RLink, _super);
+
+    RLink.rname = 'Link';
 
     RLink.modalTitle = "Insert a hyperlink";
 
@@ -1185,6 +1302,8 @@
 
   RText = (function(_super) {
     __extends(RText, _super);
+
+    RText.rname = 'Text';
 
     RText.modalTitle = "Insert some text";
 
@@ -1387,18 +1506,19 @@
       RText.__super__.constructor.initModal.call(this, this.object_type, rectangle, div);
     };
 
-    function RText(position, size, owner, pk, locked, message, data) {
+    function RText(position, size, owner, pk, lock, message, data, date) {
       var lockedForMe;
       this.position = position;
       this.size = size;
       this.owner = owner;
       this.pk = pk;
-      this.locked = locked;
+      this.lock = lock;
       this.message = message != null ? message : '';
       this.data = data;
+      this.date = date;
       this.changeFontStyle = __bind(this.changeFontStyle, this);
       this.textChanged = __bind(this.textChanged, this);
-      RText.__super__.constructor.call(this, this.position, this.size, this.owner, this.pk, this.locked && this.owner !== g.me, this.data);
+      RText.__super__.constructor.call(this, this.position, this.size, this.owner, this.pk, this.lock && this.owner !== g.me, this.data, this.date);
       this.contentJ = $("<textarea></textarea>");
       this.contentJ.insertBefore(this.maskJ);
       this.contentJ.val(this.message);
@@ -1609,14 +1729,15 @@
       this.setFontColor(this.data.fontColor, update);
     };
 
-    RText.prototype.parameterChanged = function(update) {
-      if (update == null) {
-        update = true;
+    RText.prototype.changeParameter = function(name, value, userAction) {
+      if (userAction == null) {
+        userAction = true;
       }
-      if (!update && (this.data.message != null)) {
+      RText.__super__.changeParameter.call(this, name, value, userAction);
+      if (!userAction && (this.data.message != null)) {
         this.contentJ.val(this.data.message);
       }
-      switch (this.changed) {
+      switch (name) {
         case 'fontStyle':
         case 'fontFamily':
         case 'fontSize':
@@ -1627,7 +1748,6 @@
         default:
           this.setFont(false);
       }
-      RText.__super__.parameterChanged.call(this, update);
     };
 
     RText.prototype.getData = function() {
@@ -1652,6 +1772,8 @@
 
   RMedia = (function(_super) {
     __extends(RMedia, _super);
+
+    RMedia.rname = 'Media';
 
     RMedia.modalTitle = "Insert a media";
 
@@ -1712,20 +1834,21 @@
       RMedia.__super__.constructor.initModal.call(this, this.object_type, rectangle, div);
     };
 
-    function RMedia(position, size, owner, pk, locked, url, data) {
+    function RMedia(position, size, owner, pk, lock, url, data, date) {
       this.position = position;
       this.size = size;
       this.owner = owner;
       this.pk = pk;
-      this.locked = locked;
+      this.lock = lock;
       this.url = url != null ? url : '';
       this.data = data;
+      this.date = date;
       this.afterEmbed = __bind(this.afterEmbed, this);
       this.urlChanged = __bind(this.urlChanged, this);
       this.loadMedia = __bind(this.loadMedia, this);
       this.dragFinished = __bind(this.dragFinished, this);
       this.resize = __bind(this.resize, this);
-      RMedia.__super__.constructor.call(this, this.position, this.size, this.owner, this.pk, this.locked && this.owner !== g.me, this.data);
+      RMedia.__super__.constructor.call(this, this.position, this.size, this.owner, this.pk, this.lock && this.owner !== g.me, this.data, this.date);
       this.data.url = this.url;
       if ((url != null) && url.length > 0) {
         this.urlChanged(this.url, false);
@@ -1734,8 +1857,19 @@
       return;
     }
 
-    RMedia.prototype.resize = function(event, userAction) {
+    RMedia.prototype.updateSize = function() {
       var height, width, _ref;
+      width = this.divJ.width();
+      height = this.divJ.height();
+      if ((_ref = this.contentJ) != null) {
+        _ref.find("iframe").attr("width", width).attr("height", height).css({
+          "max-width": width,
+          "max-height": height
+        });
+      }
+    };
+
+    RMedia.prototype.resize = function(event, userAction) {
       if (userAction == null) {
         userAction = true;
       }
@@ -1744,11 +1878,14 @@
         return;
       }
       this.sizeChanged = true;
-      width = this.divJ.width();
-      height = this.divJ.height();
-      if ((_ref = this.contentJ) != null) {
-        _ref.find("iframe").attr("width", width).attr("height", height);
-      }
+      this.updateSize();
+    };
+
+    RMedia.prototype.resizeTo = function(position, size) {
+      this.position = position;
+      this.size = size;
+      RMedia.__super__.resizeTo.call(this, this.position, this.size);
+      this.updateSize();
     };
 
     RMedia.prototype.dragFinished = function(userAction) {
@@ -1768,15 +1905,15 @@
       }
     };
 
-    RMedia.prototype.parameterChanged = function(update) {
-      if (update == null) {
-        update = true;
+    RMedia.prototype.changeParameter = function(name, value, userAction) {
+      if (userAction == null) {
+        userAction = true;
       }
-      switch (this.changed) {
+      RMedia.__super__.changeParameter.call(this, name, value, userAction);
+      switch (name) {
         case 'fitImage':
           this.toggleFitImage();
       }
-      RMedia.__super__.parameterChanged.call(this, update);
     };
 
     RMedia.prototype.hasImageUrlExt = function(url) {
@@ -1825,6 +1962,7 @@
     };
 
     RMedia.prototype.loadMedia = function(imageLoadResult) {
+      var oembbedContent;
       if (imageLoadResult === 'success') {
         this.contentJ = $('<img class="content image" src="' + this.url + '" alt="' + this.url + '"">');
         this.contentJ.mousedown(function(event) {
@@ -1832,19 +1970,28 @@
         });
         this.isImage = true;
       } else {
-        this.contentJ = $(this.url.substring(7));
-        if (this.contentJ.is('iframe')) {
-          this.contentJ.attr('width', this.divJ.width());
-          this.contentJ.attr('height', this.divJ.height());
+        oembbedContent = (function(_this) {
+          return function() {
+            _this.contentJ = $('<div class="content oembedall-container"></div>');
+            _this.contentJ.oembed(_this.url, {
+              includeHandle: false,
+              embedMethod: 'fill',
+              maxWidth: _this.divJ.width(),
+              maxHeight: _this.divJ.height(),
+              afterEmbed: _this.afterEmbed
+            });
+          };
+        })(this);
+        if (this.url.indexOf("http://") !== 0 && this.url.indexOf("https://") !== 0) {
+          this.contentJ = $(this.url);
+          if (this.contentJ.is('iframe')) {
+            this.contentJ.attr('width', this.divJ.width());
+            this.contentJ.attr('height', this.divJ.height());
+          } else {
+            oembbedContent();
+          }
         } else {
-          this.contentJ = $('<div class="content oembedall-container"></div>');
-          this.contentJ.oembed(this.url, {
-            includeHandle: false,
-            embedMethod: 'fill',
-            maxWidth: this.divJ.width(),
-            maxHeight: this.divJ.height(),
-            afterEmbed: this.afterEmbed
-          });
+          oembbedContent();
         }
       }
       this.contentJ.insertBefore(this.maskJ);

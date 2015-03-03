@@ -408,25 +408,24 @@ class SelectTool extends RTool
 
 		# Add all items which have bounds intersecting with the selection rectangle (1st version)
 		for name, item of g.items
+			item.unhighlight()
 			bounds = item.getBounds()
 			if bounds.intersects(rectangle)
-				rectanglePath = new Path.Rectangle(bounds)
-				rectanglePath.name = 'select tool selection rectangle highlight'
-				rectanglePath.strokeColor = 'red'
-				rectanglePath.dashArray = [10, 4]
-				g.currentPaths[g.me].addChild(rectanglePath)
+				item.highlight()
+				# rectanglePath = new Path.Rectangle(bounds)
+				# rectanglePath.name = 'select tool selection rectangle highlight'
+				# rectanglePath.strokeColor = 'red'
+				# rectanglePath.dashArray = [10, 4]
+				# g.currentPaths[g.me].addChild(rectanglePath)
 			# if the user just clicked (not dragged a selection rectangle): just select the first item
 			if rectangle.area == 0
 				break
 		return
 	
 	# remove the selection group: deselect divs, move selected items to active layer and remove selection group
-	removeSelectionGroup: ()->
+	emptySelectionLayer: ()->
 		g.deselectAll()		# deselect divs
-		if not g.selectionGroup? then return
-		project.activeLayer.addChildren(g.selectionGroup.removeChildren())
-		g.selectionGroup.remove()
-		g.selectionGroup = null
+		project.activeLayer.addChildren(g.selectionLayer.removeChildren())
 		return
 
 	# Begin selection:
@@ -448,15 +447,15 @@ class SelectTool extends RTool
 
 			if not event.modifiers.shift 	# if shift is not pressed: deselect previous items
 				console.log 'no shift: deselect'
-				if g.selectionGroup?
-					if not g.selectionGroup.isAncestor(hitResult.item) then @removeSelectionGroup() 	# if the item is not in selection group: deselect selection group
+				if g.selectionLayer.children.length>0
+					if not g.selectionLayer.isAncestor(hitResult.item) then @emptySelectionLayer() 	# if the item is not in selection group: deselect selection group
 				else 
 					if g.selectedDivs.length>0 then g.deselectAll()
 
 			hitResult.item.controller.selectBegin?(event)
 		else 												# otherwise: remove selection group and create selection rectangle
 			console.log 'does not hit a path'
-			@removeSelectionGroup()
+			@emptySelectionLayer()
 			@createSelectionRectangle(event)
 		return
 
@@ -489,12 +488,14 @@ class SelectTool extends RTool
 			# Add all items which have bounds intersecting with the selection rectangle (1st version)
 			for name, item of g.items
 				if item.getBounds().intersects(rectangle)
-					item.select(false)
 					itemsToSelect.push(item)
 				# if the user just clicked (not dragged a selection rectangle): just select the first item
 				if rectangle.area == 0
 					break
 
+			if itemsToSelect.length > 0
+				g.commandManager.add(new SelectCommand(itemsToSelect, false))
+			
 			# Add all items which intersect with the selection rectangle (2nd version)
 
 			# for item in project.activeLayer.children
@@ -517,6 +518,8 @@ class SelectTool extends RTool
 			# remove selection rectangle
 			g.currentPaths[g.me].remove()
 			delete g.currentPaths[g.me]
+			for name, item of g.items
+				item.unhighlight()
 		return
 
 	# Double click handler: send event to selected RItems
@@ -632,11 +635,12 @@ class PathTool extends RTool
 	# @param [Object] RItem initial data (strokeWidth, strokeColor, etc.)
 	# begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on "begin" signal (then from == author of the signal, data == RItem initial data)
 	begin: (event, from=g.me, data=null) ->
+		if event.event.which == 2 then return 			# if middle mouse button (wheel) pressed: return
 
 		# deselect all and create new path in all case except in polygonMode
 		if not (g.currentPaths[from]? and g.currentPaths[from].data?.polygonMode) 	# if not in polygon mode
 			g.deselectAll()
-			g.currentPaths[from] = new @RPath(null, data)
+			g.currentPaths[from] = new @RPath(Date.now(), data)
 
 		g.currentPaths[from].createBegin(event.point, event, false)
 
@@ -671,6 +675,7 @@ class PathTool extends RTool
 			if g.me? and from==g.me 						# if user is the author of the event: select and save path and emit event on websocket
 				g.currentPaths[from].select(false)
 				g.currentPaths[from].save()
+				g.commandManager.add(new CreatePathCommand(g.currentPaths[from]))
 				g.chatSocket.emit( "end", g.me, g.eventToObject(event), @name )
 			delete g.currentPaths[from]
 		return
@@ -687,6 +692,7 @@ class PathTool extends RTool
 		if g.me? and from==g.me
 			g.currentPaths[from].select(false)
 			g.currentPaths[from].save()
+			g.commandManager.add(new CreatePathCommand(g.currentPaths[from]))
 			g.chatSocket.emit( "bounce", { tool: @name, function: "finishPath", arguments: g.me } )
 		delete g.currentPaths[from]
 		return

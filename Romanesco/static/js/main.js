@@ -136,6 +136,17 @@ Notations:
       delay: 250
     }).disableSelection();
     g.tools['Move'].select();
+    g.wacomPlugin = document.getElementById('wacomPlugin');
+    if (g.wacomPlugin != null) {
+      g.wacomPenAPI = wacomPlugin.penAPI;
+      g.wacomTouchAPI = wacomPlugin.touchAPI;
+      g.wacomPointerType = {
+        0: 'Mouse',
+        1: 'Pen',
+        2: 'Puck',
+        3: 'Eraser'
+      };
+    }
   };
 
   initPosition = function() {
@@ -189,7 +200,7 @@ Notations:
   paper.install(window);
 
   init = function() {
-    var activeLayer;
+    var sortStop;
     g.romanescoURL = 'http://localhost:8000/';
     g.windowJ = $(window);
     g.stageJ = $("#stage");
@@ -200,7 +211,7 @@ Notations:
     g.templatesJ = $("#templates");
     g.me = null;
     g.selectedDivs = [];
-    g.selectionGroup = null;
+    g.selectionLayer = null;
     g.polygonMode = false;
     g.selectionBlue = '#2fa1d6';
     g.updateTimeout = {};
@@ -216,6 +227,7 @@ Notations:
     g.locks = [];
     g.divs = [];
     g.sortedPaths = [];
+    g.sortedDivs = [];
     g.animatedItems = [];
     g.cars = {};
     g.fastMode = false;
@@ -230,8 +242,43 @@ Notations:
     g.areasToRasterize = [];
     g.isUpdatingRasters = false;
     g.viewUpdated = false;
+    g.previouslySelectedItems = [];
     g.areasToUpdateRectangles = {};
     g.catchErrors = false;
+    sortStop = (function(_this) {
+      return function(event, ui) {
+        var item, nextItemJ, previousItemJ, rItem, _i, _len, _ref;
+        g.deselectAll();
+        rItem = g.items[ui.item.attr("data-pk")];
+        nextItemJ = ui.item.next();
+        if (nextItemJ.length > 0) {
+          rItem.insertAbove(g.items[nextItemJ.attr("data-pk")], null, true);
+        } else {
+          previousItemJ = ui.item.prev();
+          if (previousItemJ.length > 0) {
+            rItem.insertBelow(g.items[previousItemJ.attr("data-pk")], null, true);
+          }
+        }
+        _ref = g.previouslySelectedItems;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          item = _ref[_i];
+          item.select();
+        }
+      };
+    })(this);
+    g.pathList = $("#RItems .rPath-list");
+    g.pathList.sortable({
+      stop: sortStop,
+      delay: 250
+    });
+    g.pathList.disableSelection();
+    g.divList = $("#RItems .rDiv-list");
+    g.divList.sortable({
+      stop: sortStop,
+      delay: 250
+    });
+    g.divList.disableSelection();
+    g.commandManager = new CommandManager();
     Dajaxice.setup({
       'default_exception_callback': function(error) {
         console.log('Dajaxice error!');
@@ -251,10 +298,12 @@ Notations:
       g.OSName = "Linux";
     }
     paper.setup(canvas);
-    activeLayer = project.activeLayer;
+    g.mainLayer = project.activeLayer;
     g.debugLayer = new Layer();
     g.carLayer = new Layer();
-    activeLayer.activate();
+    g.lockLayer = new Layer();
+    g.selectionLayer = new Layer();
+    g.mainLayer.activate();
     paper.settings.hitTolerance = 5;
     g.grid = new Group();
     g.grid.name = 'grid group';
@@ -345,14 +394,29 @@ Notations:
       }
     });
     tool.onMouseDown = function(event) {
+      var _ref;
+      if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
+        tool.onKeyUp({
+          key: 'delete'
+        });
+        return;
+      }
       $(document.activeElement).blur();
       return g.selectedTool.begin(event);
     };
     tool.onMouseDrag = function(event) {
+      var _ref;
+      if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
+        return;
+      }
       event = g.snap(event);
       return g.selectedTool.update(event);
     };
     tool.onMouseUp = function(event) {
+      var _ref;
+      if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
+        return;
+      }
       event = g.snap(event);
       return g.selectedTool.end(event);
     };
@@ -373,8 +437,8 @@ Notations:
       }
     };
     tool.onKeyUp = function(event) {
-      var delta, item, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
-      if ($(document.activeElement).parents(".sidebar").length || $(document.activeElement).is("textarea")) {
+      var delta, item, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+      if ($(document.activeElement).parents(".sidebar").length || $(document.activeElement).is("textarea") || $(document.activeElement).parents(".dat-gui").length) {
         return;
       }
       if ((_ref = event.key) === 'left' || _ref === 'right' || _ref === 'up' || _ref === 'down') {
@@ -428,10 +492,10 @@ Notations:
           _ref6 = g.selectedItems();
           for (_m = 0, _len4 = _ref6.length; _m < _len4; _m++) {
             item = _ref6[_m];
-            if (item.selectedSegment != null) {
-              item.deleteSelectedPoint(true);
+            if (((_ref7 = item.selectionState) != null ? _ref7.segment : void 0) != null) {
+              item.deletePointCommand();
             } else {
-              item["delete"]();
+              item.deleteCommand();
             }
           }
       }

@@ -100,3 +100,4 @@ this.isEmpty = (map)->
 # @return a linear interpolation of *v1* and *v2* according to *f*
 this.linearInterpolation = (v1, v2, f)->
 	return v1 * (1-f) + v2 * f
+

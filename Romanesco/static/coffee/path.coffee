@@ -42,21 +42,25 @@
 # - in regular path: when transforming a path, the points of the control path are resaved with their new positions; no transform information is stored
 # - in RShape: the rectangle  is never changed with transformations; instead the rotation and scale are stored in @data and taken into account at each draw
 
-class RPath
+class RPath extends RItem
 	@rname = 'Pen' 										# the name used in the gui (to create the button and for the tooltip/popover)
 	@rdescription = "The classic and basic pen tool" 	# the path description
-	@cursorPosition = { x: 24, y: 0 } 					# the position of the cursor image (relative to the cursor position)
+	@cursorPosition = { x: 24, y: 0 } 					# the position of the cursor image (relative to the cursor position)+
 	@cursorDefault = "crosshair" 						# the cursor to use with this path
 
-	# Paper hitOptions for hitTest function to check which items (corresponding to those criterias) are under a point
-	@hitOptions =
-		segments: true
-		stroke: true
-		fill: true
-		selected: true
-		tolerance: 5
-
 	@constructor.secureDistance = 2 					# the points of the flattened path must not be 5 pixels away from the recorded points
+
+	# common to all RItems
+	# construct a new RPath and save it
+	# create the new RPath from *data* and *controlPathSegments*
+	# @param data [Object] the data to duplicate
+	# @param controlPathSegments [Array<Paper segments>] the control path segments to duplicate
+	# @return copy of the RPath
+	@duplicate: (data, controlPathSegments)->
+		copy = new @(Date.now(), data, null, controlPathSegments)
+		copy.draw()
+		copy.save()
+		return copy
 
 	# parameters are defined as in {RTool}
 	# The following parameters are reserved for romanesco: id, polygonMode, points, planet, step, smooth, speeds, showSpeeds
@@ -110,8 +114,14 @@ class RPath
 	# @param data [Object] (optional) the data containing information about parameters and state of RPath
 	# @param pk [ID] (optional) the primary key of the path in the database
 	# @param points [Array of Point] (optional) the points of the controlPath, the points must fit on the control path (the control path is stored in @data.points)
-	constructor: (@date=null, @data=null, @pk=null, points=null) ->
-		@selectedSegment = null
+	# @param lock [PK] the pk of the lock which contains this RPath (if any)
+	constructor: (@date=null, @data=null, @pk=null, points=null, @lock=null) ->
+		if not @lock
+			super(g.pathList, g.sortedPaths)
+		else
+			super(g.items[@lock].pathList, g.items[@lock].sortedPaths)
+
+		@selectionHighlight = null
 		
 		@id = if @data? then @data.id else Math.random() 	# temporary id used until the server sends back the primary key (@pk)
 
@@ -129,17 +139,30 @@ class RPath
 		# if the RPath is being loaded: directly set pk and load path
 		if @pk?
 			@setPK(@pk, false)
+		
 		if points?
 			@loadPath(points)
+			@updateZIndex()
+
 		return
 	
 	# common to all RItems
 	# construct a new RPath and save it
-	# @return [RPath] the copy
-	duplicate: ()->
-		copy = new @constructor(new Date(), @getData(), null, @pathOnPlanet())
-		copy.save()
+	# if *data* and *controlPathSegments* are provided, create the new RPath from those parameters
+	# (used to cancel a delete from DeletePathCommand), otherwise duplicate the exact same RPath as it is (used for the duplicate button)
+	# @param data [Object] (optional) the data to duplicate
+	# @param controlPathSegments [Array<Paper segments>] (optional) the control path segments to duplicate
+	# @return copy of the RPath (depending on the parameters)
+	duplicate: (data=null, controlPathSegments=null)->
+		data ?= @getData()
+		controlPathSegments ?= @pathOnPlanet()
+		copy = @constructor.duplicate(data, controlPathOffset)
 		return copy
+
+	# duplicate command
+	duplicateCommand: ()->
+		g.commandManager.add(new CreatePathCommand(@, "Duplicate path", true))
+		return
 
 	# returns the maximum width of the RPath arround control path
 	# the drawing can not exeed the limit of *@pathWidth()* around the contorl path
@@ -149,8 +172,8 @@ class RPath
 
 	# common to all RItems
 	# return [Rectangle] the bounds of the control path (does not necessarly fit the drawing entirely, but is centered on it)
-	getBounds: ()->
-		return @controlPath.strokeBounds
+	# getBounds: ()->
+	# 	return @controlPath.strokeBounds
 
 	# return [Rectangle] the bounds of the drawing group
 	getDrawingBounds: ()->
@@ -173,19 +196,28 @@ class RPath
 	# 	return areas
 
 	# common to all RItems
+	# @return [Paper Point] the center of the control path bounding box (= the position of the RPath)
+	getPosition: ()->
+		return @getBounds().center
+
+	moveByCommand: (delta)->
+		@moveToCommand(@getPosition().add(delta))
+		return
+
+	moveToCommand: (position, previousPosition=null, execute=true)->
+		g.commandManager.add(new MoveCommand(@, position, previousPosition, execute))
+		return
+
+	# common to all RItems
 	# move the RPath by *delta* and update if *userAction*
 	# @param delta [Point] the amount by which moving the path
 	# @param userAction [Boolean] whether this is an action from *g.me* or another user
 	moveBy: (delta, userAction)->
-		@group.position.x += delta.x
-		@group.position.y += delta.y
-		if userAction
-			g.defferedExecution(@update, @getPk())
-			# if g.me? and userAction then g.chatSocket.emit( "double click", g.me, @pk, g.eventToObject(event))
+		@moveTo(@getPosition().add(delta), userAction)
 		return
 
 	# common to all RItems
-	# move the RPath to *position* and update if *userAction*
+	# move the RPath to *position* and update if *userAction* (put the center of the control path bounding box at *position*)
 	# @param position [Point] the new position of the path
 	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
 	# @return [Paper point] the new position
@@ -196,7 +228,7 @@ class RPath
 		if userAction
 			g.defferedExecution(@update, @getPk())
 			# if g.me? and userAction then g.chatSocket.emit( "double click", g.me, @pk, g.eventToObject(event))
-		return position.add(delta)
+		return @group.position
 
 	# convert a point from project coordinate system to raster coordinate system
 	# @param point [Paper point] point to convert
@@ -210,6 +242,8 @@ class RPath
 	# @param strokeWidth [Number] (optional) contorl path width will be set to *strokeWidth* if it is provided
 	prepareHitTest: (fullySelected=true, strokeWidth)->
 		console.log "prepareHitTest"
+		super(fullySelected, strokeWidth)
+
 		@hitTestSelected = @controlPath.selected  				# store control path select state
 
 		if fullySelected 										# select control path
@@ -238,6 +272,8 @@ class RPath
 	# @param fullySelected [Boolean] (optional) whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles)
 	finishHitTest: (fullySelected=true)->
 		console.log "finishHitTest"
+		super(fullySelected)
+
 		if fullySelected then @controlPath.fullySelected = @hitTestFullySelected
 		@controlPath.selected = @hitTestSelected
 		@controlPath.visible = @hitTestControlPathVisible
@@ -251,8 +287,8 @@ class RPath
 	# perform hit test to check if the point hits the selection rectangle  
 	# @param point [Point] the point to test
 	# @param hitOptions [Object] the [paper hit test options](http://paperjs.org/reference/item/#hittest-point)
-	hitTest: (point, hitOptions)->
-		return @selectionRectangle.hitTest(point)
+	# hitTest: (point, hitOptions)->
+	# 	return @selectionRectangle.hitTest(point)
 
 	# when hit through websocket, must be (fully)Selected to hitTest
 	# perform hit test on control path and selection rectangle with a stroke width of 1
@@ -262,76 +298,74 @@ class RPath
 	# @param hitOptions [Object] the [paper hit test options](http://paperjs.org/reference/item/#hittest-point)
 	# @param fullySelected [Boolean] (optional) whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles)
 	# @return [Paper HitResult] the paper hit result
-	performHitTest: (point, hitOptions, fullySelected=true)->
-		@prepareHitTest(fullySelected, 1)
-		hitResult = @hitTest(point, hitOptions)
-		@finishHitTest(fullySelected)
-		return hitResult
+	# performHitTest: (point, hitOptions, fullySelected=true)->
+	# 	@prepareHitTest(fullySelected, 1)
+	# 	hitResult = @hitTest(point, hitOptions)
+	# 	@finishHitTest(fullySelected)
+	# 	return hitResult
 
-	# add or update the selection rectangle (path used to rotate and scale the RPath)
-	# redefined by RShape
-	updateSelectionRectangle: ()->
-		# reset the selection rectangle (and use contorl path bounds as rectangle) if the control path has default transformation (rotation==0 and scaling==(1, 1))
-		reset = not @selectionRectangleBounds? or @controlPath.rotation==0 and @controlPath.scaling.x == 1 and @controlPath.scaling.y == 1
-		if reset
-			@selectionRectangleBounds = @controlPath.bounds.clone()
+	# create the selection rectangle (path used to rotate and scale the RPath)
+	# @param bounds [Paper Rectangle] the bounds of the selection rectangle
+	# createSelectionRectangle: (bounds)->
+		
+	# 	# create the selection rectangle: rectangle path + handle at the top used for rotations
+	# 	@selectionRectangle?.remove()
+	# 	@selectionRectangle = new Path.Rectangle(bounds)
+	# 	@group.addChild(@selectionRectangle)
+	# 	@selectionRectangle.name = "selection rectangle"
+	# 	@selectionRectangle.pivot = @selectionRectangle.bounds.center
+	# 	@selectionRectangle.insert(1, new Point(bounds.left, bounds.center.y))
+	# 	@selectionRectangle.insert(3, new Point(bounds.center.x, bounds.top))
+	# 	@selectionRectangle.insert(3, new Point(bounds.center.x, bounds.top-25))
+	# 	@selectionRectangle.insert(3, new Point(bounds.center.x, bounds.top))
+	# 	@selectionRectangle.insert(7, new Point(bounds.right, bounds.center.y))
+	# 	@selectionRectangle.insert(9, new Point(bounds.center.x, bounds.bottom))
+	# 	@selectionRectangle.selected = true
+	# 	@selectionRectangle.controller = @
+	# 	@controlPath.pivot = @selectionRectangle.pivot 	# set contol path pivot to the selection rectangle pivot, otherwise they are not the same because of the handle
+		
+	# 	return
 
-		# expand the selection rectangle to fit the entire drawing, and to avoid interference (overlapping) between control path and selection rectangle
-		bounds = @selectionRectangleBounds.clone().expand(10+@pathWidth())
-		@selectionRectangle?.remove()
+	# # add or update the selection rectangle (path used to rotate and scale the RPath)
+	# updateSelectionRectangle: ()->
+	# 	# reset the selection rectangle (and use contorl path bounds as rectangle) if the control path has default transformation (rotation==0 and scaling==(1, 1))
+	# 	reset = not @rectangle? or @controlPath.rotation==0 and @controlPath.scaling.x == 1 and @controlPath.scaling.y == 1
+	# 	if reset
+	# 		@rectangle = @controlPath.bounds.clone()
+	# 		@rotation = 0
 
-		# create the selection rectangle: rectangle path + handle at the top used for rotations
-		@selectionRectangle = new Path.Rectangle(bounds)
-		@group.addChild(@selectionRectangle)
-		@selectionRectangle.name = "selection rectangle"
-		@selectionRectangle.pivot = @selectionRectangle.bounds.center
-		@selectionRectangle.insert(2, new Point(bounds.center.x, bounds.top))
-		@selectionRectangle.insert(2, new Point(bounds.center.x, bounds.top-25))
-		@selectionRectangle.insert(2, new Point(bounds.center.x, bounds.top))
-		if not reset 				# restore transformations if not reset
-			@selectionRectangle.position = @controlPath.position
-			@selectionRectangle.rotation = @controlPath.rotation
-			@selectionRectangle.scaling = @controlPath.scaling
-		@selectionRectangle.selected = true
-		@selectionRectangle.controller = @
-		@controlPath.pivot = @selectionRectangle.pivot 	# set contol path pivot to the selection rectangle pivot, otherwise they are not the same because of the handle
-		return
+	# 	# expand the selection rectangle to fit the entire drawing, and to avoid interference (overlapping) between control path and selection rectangle
+	# 	bounds = @rectangle.clone().expand(10+@pathWidth())
+		
+	# 	@createSelectionRectangle(bounds)
 
-	# common to all RItems
+	# 	if not reset 				# restore transformations if not reset
+	# 		@selectionRectangle.position = @controlPath.position
+	# 		@selectionRectangle.rotation = @controlPath.rotation
+	# 		@selectionRectangle.scaling = @controlPath.scaling
+		
+	# 	return
+
 	# select the RPath: (only if it has a control path but no selection rectangle i.e. already selected)
 	# - create or update the selection rectangle, 
 	# - create or update the global selection group (i.e. add this RPath to the grouop)
 	# - (optionally) update controller in the gui accordingly
 	# @param updateOptions [Boolean] whether to update controllers in gui or not
+	# @return whether the ritem was selected or not
 	select: (updateOptions=true)->
-		if not @controlPath? then return
-		if @selectionRectangle? then return
-		console.log "select"
-		# @controlPath.visible = true
-		# create or update the selection rectangle
-		@selectionRectangleRotation = null
-		@selectionRectangleScale = null
-		@updateSelectionRectangle()
+		if not @controlPath? then return false
+		if not super(updateOptions) then return false
 
-		# create or update the global selection group (i.e. add this RPath to the grouop)
-		g.selectionGroup ?= new Group()
-		g.selectionGroup.name = 'selection group'
-		g.selectionGroup.addChild(@group)
+		# update the global selection group (i.e. add this RPath to the group)
+		if @group.parent != g.selectionLayer then @zindex = @group.index
+		g.selectionLayer.addChild(@group)
 
-		# create or update the global selection group
-		if updateOptions then g.updateParameters( { tool: @constructor, item: @ } , true)
-		# debug:
-		g.s = @
-		return
+		return true
 
 	# deselect: remove the selection rectangle (and rasterize)
 	deselect: ()->
-		console.log "deselect"
-		if not @selectionRectangle? then return
-		@selectionRectangle?.remove()
-		@selectionRectangle = null
+		if not super() then return false
 		@controlPath.visible = false
-		@selectedSegment = null
 		@rasterize()
 		return
 
@@ -351,13 +385,14 @@ class RPath
 	# @return [String] string describing how will the path change during the selection process. The string can be 'rotation', 'scale', 'segment', 'move' or null (if nothing must be changed)
 	# 				   *change* is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)
 	hitTestAndInitSelection: (event, userAction)->
-		hitResult = @performHitTest(event.point, @constructor.hitOptions)
-		if not hitResult? then return null
-		return @initSelection(event, hitResult, userAction)
+		# hitResult = @performHitTest(event.point, @constructor.hitOptions)
+		# if not hitResult? then return 'move'
+		# return @initSelection(event, hitResult, userAction)
+		return super(event, userAction)
 
 	# intialize the selection: 
 	# determine which action to perform depending on the the *hitResult* (move by default, edit point if segment from contorl path, etc.)
-	# set @selectedSegment, @selectionRectangleRotation or @selectionRectangleScale which will be used during the selection process (select begin, update, end)
+	# set @selectionState.segment, @selectionRectangleRotation or @selectionRectangleScale which will be used during the selection process (select begin, update, end)
 	# @param event [Paper event] the mouse event
 	# @param hitResult [Paper HitResult] [paper hit result](http://paperjs.org/reference/hitresult/) form the hit test
 	# @param userAction [Boolean] (optional) whether this is an action from *g.me* or another user 
@@ -366,22 +401,23 @@ class RPath
 	# @return [String] string describing how will the path change during the selection process. The string can be 'rotation', 'scale', 'segment' or 'move';
 	# 				   *change* is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)
 	initSelection: (event, hitResult, userAction=true) ->
-		# @selectionRectangleRotation and @selectionRectangleScale store the position of the mouse relatively to the selection rectangle, 
-		# they will be used for transformation in @selectUpdate() but they are not initialized in the same way for PrecisePath and RShape
+		# # @selectionRectangleRotation and @selectionRectangleScale store the position of the mouse relatively to the selection rectangle, 
+		# # they will be used for transformation in @selectUpdate() but they are not initialized in the same way for PrecisePath and RShape
 
-		change = 'move' 				# change is 'move' by default
-		if hitResult.type == 'segment' 						# if user hit a segment which belongs to the control path: this segment will be moved
-			if hitResult.item == @controlPath
-				@selectedSegment = hitResult.segment
-				change = 'segment'
-			else if hitResult.item == @selectionRectangle 	# if the segment belongs to the selection rectangle: initialize rotation or scaling
-				if hitResult.segment.index >= 2 and hitResult.segment.index <= 4
-					@selectionRectangleRotation = event.point.subtract(@selectionRectangle.bounds.center)
-					change = 'rotation'
-				else
-					@selectionRectangleScale = event.point.subtract(@selectionRectangle.bounds.center).length #/@controlPath.scaling.x
-					change = 'scale'
-		return change
+		# change = 'move' 				# change is 'move' by default
+		# if hitResult.type == 'segment' 						# if user hit a segment which belongs to the control path: this segment will be moved
+		# 	if hitResult.item == @controlPath
+		# 		@selectionState.segment = hitResult.segment
+		# 		change = 'segment'
+		# 	else if hitResult.item == @selectionRectangle 	# if the segment belongs to the selection rectangle: initialize rotation or scaling
+		# 		if hitResult.segment.index == 4
+		# 			@selectionRectangleRotation = event.point.subtract(@selectionRectangle.pivot)
+		# 			change = 'rotation'
+		# 		else
+		# 			@selectionRectangleScale = { scale: hitResult.segment.point.subtract(@selectionRectangle.pivot).divide(@controlPath.scaling), index: hitResult.segment.index }
+		# 			change = 'scale'
+		# return change
+		return super(event, hitResult, userAction)
 
 	# common to all RItems
 	# begin select action:
@@ -390,43 +426,90 @@ class RPath
 	# - hit test and initilize selection
 	# - hide other path if in fast mode
 	# @param event [Paper event] the mouse event
-	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
-	# @return [String] string describing how will the path change during the selection process. The string can be 'rotation', 'scale', 'segment' or 'move';
-	# 				   *change* is also used as soon as something changes before the update (for example when a parameter is changed, it is set to the name of the parameter)
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user
 	selectBegin: (event, userAction=true) ->
-		# if not userAction and @changed
-		# 	romanesco_alert("This path is already being modified.", "error")
-		# 	return
-		console.log "selectBegin"
+		# # if not userAction and @changed
+		# # 	romanesco_alert("This path is already being modified.", "error")
+		# # 	return
+		# console.log "selectBegin"
 		
-		# initialize selection (reset selection state)
+		# # initialize selection (reset selection state)
+		# @changed = null
+		# if @selectionState.segment? then @selectionState.segment = null
+		# if @selectionState.handle? then @selectionState.handle = null
+		# @selectionHighlight?.remove()
+		# @selectionHighlight = null
+		# @selectionRectangleRotation = null
+		# @selectionRectangleScale = null
+
+		# if userAction
+		# 	if not @isSelected() then g.commandManager.add(new SelectCommand([@], true))
+
+		# 	change = @hitTestAndInitSelection(event, userAction)
+			
+		# 	switch change
+		# 		when 'move'
+		# 			@selectCommand = new MoveCommand(@, @getPosition(), @getPosition(), false)
+		# 		when 'scale'
+		# 			@selectCommand = new ScaleCommand(@)
+		# 		when 'rotation'
+		# 			@selectCommand = new RotationCommand(@)
+		# 		when 'segment', 'handle-in', 'handle-out'
+		# 			@selectCommand = new ChangeSelectedPointCommand(@)
+		# 		when 'speed handle'
+		# 			@selectCommand = new ChangeSpeedCommand(@)
+		# 			# g.commandManager.add(new ChangeSpeedCommand(@))
+
+		# if g.fastMode and change != 'move' # hide other path if in fast mode
+		# 	g.hideOthers(@)
+
+		# # if g.me? and userAction then g.chatSocket.emit( "select begin", g.me, @pk, g.eventToObject(event))
+
 		@changed = null
-		if @selectedSegment? then @selectedSegment = null
-		if @selectedHandle? then @selectedHandle = null
 		@selectionHighlight?.remove()
 		@selectionHighlight = null
-		@selectionRectangleRotation = null
-		@selectionRectangleScale = null
-
-		if userAction
-			@select()
-
-		change = @hitTestAndInitSelection(event, userAction)
 		
-		if g.fastMode and change != 'move' # hide other path if in fast mode
-			g.hideOthers(@)
+		super(event, userAction)
 
-		# if g.me? and userAction then g.chatSocket.emit( "select begin", g.me, @pk, g.eventToObject(event))
+		if @selectionState.segment?
+			@selectCommand = new ChangeSelectedPointCommand(@)
+		else if @selectionState.speedHandle?
+			@selectCommand = new ChangeSpeedCommand(@)
 
-		return change
+		return
 
 	# common to all RItems
 	# update select action
-	# to be redefined by children classes
+	# to be overloaded by children classes
 	# @param event [Paper event] the mouse event
 	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
-	selectUpdate: (event, userAction=true)->
-		console.log "selectUpdate"
+	# @param draw [Boolean] whether to draw the path or not (false when called by PrecisePath)
+	selectUpdate: (event, userAction=true, draw=false)->
+		# switch @changed
+		# 	when 'moved point', 'moved handle'
+		# 		@moveToCommand(@getPosition(), @getPosition(), false)
+		# 	when 'scaled'
+		# 		g.commandManager.add(new ScaleCommand(@))
+		# 	when 'rotated'
+		# 		g.commandManager.add(new RotationCommand(@))
+		# 	when 'moved handle'
+		# 		g.commandManager.add(new ChangeSelectedPointCommand(@))
+		# 	when 'speed handle moved'
+		# 		g.commandManager.add(new ChangeSpeedCommand(@))
+		if not @drawing then g.updateView()
+
+		# the previous bounding box is used to update the raster at this position
+		# should not be put in selectBegin() since it is not called when moving multiple items (selectBegin() is called only on the first item)
+		@previousBoundingBox ?= @getDrawingBounds()
+
+		super(event, userAction)
+		if draw
+			if @selectionState.rotation?
+				@draw(true)
+			else if @selectionState.scale?
+				@draw(true)
+			else if @selectionState.move?
+				if not @drawing then @draw(false)
 		return
 
 	# common to all RItems
@@ -434,16 +517,20 @@ class RPath
 	# @param event [Paper event] the mouse event
 	# @param userAction [Boolean] whether this is an action from *g.me* or another user 
 	selectEnd: (event, userAction=true)->
-		console.log "selectEnd"
-		@selectionRectangleRotation = null
-		@selectionRectangleScale = null
-		if userAction and @changed?
-			@update('point')
-			# if g.me? and userAction then g.chatSocket.emit( "select end", g.me, @pk, g.eventToObject(event))
-		@changed = null
-
+		if @changed? and @changed != 'moved' then @draw?(false)
 		if g.fastMode
 			g.showAll(@)
+		super(event, userAction)
+		return
+
+	setRectangle: (rectangle, draw=true)->
+		super(rectangle)
+		if draw then @draw()
+		return
+
+	setRotation: (@rotation, draw=true)->
+		super(@rotation)
+		if draw then @draw()
 		return
 
 	# double click action
@@ -465,19 +552,39 @@ class RPath
 				@createUpdate(point, null, true)
 		if points.length>0
 			@createEnd(points.last(), null, true)
+
 		@draw(null, true)
+		return
+
+	changeParameterCommand: (name, value)->
+		if @data[name] == value then return
+		@parameterChangeCommand ?= new ChangeParameterCommand(@, name)
+		@changeParameter(name, value)
+		g.defferedExecution(@addChangeParameterCommand, @getPk() + "change parameter: " + name)
+		return
+	
+	addChangeParameterCommand: ()=>
+		@parameterChangeCommand.update()
+		g.commandManager.add(@parameterChangeCommand)
+		@parameterChangeCommand = null
 		return
 
 	# common to all RItems
 	# called when a parameter is changed:
-	# - from user action (parameter.onChange) (update = true)
-	# - from websocket (another user changed the parameter) (update = false)
-	# @param update [Boolean] (optional, default is true) whether to update the RPath in database
-	parameterChanged: (update=true)->
-		if not @drawing then g.updateView()
+	# - from user action (parameter.onChange) (userAction = true)
+	# - from websocket (another user changed the parameter) (userAction = false)
+	# @param name [String] the name of the value to change
+	# @param value [Anything] the new value
+	# @param userAction [Boolean] (optional, default is true) whether to update the RPath in database
+	# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from ChangeParameterCommand
+	changeParameter: (name, value, userAction=true, updateGUI)->
+		@data[name] = value
+		@changed = name
+		if not @drawing then g.updateView() 	# update the view if it was rasterized
 		@previousBoundingBox ?= @getDrawingBounds()
 		@draw()		# if draw in simple mode, then how to see the change of parameters which matter?
-		if update then g.defferedExecution(@update, @getPk())
+		if userAction then g.defferedExecution(@update, @getPk())
+		if updateGUI then g.setControllerValueByName(name, value, @)
 		return
 
 	# add a path to the drawing group:
@@ -498,6 +605,22 @@ class RPath
 		path.shadowColor = @data.shadowColor
 		@drawing.addChild(path)
 		return path
+
+	# create the group and the control path
+	# @param controlPath [Paper Path] (optional) the control path
+	addControlPath: (@controlPath)->
+		if @lock then @lock.group.addChild(@group)
+
+		@controlPath ?= new Path()
+		@group.addChild(@controlPath)
+		@controlPath.name = "controlPath"
+		@controlPath.controller = @
+		@controlPath.strokeWidth = @pathWidth()
+		@controlPath.strokeColor = g.selectionBlue
+		@controlPath.strokeColor.alpha = 0.25
+		@controlPath.strokeCap = 'round'
+		@controlPath.visible = false
+		return
 
 	# initialize the drawing group before drawing:
 	# - create drawing group and initialize it with @data (add it to group)
@@ -583,7 +706,7 @@ class RPath
 	# because the path are rendered on rasters, path are not drawn on load unless they are animated
 	# @param simplified [Boolean] whether to draw in simplified mode or not (much faster)
 	# @param loading [Boolean] whether the path is being loaded or drawn by a user
-	draw: (simplified=fasle, loading=fasle)->
+	draw: (simplified=false, loading=false)->
 		return
 
 	# called once after createEnd to initialize the path (add it to a game, or to the animated paths)
@@ -608,27 +731,24 @@ class RPath
 		@initialize()
 		return
 
-	# update the z index (to be used in further version) i.e. move the path to the right position
-	# - RPath are kept sorted by z-index in *g.sortedPath*
-	# - z-index are initialize to the current date (this is a way to provide a global z index even with RPath which are not loaded)
-	# to be updated
-	updateZIndex: ()->
-		if @date?
-			#insert path at the right place
-			if g.sortedPaths.length==0
-				g.sortedPaths.push(@)
-			for path, i in g.sortedPaths
-				if @date > path.date
-					g.sortedPaths.splice(i+1, 0, @)
-					@insertAbove(path)
-		return
-
 	# insert above given *path*
 	# @param path [RPath] path on which to insert this
-	# to be updated
-	insertAbove: (path)->
-		@controlPath.insertAbove(path.controlPath)
-		@drawing?.insertBelow(@controlPath)
+	# @param index [Number] the index at which to add the path in g.sortedPath
+	insertAbove: (path, index=null, update=false)->
+		@group.insertAbove(path.group)
+		@zindex = @group.index
+		if update and not @drawing then g.updateView()
+		super(path, index, update)
+		return
+
+	# insert below given *path*
+	# @param path [RPath] path under which to insert this
+	# @param index [Number] the index at which to add the path in g.sortedPath
+	insertBelow: (path, index=null, update=false)->
+		@group.insertBelow(path.group)
+		@zindex = @group.index
+		if update and not @drawing then g.updateView()
+		super(path, index, update)
 		return
 
 	# common to all RItems
@@ -670,7 +790,7 @@ class RPath
 		# if not @data?.animate
 		# 	extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
 
-		Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData(), 'bounds': @getBounds() } )
+		Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'date': @date, 'data': @getStringifiedData(), 'bounds': @getBounds() } )
 		# Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData(), 'rasterData': extraction.dataURL, 'rasterPosition': rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized } )
 		
 		# rectangle = @getBounds()
@@ -692,11 +812,16 @@ class RPath
 	# often called after the RPath has changed, in a *g.defferedExecution(@update)*
 	# @param type [String] type of change to consider (in further version, could send only the required information to the server to make the update to improve performances)
 	update: (type)=>
-		console.log "update: " + @pk
+		# console.log "update: " + @pk
 		if not @pk? then return 	# null when was deleted (update could be called on selectEnd)
 		if not @prepareUpdate() then return
 
-		Dajaxice.draw.updatePath( @updatePath_callback, {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData(), 'bounds': @getBounds() } )
+		if type == "z-index"
+			Dajaxice.draw.updatePath( @updatePath_callback, {'pk': @pk, 'date': @date } )
+			@changed = null
+			return
+		else
+			Dajaxice.draw.updatePath( @updatePath_callback, {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData(), 'bounds': @getBounds() } )
 		
 		if not @data?.animate
 			
@@ -755,6 +880,7 @@ class RPath
 		delete g.items[@id]
 		if updateRoom
 			g.chatSocket.emit( "setPathPK", g.me, @id, @pk)
+		super()
 		return
 	
 	# common to all RItems
@@ -770,13 +896,18 @@ class RPath
 		@raster ?= null
 		@canvasRaster ?= null
 		@group = null
-		g.sortedPaths.remove(@)
 		if @pk?
 			delete g.paths[@pk]
 			delete g.items[@pk]
 		else
 			delete g.items[@id]
 			delete g.paths[@id]
+		g.updateView()
+		super()
+		return
+
+	deleteCommand: ()->
+		g.commandManager.add(new DeletePathCommand(@))
 		return
 
 	# common to all RItems
@@ -786,7 +917,6 @@ class RPath
 		@group.visible = false
 		bounds = @getDrawingBounds()
 		@remove()
-		g.updateView()
 		g.rasterizeArea(bounds)
 		if not @pk? then return
 		console.log @pk
@@ -898,11 +1028,11 @@ class PrecisePath extends RPath
 				values: ['smooth', 'corner', 'point']
 				default: 'smooth'
 				addController: true
-				onChange: (value)-> item.changeSelectedPoint?(true, value) for item in g.selectedItems(); return
+				onChange: (value)-> item.changeSelectedPointTypeCommand?(value) for item in g.selectedItems(); return
 			deletePoint: 
 				type: 'button'
 				label: 'Delete point'
-				default: ()-> item.deleteSelectedPoint?() for item in g.selectedItems(); return
+				default: ()-> item.deletePointCommand?() for item in g.selectedItems(); return
 			simplify: 
 				type: 'button'
 				label: 'Simplify'
@@ -964,7 +1094,7 @@ class PrecisePath extends RPath
 	# @param hitOptions [Object] the [paper hit test options](http://paperjs.org/reference/item/#hittest-point)
 	hitTest: (point, hitOptions)->
 		if @speedGroup?.visible then hitResult = @handleGroup?.hitTest(point)
-		hitResult ?= @selectionRectangle.hitTest(point)
+		hitResult ?= super(point, hitOptions)
 		hitResult ?= @controlPath.hitTest(point, hitOptions)
 		return hitResult
 
@@ -1025,21 +1155,9 @@ class PrecisePath extends RPath
 	# initialize the main group and the control path
 	# @param point [Point] the first point of the path
 	initializeControlPath: (point)->
-		@group = new Group()
-		@group.name = "group"
-		@group.controller = @
-
-		@controlPath = new Path()
-		@group.addChild(@controlPath)
-		@controlPath.name = "controlPath"
-		@controlPath.controller = @
-		@controlPath.strokeWidth = @pathWidth()
-		@controlPath.strokeColor = g.selectionBlue
-		@controlPath.strokeColor.alpha = 0.25
-		@controlPath.strokeCap = 'round'
-		@controlPath.visible = false
+		@addControlPath()
 		@controlPath.add(point)
-
+		@rectangle = @controlPath.bounds
 		return
 
 	# redefine {RPath#createBegin}
@@ -1087,10 +1205,10 @@ class PrecisePath extends RPath
 
 		if not @data.polygonMode
 			
-			if @inLockedArea
+			if @lock
 				return
-			if RLock.intersectPoint(point) 		# check if path is not in an RLock
-				@inLockedArea = true
+			@lock = RLock.intersectPoint(point)
+			if @lock 		# check if path is not in an RLock
 				@save()
 				return
 
@@ -1131,7 +1249,7 @@ class PrecisePath extends RPath
 		if @data.polygonMode 
 			if loading then @finishPath(loading)
 		else
-			@inLockedArea = false
+
 			if not loading and @controlPath.segments.length>=2
 				# if @speeds? then @computeSpeed()
 				@controlPath.simplify()
@@ -1151,14 +1269,38 @@ class PrecisePath extends RPath
 			@remove()
 			return
 
-		# todo: uncomment update z index:
-		# @updateZIndex()
 		if @data.smooth then @controlPath.smooth()
 		if not loading
 			@drawEnd(loading)
 			@drawingOffset = 0
 		@draw(false, loading) 	# enable to have the correct @canvasRaster size and to have the exact same result after a load or a change
 		@rasterize()
+		return
+
+	# add or update the selection rectangle (path used to rotate and scale the RPath)
+	# @param reset [Boolean] (optional) true if must reset the selection rectangle (one of the control path segment has been modified)
+	updateSelectionRectangle: (reset=false)->
+		# reset the selection rectangle (and use contorl path bounds as rectangle) if the control path has default transformation (rotation==0 and scaling==(1, 1))
+		# reset = not @rectangle? or @controlPath.rotation==0 and @controlPath.scaling.x == 1 and @controlPath.scaling.y == 1
+
+		if reset
+			@controlPath.firstSegment.point = @controlPath.firstSegment.point # reset transform matrix to have @controlPath.rotation = 0 and @controlPath.scaling = 1,1
+			@rectangle = @controlPath.bounds.clone()
+			@rotation = 0
+
+		super()
+		@controlPath.pivot = @selectionRectangle.pivot
+
+		# expand the selection rectangle to fit the entire drawing, and to avoid interference (overlapping) between control path and selection rectangle
+		# bounds = @rectangle.clone().expand(10+@pathWidth())
+		
+		# @createSelectionRectangle(bounds)
+
+		# if not reset 				# restore transformations if not reset
+		# 	@selectionRectangle.position = @controlPath.position
+		# 	@selectionRectangle.rotation = @controlPath.rotation
+		# 	@selectionRectangle.scaling = @controlPath.scaling
+		
 		return
 
 	# in simplified mode, the path is drawn quickly, with less details
@@ -1296,10 +1438,10 @@ class PrecisePath extends RPath
 		if not @controlPath.selected then return
 		@selectionHighlight?.remove()
 		@selectionHighlight = null
-		if not @selectedSegment? then return
-		point = @selectedSegment.point
-		@selectedSegment.rtype ?= 'smooth'
-		switch @selectedSegment.rtype
+		if not @selectionState.segment? then return
+		point = @selectionState.segment.point
+		@selectionState.segment.rtype ?= 'smooth'
+		switch @selectionState.segment.rtype
 			when 'smooth'
 				@selectionHighlight = new Path.Circle(point, 5)
 			when 'corner'
@@ -1312,7 +1454,7 @@ class PrecisePath extends RPath
 		@selectionHighlight.strokeColor = g.selectionBlue
 		@selectionHighlight.strokeWidth = 1
 		@group.addChild(@selectionHighlight)
-		if @parameterControllers?.pointType? then g.setControllerValue(@parameterControllers.pointType, null, @selectedSegment.rtype, @)
+		if @parameterControllers?.pointType? then g.setControllerValue(@parameterControllers.pointType, null, @selectionState.segment.rtype, @)
 		return
 
 	# redefine {RPath#initSelection}
@@ -1320,50 +1462,34 @@ class PrecisePath extends RPath
 	# - adds handle selection initialization, and highlight selected points if any
 	# - properly initialize transformation (rotation and scale) for PrecisePath
 	initSelection: (event, hitResult, userAction=true) ->
-		specialKey = g.specialKey(event)
+		super(event, hitResult, userAction)
 
-		@selectedSegment = null
-		@selectedHandle = null
-		@selectionHighlight?.remove()
-		@selectionHighlight = null
-		change = 'move'
+		specialKey = g.specialKey(event)
 
 		if hitResult.type == 'segment'
 
-			if specialKey
-				hitResult.segment.remove()
-				@changed = change = 'deleted point'
+			if specialKey and hitResult.item == @controlPath
+				@selectionState = segment: hitResult.segment
+				@deletePointCommand()
 			else
 				if hitResult.item == @controlPath
-					@selectedSegment = hitResult.segment
-					change = 'segment'
-				else if hitResult.item == @selectionRectangle
-					if hitResult.segment.index >= 2 and hitResult.segment.index <= 4
-						@selectionRectangleRotation = 0
-						change = 'rotation'
-					else
-						@selectionRectangleScale = event.point.subtract(@selectionRectangle.bounds.center).length/@controlPath.scaling.x
-						change = 'scale'
+					@selectionState = segment: hitResult.segment
 
 		if not @data.smooth
 			if hitResult.type is "handle-in"
-				@selectedHandle = hitResult.segment.handleIn
-				@selectedSegment = hitResult.segment
-				change = 'handle-in'
+				@selectionState = segment: hitResult.segment, handle: hitResult.segment.handleIn
 			else if hitResult.type is "handle-out"
-				@selectedHandle = hitResult.segment.handleOut
-				@selectedSegment = hitResult.segment
-				change = 'handle-out'
+				@selectionState = segment: hitResult.segment, handle: hitResult.segment.handleOut
 
 		if userAction then @highlightSelectedPoint()
 
-		return change
+		return
 
 	# segment.rtype == null or 'smooth': handles are aligned, and have the same length if shit
 	# segment.rtype == 'corner': handles are not equal
 	# segment.rtype == 'point': no handles
 
-	# redefine {RPath#selectUpdate}
+	# overloads {RPath#selectUpdate}
 	# depending on the selected item, selectUpdate will:
 	# - move the selected handle,
 	# - move the selected point,
@@ -1374,90 +1500,116 @@ class PrecisePath extends RPath
 	# @param event [Paper event] the mouse event
 	# @param userAction [Boolean] whether this is an action from *g.me* or another user
 	selectUpdate: (event, userAction=true)->
-		# console.log "selectUpdate"
-		
+
 		# the previous bounding box is used to update the raster at this position
 		# should not be put in selectBegin() since it is not called when moving multiple items (selectBegin() is called only on the first item)
 		@previousBoundingBox ?= @getDrawingBounds()
 
+		super(event, userAction)
+
 		if not @drawing then g.updateView()
 
-		if @selectedHandle? 									# move the selected handle
+		if @selectionState.handle? 									# move the selected handle
 
-			# when segment.rtype == 'smooth' or 'corner'
+			@selectionState.handle.x += event.delta.x
+			@selectionState.handle.y += event.delta.y
 
-			# @selectedHandle = @selectedHandle.add(event.delta) # does not work
-			@selectedHandle.x += event.delta.x
-			@selectedHandle.y += event.delta.y
-
-			if @selectedSegment.rtype == 'smooth' or not @selectedSegment.rtype?
-				if @selectedHandle == @selectedSegment.handleOut and not @selectedSegment.handleIn.isZero()
-					@selectedSegment.handleIn = if not event.modifiers.shift then @selectedSegment.handleOut.normalize().multiply(-@selectedSegment.handleIn.length) else @selectedSegment.handleOut.multiply(-1)
-				if @selectedHandle == @selectedSegment.handleIn and not @selectedSegment.handleOut.isZero()
-					@selectedSegment.handleOut = if not event.modifiers.shift then @selectedSegment.handleIn.normalize().multiply(-@selectedSegment.handleOut.length) else @selectedSegment.handleIn.multiply(-1)		
-			@updateSelectionRectangle()
+			if @selectionState.segment.rtype == 'smooth' or not @selectionState.segment.rtype?
+				if @selectionState.handle == @selectionState.segment.handleOut and not @selectionState.segment.handleIn.isZero()
+					@selectionState.segment.handleIn = if not event.modifiers.shift then @selectionState.segment.handleOut.normalize().multiply(-@selectionState.segment.handleIn.length) else @selectionState.segment.handleOut.multiply(-1)
+				if @selectionState.handle == @selectionState.segment.handleIn and not @selectionState.segment.handleOut.isZero()
+					@selectionState.segment.handleOut = if not event.modifiers.shift then @selectionState.segment.handleIn.normalize().multiply(-@selectionState.segment.handleOut.length) else @selectionState.segment.handleIn.multiply(-1)		
+			@updateSelectionRectangle(true)
 			@draw(true)
 			@changed = 'moved handle'
-		else if @selectedSegment?								# move the selected point
-			@selectedSegment.point.x += event.delta.x
-			@selectedSegment.point.y += event.delta.y
-			@updateSelectionRectangle()
+		else if @selectionState.segment?								# move the selected point
+			@selectionState.segment.point.x += event.delta.x
+			@selectionState.segment.point.y += event.delta.y
+			@updateSelectionRectangle(true)
 			@draw(true)
 			@changed = 'moved point'
-		else if @selectionRectangleRotation?					# rotate the group
-			# @selectionRectangleRotation is 0 if we initialized rotation, null otherwise. 
-			# The angle will be determined with the angle between the vector (cursor -> selection rectangle center) and the x axis
-			rotation = event.point.subtract(@selectionRectangle.bounds.center).angle + 90
-			@controlPath.rotation = rotation
-			@selectionRectangle.rotation = rotation
-			@draw(true)
-			@changed = 'rotated'
-		else if @selectionRectangleScale?						# scale the group
-			# let *L* be the length between the mouse and the selection rectangle center 
-			# @selectionRectangleScale = *L* / current scaling, @selectionRectangleScale is the *intial scale*
-			# the ratio between the current length *L* and the *initial scale* gives the new scaling
-			ratio = event.point.subtract(@selectionRectangle.bounds.center).length/@selectionRectangleScale
-			scaling = new Point(ratio, ratio)
-			@controlPath.scaling = scaling
-			@selectionRectangle.scaling = scaling
-			@draw(true)
-			@changed = 'scaled'
-		else													# move the group
-			@group.position.x += event.delta.x
-			@group.position.y += event.delta.y
-			@updateSelectionRectangle()
-			# to optimize the move, the position of @drawing is updated at the end
-			# @drawing.position.x += event.delta.x
-			# @drawing.position.y += event.delta.y
-			if not @drawing then @draw(false)
-			@changed = 'moved'
+		# else if @selectionState.rotation?					# rotate the group
+		# 	@controlPath.rotate(@rotation-previousRotation)
+		# 	@draw(true)
+		# else if @selectionState.scale?						# scale the group
+		# 	@controlPath.pivot = previousPivot
+		# 	@controlPath.rotate(-@rotation)
+		# 	@controlPath.scale(@rectangle.width/previousRectangle.width, @rectangle.height/previousRectangle.height)
+		# 	@controlPath.position = @selectionRectangle.pivot
+		# 	@controlPath.pivot = @selectionRectangle.pivot
+		# 	@controlPath.rotate(@rotation)
+		# 	@draw(true)
+		# else if @selectionState.move?
+		# 	if not @drawing then @draw(false)
 
-		# console.log @changed
+		if userAction or @selectionRectangle? then @selectionHighlight?.position = @selectionState.segment.point
 
-		# @updateSelectionRectangle()
-
-		# @drawing.selected = false
-
-		if userAction or @selectionRectangle? then @selectionHighlight?.position = @selectedSegment.point
-
-		# if g.me? and userAction then g.chatSocket.emit( "select update", g.me, @pk, g.eventToObject(event))
 		return
 
 
 	# overload {RPath#selectUpdate} 
 	selectEnd: (event, userAction=true)->
-		console.log "selectEnd"
-		# @updateSelectionRectangle()
-		if userAction or @selectionRectangle? then @selectionHighlight?.position = @selectedSegment.point
-		
-		# @drawing.position = @controlPath.position
-		
-		@selectedHandle = null
-
+		if userAction or @selectionRectangle? then @selectionHighlight?.position = @selectionState.segment.point		
 		if @data.smooth then @controlPath.smooth()
-		if @changed? and @changed != 'moved' then @draw() # to update the curve when user add or remove points
-		# @changed = null in super()
 		super(event, userAction)
+		return
+
+	setRectangle: (rectangle, fastDraw=false)->
+		previousRectangle = @rectangle.clone()
+		super(rectangle, false)
+		@controlPath.pivot = previousRectangle.center
+		@controlPath.rotate(-@rotation)
+		@controlPath.scale(@rectangle.width/previousRectangle.width, @rectangle.height/previousRectangle.height)
+		@controlPath.position = @selectionRectangle.pivot
+		@controlPath.pivot = @selectionRectangle.pivot
+		@controlPath.rotate(@rotation)
+		@draw(fastDraw)
+		return
+
+	setRotation: (rotation, fastDraw=false)->
+		previousRotation = @rotation
+		super(rotation, false)
+		@controlPath.rotate(rotation-previousRotation)
+		@draw(fastDraw)
+		return
+
+	# rotate the control path and redraw
+	# @param rotation [Number] the new rotation
+	# @param command [Boolean] whether it is a command (and we must update the path) or not	
+	rotate: (rotation, command=false)->
+		@controlPath.rotation = rotation
+		@selectionRectangle.rotation = rotation
+		@highlightSelectedPoint()
+		@draw(not command)
+		@changed = 'rotated'
+		if command then @update('rotated')
+		return
+
+	# rotate the control path by *deltaRotation* and redraw
+	# @param deltaRotation [Number] the rotation delta
+	# @param command [Boolean] whether it is a command (and we must update the path) or not	
+	rotateBy: (deltaRotation, command=false)->
+		@rotate(@controlPath.rotation + deltaRotation, command)
+		return
+
+	# scale the control path and redraw
+	# @param scaling [Number] the new scaling
+	# @param command [Boolean] whether it is a command (and we must update the path) or not	
+	scale: (scaling, command=false)->
+		console.log "current scaling: " + @controlPath.scaling.toString() + ", new: " + scaling
+		@controlPath.scaling = scaling
+		@selectionRectangle.scaling = scaling
+		@highlightSelectedPoint()
+		@draw(not command)
+		@changed = 'scaled'
+		if command then @update('scaled')
+		return
+
+	# scale the control path by *deltaScaling* and redraw
+	# @param deltaScaling [Number] the delta scaling
+	# @param command [Boolean] whether it is a command (and we must update the path) or not	
+	scaleBy: (deltaScaling, command=false)->
+		@scale(@controlPath.scaling.multiply(deltaScaling), command)
 		return
 
 	# smooth the point of *segment*, i.e. align the handles with the tangent at this point
@@ -1493,116 +1645,158 @@ class PrecisePath extends RPath
 	# - roll over the three point modes (a 'smooth' point will become 'corner', a 'corner' will become 'point', and a 'point' will be deleted)
 	# else if we clicked on the control path:
 	# - create a point at *event* position
-	# @param event [jQuery event] the mouse event
+	# @param event [jQuery or Paper event] the mouse event
 	# @param userAction [Boolean] whether this is an action from *g.me* or another user
 	doubleClick: (event, userAction=true)->
-		# warning: event is a jQuery event, not a paper event
+		# warning: event can be a jQuery event instead of a paper event
 		
-		specialKey = g.specialKey(event)
+		# check if user clicked on the curve
 		
 		point = if userAction then view.viewToProject(new Point(event.pageX, event.pageY)) else event.point
 
 		hitResult = @performHitTest(point, @constructor.hitOptions)
 
-		if not hitResult?
+		if not hitResult? 	# return if user did not click on the curve
 			return
+		
+		switch hitResult.type
+			when 'segment' 											# if we click on a point: roll over the three point modes 
+				
+				segment = hitResult.segment
+				@selectionState.segment = segment
 
-		hitCurve = hitResult.type == 'stroke' or hitResult.type == 'curve'
-
-		if hitResult.type == 'segment' 											# if we click on a point: roll over the three point modes 
-			segment = hitResult.segment
-			@selectedSegment = segment
-
-			switch segment.rtype
-				when 'smooth', null, undefined
-					segment.rtype = 'corner'
-				when 'corner'
-					segment.rtype = 'point'
-					segment.linear = true
-					@draw()
-				when 'point'
-					@deletePoint(segment)
-				else
-					console.log "segment.rtype not known."
-
-		else if hitCurve and not specialKey  									# else if we clicked on the control path: create a point at *event* position
-			location = hitResult.location 
-			segment = hitResult.item.insert(location.index + 1, point)
+				switch segment.rtype
+					when 'smooth', null, undefined
+						@changeSelectedPointType('corner', userAction)
+					when 'corner'
+						@changeSelectedPointType('point', userAction)
+					when 'point'
+						@deletePointCommand()
+					else
+						console.log "segment.rtype not known."
 			
-			if userAction and not @data.smooth then segment.selected = true
-			@selectedSegment = segment
-			
+			when 'stroke', 'curve'
+				@addPointCommand(hitResult.location)					# else if we clicked on the control path: create a point at *event* position
+
+		return
+
+	addPointCommand: (location)->
+		g.commandManager.add(new AddPointCommand(@, location))
+		return
+
+	# add a point according to *hitResult*
+	# @param location [Paper Location] the location where to add the point
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user
+	# @param update [Boolean] whether update is required
+	# @return the new segment
+	addPoint: (location, userAction=true, update=true)->
+
+		segment = @controlPath.insert(location.index + 1, location.point)
+		
+		if @data.smooth
+			@controlPath.smooth()
+		else
 			@smoothPoint(segment, location.offset)
 
-		if userAction then @highlightSelectedPoint()
+		if userAction
+			segment.selected = true
+			@selectionState.segment = segment
+			@draw()
+			@highlightSelectedPoint()
+			if update then @update('point')
+		return segment
 
-		if hitResult.type == 'segment' or (hitCurve and not specialKey)
-			if @data.smooth then @controlPath.smooth()
-			if userAction
-				@update('point')
-				# if g.me? and userAction then g.chatSocket.emit( "double click", g.me, @pk, g.eventToObject(event))
+	deletePointCommand: ()->
+		g.commandManager.add(new DeletePointCommand(@, @selectionState.segment))
 		return
 
 	# delete the point of *segment* (from curve) and delete curve if there are no points anymore
 	# @param segment [Paper Segment] the segment to delete
-	deletePoint: (segment)->
+	# @return the location of the deleted point (to be able to re-add it in case of a undo)
+	deletePoint: (segment, update=true)->
 		if not segment then return
-		@selectedSegment = if segment.next? then segment.next else segment.previous
-		if @selectedSegment then @selectionHighlight.position = @selectedSegment.point
+		@selectionState.segment = if segment.next? then segment.next else segment.previous
+		if @selectionState.segment then @selectionHighlight.position = @selectionState.segment.point
+		curve = segment.location.curve
+		location = { index: segment.location.index - 1, point: segment.location.point }
 		segment.remove()
 		if @controlPath.segments.length <= 1
-			@delete()
+			@deleteCommand()
 			return
 		if @data.smooth then @controlPath.smooth()
 		@draw()
-		view.draw()
-		return
+		if update then @update('point')
+		return location
 
 	# delete the selected point (from curve) and delete curve if there are no points anymore
 	# emit the action to websocket
 	# @param userAction [Boolean] whether this is an action from *g.me* or another user
 	deleteSelectedPoint: (userAction=true)->
-		@deletePoint(@selectedSegment)
+		@deletePoint(@selectionState.segment)
 		if g.me? and userAction then g.chatSocket.emit( "parameter change", g.me, @pk, "deleteSelectedPoint", null, "rFunction")
+		return
+
+	changeSelectedPointTypeCommand: (value)->
+		g.commandManager.add(new ChangeSelectedPointTypeCommand(@, value))
+		return
+
+	# change selected segment position and handle position
+	# @param position [Paper Point] the new position
+	# @param handleIn [Paper Point] the new handle in position
+	# @param handleOut [Paper Point] the new handle out position
+	# @param update [Boolean] whether we must update the path (for example when it is a command) or not
+	# @param draw [Boolean] whether we must draw the path or not
+	changeSelectedSegment: (position, handleIn, handleOut, update=true, draw=true)->
+		@selectionState.segment.point = position
+		@selectionState.segment.handleIn = handleIn
+		@selectionState.segment.handleOut = handleOut
+		@updateSelectionRectangle(true)
+		@highlightSelectedPoint()
+		if draw then @draw()
+		if update then @update('segment')
 		return
 
 	# - set selected point mode to *value*: 'smooth', 'corner' or 'point'
 	# - update the selected point highlight 
 	# - emit action to websocket
-	# @param userAction [Boolean] whether this is an action from *g.me* or another user
 	# @param value [String] new mode of the point: can be 'smooth', 'corner' or 'point'
-	changeSelectedPoint: (userAction=true, value)->
-		if not @selectedSegment? then return
+	# @param userAction [Boolean] whether this is an action from *g.me* or another user
+	# @param update [Boolean] whether update is required
+	changeSelectedPointType: (value, userAction=true, update=true)->
+		if not @selectionState.segment? then return
 		if @data.smooth then return
-		@selectedSegment.rtype = value
+		@selectionState.segment.rtype = value
 		switch value
 			when 'corner'
-				if @selectedSegment.linear = true
-					@selectedSegment.linear = false
-					@selectedSegment.handleIn = @selectedSegment.previous.point.subtract(@selectedSegment.point).multiply(0.5)
-					@selectedSegment.handleOut = @selectedSegment.next.point.subtract(@selectedSegment.point).multiply(0.5)
+				if @selectionState.segment.linear = true
+					@selectionState.segment.linear = false
+					@selectionState.segment.handleIn = @selectionState.segment.previous.point.subtract(@selectionState.segment.point).multiply(0.5)
+					@selectionState.segment.handleOut = @selectionState.segment.next.point.subtract(@selectionState.segment.point).multiply(0.5)
 			when 'point'
-				@selectedSegment.linear = true
+				@selectionState.segment.linear = true
 			when 'smooth'
-				@smoothPoint(@selectedSegment)
+				@smoothPoint(@selectionState.segment)
+		@draw()
 		@highlightSelectedPoint()
-		if g.me? and userAction then g.chatSocket.emit( "parameter change", g.me, @pk, "changeSelectedPoint", value, "rFunction")
+		if userAction
+			if g.me? then g.chatSocket.emit( "parameter change", g.me, @pk, "changeSelectedPoint", value, "rFunction")
+			if update then @update('point')
 		return
 
 	# overload {RPath#parameterChanged}, but update the control path state if 'smooth' was changed
 	# called when a parameter is changed
-	parameterChanged: (update=true)->
-		switch @changed
-			when 'smooth'
-				# todo: add a warning when changing smooth?
-				if @data.smooth 		# todo: put this in @draw()? and remove this function? 
-					@controlPath.smooth()
-					@controlPath.fullySelected = false
-					@controlPath.selected = true
-					segment.rtype = 'smooth' for segment in @controlPath.segments
-				else
-					@controlPath.fullySelected = true
-		super(update)
+	changeParameter: (name, value, userAction=true, updateGUI)->
+		super(name, value, userAction, updateGUI)
+		if name == 'smooth'
+			# todo: add a warning when changing smooth?
+			if @data.smooth 		# todo: put this in @draw()? and remove this function? 
+				@controlPath.smooth()
+				@controlPath.fullySelected = false
+				@controlPath.selected = true
+				segment.rtype = 'smooth' for segment in @controlPath.segments
+			else
+				@controlPath.fullySelected = true
+		return
 
 	# overload {RPath#remove}, but in addition: remove the selected point highlight and the canvas raster
 	remove: ()->
@@ -1638,8 +1832,14 @@ class SpeedPath extends PrecisePath
 		parameters = super()
 
 		parameters['Edit curve'].showSpeed = 
+			type: 'checkbox'
+			label: 'Show speed'
+			value: true
+
+		if g.wacomPenAPI?
+			parameters['Edit curve'].usePenPressure = 
 				type: 'checkbox'
-				label: 'Show speed'
+				label: 'Pen pressure'
 				value: true
 
 		return parameters
@@ -1668,8 +1868,9 @@ class SpeedPath extends PrecisePath
 		previousControlPathOffset = if segment.previous? then segment.previous.location.offset else 0
 
 		previousSpeed = if @speeds.length>0 then @speeds.pop() else 0
-		currentSpeed = controlPathOffset - previousControlPathOffset
-		
+
+		currentSpeed = if not @data.usePenPressure or g.wacomPointerType[g.wacomPenAPI.pointerType] == 'Mouse' then controlPathOffset - previousControlPathOffset else g.wacomPenAPI.pressure * @constructor.maxSpeed
+
 		while @speedOffset + @constructor.speedStep < controlPathOffset
 			@speedOffset += @constructor.speedStep
 			f = (@speedOffset-previousControlPathOffset)/currentSpeed
@@ -1909,6 +2110,7 @@ class SpeedPath extends PrecisePath
 
 	# overload {PrecisePath#getData} and adds the speeds in @data.speeds (unused speed values are not stored)
 	getData: ()->
+		delete @data.usePenPressure 		# there is no need to store whether the pen was used or not
 		data = jQuery.extend({}, super())
 		data.speeds = if @speeds? and @handleGroup? then @speeds.slice(0, @handleGroup.children.length+1) else @speeds
 		return data
@@ -1935,24 +2137,17 @@ class SpeedPath extends PrecisePath
 		@speedSelectionHighlight = null
 
 		if hitResult.item.name == "speed handle"
-			@selectedSpeedHandle = hitResult.item
-			change = 'speed handle'
-			return change
+			@selectionState = speedHandle: hitResult.item
+			return
 
 		return super(event, hitResult, userAction)
 
 	# overload {PrecisePath#selectUpdate} but add the possibility to modify speed handles
 	selectUpdate: (event, userAction=true)->
 
-		# the previous bounding box is used to update the raster at this position
-		# should not be put in selectBegin() since it is not called when moving multiple items (selectBegin() is called only on the first item)
-		@previousBoundingBox ?= @getDrawingBounds()
-
-		if not @drawing then g.updateView()
-
-		if not @selectedSpeedHandle?
-			super(event, userAction)
-		else
+		super(event, userAction)
+		
+		if @selectionState.speedHandle?
 			@speedSelectionHighlight?.remove()
 
 			maxSpeed = @constructor.maxSpeed
@@ -1965,7 +2160,7 @@ class SpeedPath extends PrecisePath
 			@speedSelectionHighlight.strokeColor = 'blue'
 			@speedGroup.addChild(@speedSelectionHighlight)
 
-			handle = @selectedSpeedHandle
+			handle = @selectionState.speedHandle
 			handlePosition = handle.bounds.center
 
 			handleToPoint = event.point.subtract(handlePosition)
@@ -2016,13 +2211,12 @@ class SpeedPath extends PrecisePath
 
 			@changed = 'speed handle moved'
 
-			if userAction or @selectionRectangle? then @selectionHighlight?.position = @selectedSegment.point
+			if userAction or @selectionRectangle? then @selectionHighlight?.position = @selectionState.segment.point
 			# if g.me? and userAction then g.chatSocket.emit( "select update", g.me, @pk, g.eventToObject(event))
 		return
 
 	# overload {PrecisePath#selectEnd} and reset speed handles
 	selectEnd: (event, userAction=true)->
-		@selectedSpeedHandle = null
 		@speedSelectionHighlight?.remove()
 		@speedSelectionHighlight = null
 		super(event, userAction)
@@ -3099,7 +3293,7 @@ class RShape extends RPath
 		@rectangle = if @data.rectangle? then new Rectangle(@data.rectangle.x, @data.rectangle.y, @data.rectangle.width, @data.rectangle.height) else new Rectangle()
 		@initializeControlPath(@rectangle.topLeft, @rectangle.bottomRight, false, false, true)
 		@draw(null, true)
-		@controlPath.rotation = @data.rotation
+		@controlPath.rotation = @rotation
 		@initialize()
 		# Check shape validity
 		distanceMax = @constructor.secureDistance*@constructor.secureDistance
@@ -3125,75 +3319,137 @@ class RShape extends RPath
 		super(position)
 		return
 
-	# redefine {RPath#updateSelectionRectangle}
-	# the selection rectangle is slightly different for a shape since it is never reset (rotation and scale are stored in database)
-	updateSelectionRectangle: ()->
-		bounds = @rectangle.clone().expand(10+@pathWidth())
-		@selectionRectangle?.remove()
-		@selectionRectangle = new Path.Rectangle(bounds)
-		@group.addChild(@selectionRectangle)
-		@selectionRectangle.name = 'selection rectangle'
-		@selectionRectangle.pivot = @selectionRectangle.bounds.center
-		@selectionRectangle.insert(2, new Point(bounds.center.x, bounds.top))
-		@selectionRectangle.insert(2, new Point(bounds.center.x, bounds.top-25))
-		@selectionRectangle.insert(2, new Point(bounds.center.x, bounds.top))
-		@selectionRectangle.rotation = @data.rotation
-		@selectionRectangle.selected = true
-		@selectionRectangle.controller = @
-		@controlPath.pivot = @selectionRectangle.pivot
+	# # redefine {RPath#updateSelectionRectangle}
+	# # the selection rectangle is slightly different for a shape since it is never reset (rotation and scale are stored in database)
+	# updateSelectionRectangle: ()->
+	# 	bounds = @rectangle.clone().expand(10+@pathWidth())
+	# 	@createSelectionRectangle(bounds)
+	# 	@selectionRectangle.rotation = @rotation
+	# 	return
+
+	# # overloads {RPath#selectUpdate}
+	# # depending on the selected item, selectUpdate will:
+	# # - rotate the group,
+	# # - scale the group,
+	# # - or move the group.
+	# # the shape is redrawn when scaled or rotated
+	# # @param event [Paper event] the mouse event
+	# # @param userAction [Boolean] whether this is an action from *g.me* or another user
+	# selectUpdate: (event, userAction=true)->
+	# 	super(event, userAction)
+
+	# 	if @selectionRectangleRotation?
+	# 		direction = event.point.subtract(@selectionRectangle.pivot)
+	# 		delta = @selectionRectangleRotation.getDirectedAngle(direction)
+	# 		@selectionRectangleRotation = direction
+	# 		@rotation += delta
+	# 		@selectionRectangle.rotation += delta
+	# 		@raster?.rotation += delta
+	# 		@changed = 'rotated'
+	# 		@draw()
+	# 	else if @selectionRectangleScale?
+	# 		delta = event.point.subtract(@rectangle.center)
+	# 		x = new Point(1,0)
+	# 		x.angle += @selectionRectangle.rotation
+	# 		dx = x.dot(delta)
+	# 		y = new Point(0,1)
+	# 		y.angle += @selectionRectangle.rotation
+	# 		dy = y.dot(delta)
+
+	# 		# if shift is not pressed and a corner is selected: keep aspect ratio (@rectangle must have width and height greater than 0 to keep aspect ratio)
+	# 		if not event.modifiers.shift and @selectionRectangleScale.index in [0, 2, 6, 8] and @rectangle.width > 0 and @rectangle.height > 0
+	# 			if Math.abs(dx / @rectangle.width) > Math.abs(dy / @rectangle.height)
+	# 				dx = g.sign(dx) * Math.abs(@rectangle.width * dy / @rectangle.height)
+	# 			else
+	# 				dy = g.sign(dy) * Math.abs(@rectangle.height * dx / @rectangle.width)
+
+	# 		index = @selectionRectangleScale.index
+	# 		name = @constructor.indexToName[index]
+	# 		center = @rectangle.center.clone()
+
+	# 		@rectangle[name] = @constructor.valueFromName(center.add(dx, dy), name)
+
+	# 		if not g.specialKey(event) 
+	# 			@rectangle[@constructor.oppositeName[name]] = @constructor.valueFromName(center.subtract(dx, dy), name)
+	# 		else
+	# 			# the center of the rectangle changes when moving only one side
+	# 			# the center must be repositionned with the previous center as pivot point (necessary when rotation > 0)
+	# 			@rectangle.center = center.add(@rectangle.center.subtract(center).rotate(@rotation))
+
+	# 		if @rectangle.width < 0
+	# 			@rectangle.width = Math.abs(@rectangle.width)
+	# 			@rectangle.center.x = center.x
+	# 		if @rectangle.height < 0
+	# 			@rectangle.height = Math.abs(@rectangle.height)
+	# 			@rectangle.center.y = center.y
+
+	# 		# ratio = delta.divide(@selectionRectangleScale.scale)
+	# 		# @selectionRectangleScale.scale = delta
+	# 		# @rectangle = @rectangle.scale(ratio)
+	# 		# @rectangle = @rectangle.expand(delta.subtract(@rectangle.size.divide(2)))
+	# 		# @raster?.scale(delta)
+	# 		@updateSelectionRectangle()
+	# 		@changed = 'scaled'
+	# 		@draw()
+	# 	else
+	# 		@group.position.x += event.delta.x
+	# 		@group.position.y += event.delta.y
+
+	# 		# @controlPath.position.x += event.delta.x
+	# 		# @controlPath.position.y += event.delta.y
+	# 		# @raster?.position.x += event.delta.x
+	# 		# @raster?.position.y += event.delta.y
+	# 		@rectangle.x += event.delta.x
+	# 		@rectangle.y += event.delta.y
+	# 		# @selectionRectangle.position.x += event.delta.x
+	# 		# @selectionRectangle.position.y += event.delta.y
+	# 		if not @drawing then @draw(false)
+	# 		@changed = 'moved'
+
+	# 	# if g.me? and userAction then g.chatSocket.emit( "select update", g.me, @pk, g.eventToObject(event))
+
+	# 	return
+
+	# redefines {PrecisePath#rotate}
+	# rotate the control path and redraw
+	# @param rotation [Number] the new rotation
+	# @param command [Boolean] whether it is a command (and we must update the path) or not	
+	rotate: (rotation, command=false)->
+		@rotation = rotation
+		@updateSelectionRectangle()
+		@raster?.rotation = rotation
+		@changed = 'rotated'
+		@draw(not command)
+		if command then @update('rotated')
 		return
 
-	# redefine {RPath#selectUpdate}
-	# depending on the selected item, selectUpdate will:
-	# - rotate the group,
-	# - scale the group,
-	# - or move the group.
-	# the shape is redrawn when scaled or rotated
-	# @param event [Paper event] the mouse event
-	# @param userAction [Boolean] whether this is an action from *g.me* or another user
-	selectUpdate: (event, userAction=true)->
-		# console.log "selectUpdate"
+	# redefines {PrecisePath#rotateBy}
+	# rotate the control path by *deltaRotation* and redraw
+	# @param deltaRotation [Number] the rotation delta
+	# @param command [Boolean] whether it is a command (and we must update the path) or not	
+	rotateBy: (deltaRotation, command=false)->
+		@rotate(@rotation + deltaRotation, command)
+		return
 
-		# the previous bounding box is used to update the raster at this position
-		# should not be put in selectBegin() since it is not called when moving multiple items (selectBegin() is called only on the first item)
-		@previousBoundingBox ?= @getDrawingBounds()
+	# scale the control path and redraw
+	# @param size [Number] the new size
+	# @param command [Boolean] whether it is a command (and we must update the path) or not	
+	scale: (size, command=false)->
+		if not size.width? then size = new Size(size)
+		scale = size.width/@rectangle.width
+		@rectangle = @rectangle.scale(scale)
+		@updateSelectionRectangle()
+		@raster?.scale(scale)
+		@changed = 'scaled'
+		@draw(not command)
+		if command then @update('scaled')
+		return
 
-		if not @drawing then g.updateView()
-
-		if @selectionRectangleRotation?
-			direction = event.point.subtract(@selectionRectangle.bounds.center)
-			delta = @selectionRectangleRotation.getDirectedAngle(direction)
-			@selectionRectangleRotation = direction
-			@data.rotation += delta
-			@selectionRectangle.rotation += delta
-			@raster?.rotation += delta
-			@changed = 'rotated'
-			@draw()
-		else if @selectionRectangleScale?
-			length = event.point.subtract(@selectionRectangle.bounds.center).length
-			delta = length/@selectionRectangleScale
-			@selectionRectangleScale = length
-			@rectangle = @rectangle.scale(delta)
-			@selectionRectangle.scale(delta)
-			@raster?.scale(delta)
-			@changed = 'scaled'
-			@draw()
-		else
-			@group.position.x += event.delta.x
-			@group.position.y += event.delta.y
-
-			# @controlPath.position.x += event.delta.x
-			# @controlPath.position.y += event.delta.y
-			# @raster?.position.x += event.delta.x
-			# @raster?.position.y += event.delta.y
-			@rectangle.x += event.delta.x
-			@rectangle.y += event.delta.y
-			# @selectionRectangle.position.x += event.delta.x
-			# @selectionRectangle.position.y += event.delta.y
-			if not @drawing then @draw(false)
-			@changed = 'moved'
-
-		# if g.me? and userAction then g.chatSocket.emit( "select update", g.me, @pk, g.eventToObject(event))
+	# scale the path by *deltaScaling* and redraw
+	# @param deltaScaling [Number] the delta scaling
+	# @param command [Boolean] whether it is a command (and we must update the path) or not	
+	scaleBy: (deltaScaling, command=false)->
+		@scale(@rectangle.size.multiply(deltaScaling), command)
 		return
 
 	# overload {RPath.pathWidth}
@@ -3214,7 +3470,7 @@ class RShape extends RPath
 		process = ()=>
 			@initializeDrawing()
 			@createShape()
-			@drawing.rotation = @data.rotation
+			@drawing.rotation = @rotation
 			@rasterize()
 			return
 		if not g.catchErrors
@@ -3236,9 +3492,6 @@ class RShape extends RPath
 	# @param specialKey [Boolean] whether the special key is pressed (command on a mac, control otherwise)
 	# @param load [Boolean] whether the shape is being loaded
 	initializeControlPath: (pointA, pointB, shift, specialKey, load)->
-		@group = new Group()
-		@group.name = "group"
-		@group.controller = @
 
 		# create the rectangle from the two points
 		if load
@@ -3269,16 +3522,8 @@ class RShape extends RPath
 		
 		# create the control path
 		@controlPath?.remove()
-		@controlPath = new Path.Rectangle(@rectangle)
-		@group.addChild(@controlPath)
-		@controlPath.name = "controlPath"
-		@controlPath.controller = @
-		@controlPath.strokeWidth = @pathWidth()
-		@controlPath.strokeColor = g.selectionBlue
-		@controlPath.strokeColor.alpha = 0.25
-		@controlPath.strokeCap = 'round'
-		@controlPath.visible = false
-		@data.rotation ?= 0
+		@rotation ?= 0
+		@addControlPath(new Path.Rectangle(@rectangle))
 		return
 
 	# overload {RPath#createBegin} + initialize the control path and draw
@@ -3503,7 +3748,7 @@ class SpiralShape extends RShape
 	onFrame: (event)=>
 		# very simple example of path animation
 		@shape.strokeColor.hue += 1
-		@shape.rotation += @data.rotationSpeed
+		@shape.rotation += @rotationSpeed
 		return
 
 @SpiralShape = SpiralShape
@@ -3733,7 +3978,7 @@ class Checkpoint extends RShape
 	# checks if the checkpoints contains the point, used by the video game to test collisions between the car and the checkpoint
 	contains: (point)->
 		delta = point.subtract(@rectangle.center)
-		delta.rotation = -@data.rotation
+		delta.rotation = -@rotation
 		return @rectangle.contains(@rectangle.center.add(delta))
 
 	# we must unregister the checkpoint before removing it
