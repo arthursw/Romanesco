@@ -192,15 +192,15 @@ this.initSocket = ()->
 		view.draw()
 		return
 
-	g.chatSocket.on "selectBegin", (from, pk, event) ->
-		console.log "selectBegin"
-		g.items[pk].selectBegin(objectToEvent(event), false)
+	g.chatSocket.on "beginSelect", (from, pk, event) ->
+		console.log "beginSelect"
+		g.items[pk].beginSelect(objectToEvent(event), false)
 		view.draw()
 		return
 
-	g.chatSocket.on "selectUpdate", (from, pk, event) ->
-		console.log "selectUpdate"
-		g.items[pk].selectUpdate(objectToEvent(event), false)
+	g.chatSocket.on "updateSelect", (from, pk, event) ->
+		console.log "updateSelect"
+		g.items[pk].updateSelect(objectToEvent(event), false)
 		view.draw()
 		return
 
@@ -210,9 +210,9 @@ this.initSocket = ()->
 		view.draw()
 		return
 
-	g.chatSocket.on "selectEnd", (from, pk, event) ->
-		console.log "selectEnd"
-		g.items[pk].selectEnd(objectToEvent(event), false)
+	g.chatSocket.on "endSelect", (from, pk, event) ->
+		console.log "endSelect"
+		g.items[pk].endSelect(objectToEvent(event), false)
 		view.draw()
 		return
 
@@ -241,7 +241,7 @@ this.initSocket = ()->
 	# experimental *type* == 'rFunction' to call a custom function of the item
 	g.chatSocket.on "parameterChange", (from, pk, name, value, type=null) ->
 		if type != "rFunction"
-			g.items[pk].changeParameter(name, value, false)
+			g.items[pk].changeParameter(name, value)
 		else
 			g.items[pk][name]?(false, value)
 		view.draw()

@@ -26,7 +26,7 @@ this.initParameters = () ->
 
 	g.parameters = {}
 	g.parameters.location = 
-		type: 'input'
+		type: 'string'
 		label: 'Location'
 		default: '0.0, 0.0'
 		permanent: true
@@ -515,21 +515,25 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 				updateItemControllers(parameter, name, item, controller)
 			g.unusedControllers.remove(controller)
 			return
+	
+	# - snap the value according to parameter.step
+	# - update item.data[name] if it is defined
+	# - call item.parameterChanged()
+	# - emit "parameter change" on websocket
+	onParameterChange = (value) -> 
+		for item in g.selectedItems()
+			if typeof item?.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
+				if parameter.step? then value = value-value%parameter.step
+				item.changeParameterCommand(name, value)
+				if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
+		return
 
-	if not parameter.onChange? 		# if parameter has no onChange function: create a default one which will update item.data[name]
+	# if parameter has no onChange function: create a default one which will update item.data[name]
+	if parameter.type == 'string' and not parameter.fireOnEveryChange
+		parameter.onFinishChange ?= onParameterChange
+	else
+		parameter.onChange ?= onParameterChange
 
-		# - snap the value according to parameter.step
-		# - update item.data[name] if it is defined
-		# - call item.parameterChanged()
-		# - emit "parameter change" on websocket
-		parameter.onChange = (value) -> 
-			console.log "onChange"
-			for item in g.selectedItems()
-				if typeof item?.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
-					if parameter.step? then value = value-value%parameter.step
-					item.changeParameterCommand(name, value)
-					if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
-			return
 
 	obj = {}
 
@@ -586,7 +590,7 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 					opacity: 'Opacity'
 				},
 				customswatches: "different-swatches-groupname",
-				swatches: ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5' ],
+				swatches: g.defaultColors,
 				onchange: (container, color) ->
 					parameter.onChange(color.tiny.toRgbString())
 					checkboxJ[0].checked = true
@@ -609,7 +613,7 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 					if value? then colorPicker.trigger("colorpickersliders.updateColor", value)
 				checkboxJ[0].checked = checked
 				return
-		when 'slider', 'checkbox', 'dropdown', 'button', 'button-group', 'radio-button-group', 'input', 'input-typeahead'		# create any other controller
+		when 'slider', 'checkbox', 'dropdown', 'button', 'button-group', 'radio-button-group', 'string', 'input-typeahead'		# create any other controller
 			obj[name] = value
 			firstOptionalParameter = if parameter.min? then parameter.min else parameter.values
 			controller = datFolder.add(obj, name, firstOptionalParameter, parameter.max).name(parameter.label).onChange(parameter.onChange).onFinishChange(parameter.onFinishChange)

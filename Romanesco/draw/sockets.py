@@ -100,13 +100,13 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     # --- update --- #
 
     def on_select_begin(self, user, pk, event):
-        self.emit_to_room(self.room, 'selectBegin', user, pk, event)
+        self.emit_to_room(self.room, 'beginSelect', user, pk, event)
 
     def on_select_update(self, user, pk, event):
-        self.emit_to_room(self.room, 'selectUpdate', user, pk, event)
+        self.emit_to_room(self.room, 'updateSelect', user, pk, event)
 
     def on_select_end(self, user, pk, event):
-        self.emit_to_room(self.room, 'selectEnd', user, pk, event)
+        self.emit_to_room(self.room, 'endSelect', user, pk, event)
 
     def  on_double_click(self, user, pk, event):
         self.emit_to_room(self.room, 'doubleClick', user, pk, event)

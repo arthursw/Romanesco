@@ -1,16 +1,8 @@
 class Command
 
-	# @execute: true when the command must be executed:
-	#			used to ignore the @do action:
-	# 				- when creating the command (for actions which are performed independently of the command like moving a point: 
-	# 											 the point is moved anyway, and then the MovePointCommand is updated with the new point position)
-	# 				- when the command is not ready to be executed (for example when the server has not responded yet after a createDivCommand
-	# 																the command has to way the newly created object to be able to delete it later)
-	constructor: (@name, @execute=true)->
+	constructor: (@name)->
 		@liJ = $("<li>").text(@name)
 		@liJ.click(@click)
-		@done = not @execute
-		if @done then @liJ.addClass('done')
 		return
 
 	do: ()->
@@ -34,6 +26,12 @@ class Command
 		@liJ.remove()
 		return
 
+	update: ()->
+		return
+
+	end: ()->
+		return
+
 @Command = Command
 
 # class DuplicateCommand extends Command
@@ -53,27 +51,208 @@ class Command
 
 # @DuplicateCommand = DuplicateCommand
 
-class MoveCommand extends Command
-	constructor: (@item, @newPosition, @previousPosition=null, execute=true)->
-		super("Move item", execute)
-		@previousPosition ?= @item.getPosition()
+class ResizeCommand extends Command
+	constructor: (@item)->
+		super("Resize item", item)
+		@previousRectangle = @item.rectangle
 		return
 
 	do: ()->
-		@item.moveTo(@newPosition, true)
+		@item.setRectangle(@newRectangle)
 		super()
 		return
 
 	undo: ()->
-		@item.moveTo(@previousPosition, true)
+		@item.setRectangle(@previousRectangle)
 		super()
 		return
 
-	update: ()->
-		@newPosition = @item.getPosition()
+	update: (event)->
+		@item.updateSetRectangle(event)
+		return
+
+	end: ()->
+		@newRectangle = @item.rectangle
+		@item.endSetRectangle()
+		return
+
+@ResizeCommand = ResizeCommand
+
+class RotationCommand extends Command
+	constructor: (@item)->
+		super("Rotate item")
+		@previousRotation = @item.rotation
+		return
+
+	do: ()->
+		@item.setRotation(@newRotation)
+		super()
+		return
+
+	undo: ()->
+		@item.setRotation(@previousRotation)
+		super()
+		return
+
+	update: (event)->
+		@item.updateSetRotation(event)
+		return
+
+	end: ()->
+		@newRotation = @item.rotation
+		@item.endSetRotation()
+		return
+
+@RotationCommand = RotationCommand
+
+class MoveCommand extends Command
+	constructor: (@item)->
+		super("Rotate item")
+		@previousPosition = @item.rectangle.center
+		return
+
+	do: ()->
+		@item.moveTo(@newPosition)
+		super()
+		return
+
+	undo: ()->
+		@item.moveTo(@previousPosition)
+		super()
+		return
+
+	update: (event)->
+		@item.updateMoveBy(event)
+		return
+
+	end: ()->
+		@newPosition = @item.rectangle.center
+		@item.endMoveBy()
 		return
 
 @MoveCommand = MoveCommand
+
+class ModifyPointCommand extends Command
+	
+	constructor: (@item)->
+		@segment = @item.selectionState.segment
+		@previousPosition = new Point(@segment.point)
+		@previousHandleIn = new Point(@segment.handleIn)
+		@previousHandleOut = new Point(@segment.handleOut)
+		super('Modify point')
+		return
+
+	do: ()->
+		@item.modifySegment(@segment, @position, @handleIn, @handleOut)
+		super()
+		return
+
+	undo: ()->
+		@item.modifySegment(@segment, @previousPosition, @previousHandleIn, @previousHandleOut)
+		super()
+		return
+
+	update: (event)->
+		@item.updateModifySegment(event)
+		return
+
+	end: ()->
+		@position = new Point(@segment.point)
+		@handleIn = new Point(@segment.handleIn)
+		@handleOut = new Point(@segment.handleOut)
+		@item.endModifySegment()
+		return
+
+
+@ModifyPointCommand = ModifyPointCommand
+
+class ModifySpeedCommand extends Command
+
+	constructor: (@item)->
+		@previousSpeeds = @item.speeds.slice()
+		super('Change speed')
+		return
+
+	do: ()->
+		@item.speeds = @speeds
+		@item.updateSpeed()
+		@item.draw()
+		super()
+		return
+	
+	undo: ()->
+		@speeds = @item.speeds.slice()
+		@item.speeds = @previousSpeeds
+		@item.updateSpeed()
+		@item.draw()
+		super()
+		return
+
+	update: (event)->
+		@item.updateModifySpeed(event)
+		return
+
+	end: ()->
+		# @speeds = speeds.splice()
+		@item.endModifySpeed()
+		return
+
+@ModifySpeedCommand = ModifySpeedCommand
+
+class ChangeParameterCommand extends Command
+	constructor: (@item, @parameterName)->
+		@previousValue = @item.data[@parameterName]
+		super('Change item parameter "' + @parameterName + '"')
+		return
+
+	do: ()->
+		@item.changeParameter(@parameterName, @value, true, true)
+		super()
+		return
+
+	undo: ()->
+		@item.changeParameter(@parameterName, @previousValue, true, true)
+		super()
+		return
+
+	update: (name, value)->
+		@item.changeParameter(name, value)
+		return
+
+	end: ()->
+		@value = @item.data[@parameterName]
+		@item.update(@parameterName)
+		return
+
+@ChangeParameterCommand = ChangeParameterCommand
+
+# ---- # # ---- # # ---- # # ---- #
+# ---- # # ---- # # ---- # # ---- #
+# ---- # # ---- # # ---- # # ---- #
+# ---- # # ---- # # ---- # # ---- #
+
+
+# class MoveCommand extends Command
+# 	constructor: (@item, @newPosition=null)->
+# 		super("Move item", @newPosition?)
+# 		@previousPosition = @item.rectangle.center
+# 		return
+
+# 	do: ()->
+# 		@item.moveTo(@newPosition, true)
+# 		super()
+# 		return
+
+# 	undo: ()->
+# 		@item.moveTo(@previousPosition, true)
+# 		super()
+# 		return
+
+# 	end: ()->
+# 		@newPosition = @item.rectangle.center
+# 		return
+
+# @MoveCommand = MoveCommand
 
 class SelectCommand extends Command
 	constructor: (@items, @updateParameters)->
@@ -99,40 +278,11 @@ class SelectCommand extends Command
 
 @SelectCommand = SelectCommand
 
-class ChangeParameterCommand extends Command
-	constructor: (@item, @parameterName)->
-		@previousValue = @item.data[@parameterName]
-		console.log 'previousValue'
-		console.log @previousValue
-		super('Change item parameter "' + @parameterName + '"', false)
-		return
-
-	do: ()->
-		console.log 'change ' + @parameterName + ' , change to ' + @value
-		console.log @value
-		@item.changeParameter(@parameterName, @value, true, true)
-		super()
-		return
-
-	undo: ()->
-		console.log 'undo change ' + @parameterName + ' , change to ' + @previousValue
-		console.log @previousValue
-		@item.changeParameter(@parameterName, @previousValue, true, true)
-		super()
-		return
-
-	update: ()->
-		@value = @item.data[@parameterName]
-		console.log 'value'
-		console.log @value
-		return
-
-@ChangeParameterCommand = ChangeParameterCommand
-
 class CreatePathCommand extends Command
-	constructor: (@item, name=null, execute=false)->
+	constructor: (@item, name=null)->
 		name ?= "Create path" 	# if name is not define: it is a create path command
-		super(name, execute)
+		@itemConstructor = @item.constructor
+		super(name)
 		return
 
 	duplicate: ()->
@@ -148,7 +298,6 @@ class CreatePathCommand extends Command
 		@controlPathSegments = clone.segments
 		clone.remove()
 		@data = @item.getData()
-		@itemConstructor = @item.constructor
 		@item.delete()
 		@item = null
 		return
@@ -181,27 +330,18 @@ class DeletePathCommand extends CreatePathCommand
 @DeletePathCommand = DeletePathCommand
 
 class CreateDivCommand extends Command
-	constructor: (@div, name=null, execute=false)->
+	constructor: (@div, name=null)->
 		name ?= "Create div" 	# if name is not define: it is a create path command
-		@update()
-		super(name, execute)
+		super(name)
 		return
 	
 	duplicate: ()->
-		# mechanism to get the new div: give @ to div's constructor (in a dictionnary of <divPK -> CreateDivCommand>) 
-		# so that div's constructor update @div when duplicate div is created (in RDiv.save_callback)
-		@divConstructor.duplicateCommand ?= {}
-		@divConstructor.duplicateCommand[@pk] = @
-		@divConstructor.duplicate(@bounds, @object_type, @message, @name, @url, @pk, @data)
+		@divConstructor.duplicate(@rectangle, @data)
 		@div = null
-		@execute = false
 		return
 
 	deleteDiv: ()->
-		if not @div
-			@execute = false
-			return
-		@update()
+		@end()
 		@div.delete()
 		@div = null
 		return
@@ -216,31 +356,16 @@ class CreateDivCommand extends Command
 		super()
 		return
 
-	update: ()->
-		@bounds = @div.getBounds()
-		@object_type = @div.object_type
-		@message = @div.message
-		@name = @div.name
-		@url = @div.url
-		@pk = @div.pk
+	end: ()->
+		@rectangle = @div.rectangle
 		@data = @div.getData()
 		@divConstructor = @div.constructor
-		return
-
-	setDiv: (div)->
-		@div = div
-		@execute = true
-		return
-
-	delete: ()->
-		delete @divConstructor.duplicateCommand[@pk]
-		super()
 		return
 
 @CreateDivCommand = CreateDivCommand
 
 class DeleteDivCommand extends CreateDivCommand
-	constructor: (@item)-> super(@item, 'Delete div', true)
+	constructor: (@div, name=null)-> super(@div, name or 'Delete div', true)
 	
 	do: ()->
 		@deleteDiv()
@@ -254,29 +379,17 @@ class DeleteDivCommand extends CreateDivCommand
 
 @DeleteDivCommand = DeleteDivCommand
 
-class ResizeDivCommand extends Command
-	constructor: (@div)->
-		@previousPosition = @div.position
-		@previousSize = @div.size
-		super("Resize div", false)
-		return
-	
-	do: ()->
-		@div.resizeTo(@position, @size)
-		super()
-		return
+class CreateLockCommand extends CreateDivCommand
+	constructor: (item, name)->
+		super(item, 'Create lock')
 
-	undo: ()->
-		@div.resizeTo(@previousPosition, @previousSize)
-		super()
-		return
+@CreateLockCommand = CreateLockCommand
 
-	update: ()->
-		@position = @div.position
-		@size = @div.size
-		return
+class DeleteLockCommand extends DeleteDivCommand
+	constructor: (item, name)->
+		super(item, 'Delete lock')
 
-@ResizeDivCommand = ResizeDivCommand
+@DeleteLockCommand = DeleteLockCommand
 
 class AddPointCommand extends Command
 	constructor: (@item, @location, name=null)->
@@ -352,114 +465,57 @@ class ChangeSelectedPointTypeCommand extends Command
 
 @ChangeSelectedPointTypeCommand = ChangeSelectedPointTypeCommand
 
-class ChangeSelectedPointCommand extends Command
+# class RotationCommand extends Command
 	
-	constructor: (@item)->
-		@selectionState = {}
-		@selectionState.segment = @item.selectionState.segment
-		@previousPosition = new Point(@selectionState.segment.point)
-		@previousHandleIn = new Point(@selectionState.segment.handleIn)
-		@previousHandleOut = new Point(@selectionState.segment.handleOut)
-		super('Change point on item', false)
-		return
+# 	constructor: (@item)->
+# 		@previousRotation = @item.rotation
+# 		super('Rotate item', false)
+# 		return
 
-	do: ()->
-		@item.selectionState.segment = @selectionState.segment
-		@item.changeSelectedSegment(@position, @handleIn, @handleOut)
-		super()
-		return
+# 	do: ()->
+# 		@item.select()
+# 		@item.setRotation(@rotation)
+# 		super()
+# 		return
 
-	undo: ()->
-		@item.selectionState.segment = @selectionState.segment
-		@item.changeSelectedSegment(@previousPosition, @previousHandleIn, @previousHandleOut)
-		super()
-		return
+# 	undo: ()->
+# 		@item.select()
+# 		@item.setRotation(@previousRotation)
+# 		super()
+# 		return
 
-	update: ()->
-		@position = new Point(@item.selectionState.segment.point)
-		@handleIn = new Point(@item.selectionState.segment.handleIn)
-		@handleOut = new Point(@item.selectionState.segment.handleOut)
-		return
+# 	end: ()->
+# 		@rotation = @item.rotation
+# 		@item.update('rotation')
+# 		return
 
-@ChangeSelectedPointCommand = ChangeSelectedPointCommand
+# @RotationCommand = RotationCommand
 
-class RotationCommand extends Command
+# class ResizeCommand extends Command
 	
-	constructor: (@item)->
-		@previousRotation = @item.rotation
-		super('Rotate item', false)
-		return
+# 	constructor: (@item)->
+# 		@previousRectangle = @item.rectangle
+# 		super('Resize item', false)
+# 		return
 
-	do: ()->
-		@item.select()
-		@item.setRotation(@rotation, true)
-		super()
-		return
+# 	do: ()->
+# 		@item.select()
+# 		@item.setRectangle(@rectangle)
+# 		super()
+# 		return
 
-	undo: ()->
-		@item.select()
-		@item.setRotation(@previousRotation, true)
-		super()
-		return
+# 	undo: ()->
+# 		@item.select()
+# 		@item.setRectangle(@previousRectangle)
+# 		super()
+# 		return
 
-	update: ()->
-		@rotation = @item.rotation
-		return
+# 	end: ()->
+# 		@rectangle = @item.rectangle
+# 		@item.update('rectangle')
+# 		return
 
-@RotationCommand = RotationCommand
-
-class ScaleCommand extends Command
-	
-	constructor: (@item)->
-		@previousRectangle = @item.rectangle
-		super('Scale item', false)
-		return
-
-	do: ()->
-		@item.select()
-		@item.setRectangle(@rectangle, true)
-		super()
-		return
-
-	undo: ()->
-		@item.select()
-		@item.setRectangle(@previousRectangle, true)
-		super()
-		return
-
-	update: ()->
-		@rectangle = @item.rectangle
-		return
-
-@ScaleCommand = ScaleCommand
-
-class ChangeSpeedCommand extends Command
-
-	constructor: (@item)->
-		@previousSpeeds = @item.speeds.slice()
-		super('Change speed', false)
-		return
-
-	do: ()->
-		@item.speeds = @speeds
-		@item.updateSpeed()
-		@item.draw()
-		super()
-		return
-	
-	undo: ()->
-		@speeds = @item.speeds.slice()
-		@item.speeds = @previousSpeeds
-		@item.updateSpeed()
-		@item.draw()
-		super()
-		return
-
-	update: ()->
-		# @speeds = speeds.splice()
-		return
-
-@ChangeSpeedCommand = ChangeSpeedCommand
+# @ResizeCommand = ResizeCommand
 
 class CommandManager
 	@maxCommandNumber = 20
@@ -470,7 +526,7 @@ class CommandManager
 		@historyJ = $("#History ul.history")
 		return
 
-	add: (command)->
+	add: (command, execute=false)->
 		if @currentCommand >= @constructor.maxCommandNumber - 1
 			firstCommand = @history.shift()
 			firstCommand.delete()
@@ -481,7 +537,7 @@ class CommandManager
 		$("#History .mCustomScrollbar").mCustomScrollbar("scrollTo","bottom")
 		@currentCommand++
 		@history.splice(@currentCommand, @history.length-@currentCommand, command)
-		if command.execute then command.do() else command.execute = true
+		if execute then command.do()
 		return
 
 	commandClicked: (command)->
@@ -497,11 +553,11 @@ class CommandManager
 			offset = 1
 
 		while @currentCommand != commandIndex
-			if not @history[@currentCommand+offset].execute
-				g.romanesco_alert("This action is not feasible yet (server has not responded yet, please wait a few seconds for a response).", "warning")
-				break
-			else
-				@history[@currentCommand+offset].toggle()
+			# if not @history[@currentCommand+offset].execute
+			# 	g.romanesco_alert("This action is not feasible yet (server has not responded yet, please wait a few seconds for a response).", "warning")
+			# 	break
+			# else
+			@history[@currentCommand+offset].toggle()
 			@currentCommand += direction
 
 		return

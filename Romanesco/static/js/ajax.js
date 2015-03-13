@@ -29,7 +29,7 @@
   };
 
   this.load = function(area) {
-    var areaRectangle, areasToLoad, b, bounds, box, debug, i, item, itemsOutsideLimit, j, l, limit, pk, planet, pos, r, raster, rasterColumn, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3, _ref4;
+    var areaRectangle, areasToLoad, b, bounds, debug, i, item, itemsOutsideLimit, j, l, limit, pk, planet, pos, r, raster, rasterColumn, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3, _ref4;
     if (area == null) {
       area = null;
     }
@@ -56,7 +56,7 @@
         _ref2.remove();
       }
     }
-    unloadDist = Math.round(2 * scale);
+    unloadDist = 0;
     if (!g.entireArea) {
       limit = bounds.expand(unloadDist);
     } else {
@@ -178,21 +178,23 @@
       g.loadingBarTimeout = setTimeout(showLoadingBar, 0);
     }
     console.log("load areas: " + areasToLoad.length);
-    box = {
+    rectangle = {
       left: l / 1000,
       top: t / 1000,
       right: r / 1000,
       bottom: b / 1000
     };
+    console.log("load rectangle");
+    console.log(rectangle);
     Dajaxice.draw.load(load_callback, {
-      box: box,
+      rectangle: rectangle,
       areasToLoad: areasToLoad,
       zoom: view.zoom
     });
   };
 
   this.load_callback = function(results) {
-    var box, br, data, date, div, divJ, i, item, itemIsLoaded, itemsToLoad, lock, newAreasToUpdate, path, pk, planet, point, points, position, raster, rdiv, rectangle, rpath, tl, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _name, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    var box, data, date, div, i, item, itemIsLoaded, itemsToLoad, lock, newAreasToUpdate, path, pk, planet, point, points, position, raster, rdiv, rectangle, rpath, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _name, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
     checkError(results);
     if (results.hasOwnProperty('message') && results.message === 'no_paths') {
       return;
@@ -248,52 +250,41 @@
         if (box.box.coordinates[0].length < 5) {
           console.log("Error: box has less than 5 points");
         }
-        planet = new Point(box.planetX, box.planetY);
-        tl = posOnPlanetToProject(box.box.coordinates[0][0], planet);
-        br = posOnPlanetToProject(box.box.coordinates[0][2], planet);
         data = (box.data != null) && box.data.length > 0 ? JSON.parse(box.data) : null;
         lock = null;
         switch (box.object_type) {
           case 'link':
-            lock = new RLink(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, box.name, box.url, data);
+            lock = new RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner);
             break;
           case 'lock':
-            lock = new RLock(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, false, data);
+            lock = new RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner);
             break;
           case 'website':
-            lock = new RWebsite(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data);
+            lock = new RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner);
             break;
           case 'video-game':
-            lock = new RVideoGame(tl, new Size(br.subtract(tl)), box.owner, box._id.$oid, box.message, data);
-        }
-        if (data != null ? data.loadEntireArea : void 0) {
-          g.entireAreas.push(lock);
+            lock = new RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner);
         }
       } else {
         itemsToLoad.push(item);
       }
     }
     for (_k = 0, _len2 = itemsToLoad.length; _k < _len2; _k++) {
-      i = itemsToLoad[_k];
+      item = itemsToLoad[_k];
       switch (item.rType) {
         case 'Div':
           div = item;
           if (div.box.coordinates[0].length < 5) {
             console.log("Error: box has less than 5 points");
           }
-          planet = new Point(div.planetX, div.planetY);
-          tl = posOnPlanetToProject(div.box.coordinates[0][0], planet);
-          br = posOnPlanetToProject(div.box.coordinates[0][2], planet);
           data = (div.data != null) && div.data.length > 0 ? JSON.parse(div.data) : null;
           date = div.date.$date;
-          divJ = null;
-          rdiv = null;
-          if (div.object_type === 'text') {
-            rdiv = new RText(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.lock, div.message, data, date);
-            divJ = rdiv.divJ;
-          } else if (div.object_type === 'media') {
-            rdiv = new RMedia(tl, new Size(br.subtract(tl)), div.owner, div._id.$oid, div.lock, div.url, data, date);
-            divJ = rdiv.divJ;
+          switch (div.object_type) {
+            case 'text':
+              rdiv = new RText(g.rectangleFromBox(div), data, div._id.$oid, date, div.lock != null ? g.items[div.lock] : null);
+              break;
+            case 'media':
+              rdiv = new RMedia(g.rectangleFromBox(div), data, div._id.$oid, date, div.lock != null ? g.items[div.lock] : null);
           }
           break;
         case 'Path':
@@ -312,7 +303,7 @@
           }
           rpath = null;
           if (g.tools[path.object_type] != null) {
-            rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points, path.lock);
+            rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points, path.lock != null ? g.items[path.lock] : null);
             if (rpath.constructor.name === "Checkpoint") {
               console.log(rpath);
             }
@@ -338,6 +329,7 @@
       }
     }
     view.draw();
+    updateView();
     clearTimeout(g.loadingBarTimeout);
     g.loadingBarTimeout = null;
     $("#loadingBar").hide();

@@ -318,13 +318,16 @@
 
                   <div id="RItems" class="panel-collapse collapse">
                     <div class="panel-body">
-                      <div class="mCustomScrollbar rItems">
-                        <ul class="rDivs romanesco-ui rDiv-list">
-                        </ul>
-                        <hr>
-                        <ul class="rPaths romanesco-ui rPath-list">
-                        </ul>
-                      </div>
+                      <ul class="mCustomScrollbar rItems">
+                        <li class="main-layer">
+                          <h6 class="title">Main layer</h6>
+                          <ul class="romanesco-ui rDiv-list">
+                          </ul>
+                          <!-- <hr> -->
+                          <ul class="romanesco-ui rPath-list">
+                          </ul>
+                        </li>
+                      </ul>
                     </div>
                   </div>
                   
@@ -409,10 +412,9 @@
         <div class="dat-gui dg-right"></div>
 
         <div id="stage" class="main">
-          <div class="hidden lock-separator video-game-separator website-separator"></div>
+        
           <div class="hidden media-separator"></div>
           <div class="hidden text-separator"></div>
-          <div class="hidden link-separator"></div>
           <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message=" {{ message }}" data-load-entire-area=" {{ loadEntireArea }} "></canvas>
           
 
@@ -479,12 +481,14 @@
                       Create message
                     </label>
                   </div>
+
                   <div class="radio">
                     <label>
                       <input type="radio" name="typeSelector" id="divModalLink" value="link" checked>
                       Create link (® x1000)
                     </label>
                   </div>
+
                   <div class="radio">
                     <label>
                       <input type="radio" name="typeSelector" id="divModalWebsite" value="website">
@@ -492,6 +496,7 @@
                     </label>
                     <p class="help-block">This will give you a specific address: <italic>sitename.romanesc.co</italic>.In order to have a custom site name, you can redirect your own domain to this address.</p>
                   </div>
+
                   <div class="radio disabled">
                     <label>
                       <input type="radio" name="typeSelector" id="divModalVieoGame" value="video-game">
@@ -534,11 +539,6 @@
                     <input id="divModalSiteName" type="text" class="name form-control" placeholder="Site name">
                     <span class="input-group-addon">.romanesco.co</span>
                   </div>
-                </div>
-
-                <div class="form-group url-group">
-                  <label for="divModalURL">URL</label>
-                  <input id="divModalURL" type="url" class="url form-control submit-shortcut" placeholder="http:// or <iframe>">
                 </div>
                 
                 <div class="form-group message-group">
@@ -677,8 +677,17 @@
           <div class="handle bl"></div> -->
           <div class="mask"></div>
         </div>
+        
+        <li class="layer">
+          <h6 class="title"></h6>
+          <ul class="romanesco-ui rDiv-list">
+          </ul>
+          <!-- <hr> -->
+          <ul class="romanesco-ui rPath-list">
+          </ul>
+        </li>
 
-        <div class="lock-content content" data-toggle="popover" data-container="body"></div>
+        <div class="lock-content content" data-container="body"></div>
         
         <button class="dat-gui-toggle" type="button"> <span class="glyphicon glyphicon-transfer" aria-hidden="true"></span></button>
 
@@ -817,11 +826,13 @@
     <script src="{% static 'js/command.js' %}"></script>
     <script src="{% static 'js/sound.js' %}"></script>
     <script src="{% static 'js/editor.js' %}"></script>
-    <script src="{% static 'js/ritem.js' %}"></script>
+    <script src="{% static 'js/modal.js' %}"></script>
+    <script src="{% static 'js/item.js' %}"></script>
     <script src="{% static 'js/path.js' %}"></script>
+    <script src="{% static 'js/div.js' %}"></script>
+    <script src="{% static 'js/lock.js' %}"></script>
     <script src="{% static 'js/socket.js' %}"></script>
     <script src="{% static 'js/ajax.js' %}"></script>
-    <script src="{% static 'js/div.js' %}"></script>
     <script src="{% static 'js/options.js' %}"></script>
     <script src="{% static 'js/tools.js' %}"></script>
     <script src="{% static 'js/main.js' %}"></script>

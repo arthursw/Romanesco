@@ -200,7 +200,7 @@ Notations:
   paper.install(window);
 
   init = function() {
-    var sortStop;
+    var hueRange, i, minHue, step, _i;
     g.romanescoURL = 'http://localhost:8000/';
     g.windowJ = $(window);
     g.stageJ = $("#stage");
@@ -210,7 +210,6 @@ Notations:
     g.context = g.canvas.getContext('2d');
     g.templatesJ = $("#templates");
     g.me = null;
-    g.selectedDivs = [];
     g.selectionLayer = null;
     g.polygonMode = false;
     g.selectionBlue = '#2fa1d6';
@@ -243,41 +242,30 @@ Notations:
     g.isUpdatingRasters = false;
     g.viewUpdated = false;
     g.previouslySelectedItems = [];
+    g.currentDiv = null;
     g.areasToUpdateRectangles = {};
     g.catchErrors = false;
-    sortStop = (function(_this) {
-      return function(event, ui) {
-        var item, nextItemJ, previousItemJ, rItem, _i, _len, _ref;
-        g.deselectAll();
-        rItem = g.items[ui.item.attr("data-pk")];
-        nextItemJ = ui.item.next();
-        if (nextItemJ.length > 0) {
-          rItem.insertAbove(g.items[nextItemJ.attr("data-pk")], null, true);
-        } else {
-          previousItemJ = ui.item.prev();
-          if (previousItemJ.length > 0) {
-            rItem.insertBelow(g.items[previousItemJ.attr("data-pk")], null, true);
-          }
-        }
-        _ref = g.previouslySelectedItems;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          item = _ref[_i];
-          item.select();
-        }
-      };
-    })(this);
-    g.pathList = $("#RItems .rPath-list");
+    g.previousPosition = null;
+    g.initialPosition = null;
+    g.backgroundRectangle = null;
+    g.limitPathV = null;
+    g.limitPathH = null;
+    g.itemListsJ = $("#RItems .rItems");
+    g.pathList = g.itemListsJ.find(".rPath-list");
     g.pathList.sortable({
-      stop: sortStop,
+      stop: g.zIndexSortStop,
       delay: 250
     });
     g.pathList.disableSelection();
-    g.divList = $("#RItems .rDiv-list");
+    g.divList = g.itemListsJ.find(".rDiv-list");
     g.divList.sortable({
-      stop: sortStop,
+      stop: g.zIndexSortStop,
       delay: 250
     });
     g.divList.disableSelection();
+    g.itemListsJ.find('.title').click(function(event) {
+      $(this).parent().toggleClass('closed');
+    });
     g.commandManager = new CommandManager();
     Dajaxice.setup({
       'default_exception_callback': function(error) {
@@ -329,7 +317,13 @@ Notations:
       return JSON.stringify(this.toJSON());
     };
     g.tool = new Tool();
-    g.defaultColors = ['#d7dddb', '#4f8a83', '#e76278', '#fac699', '#712164'];
+    g.defaultColors = [];
+    hueRange = g.random(10, 180);
+    minHue = g.random(0, 360 - hueRange);
+    step = hueRange / 10;
+    for (i = _i = 0; _i <= 10; i = ++_i) {
+      g.defaultColors.push(Color.HSL(minHue + i * step, g.random(0.3, 0.9), g.random(0.5, 0.7)).toCSS());
+    }
     g.alertsContainer = $("#Romanesco_alerts");
     g.alerts = [];
     g.currentAlert = -1;
@@ -351,17 +345,17 @@ Notations:
     $.ajax({
       url: g.romanescoURL + "static/coffee/path.coffee"
     }).done(function(data) {
-      var classMap, expression, expressions, lines, pathClass, _i, _j, _len, _len1, _ref, _ref1;
+      var classMap, expression, expressions, lines, pathClass, _j, _k, _len, _len1, _ref, _ref1;
       lines = data.split(/\n/);
       expressions = CoffeeScript.nodes(data).expressions;
       classMap = {};
       _ref = g.pathClasses;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        pathClass = _ref[_i];
+      for (_j = 0, _len = _ref.length; _j < _len; _j++) {
+        pathClass = _ref[_j];
         classMap[pathClass.name] = pathClass;
       }
-      for (_j = 0, _len1 = expressions.length; _j < _len1; _j++) {
-        expression = expressions[_j];
+      for (_k = 0, _len1 = expressions.length; _k < _len1; _k++) {
+        expression = expressions[_k];
         if ((_ref1 = classMap[expression.variable.base.value]) != null) {
           _ref1.source = lines.slice(expression.locationData.first_line, +expression.locationData.last_line + 1 || 9e9).join("\n");
         }
@@ -409,6 +403,9 @@ Notations:
       if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
         return;
       }
+      if (g.currentDiv != null) {
+        return;
+      }
       event = g.snap(event);
       return g.selectedTool.update(event);
     };
@@ -417,15 +414,18 @@ Notations:
       if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
         return;
       }
+      if (g.currentDiv != null) {
+        return;
+      }
       event = g.snap(event);
       return g.selectedTool.end(event);
     };
     tool.onKeyDown = function(event) {
-      var selectedDiv, _i, _len, _ref;
-      _ref = g.selectedDivs;
+      var item, _i, _len, _ref;
+      _ref = g.selectedItems();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        selectedDiv = _ref[_i];
-        if (selectedDiv.constructor.name === 'RText') {
+        item = _ref[_i];
+        if (item === 'RText') {
           return;
         }
       }
@@ -546,37 +546,31 @@ Notations:
       g.selectedTool.beginNative(event);
       return;
     }
-    if (event.target.nodeName === "CANVAS") {
-      return false;
-    }
-    g.previousPoint = new Point(event.pageX, event.pageY);
+    g.initialPosition = g.jEventToPoint(event);
+    g.previousPosition = g.initialPosition;
   };
 
   this.mousemove = function(event) {
-    var item, _i, _len, _ref;
+    var paperEvent, _base;
     if (g.selectedTool.name === 'Move') {
       g.selectedTool.updateNative(event);
-    }
-    if (g.previousPoint != null) {
-      event.delta = new Point(event.pageX - g.previousPoint.x, event.pageY - g.previousPoint.y);
-      g.previousPoint = new Point(event.pageX, event.pageY);
-      _ref = g.selectedItems();
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        item = _ref[_i];
-        if (typeof item.selectUpdate === "function") {
-          item.selectUpdate(event);
-        }
-      }
     }
     if (g.draggingEditor) {
       g.editorJ.css({
         right: g.windowJ.width() - event.pageX
       });
     }
+    if (g.currentDiv != null) {
+      paperEvent = g.jEventToPaperEvent(event, g.previousPosition, g.initialPosition, 'mousemove');
+      g.previousPosition = paperEvent.point;
+      if (typeof (_base = g.currentDiv).updateSelect === "function") {
+        _base.updateSelect(paperEvent);
+      }
+    }
   };
 
   this.mouseup = function(event) {
-    var item, _i, _len, _ref, _ref1;
+    var paperEvent, _base, _ref;
     if (g.selectedTool.name === 'Move') {
       g.selectedTool.endNative(event);
     }
@@ -585,16 +579,11 @@ Notations:
         _ref.select();
       }
     }
-    g.mousemove(event);
-    if (g.previousPoint != null) {
-      event.delta = new Point(event.pageX - g.previousPoint.x, event.pageY - g.previousPoint.y);
-      g.previousPoint = null;
-      _ref1 = g.selectedItems();
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        item = _ref1[_i];
-        if (typeof item.selectEnd === "function") {
-          item.selectEnd(event);
-        }
+    if (g.currentDiv != null) {
+      paperEvent = g.jEventToPaperEvent(event, g.previousPosition, g.initialPosition, 'mouseup');
+      g.previousPosition = paperEvent.point;
+      if (typeof (_base = g.currentDiv).endSelect === "function") {
+        _base.endSelect(paperEvent);
       }
     }
     g.draggingEditor = false;

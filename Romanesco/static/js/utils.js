@@ -28,6 +28,10 @@
     return Math.min(Math.max(value, min), max);
   };
 
+  this.random = function(min, max) {
+    return min + Math.random() * (max - min);
+  };
+
   Array.prototype.remove = function(itemToRemove) {
     var i, item, _i, _len;
     for (i = _i = 0, _len = this.length; _i < _len; i = ++_i) {
@@ -97,6 +101,16 @@
       }
     }
     return min;
+  };
+
+  if (Array.isArray == null) {
+    Array.isArray = function(array) {
+      return array.constructor === Array;
+    };
+  }
+
+  this.isArray = function(array) {
+    return array.constructor === Array;
   };
 
   this.pushIfAbsent = function(array, item) {

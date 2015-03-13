@@ -175,14 +175,14 @@
       }
       view.draw();
     });
-    g.chatSocket.on("selectBegin", function(from, pk, event) {
-      console.log("selectBegin");
-      g.items[pk].selectBegin(objectToEvent(event), false);
+    g.chatSocket.on("beginSelect", function(from, pk, event) {
+      console.log("beginSelect");
+      g.items[pk].beginSelect(objectToEvent(event), false);
       view.draw();
     });
-    g.chatSocket.on("selectUpdate", function(from, pk, event) {
-      console.log("selectUpdate");
-      g.items[pk].selectUpdate(objectToEvent(event), false);
+    g.chatSocket.on("updateSelect", function(from, pk, event) {
+      console.log("updateSelect");
+      g.items[pk].updateSelect(objectToEvent(event), false);
       view.draw();
     });
     g.chatSocket.on("doubleClick", function(from, pk, event) {
@@ -190,9 +190,9 @@
       g.items[pk].doubleClick(objectToEvent(event), false);
       view.draw();
     });
-    g.chatSocket.on("selectEnd", function(from, pk, event) {
-      console.log("selectEnd");
-      g.items[pk].selectEnd(objectToEvent(event), false);
+    g.chatSocket.on("endSelect", function(from, pk, event) {
+      console.log("endSelect");
+      g.items[pk].endSelect(objectToEvent(event), false);
       view.draw();
     });
     g.chatSocket.on("createDiv", function(data) {
@@ -223,7 +223,7 @@
         type = null;
       }
       if (type !== "rFunction") {
-        g.items[pk].changeParameter(name, value, false);
+        g.items[pk].changeParameter(name, value);
       } else {
         if (typeof (_base = g.items[pk])[name] === "function") {
           _base[name](false, value);

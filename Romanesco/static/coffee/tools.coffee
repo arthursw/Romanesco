@@ -23,7 +23,10 @@ class RTool
 	parameters = 
 		'First folder':
 			firstParameter:
-				type: 'slider' 									# type is only required when adding a color (then it must be 'color')
+				type: 'slider' 									# type is only required when adding a color (then it must be 'color') or a string input (then it must be 'string')
+																# if type is 'string' and there is no onChange nor onFinishChange callback:
+																# the default onChange callback will be called on onFinishChange since we often want to update only when the change is finished
+																# to override this behaviour, 'fireOnEveryChange' can be set to true or onChange and onFinishChange can be defined
 				label: 'Name of the parameter'					# label of the controller (name displayed in the gui)
 				value: 0										# value (deprecated)
 				default: 0 										# default value
@@ -39,6 +42,7 @@ class RTool
 				permanent: true									# if true: the controller is never removed (always says in dat.gui)
 				defaultCheck: true 								# checked/activated by default or not
 				initializeController: (controller, item)->		# called just after controller is added to dat.gui, enables to customize the gui and add functionalities
+				fireOnEveryChange: false 						# if true and *type* is input: the default onChange callback will be called on everychange
 			secondParameter:
 				type: 'slider'
 				label: 'Second parameter'
@@ -228,7 +232,7 @@ class CarTool extends RTool
 		parameters = 
 			'Car':
 				speed: 							# the speed of the car, just used as an indicator. Updated in @onFrame
-					type: 'input'
+					type: 'string'
 					label: 'Speed'
 					value: '0'
 					addController: true
@@ -435,26 +439,23 @@ class SelectTool extends RTool
 	# must be reshaped (right not impossible to add a group of RItems to the current selection group)
 	begin: (event) ->
 		if event.event.which == 2 then return 		# if the wheel button was clicked: return
-		console.log "select begin"
+
 		# perform hit test to see if there is any item under the mouse
 		path.prepareHitTest() for name, path of g.paths
 		hitResult = g.project.hitTest(event.point, hitOptions)
 		path.finishHitTest() for name, path of g.paths
 		
 		if hitResult and hitResult.item.controller? 		# if user hits a path: select it
-			console.log 'hits a path'
 			@selectedItem = hitResult.item.controller
 
 			if not event.modifiers.shift 	# if shift is not pressed: deselect previous items
-				console.log 'no shift: deselect'
 				if g.selectionLayer.children.length>0
 					if not g.selectionLayer.isAncestor(hitResult.item) then @emptySelectionLayer() 	# if the item is not in selection group: deselect selection group
-				else 
-					if g.selectedDivs.length>0 then g.deselectAll()
+				# else 
+				# 	if g.selectedDivs.length>0 then g.deselectAll()
 
-			hitResult.item.controller.selectBegin?(event)
+			hitResult.item.controller.beginSelect?(event)
 		else 												# otherwise: remove selection group and create selection rectangle
-			console.log 'does not hit a path'
 			@emptySelectionLayer()
 			@createSelectionRectangle(event)
 		return
@@ -464,8 +465,12 @@ class SelectTool extends RTool
 	# - update selection rectangle if there is one
 	update: (event) ->
 		if not g.currentPaths[g.me] 			# update selected RItems if there is no selection rectangle
-			for item in g.selectedItems()
-				item.selectUpdate?(event)
+			selectedItems = g.selectedItems()
+			if selectedItems.length == 1
+				selectedItems[0].updateSelect(event)
+			else
+				for item in selectedItems
+					item.updateMoveBy?(event)
 		else 									# update selection rectangle if there is one
 			@createSelectionRectangle(event)
 		return
@@ -476,11 +481,12 @@ class SelectTool extends RTool
 	#   update parameters from selected RItems and remove selection rectangle
 	end: (event) ->
 		if not g.currentPaths[g.me] 		# end selection action on selected RItems if there is no selection rectangle
-
-			for item in g.selectedItems()
-				item.selectEnd?(event)
+			selectedItems = g.selectedItems()
+			if selectedItems.length == 1
+				selectedItems[0].endSelect(event)
 
 		else 								# create selection group is there is a selection rectangle
+
 			rectangle = new Rectangle(event.downPoint, event.point)
 			
 			itemsToSelect = []
@@ -489,12 +495,12 @@ class SelectTool extends RTool
 			for name, item of g.items
 				if item.getBounds().intersects(rectangle)
 					itemsToSelect.push(item)
-				# if the user just clicked (not dragged a selection rectangle): just select the first item
-				if rectangle.area == 0
-					break
+					# if the user just clicked (not dragged a selection rectangle): just select the first item
+					if rectangle.area == 0
+						break
 
 			if itemsToSelect.length > 0
-				g.commandManager.add(new SelectCommand(itemsToSelect, false))
+				g.commandManager.add(new SelectCommand(itemsToSelect), true)
 			
 			# Add all items which intersect with the selection rectangle (2nd version)
 
@@ -642,7 +648,7 @@ class PathTool extends RTool
 			g.deselectAll()
 			g.currentPaths[from] = new @RPath(Date.now(), data)
 
-		g.currentPaths[from].createBegin(event.point, event, false)
+		g.currentPaths[from].beginCreate(event.point, event, false)
 
 		# emit event on websocket (if user is the author of the event)
 		if g.me? and from==g.me then g.chatSocket.emit( "begin", g.me, g.eventToObject(event), @name, g.currentPaths[from].data )
@@ -653,7 +659,7 @@ class PathTool extends RTool
 	# @param [Paper event or REvent] (usually) mouse drag event
 	# @param [String] author (username) of the event
 	update: (event, from=g.me) ->
-		g.currentPaths[from].createUpdate(event.point, event, false)
+		g.currentPaths[from].updateCreate(event.point, event, false)
 		if g.me? and from==g.me then g.chatSocket.emit( "update", g.me, g.eventToObject(event), @name)
 		return
 
@@ -669,7 +675,7 @@ class PathTool extends RTool
 	# @param [Paper event or REvent] (usually) mouse up event
 	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
-		g.currentPaths[from].createEnd(event.point, event, false)
+		g.currentPaths[from].endCreate(event.point, event, false)
 
 		if not g.currentPaths[from].data?.polygonMode 		# if not in polygon mode
 			if g.me? and from==g.me 						# if user is the author of the event: select and save path and emit event on websocket
@@ -701,7 +707,7 @@ class PathTool extends RTool
 
 # --- Link & lock tools --- #
 
-# DivTool: mother class of all RDiv creation tools (this will create a new div on top of the canvas, with custom content, and often resizable)
+# ItemTool: mother class of all RDiv creation tools (this will create a new div on top of the canvas, with custom content, and often resizable)
 # User will create a selection rectangle
 # once the mouse is released, the box will be validated by RDiv.end() (check that the RDiv does not overlap two planets, and does not intersects with an RLock)
 # children classes will use RDiv.end() to check if it is valid and:
@@ -710,15 +716,15 @@ class PathTool extends RTool
 # the RDiv will be created on server response
 # begin, update, and end handlers are called by onMouseDown handler (then from == g.me, data == null) and by socket.on "begin" signal (then from == author of the signal, data == RItem initial data)
 # begin, update, and end handlers emit the events to websocket
-class DivTool extends RTool
+class ItemTool extends RTool
 
-	constructor: (@name, @RDiv) ->
+	constructor: (@name, @RItem) ->
 		super(@name, { x: 24, y: 0 }, "crosshair")
 		# test: @isDiv = true
 		return
 
 	select: ()->
-		super(@RDiv)
+		super(@RItem)
 		return
 
 	# Begin div action:
@@ -749,6 +755,10 @@ class DivTool extends RTool
 		g.currentPaths[from].segments[2].point = point
 		g.currentPaths[from].segments[1].point.x = point.x
 		g.currentPaths[from].segments[3].point.y = point.y
+		g.currentPaths[from].fillColor = null
+
+		if g.rectangleOverlapsTwoPlanets(g.currentPaths[from].bounds) or RLock.intersectsRectangle(g.currentPaths[from].bounds)
+			g.currentPaths[from].fillColor = 'red'
 
 		if g.me? and from==g.me then g.chatSocket.emit( "update", g.me, point, @name )
 		return
@@ -771,10 +781,12 @@ class DivTool extends RTool
 		g.currentPaths[from].remove()
 
 		# check if div if valid (does not overlap two planets, and does not intersects with an RLock), return false otherwise
-		if RDiv.boxOverlapsTwoPlanets(g.currentPaths[from].bounds)
+		if g.rectangleOverlapsTwoPlanets(g.currentPaths[from].bounds)
+			g.romanesco_alert 'Your item overlaps with two planets.', 'error'
 			return false
 
-		if RLock.intersectRect(g.currentPaths[from].bounds)
+		if RLock.intersectsRectangle(g.currentPaths[from].bounds)
+			g.romanesco_alert 'Your item intersects with a locked area.', 'error'
 			return false
 
 		if g.currentPaths[from].bounds.area < 100 			# resize div to 10x10 if area if lower than 100
@@ -785,10 +797,10 @@ class DivTool extends RTool
 
 		return true
 
-@DivTool = DivTool
+@ItemTool = ItemTool
 
 # RLock creation tool
-class LockTool extends DivTool
+class LockTool extends ItemTool
 
 	constructor: () -> 
 		super("Lock", RLock)
@@ -820,14 +832,14 @@ class LockTool extends DivTool
 	end: (event, from=g.me) ->
 		@textItem?.remove()
 		if super(event, from)
-			RLock.initModal(g.currentPaths[from].bounds)
+			RLock.initialize(g.currentPaths[from].bounds)
 			delete g.currentPaths[from]
 		return
 
 @LockTool = LockTool
 
 
-# class LinkTool extends DivTool
+# class LinkTool extends ItemTool
 
 # 	constructor: () -> 
 # 		super("Link", RLink)
@@ -854,7 +866,7 @@ class LockTool extends DivTool
 # @LinkTool = LinkTool
 
 # RText creation tool
-class TextTool extends DivTool
+class TextTool extends ItemTool
 
 	constructor: () -> 
 		super("Text", RText)
@@ -867,14 +879,15 @@ class TextTool extends DivTool
 	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
 		if super(event, from)
-			RText.save(g.currentPaths[from].bounds, "text")
+			text = new RText(g.currentPaths[from].bounds)
+			text.save()
 			delete g.currentPaths[from]
 		return
 
 @TextTool = TextTool
 
 # RMedia creation tool
-class MediaTool extends DivTool
+class MediaTool extends ItemTool
 
 	constructor: () -> 
 		super("Media", RMedia)
@@ -887,7 +900,7 @@ class MediaTool extends DivTool
 	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
 		if super(event, from)
-			RMedia.initModal(g.currentPaths[from].bounds)
+			RMedia.initialize(g.currentPaths[from].bounds)
 			delete g.currentPaths[from]
 		return
 

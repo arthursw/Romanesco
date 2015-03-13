@@ -91,6 +91,8 @@ class Box(Document):
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
+
+    # deprecated: put in data
     url = URLField(verify_exists=True, required=False)
     name = StringField()
     message = StringField()
@@ -122,9 +124,12 @@ class Div(Document):
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
+    lock = StringField(default=None)
+
+    # deprecated: put in data
     url = StringField(required=False)
     message = StringField()
-    lock = StringField(default=None)
+    
     # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
@@ -153,9 +158,13 @@ class Tool(Document):
 class Site(Document):
     name = StringField(unique=True, required=True)
     box = ReferenceField(Box, required=True, reverse_delete_rule=CASCADE)
+
+    # deprecated: put in data
     restrictedArea = BooleanField(default=False)
     disableToolbar = BooleanField(default=False)
     loadEntireArea = BooleanField(default=False)
+    
+    data = StringField(default='')
     
     meta = {
         'indexes': [[ ("name", 1) ]]

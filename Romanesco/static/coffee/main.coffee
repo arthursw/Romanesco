@@ -306,7 +306,6 @@ init = ()->
 	g.context = g.canvas.getContext('2d')
 	g.templatesJ = $("#templates")
 	g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
-	g.selectedDivs = []
 	g.selectionLayer = null					# paper layer containing all selected paper items
 	g.polygonMode = false					# whether to draw in polygon mode or not (in polygon mode: each time the user clicks a point will be created, in default mode: each time the user moves the mouse a point will be created)
 	g.selectionBlue = '#2fa1d6'
@@ -339,33 +338,27 @@ init = ()->
 	g.isUpdatingRasters = false 			# true if we are updating rasters (in loopUpdateRasters)
 	g.viewUpdated = false 					# true if the view was updated ( rasters removed and items drawn in g.updateView() ) and we don't need to update anymore (until new rasters are added in load_callback)
 	g.previouslySelectedItems = [] 			# the previously selected items
-
+	g.currentDiv = null 					# the div currently being edited (dragged, moved or resized) used to also send jQuery mouse event to divs
 	g.areasToUpdateRectangles = {} 			# debug map: area to update pk -> rectangle path
 	g.catchErrors = false 					# the error will not be caught when drawing an RPath (let chrome catch them at the right time)
+	g.previousPosition = null 				# the previous position of the mouse in the mousedown/move/up
+	g.initialPosition = null 				# the initial position of the mouse in the mousedown/move/up
+	g.backgroundRectangle = null 			# the rectangle to highlight the stage when dragging an RContent over it
+	g.limitPathV = null 					# the vertical limit path (line between two planets)
+	g.limitPathH = null 					# the horizontal limit path (line between two planets)
 
 	# initialize sort
 
-	sortStop = (event, ui)=>
-		g.deselectAll()
-		rItem = g.items[ui.item.attr("data-pk")]
-		nextItemJ = ui.item.next()
-		if nextItemJ.length>0
-			rItem.insertAbove(g.items[nextItemJ.attr("data-pk")], null, true)
-		else
-			previousItemJ = ui.item.prev()
-			if previousItemJ.length>0
-				rItem.insertBelow(g.items[previousItemJ.attr("data-pk")], null, true)
-		for item in g.previouslySelectedItems
-			item.select()
-		return
-
-	g.pathList = $("#RItems .rPath-list")
-	g.pathList.sortable( stop: sortStop, delay: 250 )
+	g.itemListsJ = $("#RItems .rItems")
+	g.pathList = g.itemListsJ.find(".rPath-list")
+	g.pathList.sortable( stop: g.zIndexSortStop, delay: 250 )
 	g.pathList.disableSelection()
-	g.divList = $("#RItems .rDiv-list")
-	g.divList.sortable( stop: sortStop, delay: 250 )
+	g.divList = g.itemListsJ.find(".rDiv-list")
+	g.divList.sortable( stop: g.zIndexSortStop, delay: 250 )
 	g.divList.disableSelection()
-
+	g.itemListsJ.find('.title').click (event)->
+		$(this).parent().toggleClass('closed')
+		return
 	g.commandManager = new CommandManager()
 	
 	# g.globalMaskJ = $("#globalMask")
@@ -410,7 +403,18 @@ init = ()->
 	g.tool = new Tool()
 
 	# g.defaultColors = ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5' ]
-	g.defaultColors = ['#d7dddb', '#4f8a83', '#e76278', '#fac699', '#712164']
+	# g.defaultColors = ['#d7dddb', '#4f8a83', '#e76278', '#fac699', '#712164']
+	# g.defaultColors = ['#395A8F', '#4A79B1', '#659ADF', '#A4D2F3', '#EBEEF3']
+
+	g.defaultColors = []
+
+	hueRange = g.random(10, 180)
+	minHue = g.random(0, 360-hueRange)
+	step = hueRange/10
+	
+	for i in [0 .. 10]
+		g.defaultColors.push(Color.HSL( minHue + i * step, g.random(0.3, 0.9), g.random(0.5, 0.7) ).toCSS())
+		# g.defaultColors.push(Color.random().toCSS())
 
 	# initialize alerts
 	g.alertsContainer = $("#Romanesco_alerts")
@@ -495,6 +499,7 @@ init = ()->
 	initTools()
 	initSocket()
 	initPosition()
+	
 	# initLoadingBar()
 
 	updateGrid()
@@ -531,18 +536,20 @@ $(document).ready () ->
 
 	tool.onMouseDrag = (event) ->
 		if g.wacomPenAPI?.isEraser then return
+		if g.currentDiv? then return
 		event = g.snap(event)
 		g.selectedTool.update(event)
 
 	tool.onMouseUp = (event) ->
 		if g.wacomPenAPI?.isEraser then return
+		if g.currentDiv? then return
 		event = g.snap(event)
 		g.selectedTool.end(event)
 
 	tool.onKeyDown = (event) ->
 		# if user is typing: ignore
-		for selectedDiv in g.selectedDivs
-			if selectedDiv.constructor.name == 'RText'
+		for item in g.selectedItems()
+			if item == 'RText'
 				return
 		if event.key == 'delete' 									# prevent default delete behaviour (not working)
 			event.preventDefault()
@@ -632,27 +639,31 @@ this.mousedown = (event) ->
 		g.selectedTool.beginNative(event)
 		return
 	
-	if event.target.nodeName == "CANVAS" then return false 
-	g.previousPoint = new Point(event.pageX, event.pageY) 	# store previous mouse event point
+	
+	g.initialPosition = g.jEventToPoint(event)
+	g.previousPosition = g.initialPosition
 	return
 
 # mousemove event listener
 this.mousemove = (event) ->
 	if g.selectedTool.name == 'Move' then g.selectedTool.updateNative(event) 	# update 'Move' tool if it is the one selected
-
-	# selectedDiv.selectUpdate(event) for selectedDiv in g.selectedDivs
-	
+		
 	# update selected RDivs
-	if g.previousPoint?
-		event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
-		g.previousPoint = new Point(event.pageX, event.pageY)
+	# if g.previousPoint?
+	# 	event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
+	# 	g.previousPoint = new Point(event.pageX, event.pageY)
 
-		for item in g.selectedItems()
-			item.selectUpdate?(event)
+	# 	for item in g.selectedItems()
+	# 		item.updateSelect?(event)
 	
 	# update code editor width
 	if g.draggingEditor
 		g.editorJ.css( right: g.windowJ.width()-event.pageX)
+	
+	if g.currentDiv?
+		paperEvent = g.jEventToPaperEvent(event, g.previousPosition, g.initialPosition, 'mousemove')
+		g.previousPosition = paperEvent.point
+		g.currentDiv.updateSelect?(paperEvent)
 
 	return
 
@@ -664,16 +675,21 @@ this.mouseup = (event) ->
 	if event.which == 2 # middle mouse button
 		g.previousTool?.select()
 
-	# drag handles	
-	g.mousemove(event)
-	# selectedDiv.selectEnd(event) for selectedDiv in g.selectedDivs
+	if g.currentDiv?
+		paperEvent = g.jEventToPaperEvent(event, g.previousPosition, g.initialPosition, 'mouseup')
+		g.previousPosition = paperEvent.point
+		g.currentDiv.endSelect?(paperEvent)
 
-	# update selected RDivs
-	if g.previousPoint?
-		event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
-		g.previousPoint = null
-		for item in g.selectedItems()
-			item.selectEnd?(event)
+	# drag handles	
+	# g.mousemove(event)
+	# selectedDiv.endSelect(event) for selectedDiv in g.selectedDivs
+
+	# # update selected RDivs
+	# if g.previousPoint?
+	# 	event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
+	# 	g.previousPoint = null
+	# 	for item in g.selectedItems()
+	# 		item.endSelect?(event)
 
 	g.draggingEditor = false
 	

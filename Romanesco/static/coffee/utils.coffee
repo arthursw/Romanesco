@@ -8,6 +8,9 @@ this.sign = (x) ->
 this.clamp = (min, value, max)->
 	return Math.min(Math.max(value, min), max)
 
+this.random = (min, max)->
+	return min + Math.random()*(max-min)
+
 # removes *itemToRemove* from array 
 # problem with array.splice(array.indexOf(item),1) :
 # removes the last element if item is not in array
@@ -57,6 +60,13 @@ Array.prototype.minc = (smallerThan) ->
 	for item in this
 		if smallerThan(item,min) then min = item
 	return min
+
+# check if array is array
+Array.isArray ?= (array)->
+	return array.constructor == Array
+
+this.isArray = (array)->
+	return array.constructor == Array
 
 # previously Array.prototype.pushIfAbsent, but there seem to be a colision with jQuery... 
 # push if array does not contain item

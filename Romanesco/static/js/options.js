@@ -4,7 +4,7 @@
     var colorName, colorRGBstring, controller, toggleGuiButtonJ;
     g.parameters = {};
     g.parameters.location = {
-      type: 'input',
+      type: 'string',
       label: 'Location',
       "default": '0.0, 0.0',
       permanent: true,
@@ -577,7 +577,7 @@
   };
 
   this.addItem = function(name, parameter, item, datFolder, resetValues) {
-    var checkboxJ, checked, colorPicker, controller, firstOptionalParameter, inputJ, obj, updateItemControllers, value, _i, _len, _ref;
+    var checkboxJ, checked, colorPicker, controller, firstOptionalParameter, inputJ, obj, onParameterChange, updateItemControllers, value, _i, _len, _ref;
     if ((item != null) && datFolder.name !== 'General' && (item.data != null) && ((item.data[name] != null) || parameter.type === 'color')) {
       value = item.data[name];
     } else if (parameter.value != null) {
@@ -616,24 +616,30 @@
         return;
       }
     }
-    if (parameter.onChange == null) {
-      parameter.onChange = function(value) {
-        var _j, _len1, _ref1, _ref2;
-        console.log("onChange");
-        _ref1 = g.selectedItems();
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          item = _ref1[_j];
-          if (typeof (item != null ? (_ref2 = item.data) != null ? _ref2[name] : void 0 : void 0) !== 'undefined') {
-            if (parameter.step != null) {
-              value = value - value % parameter.step;
-            }
-            item.changeParameterCommand(name, value);
-            if ((g.me != null) && datFolder.name !== 'General') {
-              g.chatSocket.emit("parameter change", g.me, item.pk, name, value);
-            }
+    onParameterChange = function(value) {
+      var _j, _len1, _ref1, _ref2;
+      _ref1 = g.selectedItems();
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        item = _ref1[_j];
+        if (typeof (item != null ? (_ref2 = item.data) != null ? _ref2[name] : void 0 : void 0) !== 'undefined') {
+          if (parameter.step != null) {
+            value = value - value % parameter.step;
+          }
+          item.changeParameterCommand(name, value);
+          if ((g.me != null) && datFolder.name !== 'General') {
+            g.chatSocket.emit("parameter change", g.me, item.pk, name, value);
           }
         }
-      };
+      }
+    };
+    if (parameter.type === 'string' && !parameter.fireOnEveryChange) {
+      if (parameter.onFinishChange == null) {
+        parameter.onFinishChange = onParameterChange;
+      }
+    } else {
+      if (parameter.onChange == null) {
+        parameter.onChange = onParameterChange;
+      }
     }
     obj = {};
     switch (parameter.type) {
@@ -667,7 +673,7 @@
             opacity: 'Opacity'
           },
           customswatches: "different-swatches-groupname",
-          swatches: ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5'],
+          swatches: g.defaultColors,
           onchange: function(container, color) {
             parameter.onChange(color.tiny.toRgbString());
             return checkboxJ[0].checked = true;
@@ -718,7 +724,7 @@
       case 'button':
       case 'button-group':
       case 'radio-button-group':
-      case 'input':
+      case 'string':
       case 'input-typeahead':
         obj[name] = value;
         firstOptionalParameter = parameter.min != null ? parameter.min : parameter.values;

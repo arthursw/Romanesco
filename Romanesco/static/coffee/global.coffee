@@ -81,6 +81,11 @@ this.checkError = (result)->
 		return false
 	return true
 
+# Convert a jQuery event to a project position
+# @return [Paper Point] the project position corresponding to the event pageX, pageY
+this.jEventToPoint = (event)->
+	return view.viewToProject(new Point(event.pageX-g.canvasJ.offset().left, event.pageY-g.canvasJ.offset().top))
+
 ## Event to object conversion (to send event info through websockets)
 
 # Convert an event (jQuery event or Paper.js event) to an object
@@ -91,13 +96,13 @@ this.checkError = (result)->
 this.eventToObject = (event)->
 	eo =
 		modifiers: event.modifiers
-		point: if not event.pageX? then event.point else view.viewToProject(new Point(event.pageX, event.pageY))
+		point: if not event.pageX? then event.point else g.jEventToPoint(event)
 		downPoint: event.downPoint?
 		delta: event.delta
 	if event.pageX? and event.pageY?
 		eo.modifiers = {}
 		eo.modifiers.control = event.ctrlKey
-		eo.modifiers.command = event.command
+		eo.modifiers.command = event.metaKey
 	if event.target?
 		eo.target = "." + event.target.className.replace(" ", ".") # convert class name to selector to be able to find the target on the other clients (websocket com)
 	return eo
@@ -110,6 +115,33 @@ this.objectToEvent = (event)->
 	event.downPoint = new Point(event.downPoint)
 	event.delta = new Point(event.delta)
 	return event
+
+# Convert a jQuery event to a Paper event
+#
+# @param event [jQuert event] event to convert
+# @param previousPosition [Paper Point] (optional) the previous position of the mouse
+# @param initialPosition [Paper Point] (optional) the initial position of the mouse
+# @param type [String] (optional) the type of event
+# @param count [Number] (optional) the number of times the mouse event was fired
+# @return Paper event
+this.jEventToPaperEvent = (event, previousPosition=null, initialPosition=null, type=null, count=null)->
+	currentPosition = g.jEventToPoint(event)
+	previousPosition ?= currentPosition
+	initialPosition ?= currentPosition
+	delta = currentPosition.subtract(previousPosition)
+	paperEvent =
+		modifiers: 
+			shift: event.shiftKey
+			control: event.ctrlKey
+			option: event.altKey
+			command: event.metaKey
+		point: currentPosition
+		downPoint: initialPosition
+		delta: delta
+		middlePoint: previousPosition.add(delta.divide(2))
+		type: type
+		count: count
+	return paperEvent
 
 # Test if the special key is pressed. Special key is command key on a mac, and control key on other systems.
 #
@@ -205,57 +237,60 @@ g.showAll = ()->
 
 ## Manage limits between planets
 
-
-# @return [{vertical: Paper Path, horizontal: Paper Path}] two paper paths corresponding to the limits of the planet (one horizontal and one vertical)
-g.getLimitPaths = ()->
-	limit = getLimit()
-
-	limitPathV = null
-	limitPathH = null
-
-	if limit.x >= view.bounds.left and limit.x <= view.bounds.right
-		limitPathV = new Path()
-		limitPathV.name = 'limitPathV'
-		limitPathV.add(limit.x,view.bounds.top)
-		limitPathV.add(limit.x,view.bounds.bottom)
-
-	if limit.y >= view.bounds.top and limit.y <= view.bounds.bottom
-		limitPathH = new Path()
-		limitPathH.name = 'limitPathH'
-		limitPathH.add(view.bounds.left, limit.y)
-		limitPathH.add(view.bounds.right, limit.y)
-
-	return vertical: limitPathV, horizontal: limitPathH
-
 # Test if *rectangle* overlaps two planets
 # 
 # @param rectangle [Rectangle] rectangle to test
 # @return [Boolean] true if overlaps
 g.rectangleOverlapsTwoPlanets = (rectangle)->
-	return g.overlapsTwoPlanets(new Path.Rectangle(rectangle))
+	limit = getLimit()
+	if ( rectangle.left < limit.x && rectangle.right > limit.x ) || ( rectangle.top < limit.y && rectangle.bottom > limit.y )
+		return true
+	return false
 
 # Test if *path* overlaps two planets
 # 
 # @param path [Paper path] path to test
 # @return [Boolean] true if overlaps
-g.pathOverlapsTwoPlanets = (path)->
-	limitPaths = g.getLimitPaths()
-	limitPathV = limitPaths.vertical
-	limitPathH = limitPaths.horizontal
+# g.pathOverlapsTwoPlanets = (path)->
+# 	limitPaths = g.getLimitPaths()
+# 	limitPathV = limitPaths.vertical
+# 	limitPathH = limitPaths.horizontal
 
-	if limitPathV?
-		intersections = path.getIntersections(limitPathV)
-		limitPathV.remove()
-		if intersections.length>0
-			return true
+# 	if limitPathV?
+# 		intersections = path.getIntersections(limitPathV)
+# 		limitPathV.remove()
+# 		if intersections.length>0
+# 			return true
 
-	if limitPathH?
-		intersections = path.getIntersections(limitPathH)
-		limitPathH.remove()
-		if intersections.length>0
-			return true
+# 	if limitPathH?
+# 		intersections = path.getIntersections(limitPathH)
+# 		limitPathH.remove()
+# 		if intersections.length>0
+# 			return true
 
-	return false
+# 	return false
+
+g.updateLimitPaths = ()->
+	limit = getLimit()
+
+	g.limitPathV = null
+	g.limitPathH = null
+
+	if limit.x >= view.bounds.left and limit.x <= view.bounds.right
+		g.limitPathV = new Path()
+		g.limitPathV.name = 'limitPathV'
+		g.limitPathV.add(limit.x,view.bounds.top)
+		g.limitPathV.add(limit.x,view.bounds.bottom)
+		g.grid.addChild(g.limitPathV)
+
+	if limit.y >= view.bounds.top and limit.y <= view.bounds.bottom
+		g.limitPathH = new Path()
+		g.limitPathH.name = 'limitPathH'
+		g.limitPathH.add(view.bounds.left, limit.y)
+		g.limitPathH.add(view.bounds.right, limit.y)
+		g.grid.addChild(g.limitPathH)
+
+	return
 
 # Draw planet limits, and draw the grid if *g.displayGrid*
 # The grid size is equal to the snap, except when snap < 15, then it is set to 25
@@ -265,19 +300,15 @@ g.updateGrid = ()->
 	# draw planet limits (thick green lines)
 	g.grid.removeChildren()
 
-	limitPaths = g.getLimitPaths()
-	limitPathV = limitPaths.vertical
-	limitPathH = limitPaths.horizontal
+	g.updateLimitPaths()
 
-	if limitPathV?
-		limitPathV.strokeColor = "#00FF00"
-		limitPathV.strokeWidth = 5
-		g.grid.addChild(limitPathV)
+	if g.limitPathV?
+		g.limitPathV.strokeColor = 'green'
+		g.limitPathV.strokeWidth = 5
 
-	if limitPathH?
-		limitPathH.strokeColor = "#00FF00"
-		limitPathH.strokeWidth = 5
-		g.grid.addChild(limitPathH)
+	if g.limitPathH?
+		g.limitPathH.strokeColor = 'green'
+		g.limitPathH.strokeWidth = 5
 
 	if not g.displayGrid
 		return
@@ -602,11 +633,12 @@ window.onhashchange = (event) ->
 ## RItems selection
 
 # Get selected RItems
+# do an g.selectedItems array
 this.selectedItems = ()->
 	items = []
 	for item in project.selectedItems
 		if item.controller? and items.indexOf(item.controller)<0 then items.push(item.controller)
-	return items.concat g.selectedDivs
+	return items
 
 # Deselect all RItems (and paper items)
 this.deselectAll = ()->
@@ -630,6 +662,135 @@ this.toggleSidebar = (show)->
 		g.alertsContainer.removeClass("r-sidebar-hidden")
 		g.sidebarHandleJ.find("span").removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-left")
 	return
+
+this.highlightStage = (color)->
+	g.backgroundRectangle = new Path.Rectangle(view.bounds)
+	g.backgroundRectangle.fillColor = color
+	g.backgroundRectangle.sendToBack()
+	return
+
+this.unhighlightStage = ()->
+	g.backgroundRectangle?.remove()
+	g.backgroundRectangle = null
+	return
+
+this.benchmarkRectangleClone = ()->
+	start = Date.now()
+	r = new Rectangle(1,2,3,4)
+	p = new Point(5,6)
+	for i in [0 .. 1000000]
+		r2 = r.clone()
+		r2.center = p
+	end = Date.now()
+	console.log "rectangle clone time: " + (end-start)
+
+	d = p.subtract(r.center)
+	
+	start = Date.now()
+	for i in [0 .. 1000000]
+		r.x += d.x
+		r.y += d.y
+	end = Date.now()
+	
+	console.log "rectangle move time: " + (end-start)
+
+	return
+
+this.highlightValidity = (item)->
+	g.validatePosition(item, null, highlight)
+	return
+
+# - check if *bounds* is valid: does not intersect with a planet nor a lock
+# - if bounds is not defined, the bounds of the item will be used
+# - cancel all highlights
+# - if the item has been dragged over a lock or out of a lock: highlight (if *highlight*) or update the items accordingly
+# @param item [RItem] the item to check
+# @param bounds [Paper Rectangle] (optional) the bounds to consider, item's bounds are used if *bounds* is null
+# @param highlight [boolean] (optional) whether to highlight or update the items
+this.validatePosition = (item, bounds=null, highlight=false)->
+	bounds ?= item.getBounds()
+
+	g.limitPathV?.strokeColor = 'green'
+	g.limitPathH?.strokeColor = 'green'
+
+	for lock in g.locks
+		lock.unhighlight()
+
+	this.unhighlightStage()
+
+	if g.rectangleOverlapsTwoPlanets(bounds)
+		if highlight
+			g.limitPathV?.strokeColor = 'red'
+			g.limitPathH?.strokeColor = 'red'
+		else
+			return false
+
+	locks = RLock.intersectRectangle(bounds)
+
+	for lock in locks
+		if RLock.prototype.isPrototypeOf(item)
+			if item != lock
+				if highlight
+					lock.highlight('red')
+				else
+					return false
+		else
+			if lock.getBounds().contains(bounds) and g.me == lock.owner
+				if item.lock != lock
+					if highlight
+						lock.highlight('green')
+					else
+						lock.addRItem(item)
+			else
+				if highlight
+					lock.highlight('red')
+				else
+					return false
+	
+	if locks.length == 0
+		if item.lock?
+			if highlight
+				this.highlightStage('green')
+			else
+				lock.removeRItem(item)
+
+	# if item is a lock: check that it still contains its children
+	if RLock.prototype.isPrototypeOf(item)
+		if not item.containsChildren()
+			if highlight
+				item.highlight('red')
+			else
+				return false
+	return true
+
+this.zIndexSortStop = (event, ui)=>
+	g.deselectAll()
+	rItem = g.items[ui.item.attr("data-pk")]
+	nextItemJ = ui.item.next()
+	if nextItemJ.length>0
+		rItem.insertAbove(g.items[nextItemJ.attr("data-pk")], null, true)
+	else
+		previousItemJ = ui.item.prev()
+		if previousItemJ.length>0
+			rItem.insertBelow(g.items[previousItemJ.attr("data-pk")], null, true)
+	for item in g.previouslySelectedItems
+		item.select()
+	return
+
+# @return [Paper Rectangle] the bounding box of *rectangle* (smallest rectangle containing *rectangle*) when it is rotated by *rotation*
+this.getRotatedBounds = (rectangle, rotation=0)->
+	topLeft = rectangle.topLeft.subtract(rectangle.center)
+	topLeft.angle += rotation
+	bottomRight = rectangle.bottomRight.subtract(rectangle.center)
+	bottomRight.angle += rotation
+	bottomLeft = rectangle.bottomLeft.subtract(rectangle.center)
+	bottomLeft.angle += rotation
+	topRight = rectangle.topRight.subtract(rectangle.center)
+	topRight.angle += rotation
+	bounds = new Rectangle(rectangle.center.add(topLeft), rectangle.center.add(bottomRight))
+	bounds = bounds.include(rectangle.center.add(bottomLeft))
+	bounds = bounds.include(rectangle.center.add(topRight))
+	return bounds
 
 # get a list of rectangles obtained from the cut of rectangle 2 in rectangle 1
 # the rectangles A, B, C and D are the resulting rectangles
@@ -704,7 +865,6 @@ this.getRectangleListFromIntersection = (rectangle1, rectangle2)->
 this.areaToImageDataUrl = (rectangle, convertToView=true)->
 	if rectangle.height <=0 or rectangle.width <=0 
 		console.log 'Warning: trying to extract empty area!!!'
-		debugger
 		return null
 
 	if convertToView
@@ -864,7 +1024,7 @@ this.updateRasters = (rectangle, areaPk=null)->
 	if extraction.dataURL == "data:,"
 		console.log "Warning: trying to add an area outside the screen!"
 
-	Dajaxice.draw.updateRasters(g.updateRasters_callback, { 'data': extraction.dataURL, 'position': extraction.rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized, 'areaToDeletePk': areaPk } )
+	# Dajaxice.draw.updateRasters(g.updateRasters_callback, { 'data': extraction.dataURL, 'position': extraction.rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized, 'areaToDeletePk': areaPk } )
 	return
 
 # out-of-date
@@ -1048,7 +1208,7 @@ this.rasterizeArea = (rectangle)->
 	else
 		# if the rectangle if too big, we do not rasterize it now, a rasterizer bot will do it
 		if rectangle.area > 4*Math.min(view.bounds.area, 1000*1000)
-			Dajaxice.draw.updateRasters(g.updateRasters_callback, { areasNotRasterized: [g.boxFromRectangle(rectangle)] } )
+			# Dajaxice.draw.updateRasters(g.updateRasters_callback, { areasNotRasterized: [g.boxFromRectangle(rectangle)] } )
 			restoreView()
 			return
 		
@@ -1063,7 +1223,7 @@ this.rasterizeArea = (rectangle)->
 		for x in [l .. r]
 			for y in [t .. b]
 				if not g.areaIsQuickLoaded(x: x, y: y)
-					Dajaxice.draw.updateRasters(g.updateRasters_callback, { areasNotRasterized: [g.boxFromRectangle(rectangle)] } )
+					# Dajaxice.draw.updateRasters(g.updateRasters_callback, { areasNotRasterized: [g.boxFromRectangle(rectangle)] } )
 					restoreView()
 					return
 
@@ -1089,7 +1249,7 @@ this.loopUpdateRasters = (results)->
 	g.checkError(results)
 	if g.rastersToUpload.length>0
 		g.isUpdatingRasters = true
-		Dajaxice.draw.updateRasters(g.loopUpdateRasters, g.rastersToUpload.shift() )
+		# Dajaxice.draw.updateRasters(g.loopUpdateRasters, g.rastersToUpload.shift() )
 	else
 		g.isUpdatingRasters = false
 	return

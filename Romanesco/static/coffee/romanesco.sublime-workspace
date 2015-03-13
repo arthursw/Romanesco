@@ -528,7 +528,7 @@
 			}
 		},
 		{
-			"file": "libs/ZeroClipboard/ZeroClipboard.js",
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/static/libs/ZeroClipboard/ZeroClipboard.js",
 			"settings":
 			{
 				"buffer_size": 74328,
@@ -552,7 +552,7 @@
 			}
 		},
 		{
-			"file": "less/styles.less",
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/static/less/styles.less",
 			"settings":
 			{
 				"buffer_size": 24010,
@@ -560,7 +560,7 @@
 			}
 		},
 		{
-			"file": "less/flexbox.less",
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/static/less/flexbox.less",
 			"settings":
 			{
 				"buffer_size": 3460,
@@ -584,7 +584,7 @@
 			}
 		},
 		{
-			"file": "coffee/ajax.coffee",
+			"file": "ajax.coffee",
 			"settings":
 			{
 				"buffer_size": 34004,
@@ -616,7 +616,7 @@
 			}
 		},
 		{
-			"file": "coffee/tools.coffee",
+			"file": "tools.coffee",
 			"settings":
 			{
 				"buffer_size": 44504,
@@ -624,7 +624,7 @@
 			}
 		},
 		{
-			"file": "coffee/path.coffee",
+			"file": "path.coffee",
 			"settings":
 			{
 				"buffer_size": 131682,
@@ -632,7 +632,7 @@
 			}
 		},
 		{
-			"file": "coffee/ritem.coffee",
+			"file": "ritem.coffee",
 			"settings":
 			{
 				"buffer_size": 18764,
@@ -641,7 +641,7 @@
 			}
 		},
 		{
-			"file": "coffee/div.coffee",
+			"file": "div.coffee",
 			"settings":
 			{
 				"buffer_size": 51737,
@@ -649,7 +649,7 @@
 			}
 		},
 		{
-			"file": "coffee/modal.coffee",
+			"file": "modal.coffee",
 			"settings":
 			{
 				"buffer_size": 7413,
@@ -665,7 +665,7 @@
 			}
 		},
 		{
-			"file": "coffee/command.coffee",
+			"file": "command.coffee",
 			"settings":
 			{
 				"buffer_size": 12100,
@@ -673,7 +673,7 @@
 			}
 		},
 		{
-			"file": "libs/dynadraw.js",
+			"file": "/Users/Arthur/Projects/romanesco/Romanesco/static/libs/dynadraw.js",
 			"settings":
 			{
 				"buffer_size": 5250,
@@ -770,7 +770,7 @@
 		},
 		{
 			"contents": "# @ThicknessPath.source = \"\"\"\n# class ThicknessPath extends PrecisePath\n# 	@rname = 'Roller brush'\n# 	@iconUrl = 'static/icons/inverted/rollerBrush.png'\n# 	@iconAlt = 'roller brush'\n# 	@rdescription = \"The stroke width is function of the speed: the faster the wider.\"\n\n# 	@parameters: ()->\n# 		parameters = super()\n# 		parameters['Style'].strokeWidth.default = 0 \n# 		parameters['Style'].strokeColor.defaultCheck = false\n# 		parameters['Style'].fillColor.defaultCheck = true\n\n# 		parameters['Parameters'] ?= {}\n# 		parameters['Parameters'].step =\n# 			type: 'slider'\n# 			label: 'Step'\n# 			min: 30\n# 			max: 300\n# 			default: 20\n# 			simplified: 20\n# 			step: 1\n# 		parameters['Parameters'].trackWidth =\n# 			type: 'slider'\n# 			label: 'Track width'\n# 			min: 1\n# 			max: 100\n# 			default: 20\n# 		return parameters\n\n# 	drawBegin: ()->\n# 		@initializeDrawing(false)\n# 		@path = @addPath()\n# 		@path.add(@controlPath.firstSegment.point)\n# 		return\n\n# 	drawUpdate: (length)->\n\n# 		point = @controlPath.getPointAt(length)\n# 		normal = @controlPath.getNormalAt(length).normalize()\n\n# 		delta = normal.multiply(@data.trackWidth/2)\n# 		top = point.add(delta)\n# 		bottom = point.subtract(delta)\n\n# 		@path.add(top)\n# 		@path.insert(0, bottom)\n# 		return\n\n# 	drawEnd: ()->\n# 		@path.add(@controlPath.lastSegment.point)\n# 		@path.closed = true\n# 		@path.smooth()\n# 		return\n# \"\"\"\n# @SpiralPath.source = \"\"\"\n# class SpiralPath extends PrecisePath\n# 	@rname = 'Spiral path'\n# 	@rdescription = \"Spiral path.\"\n\n# 	@parameters: ()->\n# 		parameters = super()\n# 		parameters['Parameters'] ?= {}\n# 		parameters['Parameters'].step =\n# 			type: 'slider'\n# 			label: 'Step'\n# 			min: 10\n# 			max: 100\n# 			default: 20\n# 			simplified: 20\n# 			step: 1\n# 		parameters['Parameters'].thickness =\n# 			type: 'slider'\n# 			label: 'Thickness'\n# 			min: 1\n# 			max: 30\n# 			default: 5\n# 			step: 1\n# 		parameters['Parameters'].rsmooth =\n# 			type: 'checkbox'\n# 			label: 'Smooth'\n# 			default: false\n\n# 		return parameters\n\n# 	drawBegin: ()->\n# 		@initializeDrawing(false)\n# 		@line = @addPath()\n# 		@spiral = @addPath()\n# 		return\n\n# 	drawUpdate: (length)->\n\n# 		point = @controlPath.getPointAt(length)\n# 		normal = @controlPath.getNormalAt(length).normalize()\n# 		tangent = normal.rotate(90)\n\n# 		@line.add(point)\n\n# 		@spiral.add(point.add(normal.multiply(@data.thickness)))\n\n# 		p1 = point.add(normal.multiply(@data.step))\n# 		@spiral.add(p1)\n\n# 		p2 = p1.add(tangent.multiply(@data.step-@data.thickness))\n# 		@spiral.add(p2)\n\n# 		p3 = p2.add(normal.multiply( -(@data.step-2*@data.thickness) ))\n# 		@spiral.add(p3)\n\n# 		p4 = p3.add(tangent.multiply( -(@data.step-3*@data.thickness) ))\n# 		@spiral.add(p4)\n\n# 		p5 = p4.add(normal.multiply( @data.thickness ))\n# 		@spiral.add(p5)\n\n# 		p6 = p5.add(tangent.multiply( @data.step-4*@data.thickness ))\n# 		@spiral.add(p6)\n\n# 		p7 = p6.add(normal.multiply( @data.step-4*@data.thickness ))\n# 		@spiral.add(p7)\n\n# 		p8 = p7.add(tangent.multiply( -(@data.step-3*@data.thickness) ))\n# 		@spiral.add(p8)\n\n# 		p9 = p8.add(normal.multiply( -(@data.step-2*@data.thickness) ))\n# 		@spiral.add(p9)\n\n# 		return\n\n# 	drawEnd: ()->\n# 		if @data.rsmooth \n# 			@spiral.smooth()\n# 			@line.smooth()\n# 		return\n\n# \"\"\"\n# @FuzzyPath.source = \"\"\"\n# class FuzzyPath extends SpeedPath\n# 	@rname = 'Fuzzy brush'\n# 	@rdescription = \"Brush with lines poping out of the path.\"\n\n# 	@parameters: ()->\n# 		parameters = super()\n\n# 		parameters['Parameters'] ?= {} \n# 		parameters['Parameters'].step =\n# 			type: 'slider'\n# 			label: 'Step'\n# 			min: 5\n# 			max: 100\n# 			default: 20\n# 			simplified: 20\n# 			step: 1\n# 		parameters['Parameters'].minWidth =\n# 			type: 'slider'\n# 			label: 'Min width'\n# 			min: 1\n# 			max: 100\n# 			default: 20\n# 		parameters['Parameters'].maxWidth =\n# 			type: 'slider'\n# 			label: 'Max width'\n# 			min: 1\n# 			max: 250\n# 			default: 200\n# 		parameters['Parameters'].minSpeed =\n# 			type: 'slider'\n# 			label: 'Min speed'\n# 			min: 1\n# 			max: 250\n# 			default: 1\n# 		parameters['Parameters'].maxSpeed =\n# 			type: 'slider'\n# 			label: 'Max speed'\n# 			min: 1\n# 			max: 250\n# 			default: 200\n# 		parameters['Parameters'].nLines =\n# 			type: 'slider'\n# 			label: 'N lines'\n# 			min: 1\n# 			max: 5\n# 			default: 2\n# 			simplified: 2\n# 			step: 1\n# 		parameters['Parameters'].symmetric =\n# 			type: 'dropdown'\n# 			label: 'Symmetry'\n# 			values: ['symmetric', 'top', 'bottom']\n# 			default: 'symmetric'\n# 		parameters['Parameters'].speedForWidth =\n# 			type: 'checkbox'\n# 			label: 'Speed for width'\n# 			default: true\n# 		parameters['Parameters'].speedForLength =\n# 			type: 'checkbox'\n# 			label: 'Speed for length'\n# 			default: false\n# 		parameters['Parameters'].orthoLines =\n# 			type: 'checkbox'\n# 			label: 'Orthogonal lines'\n# 			default: true\n# 		parameters['Parameters'].lengthLines =\n# 			type: 'checkbox'\n# 			label: 'Length lines'\n# 			default: true\n\n# 		return parameters\n\n# 	drawBegin: ()->\n# 		@initializeDrawing(false)\n\n# 		if @data.lengthLines\n# 			@lines = []\n# 			nLines = @data.nLines\n# 			if @data.symmetric == 'symmetric' then nLines *= 2\n# 			for i in [1 .. nLines]\n# 				@lines.push( @addPath() )\n\n# 		@lastLength = 0\n\n# 		return\n\n# 	drawUpdate: (length)->\n# 		console.log \"drawUpdate\"\n\n# 		speed = @speedAt(length)\n\n# 		addPoint = (length, speed)=>\n# 			point = @controlPath.getPointAt(length)\n# 			normal = @controlPath.getNormalAt(length).normalize()\n\n# 			if @data.speedForWidth\n# 				width = @data.minWidth + (@data.maxWidth - @data.minWidth) * speed / @constructor.speedMax\n# 			else\n# 				width = @data.minWidth\n\n\n# 			if @data.lengthLines\n# 				divisor = if @data.nLines>1 then @data.nLines-1 else 1\n# 				if @data.symmetric == 'symmetric'\n# 					for line, i in @lines by 2\n# 						@lines[i+0].add(point.add(normal.multiply(i*width*0.5/divisor)))\n# 						@lines[i+1].add(point.add(normal.multiply(-i*width*0.5/divisor)))\n# 				else\n# 					if @data.symmetric == 'top'\n# 						line.add(point.add(normal.multiply(i*width/divisor))) for line, i in @lines\n# 					else if @data.symmetric == 'bottom'\n# 						line.add(point.add(normal.multiply(-i*width/divisor))) for line, i in @lines\n\n# 			if @data.orthoLines\n# 				path = @addPath()\n# 				delta = normal.multiply(width)\n# 				switch @data.symmetric\n# 					when 'symmetric'\n# 						path.add(point.add(delta))\n# 						path.add(point.subtract(delta))\n# 					when 'top'\n# 						path.add(point.add(delta))\n# 						path.add(point)\n# 					when 'bottom'\n# 						path.add(point.subtract(delta))\n# 						path.add(point)\n# 			return\n\n# 		if not @data.speedForLength\n# 			addPoint(length, speed)\n# 		else 	# @data.speedForLength\n# 			speed = @data.minSpeed + (speed / @constructor.speedMax) * (@data.maxSpeed - @data.minSpeed)\n	\n# 			stepLength = length-@lastLength\n\n# 			if stepLength>speed\n# 				midLength = (length+@lastLength)/2\n# 				addPoint(midLength, speed)\n# 				@lastLength = length\n\n# 		return\n\n# 	drawEnd: ()->\n# 		return\n# \"\"\"\n# @SketchPath.source = \"\"\"\n# class SketchPath extends PrecisePath\n# 	@rname = 'Sketch brush'\n# 	@rdescription = \"Sketch path.\"\n\n# 	@parameters: ()->\n# 		parameters = super()\n# 		parameters['Style'].strokeColor.default = \"rgba(0, 0, 0, 0.25)\"\n# 		delete parameters['Style'].fillColor\n\n# 		parameters['Parameters'] ?= {}\n# 		parameters['Parameters'].step =\n# 			type: 'slider'\n# 			label: 'Step'\n# 			min: 5\n# 			max: 100\n# 			default: 20\n# 			simplified: 20\n# 			step: 1\n# 		parameters['Parameters'].distance =\n# 			type: 'slider'\n# 			label: 'Distance'\n# 			min: 5\n# 			max: 250\n# 			default: 100\n# 			simplified: 100\n\n# 		return parameters\n\n# 	drawBegin: ()->\n# 		@initializeDrawing(true)\n\n# 		@points = []\n# 		return\n\n# 	drawUpdate: (length)->\n# 		console.log \"drawUpdate\"\n\n# 		point = @controlPath.getPointAt(length)\n# 		normal = @controlPath.getNormalAt(length).normalize()\n\n# 		point = @projectToRaster(point)\n# 		@points.push(point)\n		\n# 		distMax = @data.distance*@data.distance\n\n# 		for pt in @points\n\n# 			if point.getDistance(pt, true) < distMax\n# 				@context.beginPath()\n# 				@context.moveTo(point.x,point.y)\n# 				@context.lineTo(pt.x,pt.y)\n# 				@context.stroke()\n		\n# 		return\n\n# 	drawEnd: ()->\n# 		return\n# \"\"\"\n# @ShapePath.source = \"\"\"\n# class ShapePath extends SpeedPath\n# 	@rname = 'Shape path'\n# 	@rdescription = \"Places shape along the path.\"\n\n# 	@parameters: ()->\n# 		parameters = super()\n\n# 		parameters['Parameters'] ?= {}\n# 		parameters['Parameters'].step =\n# 			type: 'slider'\n# 			label: 'Step'\n# 			min: 5\n# 			max: 100\n# 			default: 20\n# 			simplified: 20\n# 			step: 1\n# 		parameters['Parameters'].minWidth =\n# 			type: 'slider'\n# 			label: 'Min width'\n# 			min: 1\n# 			max: 250\n# 			default: 1\n# 		parameters['Parameters'].maxWidth =\n# 			type: 'slider'\n# 			label: 'Max width'\n# 			min: 1\n# 			max: 250\n# 			default: 200\n# 		parameters['Parameters'].speedForLength =\n# 			type: 'checkbox'\n# 			label: 'Speed for length'\n# 			default: false\n# 		parameters['Parameters'].minSpeed =\n# 			type: 'slider'\n# 			label: 'Min speed'\n# 			min: 1\n# 			max: 250\n# 			default: 1\n# 		parameters['Parameters'].maxSpeed =\n# 			type: 'slider'\n# 			label: 'Max speed'\n# 			min: 1\n# 			max: 250\n# 			default: 200\n\n# 		return parameters\n\n\n# 	drawBegin: ()->\n# 		@initializeDrawing(false)\n# 		@lastLength = 0\n# 		return\n\n# 	drawUpdate: (length)->\n# 		console.log \"drawUpdate\"\n\n# 		speed = @speedAt(length)\n\n# 		addPoint = (length, height, speed)=>\n# 			point = @controlPath.getPointAt(length)\n# 			normal = @controlPath.getNormalAt(length)\n\n# 			width = @data.minWidth + (@data.maxWidth - @data.minWidth) * speed / @constructor.speedMax\n# 			shape = @addPath(new Path.Rectangle(point.subtract(new Point(width/2, height/2)), new Size(width, height)))\n# 			shape.rotation = normal.angle\n# 			return\n\n# 		if not @data.speedForLength\n# 			addPoint(length, @data.step, speed)\n# 		else 	# @data.speedForLength\n# 			speed = @data.minSpeed + (speed / @constructor.speedMax) * (@data.maxSpeed - @data.minSpeed)\n			\n# 			stepLength = length-@lastLength\n# 			if stepLength>speed\n# 				midLength = (length+@lastLength)/2\n# 				addPoint(midLength, stepLength, speed)\n# 				@lastLength = length\n\n# 		return\n\n# 	drawEnd: ()->\n# 		return\n# \"\"\"\n# @RectangleShape.source = \"\"\"\n# class RectangleShape extends RShape\n# 	@Shape = paper.Path.Rectangle\n# 	@rname = 'Rectangle'\n# 	# @iconUrl = 'static/icons/inverted/rectangle.png'\n# 	# @iconAlt = 'rectangle'\n# 	@rdescription = \"Simple rectangle, square by default (use shift key to change to a rectangle). It can have rounded corners.\"\n\n# 	@parameters: ()->\n# 		parameters = super()\n# 		parameters['Style'] ?= {} \n# 		parameters['Style'].cornerRadius =\n# 			type: 'slider'\n# 			label: 'Corner radius'\n# 			min: 0\n# 			max: 100\n# 			default: 0\n# 		return parameters\n\n# 	createShape: ()->\n# 		@shape = @addPath(new @constructor.Shape(@rectangle, @data.cornerRadius))\n\n# \"\"\"\n# @EllipseShape.source = \"\"\"\n# class EllipseShape extends RShape\n# 	@Shape = paper.Path.Ellipse\n# 	@rname = 'Ellipse'\n# 	@iconUrl = 'static/icons/inverted/circle.png'\n# 	@iconAlt = 'circle'\n# 	@rdescription = \"Simple ellipse, circle by default (use shift key to change to an ellipse).\"\n\n# \"\"\"\n# @StarShape.source = \"\"\"\n# class StarShape extends RShape\n# 	@Shape = paper.Path.Star\n# 	@rname = 'Star'\n# 	@rdescription = \"Star shape.\"\n\n# 	@parameters: ()->\n# 		parameters = super()\n# 		parameters['Style'] ?= {} \n# 		parameters['Style'].nPoints =\n# 			type: 'slider'\n# 			label: 'N points'\n# 			min: 1\n# 			max: 100\n# 			default: 5\n# 			step: 2\n# 		parameters['Style'].internalRadius =\n# 			type: 'slider'\n# 			label: 'Internal radius'\n# 			min: -200\n# 			max: 100\n# 			default: 37\n# 		parameters['Style'].rsmooth =\n# 			type: 'checkbox'\n# 			label: 'Smooth'\n# 			default: false\n# 		return parameters\n\n# 	createShape: ()->\n# 		if @data.internalRadius>-100\n# 			externalRadius = @rectangle.width/2\n# 			internalRadius = externalRadius*@data.internalRadius/100\n# 		else\n# 			internalRadius = @rectangle.width/2\n# 			externalRadius = internalRadius*100/@data.internalRadius\n# 		@shape = @addPath(new @constructor.Shape(@rectangle.center, @data.nPoints, externalRadius, internalRadius))\n# 		if @data.rsmooth then @shape.smooth()\n\n# \"\"\"\n# @SpiralShape.source = \"\"\"\n# class SpiralShape extends RShape\n# 	@Shape = paper.Path.Ellipse\n# 	@rname = 'Spiral'\n# 	# @iconUrl = 'static/icons/inverted/spiral.png'\n# 	# @iconAlt = 'spiral'\n# 	@rdescription = \"Spiral shape, can have an intern radius, and any number of sides.\"\n\n# 	@parameters: ()->\n# 		parameters = super()\n\n# 		parameters['Parameters'] ?= {} \n# 		parameters['Parameters'].minRadius =\n# 			type: 'slider'\n# 			label: 'Minimum radius'\n# 			min: 0\n# 			max: 100\n# 			default: 0\n# 			# onSlide: @radiusMinChanged #optional slide event handler\n# 			# onSlideStop: @radiusMinStopped\n# 		parameters['Parameters'].nTurns =\n# 			type: 'slider'\n# 			label: 'Number of turns'\n# 			min: 1 \n# 			max: 50\n# 			default: 10\n# 		parameters['Parameters'].nSides =\n# 			type: 'slider'\n# 			label: 'Sides'\n# 			min: 3\n# 			max: 100\n# 			default: 50\n\n# 		return parameters\n\n# 	createShape: ()->\n# 		@shape = @addPath()\n\n# 		hw = @rectangle.width/2\n# 		hh = @rectangle.height/2\n# 		c = @rectangle.center\n# 		angle = 0\n\n# 		angleStep = 360.0/@data.nSides\n# 		spiralWidth = hw-hw*@data.minRadius/100.0\n# 		spiralHeight = hh-hh*@data.minRadius/100.0\n# 		radiusStepX = (spiralWidth / @data.nTurns) / @data.nSides\n# 		radiusStepY = (spiralHeight / @data.nTurns) / @data.nSides\n# 		for i in [0..@data.nTurns-1]\n# 			for step in [0..@data.nSides-1]\n# 				@shape.add(new Point(c.x+hw*Math.cos(angle), c.y+hh*Math.sin(angle)))\n# 				angle += (2.0*Math.PI*angleStep/360.0)\n# 				hw -= radiusStepX\n# 				hh -= radiusStepY\n# 		@shape.add(new Point(c.x+hw*Math.cos(angle), c.y+hh*Math.sin(angle)))\n# \"\"\"\n\n# @PrecisePath.source = \"\"\"\n# class PrecisePath extends RPath 	# must extend PrecisePath, SpeedPath or RShape\n# 	@rname = 'Precise path'\n# 	# @iconUrl = '/static/icons/inverted/editCurve.png'\n# 	# @iconAlt = 'edit curve'\n# 	@rdescription = \"This path offers precise controls, one can modify points along with their handles and their type.\"\n\n\n# 	@parameters: ()->\n\n# 		parameters = super()\n\n# 		parameters['General'].polygonMode =\n# 			type: 'checkbox'\n# 			label: 'Polygon mode'\n# 			default: g.polygonMode\n# 			onChange: (value)-> g.polygonMode = value\n\n# 		parameters['Edit curve'] =			\n# 			smooth:\n# 				type: 'checkbox'\n# 				label: 'Smooth'\n# 				default: false\n# 			pointType:\n# 				type: 'dropdown'\n# 				label: 'Point type'\n# 				values: ['smooth', 'corner', 'point']\n# 				default: 'smooth'\n# 				onChange: (value)-> item.changeSelectedPoint?(true, value) for item in g.selectedItems()\n# 			deletePoint: \n# 				type: 'button'\n# 				label: 'Delete point'\n# 				default: ()-> item.deleteSelectedPoint?() for item in g.selectedItems()\n\n# 		return parameters\n\n# 	drawBegin: ()->\n# 		@initializeDrawing(false)\n# 		@path = @addPath()\n# 		@path.segments = @controlPath.segments\n# 		@path.selected = false\n# 		return\n\n# 	drawUpdate: (length)->\n# 		@path.segments = @controlPath.segments\n# 		@path.selected = false\n# 		return\n\n# 	drawEnd: ()->\n# 		@path.segments = @controlPath.segments\n# 		@path.selected = false\n# 		return\n# \"\"\"\n# @Checkpoint.source = \"\"\"\n# class Checkpoint extends RShape\n# 	@Shape = paper.Path.Rectangle\n# 	@rname = 'Checkpoint'\n# 	# @iconUrl = 'static/icons/inverted/spiral.png'\n# 	# @iconAlt = 'spiral'\n# 	@rdescription = \"Checkpoint.\"\n	\n# 	constructor: (@date=null, @data=null, @pk=null, points=null) ->\n# 		super(@date, @data, @pk, points)\n# 		return\n	\n# 	createShape: ()->\n# 		@game = g.gameAt(@rectangle.center)\n# 		if @game?\n# 			if @game.checkpoints.indexOf(@)<0 then @game.checkpoints.push(@)\n# 			@data.checkpointNumber ?= @game.checkpoints.indexOf(@)\n\n# 		@data.strokeColor = 'rgb(150,30,30)'\n# 		@data.fillColor = null\n# 		@checkpointRectangle = @rectangle\n# 		@checkpointRectangle.height = 30\n# 		@checkpointRectangle.center = @rectangle.center\n# 		@shape = @addPath(new Path.Rectangle(@checkpointRectangle))\n# 		@text = @addPath(new PointText(@rectangle.center.add(0,4)))\n# 		@text.content = if @data.checkpointNumber? then 'Checkpoint ' + @data.checkpointNumber else 'Checkpoint'\n# 		@text.justification = 'center'\n		\n# 		return\n\n# 	contains: (point)->\n# 		delta = point.subtract(@checkpointRectangle.center)\n# 		delta.rotation = -@data.rotation\n# 		return @checkpointRectangle.contains(@checkpointRectangle.center.add(delta))\n\n# 	remove: ()->\n# 		@game?.checkpoints.remove(@)\n# 		super()\n# 		return\n# \"\"\"\n\nfor pathClass in @pathClasses\n	pathClass.source = \"\"\n\ng.codeExample = \"\"\"\n# The script can be either a general script or a path script.\n# A general script must begin with 'scriptName = \"yourScriptName\"'.\n# A path script must begin with \"class YourPathName extends SuperClass\".\n# SuperClass can be \"PrecisePath\", \"SpeedPath\" or \"RShape\".\n#\n# You can see the code of any path by selecting the corresponding drawing tool and click the \"Edit tool\" in the options bar\n#\n# Full documentation: \n#\n# ---- Example of a precise path ---- #\n#\n# the drawing is performed as followed: \n# - drawBegin() is called when the user presses the mouse, it must be used to initialize the drawing\n# - drawUpdate(offset) is called when the user drags the mouse, that is where the actual drawing occurs\n# - drawEnd() is called when the user releases the mouse, it can be used to perform final operations\n#\nclass NewPath extends PrecisePath\n	@rname = 'New path' 						# the name used in the sidebar (to create the tool button), must be unique\n	@rdescription = \"New path description.\" 	# the path description\n\n	drawBegin: ()->\n		# initialize the drawing group before drawing, without a child canvas (more info here)\n		@initializeDrawing(false)\n		# add a path to the drawing group\n		@path = @addPath()\n		return\n\n	# offset: position along the control path where we must update the drawing\n	drawUpdate: (offset)->\n		point = @controlPath.getPointAt(offset) 	# get the point where we must update the drawing\n		@path.add(point)							# add a point at this position\n		return\n\n	drawEnd: ()->\n		@path.simplify() 							# simplify the path\n		@path.smooth() 								# smooth the path\n		return\n\n# # ---- Full example of a complexe path ---- #\n#\n# class NewPath extends SpeedPath\n# 	@rname = 'New path' 						# the name used in the sidebar (to create the tool button), must be unique\n# 	@rdescription = \"New path description.\" 	# the path description\n#	@iconUrl = 'static/images/path.png' 		# the icon of the path\n#	@iconAlt = 'path'							# the alternative text for the image (displayed when the image cannot be loaded)\n\n# 	# parameters must return an object listing all parameters of the path\n# 	# those parameters will be accessible to the users from the options bar\n# 	# those parameters are binded to the path data: @data[parameterName]\n#	# the following parameters are reserved for romanesco: id, polygonMode, points, planet, step, smooth, speeds, showSpeeds\n# 	@parameters: ()->\n# 		parameters = super()\n# 		parameters['First folder'] = \n# 			firstParameter:\n# 				type: 'slider' 									# type is only required when adding a color (then it must be 'color')\n# 				label: 'Name of the parameter'					# label of the controller (name displayed in the options bar) (required)\n# 				default: 0 										# default value\n# 				value: 0										# value overrides default if set\n# 				step: 5 										# values will be incremented/decremented by step\n# 				min: 0 											# minimum value\n# 				max: 100 										# maximum value\n# 				simplified: 0 									# value during the simplified mode (useful to quickly draw a path, for example when a user modifies it)\n# 				defaultFunction: () -> 							# called to get a default value\n# 				addController: true 							# if true: adds the dat.gui controller to the item or the selected tool\n# 				onChange: (value)->  							# called when controller changes\n# 				onFinishChange: (value)-> 						# called when controller finishes change\n# 				setValue: (value, item)-> 						# called on set value of controller\n# 				permanent: true									# if true: the controller is never removed (always says in dat.gui)\n# 				defaultCheck: true 								# checked/activated by default or not\n# 				initializeController: (controller, item)->		# called just after controller is added to dat.gui, enables to customize the gui and add functionalities\n# 			secondParameter:\n# 				type: 'slider'\n# 				label: 'Second parameter'\n# 				value: 1\n# 				min: 0\n# 				max: 10\n# 		parameters['Second folder'] = \n# 			thirdParameter:\n# 				type: 'slider'\n# 				label: 'Third parameter'\n# 				value: 1\n# 				min: 0\n# 				max: 10\n# 		return parameters\n	\n# 	# initialize the path only once when it is loaded\n# 	# can be used to initialize animated path or to initialize the path on a video game\n# 	initialize: ()->\n# 		@setAnimated(@data.animate) 		# initialize the animation\n# 		return\n\n# 	drawBegin: ()->\n# 		# initialize the drawing group before drawing, without a child canvas (more info here)\n# 		@initializeDrawing(false)\n# 		# add a path to the drawing group\n# 		@path = @addPath()\n# 		return\n\n# 	# offset: position along the control path where we must update the drawing\n# 	drawUpdate: (offset)->\n	\n# 		one can access the path parameters in the @data property\n# 		firstParameter = @data[firstParameter]\n\n# 		point = @controlPath.getPointAt(offset) 	# get the point where we must update the drawing\n# 		@path.add(point)							# add a point at this position\n\n# 		# one can also get the normal or the tangent of the control path at this position\n# 		normal = @controlPath.getNormalAt(offset)\n# 		tangent = @controlPath.getTangentAt(offset)\n#		# do something with 'normal' and 'tangent'\n#\n# 		# when creating a speed path (using 'class NewPath extends SpeedPath'), one can access the speed value at this position\n# 		speed = @speedAt(offset)\n#		# do something with 'speed'\n#\n# 		# one can convert the point in raster coordinates to draw on the canvas (with @context)\n# 		point = @projectToRaster(point)\n# 		@context.lineTo(point.x, point.y)\n\n# 		return\n\n# 	drawEnd: ()->\n# 		@path.simplify() 							# simplify the path\n# 		@path.smooth() 								# smooth the path\n# 		return\n\n# 	# called at each frame to update the path (for animated path, @setAnimated or @registerAnimation must have been called)\n# 	onFrame: (event)=>\n# 		@path.rotation += @data.rotationSpeed 		# rotate the path by @data.rotationSpeed\n# 		return\n\n# # ---- Example of a shape ---- #\n#\n# class NewShape extends RShape\n# 	@rname = 'New shape' 						# the name used in the sidebar (to create the tool button)\n\n# 	# draw the shape (called whenever the shape must be updated)\n# 	createShape: ()->\n# 		@shape = @addPath(new Path.Rectangle(@rectangle))\n# 		return\n\"\"\"\n",
-			"file": "coffee/pathSources.coffee",
+			"file": "pathSources.coffee",
 			"file_size": -1,
 			"file_write_time": -1,
 			"settings":
@@ -780,7 +780,7 @@
 			}
 		},
 		{
-			"file": "coffee/socket.coffee",
+			"file": "socket.coffee",
 			"settings":
 			{
 				"buffer_size": 9013,
@@ -823,7 +823,7 @@
 			}
 		},
 		{
-			"file": "coffee/global.coffee",
+			"file": "global.coffee",
 			"settings":
 			{
 				"buffer_size": 49553,
@@ -831,7 +831,7 @@
 			}
 		},
 		{
-			"file": "coffee/coordinateSystems.coffee",
+			"file": "coordinateSystems.coffee",
 			"settings":
 			{
 				"buffer_size": 5674,
@@ -839,7 +839,7 @@
 			}
 		},
 		{
-			"file": "coffee/utils.coffee",
+			"file": "utils.coffee",
 			"settings":
 			{
 				"buffer_size": 3423,
@@ -848,7 +848,7 @@
 			}
 		},
 		{
-			"file": "coffee/sound.coffee",
+			"file": "sound.coffee",
 			"settings":
 			{
 				"buffer_size": 3887,
@@ -857,7 +857,7 @@
 		},
 		{
 			"contents": "# RLock are locked area which can only be modified by their author \n# all RItems on the area are also locked, and can be unlocked if the user drags them outside the div\n\n# There are different RLocks:\n# - RLock: a simple RLock which just locks the area and the items underneath, and displays a popover with a message when the user clicks on it\n# - RLink: extends RLock but works as a link: the one who clicks on it is redirected to the website\n# - RWebsite:\n#    - extends RLock and provide the author a special website adresse \n#    - the owner of the site can choose a few options: \"restrict area\" and \"hide toolbar\"\n#    - a user going to a site with the \"restricted area\" option can not go outside the area\n#    - the tool bar will be hidden to users navigating to site with the \"hide toolbar\" option\n# - RVideogame:\n#    - a video game is an area which can interact with other RItems (very experimental)\n#    - video games are always loaded entirely (the whole area is loaded at once with its items)\n\n# an RLock can be set in background mode ({RLock#updateBackgroundMode}):\n# - this hide the jQuery div and display a equivalent rectangle on the paper project instead (named controlPath in the code)\n# - it is usefull to add and edit items on the area\n#\n\nclass RLock extends RItem\n	@rname = 'Lock'\n\n	@modalTitle = \"Lock an area\"\n	@modalTitleUpdate = \"Modify your lock\"\n	@object_type = 'lock'\n	\n	# in the modal: the fields are reinitialized as soon as the type of RLock is changed \n	g.modalJ.find(\"#divModalTypeSelector\").click (event)=>\n		@initFields()\n		return\n\n	# intialize the fields of the modal\n	# the fields are initialized depending on the type of RLock (@object_type: 'lock', 'link', 'website', or 'video-game')\n	@initFields: ()->\n		g.modalJ.find('#divModalTypeSelector').show()\n		typeSelectorJ = g.modalJ.find('input[type=radio][name=typeSelector]:checked')\n		object_type = typeSelectorJ[0].value\n		g.modalJ.object_type = object_type\n		area = g.modalJ.rectangle.area\n		cost = area\n		switch object_type\n			when 'lock'\n				g.modalJ.find('.checkbox.restrict-area').hide()\n				g.modalJ.find('.checkbox.disable-toolbar').hide()\n				g.modalJ.find('.url-name-group').hide()\n				g.modalJ.find('.name-group').hide()\n				g.modalJ.find('.url-group').hide()\n				g.modalJ.find('.message-group').show()\n				cost = area/1000\n			when 'link'\n				g.modalJ.find('.checkbox.restrict-area').hide()\n				g.modalJ.find('.checkbox.disable-toolbar').hide()\n				g.modalJ.find('.url-name-group').show()\n				g.modalJ.find('.name-group').hide()\n				g.modalJ.find('.url-group').show()\n				g.modalJ.find('.url-group label').text(\"URL\")\n				g.modalJ.find('.url-group input').attr(\"placeholder\", \"http://\")\n				g.modalJ.find('.message-group').show()\n				cost = area\n			when 'website'\n				g.modalJ.find('.checkbox.restrict-area').show()\n				g.modalJ.find('.checkbox.disable-toolbar').show()\n				g.modalJ.find('.url-name-group').hide()\n				g.modalJ.find('.name-group').show()\n				g.modalJ.find('.url-group').hide()\n				g.modalJ.find('.message-group').hide()\n				cost = 2*area/1000\n			when 'video-game'\n				g.modalJ.find('.checkbox.restrict-area').hide()\n				g.modalJ.find('.checkbox.disable-toolbar').hide()\n				g.modalJ.find('.url-name-group').hide()\n				g.modalJ.find('.name-group').hide()\n				g.modalJ.find('.url-group').hide()\n				g.modalJ.find('.message-group').show()\n				cost = 2*area/1000\n		if g.credit<cost\n			g.romanesco_alert(\"You do not have enough romanescoins to add this link\", \"error\")\n		else\n			g.modalJ.find('p.cost').text(\"\" + area + \" pixels = \" + cost.toFixed(2) + \" romanescoins\")\n		return\n\n	# @param point [Paper point] the point to test\n	# @return [PK] the primary key of the intersecting lock or null\n	@intersectPoint: (point)->\n		for lock in g.locks\n			if lock.getBounds().contains(point) and g.me != lock.owner\n				return lock.pk\n		return null\n\n	# @param rectangle [Paper Rectangle] the rectangle to test\n	# @return [PK] the primary key of the intersecting lock or null\n	@intersectRect: (rectangle)->\n		for lock in g.locks\n			if lock.getBounds().intersects(new Rectangle(rectangle)) and g.me != lock.owner\n				return lock.pk\n		return null\n\n	@parameters: ()->\n		parameters = super()\n\n		strokeWidth = $.extend(true, {}, g.parameters.strokeWidth)\n		strokeWidth.default = 1\n		strokeColor = $.extend(true, {}, g.parameters.strokeColor)\n		strokeColor.default = 'black'\n		fillColor = $.extend(true, {}, g.parameters.fillColor)\n		fillColor.default = 'white'\n		fillColor.defaultCheck = true\n		fillColor.defaultFunction = null\n\n		parameters['Style'].strokeWidth = strokeWidth\n		parameters['Style'].strokeColor = strokeColor\n		parameters['Style'].fillColor = fillColor\n\n		return parameters\n\n	constructor: (@rectangle, @pk, @data=null) ->\n		super(@data)\n		\n		g.locks.push(@)\n\n		@group.name = 'lock group'\n		\n		# create background\n\n		@background = new Path.Rectangle(@position, @size)\n		@background.name = 'rlock background'\n		@background.strokeWidth = if @data.strokeWidth>0 then @data.strokeWidth else 1\n		@background.strokeColor = if @data.strokeColor? then @data.strokeColor else 'black'\n		@background.fillColor = @data.fillColor or 'white'\n		@background.controller = @\n		@group.addChild(@background)\n\n		# create special list to contains children paths\n		@sortedPaths = []\n		@sortedDivs = []\n\n		@itemListsJ = g.templatesJ.find(\".layer\").clone().prepend(g.itemListsJ)\n		@itemListsJ = g.itemListsJ.find(\".layer:first\")\n\n		# check if items are under this lock\n		for pk, item in g.items\n			if RLock.prototype.isPrototypeOf(item)\n				continue\n			if item.getBounds().intersects(@rectangle)\n				@addRItem(item)\n		\n		return\n\n	# can not select a lock which the user does not own\n	select: () =>\n		if @owner != g.me then return false\n		return super()\n\n	remove: () ->\n		super()\n		\n		for path in @sortedPaths\n			@removeRItem(path)\n		for div in @sortedDivs\n			@removeRItem(div)\n			\n		@itemListsJ.remove()\n		g.locks.remove(@)\n		@background?.remove()\n		@background = null\n		return\n\n	# add an item to this lock\n	addRItem: (item)->\n		@group.addChild(item.group)\n		item.lock = @\n		item.sortedItems.remove(item)\n		if RDiv.prototype.isPrototypeOf(item)\n			item.sortedItems = @sortedDivs\n			@itemListsJ.find(\".rDiv-list\").append(item.liJ)\n		else if RPath.prototype.isPrototypeOf(item)\n			item.sortedItems = @sortedPaths\n			@itemListsJ.find(\".rPath-list\").append(item.liJ)\n		else\n			console.error \"Error: the item is neither an RDiv nor an RPath\"\n		item.updateZIndex()\n\n		return\n\n	# remove an item to this lock\n	removeRItem: (item)->\n		g.mainLayer.addChild(item.group)\n		item.lock = null\n		@sortedItems.remove(item)\n		if RDiv.prototype.isPrototypeOf(item)\n			item.sortedItems = g.sortedDivs\n			item.liJ.appendTo(g.divList)\n		else if RPath.prototype.isPrototypeOf(item)\n			item.sortedItems = g.sortedPaths\n			item.liJ.appendTo(g.pathList)\n		else\n			console.error \"Error: the item is neither an RDiv nor an RPath\"\n		item.updateZIndex()\n		return\n		\n@RLock = RLock\n\n# RWebsite:\n#  - extends RLock and provide the author a special website adresse \n#  - the owner of the site can choose a few options: \"restrict area\" and \"hide toolbar\"\n#  - a user going to a site with the \"restricted area\" option can not go outside the area\n#  - the tool bar will be hidden to users navigating to site with the \"hide toolbar\" option\nclass RWebsite extends RLock\n	@rname = 'Website'\n	@object_type = 'website'\n\n	# overload {RDiv#constructor}\n	# the mouse interaction is modified to enable user navigation (the user can scroll the view by dragging on the website area)\n	constructor: (@rectangle, @pk, @data, @message) ->\n		super(@rectangle, @pk, @data)\n		return\n\n	# todo: remove\n	# can not enable interaction if the user not owner and is website\n	enableInteraction: () ->\n		return\n\n@RWebsite = RWebsite\n\n# RVideogame:\n# - a video game is an area which can interact with other RItems (very experimental)\n# - video games are always loaded entirely (the whole area is loaded at the same time with its items)\n# this a default videogame class which must be redefined in custom scripts\nclass RVideoGame extends RLock\n	@rname = 'Video game'\n	@object_type = 'video-game'\n\n	# overload {RDiv#constructor}\n	# the mouse interaction is modified to enable user navigation (the user can scroll the view by dragging on the videogame area)\n	constructor: (@rectangle, @pk, @data, @message) ->\n		super(@rectangle, @pk, @data)\n		@currentCheckpoint = -1\n		@checkpoints = []\n		return\n	\n	# overload {RDiv#getData} + set data.loadEntireArea to true (we want videogames to load entirely)\n	getData: ()->\n		data = super()\n		data.loadEntireArea = true\n		return data\n\n	# todo: remove\n	# redefine {RLock#enableInteraction}\n	enableInteraction: () ->\n		return\n\n	# initialize the video game gui (does nothing for now)\n	initGUI: ()->\n		console.log \"Gui init\"\n		return\n\n	# update game machanics: \n	# called at each frame (currently by the tool event, but should move to main.coffee in the onFrame event)\n	# @param tool [RTool] the car tool to get the car position\n	updateGame: (tool)->\n		for checkpoint in @checkpoints\n			if checkpoint.contains(tool.car.position)\n				if @currentCheckpoint == checkpoint.data.checkpointNumber-1\n					@currentCheckpoint = checkpoint.data.checkpointNumber\n					if @currentCheckpoint == 0\n						@startTime = Date.now()\n						romanesco_alert \"Game started, go go go!\", \"success\"\n					else	\n						romanesco_alert \"Checkpoint \" + @currentCheckpoint + \" passed!\", \"success\"\n				if @currentCheckpoint == @checkpoints.length-1\n					@finishGame()\n		return\n\n	# ends the game: called when user passes the last checkpoint!\n	finishGame: ()->\n		time = (Date.now() - @startTime)/1000\n		romanesco_alert \"You won ! Your time is: \" + time.toFixed(2) + \" seconds.\", \"success\"\n		@currentCheckpoint = -1\n		return\n\n@RVideoGame = RVideoGame\n\n# todo: make the link enabled even with the move tool?\n# RLink: extends RLock but works as a link: the one who clicks on it is redirected to the website\nclass RLink extends RLock\n	@rname = 'Link'\n	@modalTitle = \"Insert a hyperlink\"\n	@modalTitleUpdate = \"Modify your link\"\n	@object_type = 'link'\n\n	@parameters: ()->\n		parameters = super()\n		delete parameters['Lock']\n		return parameters\n\n	# overload {RLock#constructor}\n	# add the link tag with the url\n	constructor: (@position, @size, @owner, @pk, @message, @name, @url, @data) ->\n		super(@position, @size, @owner, @pk, @message, false, @data)\n		@divJ.addClass(\"link\")\n		@setPopover()\n		@linkJ = $('<a href=\"' + @url + '\"></a>')\n		@linkJ.click (event)=>\n			if @linkJ.attr(\"href\").indexOf(\"http://romanesc.co/#\") == 0\n				location = @linkJ.attr(\"href\").replace(\"http://romanesc.co/#\", \"\")\n				pos = location.split(',')\n				p = new Point()\n				p.x = parseFloat(pos[0])\n				p.y = parseFloat(pos[1])\n				g.RMoveTo(p, 1000)\n				event.preventDefault()\n				return false\n			return\n		@contentJ.append(@linkJ)\n		return\n\n	# set popover for the link\n	# called by the constructor\n	# the popover displays the site name, and a custom message (the information that the user gives when creating the RLink)\n	setPopover: ()->\n		popoverOptions = { placement:'auto top', trigger:'hover' }\n\n		if @message? and @message.length>0\n			popoverOptions.content = @message\n			if @name? and @name.length>0\n				popoverOptions.title = @name\n		else if @name? and @name.length>0\n			popoverOptions.content = @name\n\n		@contentJ.popover(popoverOptions)\n		@contentJ.addClass(\"link-content\")\n		@popover = @contentJ.data('bs.popover')\n		return\n\n	# overload {RLock#update} \n	# also update the name, message and url\n	update: () ->\n		@contentJ.attr('data-title', @name)\n		@contentJ.attr('data-content', @message)\n		@linkJ.attr(\"href\", @url)\n		super()\n		return\n\n	# redefine {RLock#updateBackgroundMode}\n	# an RLink can not be in background mode (for now)\n	updateBackgroundMode: (value)->\n		return\n\n	# updateAll: (x, y, width, height, name, message, url, fillColor, strokeColor, strokeWidth) ->\n	# 	super(x, y, width, height, name, message, url, fillColor, strokeColor, strokeWidth)\n	# 	@setPopover()\n	# 	@linkJ.attr(\"href\", @url)\n\n@RLink = RLink",
-			"file": "coffee/lock.coffee",
+			"file": "lock.coffee",
 			"file_size": 12435,
 			"file_write_time": 130699626520000000,
 			"settings":
@@ -877,7 +877,7 @@
 			}
 		},
 		{
-			"file": "coffee/main.coffee",
+			"file": "main.coffee",
 			"settings":
 			{
 				"buffer_size": 24424,
@@ -885,7 +885,7 @@
 			}
 		},
 		{
-			"file": "coffee/wacom.coffee",
+			"file": "wacom.coffee",
 			"settings":
 			{
 				"buffer_size": 13691,
@@ -894,7 +894,7 @@
 			}
 		},
 		{
-			"file": "coffee/editor.coffee",
+			"file": "editor.coffee",
 			"settings":
 			{
 				"buffer_size": 14553,
@@ -902,7 +902,7 @@
 			}
 		},
 		{
-			"file": "coffee/facebook.coffee",
+			"file": "facebook.coffee",
 			"settings":
 			{
 				"buffer_size": 3244,
@@ -910,7 +910,7 @@
 			}
 		},
 		{
-			"file": "coffee/options.coffee",
+			"file": "options.coffee",
 			"settings":
 			{
 				"buffer_size": 24478,
@@ -1422,7 +1422,7 @@
 				},
 				{
 					"buffer": 1,
-					"file": "libs/ZeroClipboard/ZeroClipboard.js",
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/static/libs/ZeroClipboard/ZeroClipboard.js",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1510,7 +1510,7 @@
 				},
 				{
 					"buffer": 4,
-					"file": "less/styles.less",
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/static/less/styles.less",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1539,7 +1539,7 @@
 				},
 				{
 					"buffer": 5,
-					"file": "less/flexbox.less",
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/static/less/flexbox.less",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1626,7 +1626,7 @@
 				},
 				{
 					"buffer": 8,
-					"file": "coffee/ajax.coffee",
+					"file": "ajax.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1745,7 +1745,7 @@
 				},
 				{
 					"buffer": 12,
-					"file": "coffee/tools.coffee",
+					"file": "tools.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1774,7 +1774,7 @@
 				},
 				{
 					"buffer": 13,
-					"file": "coffee/path.coffee",
+					"file": "path.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1803,7 +1803,7 @@
 				},
 				{
 					"buffer": 14,
-					"file": "coffee/ritem.coffee",
+					"file": "ritem.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1833,7 +1833,7 @@
 				},
 				{
 					"buffer": 15,
-					"file": "coffee/div.coffee",
+					"file": "div.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1862,7 +1862,7 @@
 				},
 				{
 					"buffer": 16,
-					"file": "coffee/modal.coffee",
+					"file": "modal.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1919,7 +1919,7 @@
 				},
 				{
 					"buffer": 18,
-					"file": "coffee/command.coffee",
+					"file": "command.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -1949,7 +1949,7 @@
 				},
 				{
 					"buffer": 19,
-					"file": "libs/dynadraw.js",
+					"file": "/Users/Arthur/Projects/romanesco/Romanesco/static/libs/dynadraw.js",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2274,7 +2274,7 @@
 				},
 				{
 					"buffer": 30,
-					"file": "coffee/pathSources.coffee",
+					"file": "pathSources.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2303,7 +2303,7 @@
 				},
 				{
 					"buffer": 31,
-					"file": "coffee/socket.coffee",
+					"file": "socket.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2445,7 +2445,7 @@
 				},
 				{
 					"buffer": 36,
-					"file": "coffee/global.coffee",
+					"file": "global.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2474,7 +2474,7 @@
 				},
 				{
 					"buffer": 37,
-					"file": "coffee/coordinateSystems.coffee",
+					"file": "coordinateSystems.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2503,7 +2503,7 @@
 				},
 				{
 					"buffer": 38,
-					"file": "coffee/utils.coffee",
+					"file": "utils.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2533,7 +2533,7 @@
 				},
 				{
 					"buffer": 39,
-					"file": "coffee/sound.coffee",
+					"file": "sound.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2562,7 +2562,7 @@
 				},
 				{
 					"buffer": 40,
-					"file": "coffee/lock.coffee",
+					"file": "lock.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2653,7 +2653,7 @@
 				},
 				{
 					"buffer": 42,
-					"file": "coffee/main.coffee",
+					"file": "main.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2682,7 +2682,7 @@
 				},
 				{
 					"buffer": 43,
-					"file": "coffee/wacom.coffee",
+					"file": "wacom.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2713,7 +2713,7 @@
 				},
 				{
 					"buffer": 44,
-					"file": "coffee/editor.coffee",
+					"file": "editor.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2742,7 +2742,7 @@
 				},
 				{
 					"buffer": 45,
-					"file": "coffee/facebook.coffee",
+					"file": "facebook.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2771,7 +2771,7 @@
 				},
 				{
 					"buffer": 46,
-					"file": "coffee/options.coffee",
+					"file": "options.coffee",
 					"semi_transient": false,
 					"settings":
 					{
@@ -2840,7 +2840,7 @@
 	{
 		"height": 0.0
 	},
-	"project": "romanesco.sublime-project",
+	"project": "/Users/Arthur/Projects/romanesco/Romanesco/static/romanesco.sublime-project",
 	"replace":
 	{
 		"height": 64.0

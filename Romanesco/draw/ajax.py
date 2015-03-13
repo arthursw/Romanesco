@@ -51,7 +51,7 @@ defaultPathTools = ["Precise path", "Thickness path", "Meander", "Grid path", "G
 def multipleCalls(request, functionsAndArguments):
 	results = []
 	for fa in functionsAndArguments:
-		results = locals()[fa.function](*fa.arguments)
+		results.append(json.loads(globals()[fa['function']](request=request, **fa['arguments'])))
 	return json.dumps(results)
 
 @dajaxice_register
@@ -186,7 +186,7 @@ def benchmark_load(request, areasToLoad):
 # 	return json.dumps( { 'items': items.values(), 'rasters': rasters, 'zoom': zoom, 'user': user } )
 
 @dajaxice_register
-def load(request, box, areasToLoad, zoom):
+def load(request, rectangle, areasToLoad, zoom):
 
 	items = {}
 
@@ -234,10 +234,10 @@ def load(request, box, areasToLoad, zoom):
 	else:
 		step = 25
 
-	left = box['left']
-	top = box['top']
-	right = box['right']
-	bottom = box['bottom']
+	left = rectangle['left']
+	top = rectangle['top']
+	right = rectangle['right']
+	bottom = rectangle['bottom']
 
 	for x1 in range(left,right+step,step):
 		for y1 in range(top,bottom+step,step):
@@ -611,7 +611,7 @@ def deletePath(request, pk):
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
-def saveBox(request, box, object_type, message, bounds, name="", url="", clonePk=None, website=False, restrictedArea=False, disableToolbar=False):
+def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
 
@@ -625,23 +625,20 @@ def saveBox(request, box, object_type, message, bounds, name="", url="", clonePk
 	if lockedAreas.count()>0:
 		return json.dumps( {'state': 'error', 'message': 'This area intersects with another locked area'} )
 
-	if len(url)==0:
-		url = None
-
 	loadEntireArea = object_type == 'video-game'
 
 	# todo: warning: website is not defined in Box model...
 	try:
 		data = json.dumps( { 'loadEntireArea': loadEntireArea } )
-		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, url=url, message=message, name=name, data=data) # , website=website
+		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data) # , website=website
 		b.save()
 	except ValidationError:
 		return json.dumps({'state': 'error', 'message': 'invalid_url'})
 
 	# addAreas(bounds, b)
 
-	if website:
-		site = Site(box=b, restrictedArea=restrictedArea, disableToolbar=disableToolbar, loadEntireArea=loadEntireArea, name=name)
+	if name and len(name)>0 and siteData:
+		site = Site(box=b, name=name, data=siteData)
 		site.save()
 
 	# pathsToLock = Path.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry)
@@ -652,10 +649,10 @@ def saveBox(request, box, object_type, message, bounds, name="", url="", clonePk
 	Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry).update(set__lock=str(b.pk), set__owner=request.user.username)
 	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry).update(set__lock=str(b.pk), set__owner=request.user.username)
 
-	return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'name': name, 'url': url, 'owner': request.user.username, 'pk':str(b.pk), 'box':box, 'clonePk': clonePk, 'website': website } )
+	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(b.pk), 'box':box } )
 
 @dajaxice_register
-def updateBox(request, object_type, pk, box=None, bounds=None, message=None, name=None, url=None, data=None):
+def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
 	
@@ -676,66 +673,85 @@ def updateBox(request, object_type, pk, box=None, bounds=None, message=None, nam
 	except Box.DoesNotExist:
 		return json.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
 
-	if box:
-		# retrieve the old paths and divs to unlock them if they are not in the new box:
-		points = b.box['coordinates'][0]
+	# if box and updateType=='position':
+	# 	newPoints = box['points']
+	# 	# retrieve the old paths and divs to unlock them if they are not in the new box:
+	# 	oldPoints = b.box['coordinates'][0]
 
-		planetX = b.planetX
-		planetY = b.planetY
+	# 	planetX = b.planetX
+	# 	planetY = b.planetY
 		
-		geometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
-		oldPaths = Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry)
-		oldDivs = Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry)
+	# 	geometry = makeBox(oldPoints[0][0], oldPoints[0][1], oldPoints[2][0], oldPoints[2][1])
+
+	# 	paths = Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry)
+
+	# 	oldCenterX = points[0][0] + points[2][0]
+	# 	oldCenterY = points[0][1] + points[2][1]
+	# 	newCenterX = newPoints[0][0] + newPoints[2][0]
+	# 	newCenterY = newPoints[0][1] + newPoints[2][1]
+
+	# 	deltaX = newCenterX - oldCenterX
+	# 	deltaY = newCenterY - oldCenterY
+		
+	# 	for path in paths:
+	# 		for point in path.points['coordinates']:
+	# 			point[0] = point[0] + deltaX
+	# 			point[1] = point[1] + deltaY
+	# 		path.save()
+
+	# 	divs = Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry)
+
+	# 	import pdb; pdb.set_trace()
+
+	# 	for div in divs:
+	# 		for geometry in div.box:
+	# 			points = geometry['coordinates'][0]
+	# 			for i in range(0, 4):
+	# 				points[i][0] = points[i][0] + deltaX
+	# 				points[i][1] = points[i][1] + deltaY
+	# 		div.save()
 
 	# update the box:
 	if box:
 		b.box = [box['points']]
 		b.planetX = box['planet']['x']
 		b.planetY = box['planet']['y']
-	if name:
-		b.name = name
-	if url and len(url)>0:
-		b.url = url
-	if message:
-		b.message = message
 	if data:
 		b.data = data
-
-	# updateAreas(bounds, b)
 
 	try:
 		b.save()
 	except ValidationError:
 		return json.dumps({'state': 'error', 'message': 'invalid_url'})
 
-	if box:
-		# retrieve the new paths and divs to lock them if they were not in the old box:
-		points = box['points']
-		planetX = box['planet']['x']
-		planetY = box['planet']['y']
-		geometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
+	# if box:
+	# 	# retrieve the new paths and divs to lock them if they were not in the old box:
+	# 	points = box['points']
+	# 	planetX = box['planet']['x']
+	# 	planetY = box['planet']['y']
+	# 	geometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
 
-		newPaths = Path.objects(planetX=b.planetX, planetY=b.planetY, points__geo_within=geometry)
-		newDivs = Div.objects(planetX=b.planetX, planetY=b.planetY, box__geo_within=geometry)
+	# 	newPaths = Path.objects(planetX=b.planetX, planetY=b.planetY, points__geo_within=geometry)
+	# 	newDivs = Div.objects(planetX=b.planetX, planetY=b.planetY, box__geo_within=geometry)
 		
-		# update old and new paths and divs
-		newPaths.update(set__lock=str(b.pk), set__owner=request.user.username)
-		newDivs.update(set__lock=str(b.pk), set__owner=request.user.username)
+	# 	# update old and new paths and divs
+	# 	newPaths.update(set__lock=str(b.pk), set__owner=request.user.username)
+	# 	newDivs.update(set__lock=str(b.pk), set__owner=request.user.username)
 
-		oldPaths.filter(pk__nin=newPaths.scalar("id")).update(set__lock=None, set__owner='public')
-		oldDivs.filter(pk__nin=newDivs.scalar("id")).update(set__lock=None, set__owner='public')
+	# 	oldPaths.filter(pk__nin=newPaths.scalar("id")).update(set__lock=None, set__owner=None)
+	# 	oldDivs.filter(pk__nin=newDivs.scalar("id")).update(set__lock=None, set__owner=None)
 
-		# for oldPath in oldPaths:
-		# 	if oldPath not in newPaths:
-		# 		oldPath.locked = False
-		# 		oldPath.save()
+	# 	# for oldPath in oldPaths:
+	# 	# 	if oldPath not in newPaths:
+	# 	# 		oldPath.locked = False
+	# 	# 		oldPath.save()
 
-		# for oldDiv in oldDivs:
-		# 	if oldDiv not in newDivs:
-		# 		oldDiv.locked = False
-		# 		oldDiv.save()
+	# 	# for oldDiv in oldDivs:
+	# 	# 	if oldDiv not in newDivs:
+	# 	# 		oldDiv.locked = False
+	# 	# 		oldDiv.save()
 
-	return json.dumps( {'state': 'success', 'object_type':object_type } )
+	return json.dumps( {'state': 'success' } )
 
 @dajaxice_register
 def deleteBox(request, pk):
@@ -764,7 +780,7 @@ def deleteBox(request, pk):
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
-def saveDiv(request, box, object_type, bounds, message=None, url=None, date=None, data=None, clonePk=None):
+def saveDiv(request, box, object_type, date=None, data=None, lock=None):
 
 	points = box['points']
 	planetX = box['planet']['x']
@@ -781,15 +797,13 @@ def saveDiv(request, box, object_type, bounds, message=None, url=None, date=None
 	# if lockedAreas.count()>0:
 	# 	return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
 
-	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, message=message, url=url, data=data, lock=lock, date=datetime.datetime.fromtimestamp(date/1000.0))
+	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data, lock=lock, date=datetime.datetime.fromtimestamp(date/1000.0))
 	d.save()
 
-	# addAreas(bounds, d)
-
-	return json.dumps( {'state': 'success', 'object_type':object_type, 'message': message, 'url': url, 'owner': request.user.username, 'pk':str(d.pk), 'box': box, 'data': data, 'clonePk': clonePk, 'date': str(d.date) } )
+	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(d.pk), 'box': box } )
 
 @dajaxice_register
-def updateDiv(request, pk, object_type=None, box=None, bounds=None, message=None, url=None, date=None, data=None):
+def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, lock=None):
 
 	try:
 		d = Div.objects.get(pk=pk)
@@ -808,29 +822,23 @@ def updateDiv(request, pk, object_type=None, box=None, bounds=None, message=None
 		d.lock = None
 		for area in lockedAreas:
 			if area.owner == request.user.username:
+				# try:
+				# 	lock = Box.objects(planetX=planetX, planetY=planetY, point__geo_within_box=makeBox(points[0][0], points[0][1], points[2][0], points[2][1]) )
+				# except Box.DoesNotExist:
+				# 	return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area that you own.'} )
 				d.lock = str(area.pk)
 			else:
 				return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area which you do not own'} )
 
-	if url:
-		#	No need to update URL?
-		# 	valid, errorMessage = validateURL(url)
-		# 	if not valid:
-		# 		return errorMessage
-		d.url = url
 	if box:
 		d.box = [box['points']]
 		d.planetX = box['planet']['x']
 		d.planetY = box['planet']['y']
-	if message:
-		d.message = message
 	if date:
 		d.date = datetime.datetime.fromtimestamp(date/1000.0)
 	if data:
 		d.data = data
 	
-	# updateAreas(bounds, d)
-
 	d.save()
 
 	return json.dumps( {'state': 'success' } )
@@ -1680,7 +1688,7 @@ def loadSite(request, siteName):
 		site = Site.objects.get(name=siteName)
 	except:
 		return { 'state': 'error', 'message': 'Site ' + siteName + ' does not exist.' }
-	return { 'state': 'success', 'box': site.box.to_json(), 'site': site.to_json(), 'loadEntireArea': site.loadEntireArea }
+	return { 'state': 'success', 'box': site.box.to_json(), 'site': site.to_json() }
 
 # --- payment signal --- #
 

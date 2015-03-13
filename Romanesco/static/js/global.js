@@ -75,18 +75,22 @@ Here are all global functions (which do not belong to classes and are not event 
     return true;
   };
 
+  this.jEventToPoint = function(event) {
+    return view.viewToProject(new Point(event.pageX - g.canvasJ.offset().left, event.pageY - g.canvasJ.offset().top));
+  };
+
   this.eventToObject = function(event) {
     var eo;
     eo = {
       modifiers: event.modifiers,
-      point: event.pageX == null ? event.point : view.viewToProject(new Point(event.pageX, event.pageY)),
+      point: event.pageX == null ? event.point : g.jEventToPoint(event),
       downPoint: event.downPoint != null,
       delta: event.delta
     };
     if ((event.pageX != null) && (event.pageY != null)) {
       eo.modifiers = {};
       eo.modifiers.control = event.ctrlKey;
-      eo.modifiers.command = event.command;
+      eo.modifiers.command = event.metaKey;
     }
     if (event.target != null) {
       eo.target = "." + event.target.className.replace(" ", ".");
@@ -99,6 +103,45 @@ Here are all global functions (which do not belong to classes and are not event 
     event.downPoint = new Point(event.downPoint);
     event.delta = new Point(event.delta);
     return event;
+  };
+
+  this.jEventToPaperEvent = function(event, previousPosition, initialPosition, type, count) {
+    var currentPosition, delta, paperEvent;
+    if (previousPosition == null) {
+      previousPosition = null;
+    }
+    if (initialPosition == null) {
+      initialPosition = null;
+    }
+    if (type == null) {
+      type = null;
+    }
+    if (count == null) {
+      count = null;
+    }
+    currentPosition = g.jEventToPoint(event);
+    if (previousPosition == null) {
+      previousPosition = currentPosition;
+    }
+    if (initialPosition == null) {
+      initialPosition = currentPosition;
+    }
+    delta = currentPosition.subtract(previousPosition);
+    paperEvent = {
+      modifiers: {
+        shift: event.shiftKey,
+        control: event.ctrlKey,
+        option: event.altKey,
+        command: event.metaKey
+      },
+      point: currentPosition,
+      downPoint: initialPosition,
+      delta: delta,
+      middlePoint: previousPosition.add(delta.divide(2)),
+      type: type,
+      count: count
+    };
+    return paperEvent;
   };
 
   this.specialKey = function(event) {
@@ -205,70 +248,47 @@ Here are all global functions (which do not belong to classes and are not event 
     g.fastModeOn = false;
   };
 
-  g.getLimitPaths = function() {
-    var limit, limitPathH, limitPathV;
-    limit = getLimit();
-    limitPathV = null;
-    limitPathH = null;
-    if (limit.x >= view.bounds.left && limit.x <= view.bounds.right) {
-      limitPathV = new Path();
-      limitPathV.name = 'limitPathV';
-      limitPathV.add(limit.x, view.bounds.top);
-      limitPathV.add(limit.x, view.bounds.bottom);
-    }
-    if (limit.y >= view.bounds.top && limit.y <= view.bounds.bottom) {
-      limitPathH = new Path();
-      limitPathH.name = 'limitPathH';
-      limitPathH.add(view.bounds.left, limit.y);
-      limitPathH.add(view.bounds.right, limit.y);
-    }
-    return {
-      vertical: limitPathV,
-      horizontal: limitPathH
-    };
-  };
-
   g.rectangleOverlapsTwoPlanets = function(rectangle) {
-    return g.overlapsTwoPlanets(new Path.Rectangle(rectangle));
-  };
-
-  g.pathOverlapsTwoPlanets = function(path) {
-    var intersections, limitPathH, limitPathV, limitPaths;
-    limitPaths = g.getLimitPaths();
-    limitPathV = limitPaths.vertical;
-    limitPathH = limitPaths.horizontal;
-    if (limitPathV != null) {
-      intersections = path.getIntersections(limitPathV);
-      limitPathV.remove();
-      if (intersections.length > 0) {
-        return true;
-      }
-    }
-    if (limitPathH != null) {
-      intersections = path.getIntersections(limitPathH);
-      limitPathH.remove();
-      if (intersections.length > 0) {
-        return true;
-      }
+    var limit;
+    limit = getLimit();
+    if ((rectangle.left < limit.x && rectangle.right > limit.x) || (rectangle.top < limit.y && rectangle.bottom > limit.y)) {
+      return true;
     }
     return false;
   };
 
-  g.updateGrid = function() {
-    var b, debug, i, ijOnPlanet, j, l, limitPathH, limitPathV, limitPaths, n, p, planet, planetText, pos, posOnPlanet, posText, px, py, r, snap, t, x, y;
-    g.grid.removeChildren();
-    limitPaths = g.getLimitPaths();
-    limitPathV = limitPaths.vertical;
-    limitPathH = limitPaths.horizontal;
-    if (limitPathV != null) {
-      limitPathV.strokeColor = "#00FF00";
-      limitPathV.strokeWidth = 5;
-      g.grid.addChild(limitPathV);
+  g.updateLimitPaths = function() {
+    var limit;
+    limit = getLimit();
+    g.limitPathV = null;
+    g.limitPathH = null;
+    if (limit.x >= view.bounds.left && limit.x <= view.bounds.right) {
+      g.limitPathV = new Path();
+      g.limitPathV.name = 'limitPathV';
+      g.limitPathV.add(limit.x, view.bounds.top);
+      g.limitPathV.add(limit.x, view.bounds.bottom);
+      g.grid.addChild(g.limitPathV);
     }
-    if (limitPathH != null) {
-      limitPathH.strokeColor = "#00FF00";
-      limitPathH.strokeWidth = 5;
-      g.grid.addChild(limitPathH);
+    if (limit.y >= view.bounds.top && limit.y <= view.bounds.bottom) {
+      g.limitPathH = new Path();
+      g.limitPathH.name = 'limitPathH';
+      g.limitPathH.add(view.bounds.left, limit.y);
+      g.limitPathH.add(view.bounds.right, limit.y);
+      g.grid.addChild(g.limitPathH);
+    }
+  };
+
+  g.updateGrid = function() {
+    var b, debug, i, ijOnPlanet, j, l, n, p, planet, planetText, pos, posOnPlanet, posText, px, py, r, snap, t, x, y;
+    g.grid.removeChildren();
+    g.updateLimitPaths();
+    if (g.limitPathV != null) {
+      g.limitPathV.strokeColor = 'green';
+      g.limitPathV.strokeWidth = 5;
+    }
+    if (g.limitPathH != null) {
+      g.limitPathH.strokeColor = 'green';
+      g.limitPathH.strokeWidth = 5;
     }
     if (!g.displayGrid) {
       return;
@@ -475,7 +495,7 @@ Here are all global functions (which do not belong to classes and are not event 
         items.push(item.controller);
       }
     }
-    return items.concat(g.selectedDivs);
+    return items;
   };
 
   this.deselectAll = function() {
@@ -506,6 +526,171 @@ Here are all global functions (which do not belong to classes and are not event 
       g.alertsContainer.removeClass("r-sidebar-hidden");
       g.sidebarHandleJ.find("span").removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-left");
     }
+  };
+
+  this.highlightStage = function(color) {
+    g.backgroundRectangle = new Path.Rectangle(view.bounds);
+    g.backgroundRectangle.fillColor = color;
+    g.backgroundRectangle.sendToBack();
+  };
+
+  this.unhighlightStage = function() {
+    var _ref;
+    if ((_ref = g.backgroundRectangle) != null) {
+      _ref.remove();
+    }
+    g.backgroundRectangle = null;
+  };
+
+  this.benchmarkRectangleClone = function() {
+    var d, end, i, p, r, r2, start, _i, _j;
+    start = Date.now();
+    r = new Rectangle(1, 2, 3, 4);
+    p = new Point(5, 6);
+    for (i = _i = 0; _i <= 1000000; i = ++_i) {
+      r2 = r.clone();
+      r2.center = p;
+    }
+    end = Date.now();
+    console.log("rectangle clone time: " + (end - start));
+    d = p.subtract(r.center);
+    start = Date.now();
+    for (i = _j = 0; _j <= 1000000; i = ++_j) {
+      r.x += d.x;
+      r.y += d.y;
+    }
+    end = Date.now();
+    console.log("rectangle move time: " + (end - start));
+  };
+
+  this.highlightValidity = function(item) {
+    g.validatePosition(item, null, highlight);
+  };
+
+  this.validatePosition = function(item, bounds, highlight) {
+    var lock, locks, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
+    if (bounds == null) {
+      bounds = null;
+    }
+    if (highlight == null) {
+      highlight = false;
+    }
+    if (bounds == null) {
+      bounds = item.getBounds();
+    }
+    if ((_ref = g.limitPathV) != null) {
+      _ref.strokeColor = 'green';
+    }
+    if ((_ref1 = g.limitPathH) != null) {
+      _ref1.strokeColor = 'green';
+    }
+    _ref2 = g.locks;
+    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+      lock = _ref2[_i];
+      lock.unhighlight();
+    }
+    this.unhighlightStage();
+    if (g.rectangleOverlapsTwoPlanets(bounds)) {
+      if (highlight) {
+        if ((_ref3 = g.limitPathV) != null) {
+          _ref3.strokeColor = 'red';
+        }
+        if ((_ref4 = g.limitPathH) != null) {
+          _ref4.strokeColor = 'red';
+        }
+      } else {
+        return false;
+      }
+    }
+    locks = RLock.intersectRectangle(bounds);
+    for (_j = 0, _len1 = locks.length; _j < _len1; _j++) {
+      lock = locks[_j];
+      if (RLock.prototype.isPrototypeOf(item)) {
+        if (item !== lock) {
+          if (highlight) {
+            lock.highlight('red');
+          } else {
+            return false;
+          }
+        }
+      } else {
+        if (lock.getBounds().contains(bounds) && g.me === lock.owner) {
+          if (item.lock !== lock) {
+            if (highlight) {
+              lock.highlight('green');
+            } else {
+              lock.addRItem(item);
+            }
+          }
+        } else {
+          if (highlight) {
+            lock.highlight('red');
+          } else {
+            return false;
+          }
+        }
+      }
+    }
+    if (locks.length === 0) {
+      if (item.lock != null) {
+        if (highlight) {
+          this.highlightStage('green');
+        } else {
+          lock.removeRItem(item);
+        }
+      }
+    }
+    if (RLock.prototype.isPrototypeOf(item)) {
+      if (!item.containsChildren()) {
+        if (highlight) {
+          item.highlight('red');
+        } else {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  this.zIndexSortStop = (function(_this) {
+    return function(event, ui) {
+      var item, nextItemJ, previousItemJ, rItem, _i, _len, _ref;
+      g.deselectAll();
+      rItem = g.items[ui.item.attr("data-pk")];
+      nextItemJ = ui.item.next();
+      if (nextItemJ.length > 0) {
+        rItem.insertAbove(g.items[nextItemJ.attr("data-pk")], null, true);
+      } else {
+        previousItemJ = ui.item.prev();
+        if (previousItemJ.length > 0) {
+          rItem.insertBelow(g.items[previousItemJ.attr("data-pk")], null, true);
+        }
+      }
+      _ref = g.previouslySelectedItems;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        item = _ref[_i];
+        item.select();
+      }
+    };
+  })(this);
+
+  this.getRotatedBounds = function(rectangle, rotation) {
+    var bottomLeft, bottomRight, bounds, topLeft, topRight;
+    if (rotation == null) {
+      rotation = 0;
+    }
+    topLeft = rectangle.topLeft.subtract(rectangle.center);
+    topLeft.angle += rotation;
+    bottomRight = rectangle.bottomRight.subtract(rectangle.center);
+    bottomRight.angle += rotation;
+    bottomLeft = rectangle.bottomLeft.subtract(rectangle.center);
+    bottomLeft.angle += rotation;
+    topRight = rectangle.topRight.subtract(rectangle.center);
+    topRight.angle += rotation;
+    bounds = new Rectangle(rectangle.center.add(topLeft), rectangle.center.add(bottomRight));
+    bounds = bounds.include(rectangle.center.add(bottomLeft));
+    bounds = bounds.include(rectangle.center.add(topRight));
+    return bounds;
   };
 
   this.getRectangleListFromIntersection = function(rectangle1, rectangle2) {
@@ -548,7 +733,6 @@ Here are all global functions (which do not belong to classes and are not event 
     }
     if (rectangle.height <= 0 || rectangle.width <= 0) {
       console.log('Warning: trying to extract empty area!!!');
-      debugger;
       return null;
     }
     if (convertToView) {
@@ -686,12 +870,6 @@ Here are all global functions (which do not belong to classes and are not event 
     if (extraction.dataURL === "data:,") {
       console.log("Warning: trying to add an area outside the screen!");
     }
-    Dajaxice.draw.updateRasters(g.updateRasters_callback, {
-      'data': extraction.dataURL,
-      'position': extraction.rectangle.topLeft,
-      'areasNotRasterized': extraction.areasNotRasterized,
-      'areaToDeletePk': areaPk
-    });
   };
 
   this.batchUpdateRasters_callback = function(results) {
@@ -889,9 +1067,6 @@ Here are all global functions (which do not belong to classes and are not event 
       });
     } else {
       if (rectangle.area > 4 * Math.min(view.bounds.area, 1000 * 1000)) {
-        Dajaxice.draw.updateRasters(g.updateRasters_callback, {
-          areasNotRasterized: [g.boxFromRectangle(rectangle)]
-        });
         restoreView();
         return;
       }
@@ -905,9 +1080,6 @@ Here are all global functions (which do not belong to classes and are not event 
             x: x,
             y: y
           })) {
-            Dajaxice.draw.updateRasters(g.updateRasters_callback, {
-              areasNotRasterized: [g.boxFromRectangle(rectangle)]
-            });
             restoreView();
             return;
           }
@@ -938,7 +1110,6 @@ Here are all global functions (which do not belong to classes and are not event 
     g.checkError(results);
     if (g.rastersToUpload.length > 0) {
       g.isUpdatingRasters = true;
-      Dajaxice.draw.updateRasters(g.loopUpdateRasters, g.rastersToUpload.shift());
     } else {
       g.isUpdatingRasters = false;
     }
