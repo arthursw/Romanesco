@@ -5,7 +5,7 @@
 # todo: have a selectPath (simplified version of group to test selection)instead of the group ?
 # todo: replace smooth by rsmooth and rdata in general.
 
-# important todo: pass args in deffered exec to update 'points' or 'data'
+# important todo: pass args in deferred exec to update 'points' or 'data'
 
 # RPath: mother of all romanesco paths
 # A romanesco path (RPath) is a path made of the following items:
@@ -127,7 +127,6 @@ class RPath extends RContent
 		if points?
 			@loadPath(points)
 
-		@select()
 		return
 	
 	# common to all RItems
@@ -162,9 +161,9 @@ class RPath extends RContent
 		@draw()
 		return
 
-	updateSetRectangle: (event)->
-		super(event)
-		@draw(false)
+	setRectangle: (event, update)->
+		super(event, update)
+		@draw(if update then true else false)
 		return
 
 	# convert a point from project coordinate system to raster coordinate system
@@ -226,16 +225,14 @@ class RPath extends RContent
 	# @param updateOptions [Boolean] whether to update controllers in gui or not
 	# @return whether the ritem was selected or not
 	select: (updateOptions=true)->
-		if not @controlPath? then return false
-		if not super(updateOptions) then return false
+		if not super(updateOptions) or not @controlPath? then return false
 		return true
 
 	# deselect: remove the selection rectangle (and rasterize)
-	deselect: ()->
-		if not super() then return false
-		@controlPath.visible = false
+	deselect: (updatePreviouslySelectedItems)->
+		if not super(updatePreviouslySelectedItems) then return false
 		@rasterize()
-		return
+		return true
 
 	# called when user deselects, after a not simplified draw or once the user finished creating the path
 	# this is suppose to convert all the group to a raster to speed up paper.js operations, but it does not drastically improve speed, so it is just commented out
@@ -277,7 +274,6 @@ class RPath extends RContent
 		if not @drawing then g.updateView() 	# update the view if it was rasterized
 		@previousBoundingBox ?= @getDrawingBounds()
 		@draw()		# if draw in simple mode, then how to see the change of parameters which matter?
-		if updateGUI then g.setControllerValueByName(name, value, @)
 		return
 
 	# add a path to the drawing group:
@@ -428,7 +424,6 @@ class RPath extends RContent
 	# @param path [RPath] path on which to insert this
 	# @param index [Number] the index at which to add the path in g.sortedPath
 	insertAbove: (path, index=null, update=false)->
-		@group.insertAbove(path.group)
 		@zindex = @group.index
 		if update and not @drawing then g.updateView()
 		super(path, index, update)
@@ -438,7 +433,6 @@ class RPath extends RContent
 	# @param path [RPath] path under which to insert this
 	# @param index [Number] the index at which to add the path in g.sortedPath
 	insertBelow: (path, index=null, update=false)->
-		@group.insertBelow(path.group)
 		@zindex = @group.index
 		if update and not @drawing then g.updateView()
 		super(path, index, update)
@@ -570,14 +564,11 @@ class RPath extends RContent
 	# @delete() removes the path and delete it in the database
 	# @remove() just removes visually
 	remove: ()->
-		@deselect()
 		@deregisterAnimation()
-		@group.remove()
 		@controlPath = null
 		@drawing = null
 		@raster ?= null
 		@canvasRaster ?= null
-		@group = null
 		if @pk?
 			delete g.paths[@pk]
 		else
@@ -708,16 +699,16 @@ class PrecisePath extends RPath
 				values: ['smooth', 'corner', 'point']
 				default: 'smooth'
 				addController: true
-				onChange: (value)-> item.changeSelectedPointTypeCommand?(value) for item in g.selectedItems(); return
+				onChange: (value)-> item.changeSelectedPointTypeCommand?(value) for item in g.selectedItems; return
 			deletePoint: 
 				type: 'button'
 				label: 'Delete point'
-				default: ()-> item.deletePointCommand?() for item in g.selectedItems(); return
+				default: ()-> item.deletePointCommand?() for item in g.selectedItems; return
 			simplify: 
 				type: 'button'
 				label: 'Simplify'
 				default: ()-> 
-					for item in g.selectedItems()
+					for item in g.selectedItems
 						item.controlPath?.simplify()
 						item.draw()
 						item.update()
@@ -852,7 +843,6 @@ class PrecisePath extends RPath
 	# @param event [Event] the mouse event
 	beginCreate: (point, event)->
 		super()
-		if RLock.intersectPoint(point) then	return
 
 		if not @data.polygonMode 				# in normal mode: just initialize the control path and begin drawing
 			@initializeControlPath(point)
@@ -883,13 +873,6 @@ class PrecisePath extends RPath
 
 		if not @data.polygonMode
 			
-			if @lock
-				return
-			@lock = RLock.intersectPoint(point)
-			if @lock 		# check if path is not in an RLock
-				@save()
-				return
-
 			@controlPath.add(point)
 
 			@checkUpdateDrawing(@controlPath.lastSegment, false)
@@ -1057,24 +1040,21 @@ class PrecisePath extends RPath
 	# - call RPath.select
 	# @param updateOptions [Boolean] whether to update gui parameters with this RPath or not
 	select: (updateOptions=true)->
-		if not @controlPath? then return
-		if @selectionRectangle? then return
-		@index = @controlPath.index
-		@controlPath.bringToFront()
+		if not super(updateOptions) then return
 		@controlPath.selected = true
-		super(updateOptions)
 		if not @data.smooth then @controlPath.fullySelected = true
-		return
+		return true
 
 	# @see RPath.deselect
 	# deselect control path, remove selection highlight (@see PrecisePath.highlightSelectedPoint) and call RPath.deselect
-	deselect: ()->
+	deselect: (updatePreviouslySelectedItems)->
+		if not super(updatePreviouslySelectedItems) then return false
 		# g.project.activeLayer.insertChild(@index, @controlPath)
-		@controlPath.selected = false
+		# control path can be null if user is removing the path
+		@controlPath?.selected = false
 		@selectionHighlight?.remove()
 		@selectionHighlight = null
-		super()
-		return
+		return true
 
 	# highlight selection path point:
 	# draw a shape behind the selected point to be able to move and modify it
@@ -1205,13 +1185,13 @@ class PrecisePath extends RPath
 		@controlPath.rotate(@rotation)
 		return
 
-	setRotation: (rotation, update)->
-		previousRotation = @rotation
-		@drawing.pivot = @rectangle.center
-		super(rotation, update)
-		@controlPath.rotate(rotation-previousRotation)
-		@drawing.rotate(rotation-previousRotation)
-		return
+	# setRotation: (rotation, update)->
+	# 	previousRotation = @rotation
+	# 	@drawing.pivot = @rectangle.center
+	# 	super(rotation, update)
+	# 	@controlPath.rotate(rotation-previousRotation)
+	# 	@drawing.rotate(rotation-previousRotation)
+	# 	return
 
 	endModifySegment: ()->
 		if @data.smooth then @controlPath.smooth()
@@ -1406,10 +1386,8 @@ class PrecisePath extends RPath
 
 	# overload {RPath#remove}, but in addition: remove the selected point highlight and the canvas raster
 	remove: ()->
-		@selectionHighlight?.remove()
 		@selectionHighlight = null
-		@canvasRaster?.remove()
-		@canvasRaster =  null
+		@canvasRaster = null
 		super()
 
 @PrecisePath = PrecisePath
@@ -1723,19 +1701,18 @@ class SpeedPath extends PrecisePath
 
 	# overload {PrecisePath#select}, update speeds and show speed group
 	select: (updateOptions=true)->
-		if @selectionRectangle? then return
-		super(updateOptions)
+		if not super(updateOptions) then return false
 		@showSpeed()
 		if @data.showSpeed
 			if not @speedGroup? then @updateSpeed()
 			@speedGroup?.visible = true
-		return
+		return true
 
 	# overload {PrecisePath#deselect} and hide speed group
-	deselect: ()->
+	deselect: (updatePreviouslySelectedItems)->
+		if not super(updatePreviouslySelectedItems) then return false
 		@speedGroup?.visible = false
-		super()
-		return
+		return true
 
 	# overload {PrecisePath#initializeSelection} but add the possibility to select speed handles
 	initializeSelection: (event, hitResult) ->
@@ -1824,7 +1801,6 @@ class SpeedPath extends PrecisePath
 
 	# overload {PrecisePath#remove} and remove speed group
 	remove: ()->
-		@speedGroup?.remove()
 		@speedGroup = null
 		super()
 		return
@@ -2984,10 +2960,10 @@ class RShape extends RPath
 		super()
 		return
 
-	setRotation: (rotation, update)->
-		super(rotation, update)
-		@drawing.rotation = rotation
-		return
+	# setRotation: (rotation, update)->
+	# 	super(rotation, update)
+	# 	@drawing.rotation = rotation
+	# 	return
 
 	# overload {RPath#getData} and add rectangle to @data
 	getData: ()->

@@ -341,15 +341,17 @@ init = ()->
 	g.currentDiv = null 					# the div currently being edited (dragged, moved or resized) used to also send jQuery mouse event to divs
 	g.areasToUpdateRectangles = {} 			# debug map: area to update pk -> rectangle path
 	g.catchErrors = false 					# the error will not be caught when drawing an RPath (let chrome catch them at the right time)
-	g.previousPosition = null 				# the previous position of the mouse in the mousedown/move/up
-	g.initialPosition = null 				# the initial position of the mouse in the mousedown/move/up
+	g.previousMousePosition = null 			# the previous position of the mouse in the mousedown/move/up
+	g.initialMousePosition = null 			# the initial position of the mouse in the mousedown/move/up
+	g.previousViewPosition = null			# the previous view position
 	g.backgroundRectangle = null 			# the rectangle to highlight the stage when dragging an RContent over it
 	g.limitPathV = null 					# the vertical limit path (line between two planets)
 	g.limitPathH = null 					# the horizontal limit path (line between two planets)
-
+	g.selectedItems = [] 					# the selectedItems
+	
 	# initialize sort
 
-	g.itemListsJ = $("#RItems .rItems")
+	g.itemListsJ = $("#RItems .layers")
 	g.pathList = g.itemListsJ.find(".rPath-list")
 	g.pathList.sortable( stop: g.zIndexSortStop, delay: 250 )
 	g.pathList.disableSelection()
@@ -360,7 +362,7 @@ init = ()->
 		$(this).parent().toggleClass('closed')
 		return
 	g.commandManager = new CommandManager()
-	
+	g.commandManager.add(new Command('Load Romanesco'), true)
 	# g.globalMaskJ = $("#globalMask")
 	# g.globalMaskJ.hide()
 	
@@ -523,7 +525,7 @@ $(document).ready () ->
 		return
 
 	canvasJ.dblclick( (event) -> g.selectedTool.doubleClick?(event) )
-	canvasJ.keydown( (event) -> if event.key == 46 then event.preventDefault() ) # cancel default delete key behaviour (not really working)
+	canvasJ.keydown( (event) -> if event.key == 46 then event.preventDefault(); return false ) # cancel default delete key behaviour (not really working)
 
 	# Paper listeners
 	tool.onMouseDown = (event) ->
@@ -547,22 +549,20 @@ $(document).ready () ->
 		g.selectedTool.end(event)
 
 	tool.onKeyDown = (event) ->
-		# if user is typing: ignore
-		for item in g.selectedItems()
-			if item == 'RText'
-				return
+	
+		# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the event
+		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea") or $(document.activeElement).parents(".dat-gui").length
+			return
+
 		if event.key == 'delete' 									# prevent default delete behaviour (not working)
 			event.preventDefault()
+			return false
+
 		if event.key == 'space' and g.selectedTool.name != 'Move' 	# select 'Move' tool when user press space key (and reselect previous tool after)
 			g.tools['Move'].select()
 
 	tool.onKeyUp = (event) ->
-		# if user is typing: ignore
-		# for selectedDiv in g.selectedDivs
-		# 	if selectedDiv.constructor.name == 'RText'
-		# 		return
-
-		# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the delete
+		# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the event
 		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea") or $(document.activeElement).parents(".dat-gui").length
 			return
 
@@ -575,13 +575,13 @@ $(document).ready () ->
 			delta = if event.modifiers.shift then 50 else if event.modifiers.option then 5 else 1
 		switch event.key
 			when 'right'
-				item.moveBy(new Point(delta,0), true) for item in g.selectedItems()
+				item.moveBy(new Point(delta,0), true) for item in g.selectedItems
 			when 'left'
-				item.moveBy(new Point(-delta,0), true) for item in g.selectedItems()
+				item.moveBy(new Point(-delta,0), true) for item in g.selectedItems
 			when 'up'
-				item.moveBy(new Point(0,-delta), true) for item in g.selectedItems()
+				item.moveBy(new Point(0,-delta), true) for item in g.selectedItems
 			when 'down'
-				item.moveBy(new Point(0,delta), true) for item in g.selectedItems()
+				item.moveBy(new Point(0,delta), true) for item in g.selectedItems
 			when 'enter', 'escape'
 				g.selectedTool.finishPath?()
 			when 'space'
@@ -589,7 +589,8 @@ $(document).ready () ->
 			when 'v'
 				g.tools['Select'].select()
 			when 'delete', 'backspace'
-				for item in g.selectedItems()
+				selectedItems = g.selectedItems.slice()
+				for item in selectedItems
 					if item.selectionState?.segment?
 						item.deletePointCommand()
 					else
@@ -653,7 +654,7 @@ this.mousemove = (event) ->
 	# 	event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
 	# 	g.previousPoint = new Point(event.pageX, event.pageY)
 
-	# 	for item in g.selectedItems()
+	# 	for item in g.selectedItems
 	# 		item.updateSelect?(event)
 	
 	# update code editor width
@@ -688,7 +689,7 @@ this.mouseup = (event) ->
 	# if g.previousPoint?
 	# 	event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
 	# 	g.previousPoint = null
-	# 	for item in g.selectedItems()
+	# 	for item in g.selectedItems
 	# 		item.endSelect?(event)
 
 	g.draggingEditor = false

@@ -392,7 +392,7 @@
 
     SelectTool.prototype.select = function() {
       var _ref;
-      this.selectedItem = g.selectedItems().first();
+      this.selectedItem = g.selectedItems.first();
       SelectTool.__super__.select.call(this, ((_ref = this.selectedItem) != null ? _ref.constructor : void 0) || this.constructor, this.selectedItem, false);
     };
 
@@ -402,12 +402,12 @@
       if ((_ref = g.currentPaths[g.me]) != null) {
         _ref.remove();
       }
-      g.currentPaths[g.me] = new Group();
       rectanglePath = new Path.Rectangle(rectangle);
       rectanglePath.name = 'select tool selection rectangle';
       rectanglePath.strokeColor = g.selectionBlue;
       rectanglePath.dashArray = [10, 4];
-      g.currentPaths[g.me].addChild(rectanglePath);
+      g.selectionLayer.addChild(rectanglePath);
+      g.currentPaths[g.me] = rectanglePath;
       itemsToHighlight = [];
       _ref1 = g.items;
       for (name in _ref1) {
@@ -423,13 +423,8 @@
       }
     };
 
-    SelectTool.prototype.emptySelectionLayer = function() {
-      g.deselectAll();
-      project.activeLayer.addChildren(g.selectionLayer.removeChildren());
-    };
-
     SelectTool.prototype.begin = function(event) {
-      var hitResult, name, path, _base, _ref, _ref1;
+      var hitResult, name, path, _base, _ref, _ref1, _ref2;
       if (event.event.which === 2) {
         return;
       }
@@ -444,12 +439,16 @@
         path = _ref1[name];
         path.finishHitTest();
       }
+      console.log(hitResult);
+      console.log('selected items: ');
+      console.log(g.selectedItems);
       if (hitResult && (hitResult.item.controller != null)) {
         this.selectedItem = hitResult.item.controller;
         if (!event.modifiers.shift) {
-          if (g.selectionLayer.children.length > 0) {
-            if (!g.selectionLayer.isAncestor(hitResult.item)) {
-              this.emptySelectionLayer();
+          if (g.selectedItems.length > 0) {
+            if (g.selectedItems.indexOf((_ref2 = hitResult.item) != null ? _ref2.controller : void 0) < 0) {
+              g.deselectAll();
+              console.log('deselected all');
             }
           }
         }
@@ -457,37 +456,25 @@
           _base.beginSelect(event);
         }
       } else {
-        this.emptySelectionLayer();
+        console.log('deselected all');
+        g.deselectAll();
         this.createSelectionRectangle(event);
       }
     };
 
     SelectTool.prototype.update = function(event) {
-      var item, selectedItems, _i, _len;
       if (!g.currentPaths[g.me]) {
-        selectedItems = g.selectedItems();
-        if (selectedItems.length === 1) {
-          selectedItems[0].updateSelect(event);
-        } else {
-          for (_i = 0, _len = selectedItems.length; _i < _len; _i++) {
-            item = selectedItems[_i];
-            if (typeof item.updateMoveBy === "function") {
-              item.updateMoveBy(event);
-            }
-          }
-        }
+        this.selectedItem.updateSelect(event);
       } else {
         this.createSelectionRectangle(event);
       }
     };
 
     SelectTool.prototype.end = function(event) {
-      var item, itemsToSelect, name, rectangle, selectedItems, _ref, _ref1;
+      var i, item, itemsToSelect, name, rectangle, _ref, _ref1;
       if (!g.currentPaths[g.me]) {
-        selectedItems = g.selectedItems();
-        if (selectedItems.length === 1) {
-          selectedItems[0].endSelect(event);
-        }
+        this.selectedItem.endSelect(event);
+        this.selectedItem = null;
       } else {
         rectangle = new Rectangle(event.downPoint, event.point);
         itemsToSelect = [];
@@ -503,6 +490,14 @@
         }
         if (itemsToSelect.length > 0) {
           g.commandManager.add(new SelectCommand(itemsToSelect), true);
+        }
+        i = itemsToSelect.length - 1;
+        while (i >= 0) {
+          item = itemsToSelect[i];
+          if (!item.isSelected()) {
+            itemsToSelect.remove(item);
+          }
+          i--;
         }
         itemsToSelect = itemsToSelect.map(function(item) {
           return {
@@ -523,7 +518,7 @@
 
     SelectTool.prototype.doubleClick = function(event) {
       var item, _i, _len, _ref;
-      _ref = g.selectedItems();
+      _ref = g.selectedItems;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         item = _ref[_i];
         if (typeof item.doubleClick === "function") {
@@ -725,6 +720,7 @@
       g.currentPaths[from].name = 'div tool rectangle';
       g.currentPaths[from].dashArray = [4, 10];
       g.currentPaths[from].strokeColor = 'black';
+      g.selectionLayer.addChild(g.currentPaths[from]);
       if ((g.me != null) && from === g.me) {
         g.chatSocket.emit("begin", g.me, g.eventToObject(event), this.name, g.currentPaths[from].data);
       }
@@ -845,7 +841,9 @@
       }
       if (TextTool.__super__.end.call(this, event, from)) {
         text = new RText(g.currentPaths[from].bounds);
+        text.select();
         text.save();
+        g.commandManager.add(new CreateDivCommand(text));
         delete g.currentPaths[from];
       }
     };
@@ -952,6 +950,7 @@
       g.currentPaths[from].dashArray = [4, 10];
       g.currentPaths[from].strokeColor = 'black';
       g.currentPaths[from].strokeWidth = 1;
+      g.selectionLayer.addChild(g.currentPaths[from]);
     };
 
     ScreenshotTool.prototype.update = function(event) {

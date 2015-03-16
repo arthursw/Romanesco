@@ -85,11 +85,11 @@ this.initParameters = () ->
 	g.parameters.delete =
 		type: 'button'
 		label: 'Delete items'
-		default: ()-> item.deleteCommand() for item in g.selectedItems()
+		default: ()-> item.deleteCommand() for item in g.selectedItems
 	g.parameters.duplicate =
 		type: 'button'
 		label: 'Duplicate items'
-		default: ()-> item.duplicateCommand() for item in g.selectedItems()
+		default: ()-> item.duplicateCommand() for item in g.selectedItems
 	g.parameters.snap =
 		type: 'slider'
 		label: 'Snap'
@@ -108,7 +108,7 @@ this.initParameters = () ->
 			$(controller.domElement).find('input').remove()
 
 			align = (type)->
-				items = g.selectedItems()
+				items = g.selectedItems
 				switch type	
 					when 'h-top'
 						yMin = NaN
@@ -183,7 +183,7 @@ this.initParameters = () ->
 			$(controller.domElement).find('input').remove()
 
 			distribute = (type)->
-				items = g.selectedItems()
+				items = g.selectedItems
 				switch type	
 					when 'h-top'
 						yMin = NaN
@@ -446,7 +446,8 @@ this.initTextOptions = (data, textStatus, jqXHR) ->
 
 	return
 
-this.setControllerValueByName = (name, value, item, checked=false)->
+this.setControllerValueByName = (name, value, item)->
+	checked = value?
 	for folderName, folder of g.gui.__folders
 		for controller in folder.__controllers
 			if controller.property == name
@@ -521,7 +522,7 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 	# - call item.parameterChanged()
 	# - emit "parameter change" on websocket
 	onParameterChange = (value) -> 
-		for item in g.selectedItems()
+		for item in g.selectedItems
 			if typeof item?.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
 				if parameter.step? then value = value-value%parameter.step
 				item.changeParameterCommand(name, value)

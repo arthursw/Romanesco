@@ -34,11 +34,11 @@
       area = null;
     }
     if ((g.previousLoadPosition != null) && g.previousLoadPosition.subtract(view.center).length < 50) {
-      return;
+      return false;
     }
     console.log("load");
-    debug = false;
-    scale = !debug ? g.scale : 500;
+    debug = true;
+    scale = !debug ? g.scale : 200;
     g.previousLoadPosition = view.center;
     if (area == null) {
       bounds = !debug ? view.bounds : view.bounds.scale(0.3, 0.3);
@@ -56,7 +56,7 @@
         _ref2.remove();
       }
     }
-    unloadDist = 0;
+    unloadDist = debug ? 50 : Math.round(scale);
     if (!g.entireArea) {
       limit = bounds.expand(unloadDist);
     } else {
@@ -169,7 +169,7 @@
       }
     }
     if (areasToLoad.length <= 0) {
-      return;
+      return false;
     }
     if (g.loadingBarTimeout == null) {
       showLoadingBar = function() {
@@ -177,26 +177,31 @@
       };
       g.loadingBarTimeout = setTimeout(showLoadingBar, 0);
     }
-    console.log("load areas: " + areasToLoad.length);
     rectangle = {
       left: l / 1000,
       top: t / 1000,
       right: r / 1000,
       bottom: b / 1000
     };
-    console.log("load rectangle");
-    console.log(rectangle);
     Dajaxice.draw.load(load_callback, {
       rectangle: rectangle,
       areasToLoad: areasToLoad,
       zoom: view.zoom
     });
+    return true;
   };
 
   this.load_callback = function(results) {
-    var box, data, date, div, i, item, itemIsLoaded, itemsToLoad, lock, newAreasToUpdate, path, pk, planet, point, points, position, raster, rdiv, rectangle, rpath, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _name, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    var box, data, date, dispatchLoadFinished, div, i, item, itemIsLoaded, itemsToLoad, lock, newAreasToUpdate, path, pk, planet, point, points, position, raster, rdiv, rectangle, rpath, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _name, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    dispatchLoadFinished = function() {
+      var commandEvent;
+      commandEvent = document.createEvent('Event');
+      commandEvent.initEvent('command executed', true, true);
+      document.dispatchEvent(commandEvent);
+    };
     checkError(results);
     if (results.hasOwnProperty('message') && results.message === 'no_paths') {
+      dispatchLoadFinished();
       return;
     }
     if (g.me == null) {
@@ -333,6 +338,7 @@
     clearTimeout(g.loadingBarTimeout);
     g.loadingBarTimeout = null;
     $("#loadingBar").hide();
+    dispatchLoadFinished();
   };
 
   this.benchmark_load = function() {

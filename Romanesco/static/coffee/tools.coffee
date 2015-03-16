@@ -392,7 +392,7 @@ class SelectTool extends RTool
 		return
 
 	select: ()->
-		@selectedItem = g.selectedItems().first()
+		@selectedItem = g.selectedItems.first()
 		super(@selectedItem?.constructor or @constructor, @selectedItem, false)
 		return
 
@@ -401,12 +401,15 @@ class SelectTool extends RTool
 	createSelectionRectangle: (event)->
 		rectangle = new Rectangle(event.downPoint, event.point)
 		g.currentPaths[g.me]?.remove()
-		g.currentPaths[g.me] = new Group()
+		# g.currentPaths[g.me] = new Group()
 		rectanglePath = new Path.Rectangle(rectangle)
 		rectanglePath.name = 'select tool selection rectangle'
 		rectanglePath.strokeColor = g.selectionBlue
 		rectanglePath.dashArray = [10, 4]
-		g.currentPaths[g.me].addChild(rectanglePath)
+		# g.currentPaths[g.me].addChild(rectanglePath)
+
+		g.selectionLayer.addChild(rectanglePath)
+		g.currentPaths[g.me] = rectanglePath
 
 		itemsToHighlight = []
 
@@ -425,12 +428,6 @@ class SelectTool extends RTool
 			if rectangle.area == 0
 				break
 		return
-	
-	# remove the selection group: deselect divs, move selected items to active layer and remove selection group
-	emptySelectionLayer: ()->
-		g.deselectAll()		# deselect divs
-		project.activeLayer.addChildren(g.selectionLayer.removeChildren())
-		return
 
 	# Begin selection:
 	# - perform hit test to see if there is any item under the mouse
@@ -445,18 +442,25 @@ class SelectTool extends RTool
 		hitResult = g.project.hitTest(event.point, hitOptions)
 		path.finishHitTest() for name, path of g.paths
 		
+		console.log hitResult
+		console.log 'selected items: '
+		console.log g.selectedItems
+
 		if hitResult and hitResult.item.controller? 		# if user hits a path: select it
 			@selectedItem = hitResult.item.controller
 
 			if not event.modifiers.shift 	# if shift is not pressed: deselect previous items
-				if g.selectionLayer.children.length>0
-					if not g.selectionLayer.isAncestor(hitResult.item) then @emptySelectionLayer() 	# if the item is not in selection group: deselect selection group
+				if g.selectedItems.length>0
+					if g.selectedItems.indexOf(hitResult.item?.controller)<0
+						g.deselectAll() 	# if the item is not in selection group: deselect selection group
+						console.log 'deselected all'
 				# else 
 				# 	if g.selectedDivs.length>0 then g.deselectAll()
 
 			hitResult.item.controller.beginSelect?(event)
 		else 												# otherwise: remove selection group and create selection rectangle
-			@emptySelectionLayer()
+			console.log 'deselected all'
+			g.deselectAll()
 			@createSelectionRectangle(event)
 		return
 
@@ -465,12 +469,13 @@ class SelectTool extends RTool
 	# - update selection rectangle if there is one
 	update: (event) ->
 		if not g.currentPaths[g.me] 			# update selected RItems if there is no selection rectangle
-			selectedItems = g.selectedItems()
-			if selectedItems.length == 1
-				selectedItems[0].updateSelect(event)
-			else
-				for item in selectedItems
-					item.updateMoveBy?(event)
+			@selectedItem.updateSelect(event)
+			# selectedItems = g.selectedItems
+			# if selectedItems.length == 1
+			# 	selectedItems[0].updateSelect(event)
+			# else
+			# 	for item in selectedItems
+			# 		item.updateMoveBy?(event)
 		else 									# update selection rectangle if there is one
 			@createSelectionRectangle(event)
 		return
@@ -481,10 +486,10 @@ class SelectTool extends RTool
 	#   update parameters from selected RItems and remove selection rectangle
 	end: (event) ->
 		if not g.currentPaths[g.me] 		# end selection action on selected RItems if there is no selection rectangle
-			selectedItems = g.selectedItems()
-			if selectedItems.length == 1
-				selectedItems[0].endSelect(event)
-
+			# selectedItems = g.selectedItems
+			# if selectedItems.length == 1
+			@selectedItem.endSelect(event)
+			@selectedItem = null
 		else 								# create selection group is there is a selection rectangle
 
 			rectangle = new Rectangle(event.downPoint, event.point)
@@ -502,6 +507,13 @@ class SelectTool extends RTool
 			if itemsToSelect.length > 0
 				g.commandManager.add(new SelectCommand(itemsToSelect), true)
 			
+			i = itemsToSelect.length-1
+			while i>=0
+				item = itemsToSelect[i]
+				if not item.isSelected()
+					itemsToSelect.remove(item)
+				i--
+
 			# Add all items which intersect with the selection rectangle (2nd version)
 
 			# for item in project.activeLayer.children
@@ -530,7 +542,7 @@ class SelectTool extends RTool
 
 	# Double click handler: send event to selected RItems
 	doubleClick: (event) ->
-		for item in g.selectedItems()
+		for item in g.selectedItems
 			item.doubleClick?(event)
 		return
 
@@ -740,6 +752,7 @@ class ItemTool extends RTool
 		g.currentPaths[from].name = 'div tool rectangle'
 		g.currentPaths[from].dashArray = [4, 10]
 		g.currentPaths[from].strokeColor = 'black'
+		g.selectionLayer.addChild(g.currentPaths[from])
 
 		if g.me? and from==g.me then g.chatSocket.emit( "begin", g.me, g.eventToObject(event), @name, g.currentPaths[from].data )
 		return
@@ -880,7 +893,9 @@ class TextTool extends ItemTool
 	end: (event, from=g.me) ->
 		if super(event, from)
 			text = new RText(g.currentPaths[from].bounds)
+			text.select()
 			text.save()
+			g.commandManager.add(new CreateDivCommand(text))
 			delete g.currentPaths[from]
 		return
 
@@ -945,6 +960,7 @@ class ScreenshotTool extends RTool
 		g.currentPaths[from].dashArray = [4, 10]
 		g.currentPaths[from].strokeColor = 'black'
 		g.currentPaths[from].strokeWidth = 1
+		g.selectionLayer.addChild(g.currentPaths[from])
 		return
 
 	# update selection rectangle

@@ -59,7 +59,6 @@
         'General': {
           align: g.parameters.align,
           distribute: g.parameters.distribute,
-          duplicate: g.parameters.duplicate,
           "delete": g.parameters["delete"]
         },
         'Style': {
@@ -111,7 +110,7 @@
     }
 
     RItem.prototype.changeParameterCommand = function(name, value) {
-      this.defferedAction(ChangeParameterCommand, name, value);
+      this.deferredAction(ChangeParameterCommand, name, value);
     };
 
     RItem.prototype.changeParameter = function(name, value, updateGUI, update) {
@@ -205,23 +204,26 @@
     };
 
     RItem.prototype.endAction = function() {
+      var commandChanged;
+      commandChanged = this.currentCommand.end();
       if (g.validatePosition(this)) {
-        this.currentCommand.end();
-        g.commandManager.add(this.currentCommand);
+        if (commandChanged) {
+          g.commandManager.add(this.currentCommand);
+        }
       } else {
         this.currentCommand.undo();
       }
       this.currentCommand = null;
     };
 
-    RItem.prototype.defferedAction = function() {
+    RItem.prototype.deferredAction = function() {
       var ActionCommand, args;
       ActionCommand = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
       if (!ActionCommand.prototype.isPrototypeOf(this.currentCommand)) {
-        this.beginAction(new ActionCommand(this));
+        this.beginAction(new ActionCommand(this, args));
       }
       this.updateAction.apply(this, args);
-      g.defferedExecution(this.endAction, 'addCurrentCommand-' + (this.id || this.pk));
+      g.deferredExecution(this.endAction, 'addCurrentCommand-' + (this.id || this.pk));
     };
 
     RItem.prototype.doAction = function(ActionCommand, args) {
@@ -299,7 +301,7 @@
         rectangle.center.y = center.y;
       }
       this.setRectangle(rectangle);
-      g.validatePosition(this, null, true);
+      g.highlightValidity(this);
     };
 
     RItem.prototype.endSetRectangle = function() {
@@ -322,7 +324,7 @@
 
     RItem.prototype.updateMoveBy = function(event) {
       this.moveBy(event.delta);
-      g.validatePosition(this, null, true);
+      g.highlightValidity(this);
     };
 
     RItem.prototype.endMoveBy = function() {
@@ -361,6 +363,7 @@
       if ((_ref = this.group) != null) {
         _ref.addChild(this.highlightRectangle);
       }
+      this.highlightRectangle.bringToFront();
     };
 
     RItem.prototype.unhighlight = function() {
@@ -389,6 +392,7 @@
       if (this.selectionRectangle != null) {
         return false;
       }
+      g.previouslySelectedItems = g.selectedItems.slice();
       if ((_ref = this.lock) != null) {
         _ref.deselect();
       }
@@ -403,22 +407,34 @@
         }, true);
       }
       g.s = this;
+      g.selectedItems.push(this);
       return true;
     };
 
-    RItem.prototype.deselect = function() {
+    RItem.prototype.deselect = function(updatePreviouslySelectedItems) {
       var _ref;
+      if (updatePreviouslySelectedItems == null) {
+        updatePreviouslySelectedItems = true;
+      }
       if (this.selectionRectangle == null) {
         return false;
+      }
+      if (updatePreviouslySelectedItems) {
+        g.previouslySelectedItems = g.selectedItems.slice();
       }
       if ((_ref = this.selectionRectangle) != null) {
         _ref.remove();
       }
       this.selectionRectangle = null;
+      g.selectedItems.remove(this);
+      return true;
     };
 
     RItem.prototype.remove = function() {
       var _ref;
+      this.deselect();
+      this.group.remove();
+      this.group = null;
       if ((_ref = this.highlightRectangle) != null) {
         _ref.remove();
       }
@@ -453,6 +469,13 @@
       7: 'right',
       8: 'bottomRight',
       9: 'bottom'
+    };
+
+    RContent.parameters = function() {
+      var parameters;
+      parameters = RContent.__super__.constructor.parameters.call(this);
+      parameters['General'].duplicate = g.parameters.duplicate;
+      return parameters;
     };
 
     function RContent(data, pk, date, itemListJ, sortedItems) {
@@ -539,19 +562,21 @@
     };
 
     RContent.prototype.setRotation = function(rotation, update) {
+      var previousRotation;
+      previousRotation = this.rotation;
+      this.group.pivot = this.rectangle.center;
       this.rotation = rotation;
-      this.selectionRectangle.rotation = rotation;
+      this.group.rotate(rotation - previousRotation);
       if (update) {
         this.update('rotation');
       }
-      console.log('rotation: ' + this.rotation);
     };
 
     RContent.prototype.updateSetRotation = function(event) {
       var rotation;
       rotation = event.point.subtract(this.rectangle.center).angle + 90;
       this.setRotation(rotation);
-      g.validatePosition(this, null, true);
+      g.highlightValidity(this);
     };
 
     RContent.prototype.endSetRotation = function() {
@@ -622,6 +647,7 @@
       if (update == null) {
         update = false;
       }
+      this.group.insertAbove(item.group);
       if (!index) {
         this.sortedItems.remove(this);
         index = this.sortedItems.indexOf(item) + 1;
@@ -649,6 +675,7 @@
       if (update == null) {
         update = false;
       }
+      this.group.insertBelow(item.group);
       if (!index) {
         this.sortedItems.remove(this);
         index = this.sortedItems.indexOf(item);
@@ -677,32 +704,31 @@
     };
 
     RContent.prototype.select = function(updateOptions) {
-      var select;
       if (updateOptions == null) {
         updateOptions = true;
       }
-      select = RContent.__super__.select.call(this, updateOptions);
-      if (select) {
-        this.liJ.addClass('selected');
-        if (this.group.parent !== g.selectionLayer) {
-          this.zindex = this.group.index;
-        }
-        g.selectionLayer.addChild(this.group);
+      if (!RContent.__super__.select.call(this, updateOptions)) {
+        return false;
       }
-      return select;
+      this.liJ.addClass('selected');
+      if (this.group.parent !== g.selectionLayer) {
+        this.zindex = this.group.index;
+      }
+      g.selectionLayer.addChild(this.group);
+      return true;
     };
 
     RContent.prototype.deselect = function() {
-      var deselect;
-      deselect = RContent.__super__.deselect.call(this);
-      if (deselect) {
-        this.liJ.removeClass('selected');
+      if (!RContent.__super__.deselect.call(this)) {
+        return false;
       }
+      this.liJ.removeClass('selected');
       if (!this.lock) {
         g.mainLayer.insertChild(this.zindex, this.group);
       } else {
         this.lock.group.insertChild(this.zindex, this.group);
       }
+      return true;
     };
 
     RContent.prototype.remove = function() {

@@ -509,19 +509,19 @@ this.gameAt = (point)->
 # Move the romanesco view to *pos*
 # @param pos [Point] destination
 # @param delay [Number] time of the animation to go to destination in millisecond
-g.RMoveTo = (pos, delay) ->
+g.RMoveTo = (pos, delay, addCommand=true) ->
 	if not delay?
-		g.RMoveBy(pos.subtract(view.center))
+		somethingToLoad = g.RMoveBy(pos.subtract(view.center), addCommand)
 	else
 		# console.log pos
 		# console.log delay
 		initialPosition = view.center
 		tween = new TWEEN.Tween( initialPosition ).to( pos, delay ).easing( TWEEN.Easing.Exponential.InOut ).onUpdate( ()->
-			g.RMoveTo(this)
+			g.RMoveTo(this, addCommand)
 			# console.log this.x + ', ' + this.y
 			return
 		).start()
-	return
+	return somethingToLoad
 
 # Move the romanesco view from *delta*
 # if user is in a restricted area (a website or videogame with restrictedArea), the move will be constrained in this area
@@ -535,7 +535,7 @@ g.RMoveTo = (pos, delay) ->
 # - update hash in 0.5 seconds
 # - set location in the general options
 # @param delta [Point]
-g.RMoveBy = (delta) ->
+g.RMoveBy = (delta, addCommand=true) ->
 	
 	# if user is in a restricted area (a website or videogame with restrictedArea), the move will be constrained in this area
 	if g.restrictedArea?
@@ -564,6 +564,7 @@ g.RMoveBy = (delta) ->
 				newView.center.y = g.clamp(restrictedAreaShrinked.top, newView.center.y, restrictedAreaShrinked.bottom)
 				delta = newView.center.subtract(view.center)
 	
+	g.previousViewPosition ?= view.center
 
 	project.view.scrollBy(new Point(delta.x, delta.y)) 		# scroll the paper view
 	
@@ -589,14 +590,21 @@ g.RMoveBy = (delta) ->
 	else if g.entireArea? and not newEntireArea?
 		g.entireArea = null
 
-	if newEntireArea? then load(g.entireArea) else load()
+	somethingToLoad = if newEntireArea? then load(g.entireArea) else load()
 
 	g.updateRoom() 											# update websocket room
 
-	g.defferedExecution(g.updateHash, 'updateHash', 500) 					# update hash in 500 milliseconds
+	g.deferredExecution(g.updateHash, 'updateHash', 500) 					# update hash in 500 milliseconds
 	
+	if addCommand
+		addMoveCommand = ()->
+			g.commandManager.add(new MoveViewCommand(g.previousViewPosition, view.center))
+			g.previousViewPosition = null
+			return
+		g.deferredExecution(addMoveCommand, 'add move command')
+
 	# g.willUpdateAreasToUpdate = true
-	# g.defferedExecution(g.updateAreasToUpdate, 'updateAreasToUpdate', 500) 					# update areas to update in 500 milliseconds
+	# g.deferredExecution(g.updateAreasToUpdate, 'updateAreasToUpdate', 500) 					# update areas to update in 500 milliseconds
 	
 	for pk, rectangle of g.areasToUpdate
 		if rectangle.intersects(view.bounds)
@@ -604,7 +612,7 @@ g.RMoveBy = (delta) ->
 			break
 	
 	g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)) # update location in sidebar
-	return
+	return somethingToLoad
 
 ## Hash
 
@@ -632,18 +640,10 @@ window.onhashchange = (event) ->
 
 ## RItems selection
 
-# Get selected RItems
-# do an g.selectedItems array
-this.selectedItems = ()->
-	items = []
-	for item in project.selectedItems
-		if item.controller? and items.indexOf(item.controller)<0 then items.push(item.controller)
-	return items
-
 # Deselect all RItems (and paper items)
 this.deselectAll = ()->
-	g.previouslySelectedItems = g.selectedItems()
-	item.deselect?() for item in g.previouslySelectedItems
+	g.previouslySelectedItems = g.selectedItems.slice()
+	item.deselect?(false) for item in g.previouslySelectedItems
 	project.activeLayer.selected = false
 	return
 
@@ -697,7 +697,7 @@ this.benchmarkRectangleClone = ()->
 	return
 
 this.highlightValidity = (item)->
-	g.validatePosition(item, null, highlight)
+	g.validatePosition(item, null, true)
 	return
 
 # - check if *bounds* is valid: does not intersect with a planet nor a lock
@@ -1142,8 +1142,8 @@ this.updateAreasToUpdate = ()->
 # hide rasters and redraw all items (except ritem if specified)
 # @param item [RItem] (optional) the item not to update (draw)
 this.updateView = (ritem=null)->
-	if g.viewUpdated
-		return
+	# if g.viewUpdated
+	# 	return
 
 	# console.log "updateView: remove rasters and redraw"
 
@@ -1158,7 +1158,7 @@ this.updateView = (ritem=null)->
 	for pk, item of g.paths 		# could be g.items
 		item.draw()
 
-	g.viewUpdated = true
+	# g.viewUpdated = true
 	return
 
 # split *rectangle* in 1000 pixels wide tiles if necessary

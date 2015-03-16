@@ -37,7 +37,7 @@ class RDiv extends RContent
 	# 	g.saveDiv(bounds, object_type, message, name, url, pk)
 	# 	return
 
-	@duplicate: (data, rectangle)->
+	@duplicate: (rectangle, data)->
 		copy = new @(rectangle, data)
 		copy.save()
 		return copy
@@ -95,8 +95,6 @@ class RDiv extends RContent
 				g.deselectAll()
 			@select()
 			return
-
-		@select()
 
 		if not bounds.contains(@rectangle.expand(-1))
 			console.log "Error: invalid div"
@@ -273,20 +271,19 @@ class RDiv extends RContent
 	# - select the RDiv is not already selected
 	# - select the select tool
 	# - update parameters according to @data
-	select: () =>
-		if @divJ.hasClass("selected") then return
-		super()
+	select: (updateOptions) =>
+		if not super(updateOptions) or @divJ.hasClass("selected") then return false
 		if g.selectedTool != g.tools['Select'] then g.tools['Select'].select()
 		@divJ.addClass("selected")
-		return
+		return true
 
 	# common to all RItems
 	# deselect the div
-	deselect: () =>
+	deselect: (updatePreviouslySelectedItems) =>
+		if not super(updatePreviouslySelectedItems) then return false
 		if not @divJ.hasClass("selected") then return
-		super()
-		@divJ.removeClass("selected")
-		return
+		@divJ?.removeClass("selected")
+		return true
 
 	# update basic apparence parameters (fill color, stroke color and stroke width) from @data
 	setCss: ()->
@@ -384,7 +381,7 @@ class RText extends RDiv
 							input.val(inputValue)
 						else
 							inputValue = input.val()
-						for item in g.selectedItems()
+						for item in g.selectedItems
 							item.setFontFamily?(inputValue) 	# not necessarly an RText
 						return
 
@@ -425,7 +422,7 @@ class RText extends RDiv
 					$(controller.domElement).find('input').remove()
 
 					setStyles = (value)->
-						for item in g.selectedItems()
+						for item in g.selectedItems
 							item.changeFontStyle?(value)
 						return
 
@@ -448,7 +445,7 @@ class RText extends RDiv
 					$(controller.domElement).find('input').remove()
 
 					setStyles = (value)->
-						for item in g.selectedItems()
+						for item in g.selectedItems
 							item.changeFontStyle?(value)
 						return
 					
@@ -504,7 +501,7 @@ class RText extends RDiv
 
 	# called whenever the text is changed:
 	# emit the new text to websocket
-	# update the RText in 1 second (deffered execution)
+	# update the RText in 1 second (deferred execution)
 	# @param event [jQuery Event] the key event
 	textChanged: (event) =>
 		@data.message = @contentJ.val()
@@ -694,6 +691,8 @@ class RMedia extends RDiv
 		submit = (data)->
 			div = new RMedia(rectangle, data)
 			div.save()
+			div.select()
+			g.commandManager.add(new CreateDivCommand(div))
 			return
 		RModal.initialize('Add media', submit)
 		RModal.addTextInput('url', 'http:// or <iframe>', 'url', 'url', 'URL', true)
@@ -724,6 +723,9 @@ class RMedia extends RDiv
 
 		return
 
+	dispatchLoadedEvent: ()->
+		return
+
 	beginSelect: (event)->
 		super(event)
 		@contentJ?.css( 'pointer-events': 'none' )
@@ -734,15 +736,15 @@ class RMedia extends RDiv
 		@contentJ?.css( 'pointer-events': 'auto' )
 		return
 
-	select: ()->
-		super()
+	select: (updateOptions=true)->
+		if not super(updateOptions) then return false
 		@contentJ?.css( 'pointer-events': 'auto' )
-		return
+		return true
 
-	deselect: ()->
-		super()
+	deselect: (updatePreviouslySelectedItems)->
+		if not super(updatePreviouslySelectedItems) then return false
 		@contentJ?.css( 'pointer-events': 'none' )
-		return
+		return true
 
 	# update the size of the iframe according to the size of @divJ
 	setRectangle: (rectangle, update)->
@@ -841,11 +843,15 @@ class RMedia extends RDiv
 				oembbedContent()
 		
 		@contentJ.insertBefore(@maskJ)
-				
+		
 		@setCss()
 
 		if not @isSelected()
 			@contentJ.css( 'pointer-events': 'none' )
+
+		commandEvent = document.createEvent('Event')
+		commandEvent .initEvent('command executed', true, true)
+		document.dispatchEvent(commandEvent)
 		return
 
 	# bug?: called many times when div is resized, maybe because update called urlChanged
@@ -900,11 +906,12 @@ class RSelectionRectangle extends RDiv
 		return
 
 	# deselect the div: remove it
-	deselect: ()->
+	deselect: (updatePreviouslySelectedItems)->
+		if not super(updatePreviouslySelectedItems) then return false
 		if @deselected then return
 		@deselected = true
 		@remove()
-		return
+		return true
 
 	# the div should not be updated (it is not related to the server/database)
 	update: ()->

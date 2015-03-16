@@ -76,11 +76,11 @@ this.pushIfAbsent = (array, item) ->
 
 # Execute *callback* after *n* milliseconds, reset the delay timer at each call
 # @param [function] callback function
-# @param [Anything] a unique id (usually the id or pk of RItems) to avoid collisions between deffered executions
+# @param [Anything] a unique id (usually the id or pk of RItems) to avoid collisions between deferred executions
 # @param [Number] delay before *callback* is called
-this.defferedExecution = (callback, id, n=500) ->
+this.deferredExecution = (callback, id, n=500) ->
 	id ?= callback
-	# console.log "defferedExecution: " + id + ", updateTimeout[id]: " + g.updateTimeout[id]
+	# console.log "deferredExecution: " + id + ", updateTimeout[id]: " + g.updateTimeout[id]
 	if g.updateTimeout[id]? then clearTimeout(g.updateTimeout[id])
 	g.updateTimeout[id] = setTimeout(callback, n)
 

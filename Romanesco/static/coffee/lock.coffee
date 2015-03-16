@@ -34,6 +34,9 @@ class RLock extends RItem
 				when 'link'
 					lock = new RLink(rectangle, data)
 			lock.save()
+			lock.update('rectangle') 	# update to add items which are under the lock
+			lock.select()
+			g.commandManager.add(new CreateLockCommand(lock))
 			return
 		RModal.initialize('Create a locked area', submit)
 
@@ -140,6 +143,7 @@ class RLock extends RItem
 		@background.fillColor = @data.fillColor or 'white'
 		@background.controller = @
 		@group.addChild(@background)
+		g.lockLayer.addChild(@group)
 
 		# create special list to contains children paths
 		@sortedPaths = []
@@ -175,8 +179,6 @@ class RLock extends RItem
 				continue
 			if item.getBounds().intersects(@rectangle)
 				@addRItem(item)
-
-		@select()
 		
 		# check if the lock must be entirely loaded
 		if @data?.loadEntireArea
@@ -253,8 +255,19 @@ class RLock extends RItem
 		args = []
 		args.push( function: 'updateBox', arguments: updateBoxArgs )
 		
-		for item in @children()
-			args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments() )
+		if type == 'position' or type == 'rectangle'
+			itemsToUpdate = if type == 'position' then @children() else []
+
+			# check if new items are inside @rectangle
+			for pk, item of g.items
+				if not RLock.prototype.isPrototypeOf(item)
+					if item.lock != @ and @rectangle.contains(item.getBounds())
+						@addRItem(item)
+						itemsToUpdate.push(item)
+
+			for item in itemsToUpdate
+				args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments() )
+		
 		Dajaxice.draw.multipleCalls( @update_callback, functionsAndArguments: args)
 		return
 	
@@ -267,10 +280,6 @@ class RLock extends RItem
 		data ?= @getData()
 		copy = @constructor.duplicate(@rectangle, data)
 		return copy
-
-	duplicateCommand: ()->
-		g.commandManager.add(new CreateLockCommand(@, "Duplicate lock"), true)
-		return
 
 	# called when user deletes the item by pressing delete key or from the gui
 	# @delete() removes the item and delete it in the database
@@ -316,24 +325,22 @@ class RLock extends RItem
 		return true
 
 	# can not select a lock which the user does not own
-	select: () =>
-		if @owner != g.me then return false
+	select: (updateOptions=true) =>
+		if not super(updateOptions) or not @owner != g.me then return false
 		for item in @children()
 			item.deselect()
-		return super()
+		return true
 
 	remove: () ->
-		super()
 		
-		for path in @sortedPaths
+		for path in @children()
 			@removeRItem(path)
-		for div in @sortedDivs
-			@removeRItem(div)
-			
+		
 		@itemListsJ.remove()
+		@itemListsJ = null
 		g.locks.remove(@)
-		@background?.remove()
 		@background = null
+		super()
 		return
 
 	children: ()->
@@ -341,7 +348,8 @@ class RLock extends RItem
 
 	# add an item to this lock
 	addRItem: (item)->
-		item.deselect()
+		wasSelected = item.isSelected()
+		if wasSelected then item.deselect()
 		@group.addChild(item.group)
 		item.lock = @
 		item.sortedItems.remove(item)
@@ -354,12 +362,13 @@ class RLock extends RItem
 		else
 			console.error "Error: the item is neither an RDiv nor an RPath"
 		item.updateZIndex()
-		item.select()
+		if wasSelected then item.select()
 		return
 
 	# remove an item to this lock
 	removeRItem: (item)->
-		item.deselect()
+		wasSelected = item.isSelected()
+		if wasSelected then item.deselect()
 		g.mainLayer.addChild(item.group)
 		item.lock = null
 		item.sortedItems.remove(item)
@@ -372,7 +381,7 @@ class RLock extends RItem
 		else
 			console.error "Error: the item is neither an RDiv nor an RPath"
 		item.updateZIndex()
-		item.select()
+		if wasSelected then item.select()
 		return
 
 	highlight: (color)->

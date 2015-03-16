@@ -387,20 +387,27 @@ Here are all global functions (which do not belong to classes and are not event 
     return null;
   };
 
-  g.RMoveTo = function(pos, delay) {
-    var initialPosition, tween;
+  g.RMoveTo = function(pos, delay, addCommand) {
+    var initialPosition, somethingToLoad, tween;
+    if (addCommand == null) {
+      addCommand = true;
+    }
     if (delay == null) {
-      g.RMoveBy(pos.subtract(view.center));
+      somethingToLoad = g.RMoveBy(pos.subtract(view.center), addCommand);
     } else {
       initialPosition = view.center;
       tween = new TWEEN.Tween(initialPosition).to(pos, delay).easing(TWEEN.Easing.Exponential.InOut).onUpdate(function() {
-        g.RMoveTo(this);
+        g.RMoveTo(this, addCommand);
       }).start();
     }
+    return somethingToLoad;
   };
 
-  g.RMoveBy = function(delta) {
-    var area, div, newEntireArea, newView, pk, rectangle, restrictedAreaShrinked, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+  g.RMoveBy = function(delta, addCommand) {
+    var addMoveCommand, area, div, newEntireArea, newView, pk, rectangle, restrictedAreaShrinked, somethingToLoad, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+    if (addCommand == null) {
+      addCommand = true;
+    }
     if (g.restrictedArea != null) {
       if (!g.restrictedArea.contains(view.center)) {
         delta = g.restrictedArea.center.subtract(view.center);
@@ -421,6 +428,9 @@ Here are all global functions (which do not belong to classes and are not event 
           delta = newView.center.subtract(view.center);
         }
       }
+    }
+    if (g.previousViewPosition == null) {
+      g.previousViewPosition = view.center;
     }
     project.view.scrollBy(new Point(delta.x, delta.y));
     _ref = g.divs;
@@ -443,13 +453,16 @@ Here are all global functions (which do not belong to classes and are not event 
     } else if ((g.entireArea != null) && (newEntireArea == null)) {
       g.entireArea = null;
     }
-    if (newEntireArea != null) {
-      load(g.entireArea);
-    } else {
-      load();
-    }
+    somethingToLoad = newEntireArea != null ? load(g.entireArea) : load();
     g.updateRoom();
-    g.defferedExecution(g.updateHash, 'updateHash', 500);
+    g.deferredExecution(g.updateHash, 'updateHash', 500);
+    if (addCommand) {
+      addMoveCommand = function() {
+        g.commandManager.add(new MoveViewCommand(g.previousViewPosition, view.center));
+        g.previousViewPosition = null;
+      };
+      g.deferredExecution(addMoveCommand, 'add move command');
+    }
     _ref2 = g.areasToUpdate;
     for (pk in _ref2) {
       rectangle = _ref2[pk];
@@ -459,6 +472,7 @@ Here are all global functions (which do not belong to classes and are not event 
       }
     }
     g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2));
+    return somethingToLoad;
   };
 
   g.updateHash = function() {
@@ -485,27 +499,14 @@ Here are all global functions (which do not belong to classes and are not event 
     g.RMoveTo(p);
   };
 
-  this.selectedItems = function() {
-    var item, items, _i, _len, _ref;
-    items = [];
-    _ref = project.selectedItems;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      item = _ref[_i];
-      if ((item.controller != null) && items.indexOf(item.controller) < 0) {
-        items.push(item.controller);
-      }
-    }
-    return items;
-  };
-
   this.deselectAll = function() {
     var item, _i, _len, _ref;
-    g.previouslySelectedItems = g.selectedItems();
+    g.previouslySelectedItems = g.selectedItems.slice();
     _ref = g.previouslySelectedItems;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       item = _ref[_i];
       if (typeof item.deselect === "function") {
-        item.deselect();
+        item.deselect(false);
       }
     }
     project.activeLayer.selected = false;
@@ -564,7 +565,7 @@ Here are all global functions (which do not belong to classes and are not event 
   };
 
   this.highlightValidity = function(item) {
-    g.validatePosition(item, null, highlight);
+    g.validatePosition(item, null, true);
   };
 
   this.validatePosition = function(item, bounds, highlight) {
@@ -998,9 +999,6 @@ Here are all global functions (which do not belong to classes and are not event 
     if (ritem == null) {
       ritem = null;
     }
-    if (g.viewUpdated) {
-      return;
-    }
     _ref = g.rasters;
     for (x in _ref) {
       rasterColumn = _ref[x];
@@ -1018,7 +1016,6 @@ Here are all global functions (which do not belong to classes and are not event 
       item = _ref1[pk];
       item.draw();
     }
-    g.viewUpdated = true;
   };
 
   this.rasterizeArea = function(rectangle) {

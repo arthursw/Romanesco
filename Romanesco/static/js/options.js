@@ -80,7 +80,7 @@
       label: 'Delete items',
       "default": function() {
         var item, _i, _len, _ref, _results;
-        _ref = g.selectedItems();
+        _ref = g.selectedItems;
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           item = _ref[_i];
@@ -94,7 +94,7 @@
       label: 'Duplicate items',
       "default": function() {
         var item, _i, _len, _ref, _results;
-        _ref = g.selectedItems();
+        _ref = g.selectedItems;
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           item = _ref[_i];
@@ -125,7 +125,7 @@
         $(controller.domElement).find('input').remove();
         align = function(type) {
           var avgX, avgY, bottom, bounds, item, items, left, right, top, xMax, xMin, yMax, yMin, _i, _j, _k, _l, _len, _len1, _len10, _len11, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s, _t;
-          items = g.selectedItems();
+          items = g.selectedItems;
           switch (type) {
             case 'h-top':
               yMin = NaN;
@@ -248,7 +248,7 @@
         $(controller.domElement).find('input').remove();
         distribute = function(type) {
           var bottom, bounds, center, i, item, items, left, right, step, top, xMax, xMin, yMax, yMin, _i, _j, _k, _l, _len, _len1, _len10, _len11, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s, _t;
-          items = g.selectedItems();
+          items = g.selectedItems;
           switch (type) {
             case 'h-top':
               yMin = NaN;
@@ -529,11 +529,9 @@
     g.availableFonts = data.items;
   };
 
-  this.setControllerValueByName = function(name, value, item, checked) {
-    var controller, folder, folderName, _i, _len, _ref, _ref1;
-    if (checked == null) {
-      checked = false;
-    }
+  this.setControllerValueByName = function(name, value, item) {
+    var checked, controller, folder, folderName, _i, _len, _ref, _ref1;
+    checked = value != null;
     _ref = g.gui.__folders;
     for (folderName in _ref) {
       folder = _ref[folderName];
@@ -618,7 +616,7 @@
     }
     onParameterChange = function(value) {
       var _j, _len1, _ref1, _ref2;
-      _ref1 = g.selectedItems();
+      _ref1 = g.selectedItems;
       for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
         item = _ref1[_j];
         if (typeof (item != null ? (_ref2 = item.data) != null ? _ref2[name] : void 0 : void 0) !== 'undefined') {

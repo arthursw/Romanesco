@@ -25,7 +25,7 @@
       return parameters;
     };
 
-    RDiv.duplicate = function(data, rectangle) {
+    RDiv.duplicate = function(rectangle, data) {
       var copy;
       copy = new this(rectangle, data);
       copy.save();
@@ -88,7 +88,6 @@
           _this.select();
         };
       })(this));
-      this.select();
       if (!bounds.contains(this.rectangle.expand(-1))) {
         console.log("Error: invalid div");
         this.remove();
@@ -282,23 +281,29 @@
       g.checkError(result);
     };
 
-    RDiv.prototype.select = function() {
-      if (this.divJ.hasClass("selected")) {
-        return;
+    RDiv.prototype.select = function(updateOptions) {
+      if (!RDiv.__super__.select.call(this, updateOptions) || this.divJ.hasClass("selected")) {
+        return false;
       }
-      RDiv.__super__.select.call(this);
       if (g.selectedTool !== g.tools['Select']) {
         g.tools['Select'].select();
       }
       this.divJ.addClass("selected");
+      return true;
     };
 
-    RDiv.prototype.deselect = function() {
+    RDiv.prototype.deselect = function(updatePreviouslySelectedItems) {
+      var _ref;
+      if (!RDiv.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
+        return false;
+      }
       if (!this.divJ.hasClass("selected")) {
         return;
       }
-      RDiv.__super__.deselect.call(this);
-      this.divJ.removeClass("selected");
+      if ((_ref = this.divJ) != null) {
+        _ref.removeClass("selected");
+      }
+      return true;
     };
 
     RDiv.prototype.setCss = function() {
@@ -423,7 +428,7 @@
               } else {
                 inputValue = input.val();
               }
-              _ref = g.selectedItems();
+              _ref = g.selectedItems;
               for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                 item = _ref[_i];
                 if (typeof item.setFontFamily === "function") {
@@ -481,7 +486,7 @@
             $(controller.domElement).find('input').remove();
             setStyles = function(value) {
               var _i, _len, _ref;
-              _ref = g.selectedItems();
+              _ref = g.selectedItems;
               for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                 item = _ref[_i];
                 if (typeof item.changeFontStyle === "function") {
@@ -518,7 +523,7 @@
             $(controller.domElement).find('input').remove();
             setStyles = function(value) {
               var _i, _len, _ref;
-              _ref = g.selectedItems();
+              _ref = g.selectedItems;
               for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                 item = _ref[_i];
                 if (typeof item.changeFontStyle === "function") {
@@ -822,6 +827,8 @@
         var div;
         div = new RMedia(rectangle, data);
         div.save();
+        div.select();
+        g.commandManager.add(new CreateDivCommand(div));
       };
       RModal.initialize('Add media', submit);
       RModal.addTextInput('url', 'http:// or <iframe>', 'url', 'url', 'URL', true);
@@ -862,6 +869,8 @@
       return;
     }
 
+    RMedia.prototype.dispatchLoadedEvent = function() {};
+
     RMedia.prototype.beginSelect = function(event) {
       var _ref;
       RMedia.__super__.beginSelect.call(this, event);
@@ -882,24 +891,33 @@
       }
     };
 
-    RMedia.prototype.select = function() {
+    RMedia.prototype.select = function(updateOptions) {
       var _ref;
-      RMedia.__super__.select.call(this);
+      if (updateOptions == null) {
+        updateOptions = true;
+      }
+      if (!RMedia.__super__.select.call(this, updateOptions)) {
+        return false;
+      }
       if ((_ref = this.contentJ) != null) {
         _ref.css({
           'pointer-events': 'auto'
         });
       }
+      return true;
     };
 
-    RMedia.prototype.deselect = function() {
+    RMedia.prototype.deselect = function(updatePreviouslySelectedItems) {
       var _ref;
-      RMedia.__super__.deselect.call(this);
+      if (!RMedia.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
+        return false;
+      }
       if ((_ref = this.contentJ) != null) {
         _ref.css({
           'pointer-events': 'none'
         });
       }
+      return true;
     };
 
     RMedia.prototype.setRectangle = function(rectangle, update) {
@@ -982,7 +1000,7 @@
     };
 
     RMedia.prototype.loadMedia = function(imageLoadResult) {
-      var oembbedContent;
+      var commandEvent, oembbedContent;
       if (imageLoadResult === 'success') {
         this.contentJ = $('<img class="content image" src="' + this.url + '" alt="' + this.url + '"">');
         this.contentJ.mousedown(function(event) {
@@ -1021,6 +1039,9 @@
           'pointer-events': 'none'
         });
       }
+      commandEvent = document.createEvent('Event');
+      commandEvent.initEvent('command executed', true, true);
+      document.dispatchEvent(commandEvent);
     };
 
     RMedia.prototype.urlChanged = function(url, updateDiv) {
@@ -1076,12 +1097,16 @@
       return;
     }
 
-    RSelectionRectangle.prototype.deselect = function() {
+    RSelectionRectangle.prototype.deselect = function(updatePreviouslySelectedItems) {
+      if (!RSelectionRectangle.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
+        return false;
+      }
       if (this.deselected) {
         return;
       }
       this.deselected = true;
       this.remove();
+      return true;
     };
 
     RSelectionRectangle.prototype.update = function() {};

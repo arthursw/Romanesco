@@ -245,12 +245,14 @@ Notations:
     g.currentDiv = null;
     g.areasToUpdateRectangles = {};
     g.catchErrors = false;
-    g.previousPosition = null;
-    g.initialPosition = null;
+    g.previousMousePosition = null;
+    g.initialMousePosition = null;
+    g.previousViewPosition = null;
     g.backgroundRectangle = null;
     g.limitPathV = null;
     g.limitPathH = null;
-    g.itemListsJ = $("#RItems .rItems");
+    g.selectedItems = [];
+    g.itemListsJ = $("#RItems .layers");
     g.pathList = g.itemListsJ.find(".rPath-list");
     g.pathList.sortable({
       stop: g.zIndexSortStop,
@@ -267,6 +269,7 @@ Notations:
       $(this).parent().toggleClass('closed');
     });
     g.commandManager = new CommandManager();
+    g.commandManager.add(new Command('Load Romanesco'), true);
     Dajaxice.setup({
       'default_exception_callback': function(error) {
         console.log('Dajaxice error!');
@@ -384,7 +387,8 @@ Notations:
     });
     canvasJ.keydown(function(event) {
       if (event.key === 46) {
-        return event.preventDefault();
+        event.preventDefault();
+        return false;
       }
     });
     tool.onMouseDown = function(event) {
@@ -421,23 +425,19 @@ Notations:
       return g.selectedTool.end(event);
     };
     tool.onKeyDown = function(event) {
-      var item, _i, _len, _ref;
-      _ref = g.selectedItems();
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        item = _ref[_i];
-        if (item === 'RText') {
-          return;
-        }
+      if ($(document.activeElement).parents(".sidebar").length || $(document.activeElement).is("textarea") || $(document.activeElement).parents(".dat-gui").length) {
+        return;
       }
       if (event.key === 'delete') {
         event.preventDefault();
+        return false;
       }
       if (event.key === 'space' && g.selectedTool.name !== 'Move') {
         return g.tools['Move'].select();
       }
     };
     tool.onKeyUp = function(event) {
-      var delta, item, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+      var delta, item, selectedItems, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
       if ($(document.activeElement).parents(".sidebar").length || $(document.activeElement).is("textarea") || $(document.activeElement).parents(".dat-gui").length) {
         return;
       }
@@ -446,28 +446,28 @@ Notations:
       }
       switch (event.key) {
         case 'right':
-          _ref1 = g.selectedItems();
+          _ref1 = g.selectedItems;
           for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
             item = _ref1[_i];
             item.moveBy(new Point(delta, 0), true);
           }
           break;
         case 'left':
-          _ref2 = g.selectedItems();
+          _ref2 = g.selectedItems;
           for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
             item = _ref2[_j];
             item.moveBy(new Point(-delta, 0), true);
           }
           break;
         case 'up':
-          _ref3 = g.selectedItems();
+          _ref3 = g.selectedItems;
           for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
             item = _ref3[_k];
             item.moveBy(new Point(0, -delta), true);
           }
           break;
         case 'down':
-          _ref4 = g.selectedItems();
+          _ref4 = g.selectedItems;
           for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
             item = _ref4[_l];
             item.moveBy(new Point(0, delta), true);
@@ -489,10 +489,10 @@ Notations:
           break;
         case 'delete':
         case 'backspace':
-          _ref6 = g.selectedItems();
-          for (_m = 0, _len4 = _ref6.length; _m < _len4; _m++) {
-            item = _ref6[_m];
-            if (((_ref7 = item.selectionState) != null ? _ref7.segment : void 0) != null) {
+          selectedItems = g.selectedItems.slice();
+          for (_m = 0, _len4 = selectedItems.length; _m < _len4; _m++) {
+            item = selectedItems[_m];
+            if (((_ref6 = item.selectionState) != null ? _ref6.segment : void 0) != null) {
               item.deletePointCommand();
             } else {
               item.deleteCommand();

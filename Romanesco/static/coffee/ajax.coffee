@@ -29,15 +29,15 @@ this.areaIsQuickLoaded = (area) ->
 this.load = (area=null) ->
 
 	if g.previousLoadPosition? and g.previousLoadPosition.subtract(view.center).length<50
-		return
+		return false
 
 	console.log "load"
 
 	# g.startLoadingBar()
 
-	debug = false
+	debug = true
 
-	scale = if not debug then g.scale else 500
+	scale = if not debug then g.scale else 200
 
 	g.previousLoadPosition = view.center
 
@@ -53,7 +53,7 @@ this.load = (area=null) ->
 
 	# unload:
 	# define unload limit rectangle
-	unloadDist = 0 # Math.round(2*scale)#/g.project.view.zoom)
+	unloadDist = if debug then 50 else Math.round(scale) #/g.project.view.zoom)
 	
 	if not g.entireArea
 		limit = bounds.expand(unloadDist)
@@ -169,7 +169,7 @@ this.load = (area=null) ->
 				g.loadedAreas.push(area)
 
 	if areasToLoad.length<=0 	# return if there is nothing to load
-		return
+		return false
 
 	# load areas
 	if not g.loadingBarTimeout?
@@ -178,21 +178,25 @@ this.load = (area=null) ->
 			return
 		g.loadingBarTimeout = setTimeout(showLoadingBar , 0)
 
-	console.log "load areas: " + areasToLoad.length
-
 	rectangle = { left: l/1000, top: t/1000, right: r/1000, bottom: b/1000 }
-	console.log "load rectangle"
-	console.log rectangle
+
 	Dajaxice.draw.load(load_callback, { rectangle: rectangle, areasToLoad: areasToLoad, zoom: view.zoom })
 	# ajaxPost '/load', args, load_callback
-	return
+	return true
 
 # load callback: add loaded RItems
 this.load_callback = (results)->
 
+	dispatchLoadFinished = ()->
+		commandEvent = document.createEvent('Event')
+		commandEvent .initEvent('command executed', true, true)
+		document.dispatchEvent(commandEvent)
+		return
+
 	checkError(results)
 
 	if results.hasOwnProperty('message') && results.message == 'no_paths'
+		dispatchLoadFinished()
 		return
 
 	# set g.me (the server sends the username at each load)
@@ -321,6 +325,8 @@ this.load_callback = (results)->
 	clearTimeout(g.loadingBarTimeout)
 	g.loadingBarTimeout = null
 	$("#loadingBar").hide()
+
+	dispatchLoadFinished()
 
 	# g.stopLoadingBar()
 	return

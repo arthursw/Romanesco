@@ -30,6 +30,9 @@
             lock = new RLink(rectangle, data);
         }
         lock.save();
+        lock.update('rectangle');
+        lock.select();
+        g.commandManager.add(new CreateLockCommand(lock));
       };
       RModal.initialize('Create a locked area', submit);
       radioButtons = [
@@ -162,6 +165,7 @@
       this.background.fillColor = this.data.fillColor || 'white';
       this.background.controller = this;
       this.group.addChild(this.background);
+      g.lockLayer.addChild(this.group);
       this.sortedPaths = [];
       this.sortedDivs = [];
       this.itemListsJ = g.templatesJ.find(".layer").clone();
@@ -206,7 +210,6 @@
           this.addRItem(item);
         }
       }
-      this.select();
       if ((_ref1 = this.data) != null ? _ref1.loadEntireArea : void 0) {
         g.entireAreas.push(this);
       }
@@ -262,7 +265,7 @@
     };
 
     RLock.prototype.update = function(type) {
-      var args, item, updateBoxArgs, _i, _len, _ref;
+      var args, item, itemsToUpdate, pk, updateBoxArgs, _i, _len, _ref;
       if (this.pk == null) {
         this.updateAfterSave = type;
         return;
@@ -284,13 +287,25 @@
         "function": 'updateBox',
         "arguments": updateBoxArgs
       });
-      _ref = this.children();
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        item = _ref[_i];
-        args.push({
-          "function": item.getUpdateFunction(),
-          "arguments": item.getUpdateArguments()
-        });
+      if (type === 'position' || type === 'rectangle') {
+        itemsToUpdate = type === 'position' ? this.children() : [];
+        _ref = g.items;
+        for (pk in _ref) {
+          item = _ref[pk];
+          if (!RLock.prototype.isPrototypeOf(item)) {
+            if (item.lock !== this && this.rectangle.contains(item.getBounds())) {
+              this.addRItem(item);
+              itemsToUpdate.push(item);
+            }
+          }
+        }
+        for (_i = 0, _len = itemsToUpdate.length; _i < _len; _i++) {
+          item = itemsToUpdate[_i];
+          args.push({
+            "function": item.getUpdateFunction(),
+            "arguments": item.getUpdateArguments()
+          });
+        }
       }
       Dajaxice.draw.multipleCalls(this.update_callback, {
         functionsAndArguments: args
@@ -312,10 +327,6 @@
       }
       copy = this.constructor.duplicate(this.rectangle, data);
       return copy;
-    };
-
-    RLock.prototype.duplicateCommand = function() {
-      g.commandManager.add(new CreateLockCommand(this, "Duplicate lock"), true);
     };
 
     RLock.prototype["delete"] = function() {
@@ -373,9 +384,12 @@
       return true;
     };
 
-    RLock.prototype.select = function() {
+    RLock.prototype.select = function(updateOptions) {
       var item, _i, _len, _ref;
-      if (this.owner !== g.me) {
+      if (updateOptions == null) {
+        updateOptions = true;
+      }
+      if (!RLock.__super__.select.call(this, updateOptions) || !this.owner !== g.me) {
         return false;
       }
       _ref = this.children();
@@ -383,28 +397,21 @@
         item = _ref[_i];
         item.deselect();
       }
-      return RLock.__super__.select.call(this);
+      return true;
     };
 
     RLock.prototype.remove = function() {
-      var div, path, _i, _j, _len, _len1, _ref, _ref1, _ref2;
-      RLock.__super__.remove.call(this);
-      _ref = this.sortedPaths;
+      var path, _i, _len, _ref;
+      _ref = this.children();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         path = _ref[_i];
         this.removeRItem(path);
       }
-      _ref1 = this.sortedDivs;
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        div = _ref1[_j];
-        this.removeRItem(div);
-      }
       this.itemListsJ.remove();
+      this.itemListsJ = null;
       g.locks.remove(this);
-      if ((_ref2 = this.background) != null) {
-        _ref2.remove();
-      }
       this.background = null;
+      RLock.__super__.remove.call(this);
     };
 
     RLock.prototype.children = function() {
@@ -412,7 +419,11 @@
     };
 
     RLock.prototype.addRItem = function(item) {
-      item.deselect();
+      var wasSelected;
+      wasSelected = item.isSelected();
+      if (wasSelected) {
+        item.deselect();
+      }
       this.group.addChild(item.group);
       item.lock = this;
       item.sortedItems.remove(item);
@@ -426,11 +437,17 @@
         console.error("Error: the item is neither an RDiv nor an RPath");
       }
       item.updateZIndex();
-      item.select();
+      if (wasSelected) {
+        item.select();
+      }
     };
 
     RLock.prototype.removeRItem = function(item) {
-      item.deselect();
+      var wasSelected;
+      wasSelected = item.isSelected();
+      if (wasSelected) {
+        item.deselect();
+      }
       g.mainLayer.addChild(item.group);
       item.lock = null;
       item.sortedItems.remove(item);
@@ -444,7 +461,9 @@
         console.error("Error: the item is neither an RDiv nor an RPath");
       }
       item.updateZIndex();
-      item.select();
+      if (wasSelected) {
+        item.select();
+      }
     };
 
     RLock.prototype.highlight = function(color) {

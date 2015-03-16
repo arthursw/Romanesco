@@ -119,7 +119,7 @@
     }
   };
 
-  this.defferedExecution = function(callback, id, n) {
+  this.deferredExecution = function(callback, id, n) {
     if (n == null) {
       n = 500;
     }

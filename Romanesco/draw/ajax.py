@@ -200,8 +200,8 @@ def load(request, rectangle, areasToLoad, zoom):
 		planetX = area['planet']['x']
 		planetY = area['planet']['y']
 
-		geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
-		# geometry = makeBox(tlX, tlY, tlX+0.5, tlY+0.5)
+		# geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
+		geometry = makeBox(tlX, tlY, tlX+0.2, tlY+0.2)
 
 		# load items
 		p = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry)
@@ -234,10 +234,10 @@ def load(request, rectangle, areasToLoad, zoom):
 	else:
 		step = 25
 
-	left = rectangle['left']
-	top = rectangle['top']
-	right = rectangle['right']
-	bottom = rectangle['bottom']
+	left = int(rectangle['left'])
+	top = int(rectangle['top'])
+	right = int(rectangle['right'])
+	bottom = int(rectangle['bottom'])
 
 	for x1 in range(left,right+step,step):
 		for y1 in range(top,bottom+step,step):
@@ -571,10 +571,12 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, da
 		planetY = planet['y']
 
 		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) #, owner__ne=request.user.username )
-		lock = None
+		p.lock = None
+		p.owner = None
 		for area in lockedAreas:
 			if area.owner == request.user.username:
 				p.lock = str(area.pk)
+				p.owner = area.owner
 			else:
 				return json.dumps( {'state': 'error', 'message': 'Your path intersects with a locked area which you do not own'} )
 
@@ -820,6 +822,7 @@ def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, loc
 
 		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=makeBox(points[0][0], points[0][1], points[2][0], points[2][1]) ) # , owner__ne=request.user.username )
 		d.lock = None
+		d.owner = None
 		for area in lockedAreas:
 			if area.owner == request.user.username:
 				# try:
@@ -827,6 +830,7 @@ def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, loc
 				# except Box.DoesNotExist:
 				# 	return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area that you own.'} )
 				d.lock = str(area.pk)
+				d.owner = area.owner
 			else:
 				return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area which you do not own'} )
 

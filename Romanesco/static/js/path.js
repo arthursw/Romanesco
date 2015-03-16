@@ -105,7 +105,6 @@
       if (points != null) {
         this.loadPath(points);
       }
-      this.select();
       return;
     }
 
@@ -141,9 +140,9 @@
       this.draw();
     };
 
-    RPath.prototype.updateSetRectangle = function(event) {
-      RPath.__super__.updateSetRectangle.call(this, event);
-      this.draw(false);
+    RPath.prototype.setRectangle = function(event, update) {
+      RPath.__super__.setRectangle.call(this, event, update);
+      this.draw(update ? true : false);
     };
 
     RPath.prototype.projectToRaster = function(point) {
@@ -195,21 +194,18 @@
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (this.controlPath == null) {
-        return false;
-      }
-      if (!RPath.__super__.select.call(this, updateOptions)) {
+      if (!RPath.__super__.select.call(this, updateOptions) || (this.controlPath == null)) {
         return false;
       }
       return true;
     };
 
-    RPath.prototype.deselect = function() {
-      if (!RPath.__super__.deselect.call(this)) {
+    RPath.prototype.deselect = function(updatePreviouslySelectedItems) {
+      if (!RPath.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
         return false;
       }
-      this.controlPath.visible = false;
       this.rasterize();
+      return true;
     };
 
     RPath.prototype.rasterize = function() {};
@@ -234,9 +230,6 @@
         this.previousBoundingBox = this.getDrawingBounds();
       }
       this.draw();
-      if (updateGUI) {
-        g.setControllerValueByName(name, value, this);
-      }
     };
 
     RPath.prototype.addPath = function(path) {
@@ -369,7 +362,6 @@
       if (update == null) {
         update = false;
       }
-      this.group.insertAbove(path.group);
       this.zindex = this.group.index;
       if (update && !this.drawing) {
         g.updateView();
@@ -384,7 +376,6 @@
       if (update == null) {
         update = false;
       }
-      this.group.insertBelow(path.group);
       this.zindex = this.group.index;
       if (update && !this.drawing) {
         g.updateView();
@@ -517,9 +508,7 @@
     };
 
     RPath.prototype.remove = function() {
-      this.deselect();
       this.deregisterAnimation();
-      this.group.remove();
       this.controlPath = null;
       this.drawing = null;
       if (this.raster == null) {
@@ -528,7 +517,6 @@
       if (this.canvasRaster == null) {
         this.canvasRaster = null;
       }
-      this.group = null;
       if (this.pk != null) {
         delete g.paths[this.pk];
       } else {
@@ -633,7 +621,7 @@
           addController: true,
           onChange: function(value) {
             var item, _i, _len, _ref;
-            _ref = g.selectedItems();
+            _ref = g.selectedItems;
             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
               item = _ref[_i];
               if (typeof item.changeSelectedPointTypeCommand === "function") {
@@ -647,7 +635,7 @@
           label: 'Delete point',
           "default": function() {
             var item, _i, _len, _ref;
-            _ref = g.selectedItems();
+            _ref = g.selectedItems;
             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
               item = _ref[_i];
               if (typeof item.deletePointCommand === "function") {
@@ -661,7 +649,7 @@
           label: 'Simplify',
           "default": function() {
             var item, _i, _len, _ref, _ref1;
-            _ref = g.selectedItems();
+            _ref = g.selectedItems;
             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
               item = _ref[_i];
               if ((_ref1 = item.controlPath) != null) {
@@ -802,9 +790,6 @@
 
     PrecisePath.prototype.beginCreate = function(point, event) {
       PrecisePath.__super__.beginCreate.call(this);
-      if (RLock.intersectPoint(point)) {
-        return;
-      }
       if (!this.data.polygonMode) {
         this.initializeControlPath(point);
         this.drawBegin(false);
@@ -823,14 +808,6 @@
     PrecisePath.prototype.updateCreate = function(point, event) {
       var lastSegment, previousSegment;
       if (!this.data.polygonMode) {
-        if (this.lock) {
-          return;
-        }
-        this.lock = RLock.intersectPoint(point);
-        if (this.lock) {
-          this.save();
-          return;
-        }
         this.controlPath.add(point);
         this.checkUpdateDrawing(this.controlPath.lastSegment, false);
       } else {
@@ -995,29 +972,29 @@
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (this.controlPath == null) {
+      if (!PrecisePath.__super__.select.call(this, updateOptions)) {
         return;
       }
-      if (this.selectionRectangle != null) {
-        return;
-      }
-      this.index = this.controlPath.index;
-      this.controlPath.bringToFront();
       this.controlPath.selected = true;
-      PrecisePath.__super__.select.call(this, updateOptions);
       if (!this.data.smooth) {
         this.controlPath.fullySelected = true;
       }
+      return true;
     };
 
-    PrecisePath.prototype.deselect = function() {
-      var _ref;
-      this.controlPath.selected = false;
-      if ((_ref = this.selectionHighlight) != null) {
-        _ref.remove();
+    PrecisePath.prototype.deselect = function(updatePreviouslySelectedItems) {
+      var _ref, _ref1;
+      if (!PrecisePath.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
+        return false;
+      }
+      if ((_ref = this.controlPath) != null) {
+        _ref.selected = false;
+      }
+      if ((_ref1 = this.selectionHighlight) != null) {
+        _ref1.remove();
       }
       this.selectionHighlight = null;
-      PrecisePath.__super__.deselect.call(this);
+      return true;
     };
 
     PrecisePath.prototype.highlightSelectedPoint = function() {
@@ -1165,15 +1142,6 @@
       this.controlPath.position = this.selectionRectangle.pivot;
       this.controlPath.pivot = this.selectionRectangle.pivot;
       this.controlPath.rotate(this.rotation);
-    };
-
-    PrecisePath.prototype.setRotation = function(rotation, update) {
-      var previousRotation;
-      previousRotation = this.rotation;
-      this.drawing.pivot = this.rectangle.center;
-      PrecisePath.__super__.setRotation.call(this, rotation, update);
-      this.controlPath.rotate(rotation - previousRotation);
-      this.drawing.rotate(rotation - previousRotation);
     };
 
     PrecisePath.prototype.endModifySegment = function() {
@@ -1393,14 +1361,7 @@
     };
 
     PrecisePath.prototype.remove = function() {
-      var _ref, _ref1;
-      if ((_ref = this.selectionHighlight) != null) {
-        _ref.remove();
-      }
       this.selectionHighlight = null;
-      if ((_ref1 = this.canvasRaster) != null) {
-        _ref1.remove();
-      }
       this.canvasRaster = null;
       return PrecisePath.__super__.remove.call(this);
     };
@@ -1717,10 +1678,9 @@
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (this.selectionRectangle != null) {
-        return;
+      if (!SpeedPath.__super__.select.call(this, updateOptions)) {
+        return false;
       }
-      SpeedPath.__super__.select.call(this, updateOptions);
       this.showSpeed();
       if (this.data.showSpeed) {
         if (this.speedGroup == null) {
@@ -1730,14 +1690,18 @@
           _ref.visible = true;
         }
       }
+      return true;
     };
 
-    SpeedPath.prototype.deselect = function() {
+    SpeedPath.prototype.deselect = function(updatePreviouslySelectedItems) {
       var _ref;
+      if (!SpeedPath.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
+        return false;
+      }
       if ((_ref = this.speedGroup) != null) {
         _ref.visible = false;
       }
-      SpeedPath.__super__.deselect.call(this);
+      return true;
     };
 
     SpeedPath.prototype.initializeSelection = function(event, hitResult) {
@@ -1825,10 +1789,6 @@
     };
 
     SpeedPath.prototype.remove = function() {
-      var _ref;
-      if ((_ref = this.speedGroup) != null) {
-        _ref.remove();
-      }
       this.speedGroup = null;
       SpeedPath.__super__.remove.call(this);
     };
@@ -3057,11 +3017,6 @@
       this.initializeControlPath(this.downPoint, point, event != null ? (_ref = event.modifiers) != null ? _ref.shift : void 0 : void 0, g.specialKey(event));
       this.draw();
       RShape.__super__.endCreate.call(this);
-    };
-
-    RShape.prototype.setRotation = function(rotation, update) {
-      RShape.__super__.setRotation.call(this, rotation, update);
-      this.drawing.rotation = rotation;
     };
 
     RShape.prototype.getData = function() {

@@ -623,12 +623,23 @@ body {
 .sidebar .mCustomScrollbar.rItems ul.rPath-list li:hover {
   background-color: #6f5499;
 }
+.sidebar .mCustomScrollbar.history ul.rDiv-list,
+.sidebar .mCustomScrollbar.rItems ul.rDiv-list,
+.sidebar .mCustomScrollbar.history ul.rPath-list,
+.sidebar .mCustomScrollbar.rItems ul.rPath-list {
+  padding-left: 5px;
+}
 .sidebar .mCustomScrollbar.history hr,
 .sidebar .mCustomScrollbar.rItems hr {
   margin-top: 0px;
   margin-bottom: 0px;
   margin-left: 3px;
   margin-right: 5px;
+}
+.sidebar .mCustomScrollbar.rItems .layers {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 0;
 }
 .sidebar .mCustomScrollbar.rItems .mCSB_inside > .mCSB_container {
   margin-right: 20px;

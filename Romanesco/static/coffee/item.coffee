@@ -38,14 +38,13 @@ class RItem
 		fill: true
 		selected: true
 		tolerance: 5
-	
+
 	@parameters: ()->
 
 		parameters =
 			'General':
 				align: g.parameters.align
 				distribute: g.parameters.distribute
-				duplicate: g.parameters.duplicate
 				delete: g.parameters.delete
 			'Style':
 				strokeWidth: g.parameters.strokeWidth
@@ -82,11 +81,11 @@ class RItem
 		return
 
 	changeParameterCommand: (name, value)->
-		@defferedAction(ChangeParameterCommand, name, value)
+		@deferredAction(ChangeParameterCommand, name, value)
 		# if @data[name] == value then return
 		# @setCurrentCommand(new ChangeParameterCommand(@, name))
 		# @changeParameter(name, value)
-		# g.defferedExecution(@addCurrentCommand, 'addCurrentCommand-' + (@id or @pk) )
+		# g.deferredExecution(@addCurrentCommand, 'addCurrentCommand-' + (@id or @pk) )
 		return
 
 	# @param name [String] the name of the value to change
@@ -192,19 +191,19 @@ class RItem
 		return
 
 	endAction: ()=>
+		commandChanged = @currentCommand.end()
 		if g.validatePosition(@)
-			@currentCommand.end()
-			g.commandManager.add(@currentCommand)
+			if commandChanged then g.commandManager.add(@currentCommand)
 		else
 			@currentCommand.undo()
 		@currentCommand = null
 		return
 
-	defferedAction: (ActionCommand, args...)->
+	deferredAction: (ActionCommand, args...)->
 		if not ActionCommand.prototype.isPrototypeOf(@currentCommand)
-			@beginAction(new ActionCommand(@))
+			@beginAction(new ActionCommand(@, args))
 		@updateAction.apply(@, args)
-		g.defferedExecution(@endAction, 'addCurrentCommand-' + (@id or @pk) )
+		g.deferredExecution(@endAction, 'addCurrentCommand-' + (@id or @pk) )
 		return
 
 	doAction: (ActionCommand, args)->
@@ -286,7 +285,7 @@ class RItem
 			rectangle.center.y = center.y
 		
 		@setRectangle(rectangle)
-		g.validatePosition(@, null, true)
+		g.highlightValidity(@)
 		return
 
 	endSetRectangle: ()->
@@ -306,7 +305,7 @@ class RItem
 
 	updateMoveBy: (event)->
 		@moveBy(event.delta)
-		g.validatePosition(@, null, true)
+		g.highlightValidity(@)
 		return
 
 	endMoveBy: ()->
@@ -341,6 +340,7 @@ class RItem
 		@highlightRectangle.strokeColor = g.selectionBlue
 		@highlightRectangle.dashArray = [4, 10]
 		@group?.addChild(@highlightRectangle)
+		@highlightRectangle.bringToFront()
 		return
 
 	# common to all RItems
@@ -368,6 +368,8 @@ class RItem
 	select: (updateOptions=true)->
 		if @selectionRectangle? then return false
 
+		g.previouslySelectedItems = g.selectedItems.slice()
+		
 		@lock?.deselect()
 		
 		# create or update the selection rectangle
@@ -378,18 +380,24 @@ class RItem
 		if updateOptions then g.updateParameters( { tool: @constructor, item: @ } , true)
 
 		g.s = @
-
+		g.selectedItems.push(@)
 		return true
 
-	deselect: ()->
+	deselect: (updatePreviouslySelectedItems=true)->
 		if not @selectionRectangle? then return false
 		
+		if updatePreviouslySelectedItems then g.previouslySelectedItems = g.selectedItems.slice()
+
 		@selectionRectangle?.remove()
 		@selectionRectangle = null
+		g.selectedItems.remove(@)
 	
-		return
+		return true
 
 	remove: ()->
+		@deselect()
+		@group.remove()
+		@group = null
 		@highlightRectangle?.remove()
 		if @pk?
 			delete g.items[@pk]
@@ -416,6 +424,11 @@ class RContent extends RItem
 		7: 'right'
 		8: 'bottomRight'
 		9: 'bottom'
+
+	@parameters: ()->
+		parameters = super()
+		parameters['General'].duplicate = g.parameters.duplicate
+		return parameters
 
 	constructor: (@data, @pk, @date, itemListJ, @sortedItems)->
 		super(@data, @pk)
@@ -488,16 +501,19 @@ class RContent extends RItem
 		return
 
 	setRotation: (rotation, update)->
+		previousRotation = @rotation
+		@group.pivot = @rectangle.center
 		@rotation = rotation
-		@selectionRectangle.rotation = rotation
+		@group.rotate(rotation-previousRotation)
+		# @rotation = rotation
+		# @selectionRectangle.rotation = rotation
 		if update then @update('rotation')
-		console.log 'rotation: ' + @rotation
 		return
 
 	updateSetRotation: (event)->
 		rotation = event.point.subtract(@rectangle.center).angle + 90
 		@setRotation(rotation)
-		g.validatePosition(@, null, true)
+		g.highlightValidity(@)
 		return
 
 	endSetRotation: ()->
@@ -556,6 +572,7 @@ class RContent extends RItem
 	# @param item [RItem] item on which to insert this
 	# @param index [Number] the index at which to add the item in @sortedItems
 	insertAbove: (item, index=null, update=false)->
+		@group.insertAbove(item.group)
 		if not index
 			@sortedItems.remove(@)
 			index = @sortedItems.indexOf(item) + 1
@@ -576,6 +593,7 @@ class RContent extends RItem
 	# @param item [RItem] item under which to insert this
 	# @param index [Number] the index at which to add the item in @sortedItems
 	insertBelow: (item, index=null, update=false)->
+		@group.insertBelow(item.group)
 		if not index
 			@sortedItems.remove(@)
 			index = @sortedItems.indexOf(item)
@@ -603,26 +621,27 @@ class RContent extends RItem
 	# @param updateOptions [Boolean] whether to update controllers in gui or not
 	# @return whether the ritem was selected or not
 	select: (updateOptions=true)->
-		select = super(updateOptions)
-		if select 
-			@liJ.addClass('selected')
+		if not super(updateOptions) then return false
 
-			# update the global selection group (i.e. add this RPath to the group)
-			if @group.parent != g.selectionLayer then @zindex = @group.index
-			g.selectionLayer.addChild(@group)
+		@liJ.addClass('selected')
 
-		return select
+		# update the global selection group (i.e. add this RPath to the group)
+		if @group.parent != g.selectionLayer then @zindex = @group.index
+		g.selectionLayer.addChild(@group)
+
+		return true
 
 	deselect: ()->
-		deselect = super()
-		if deselect then @liJ.removeClass('selected')
+		if not super() then return false
+		
+		@liJ.removeClass('selected')
 
 		if not @lock
 			g.mainLayer.insertChild(@zindex, @group)
 		else
 			@lock.group.insertChild(@zindex, @group)
 
-		return
+		return true
 
 	remove: ()->
 		super()
