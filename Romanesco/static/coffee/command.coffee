@@ -5,14 +5,22 @@ class Command
 		@liJ.click(@click)
 		return
 
-	do: ()->
+	superDo: ()->
 		@done = true
 		@liJ.addClass('done')
 		return
 
-	undo: ()->
+	superUndo: ()->
 		@done = false
 		@liJ.removeClass('done')
+		return
+
+	do: ()->
+		@superDo()
+		return
+
+	undo: ()->
+		@superUndo()
 		return
 
 	click: ()=>
@@ -30,8 +38,7 @@ class Command
 		return
 
 	end: ()->
-		@done = true
-		@liJ.addClass('done')
+		@superDo()
 		return
 
 @Command = Command
@@ -73,9 +80,10 @@ class ResizeCommand extends Command
 		@item.updateSetRectangle(event)
 		return
 
-	end: ()->
+	end: (valid)->
 		@newRectangle = @item.rectangle
 		if @newRectangle == @previousRectangle then return false
+		if not valid then return false
 		@item.endSetRectangle()
 		super()
 		return true
@@ -102,9 +110,10 @@ class RotationCommand extends Command
 		@item.updateSetRotation(event)
 		return
 
-	end: ()->
+	end: (valid)->
 		@newRotation = @item.rotation
 		if @newRotation == @previousRotation then return false
+		if not valid then return false
 		@item.endSetRotation()
 		super()
 		return true
@@ -132,13 +141,17 @@ class MoveCommand extends Command
 		item.updateMoveBy(event) for item in @items
 		return
 
-	end: ()->
+	end: (valid)->
 		@newPosition = @item.rectangle.center
 		if @newPosition.equals(@previousPosition) then return false
+		if not valid then return false
 		# item.endMoveBy() for item in @items
 		args = []
 		for item in @items
-			args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments('position') )
+			if RLock.prototype.isPrototypeOf(item)
+				item.update('position')
+			else
+				args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments('position') )
 		Dajaxice.draw.multipleCalls( @update_callback, functionsAndArguments: args)
 		super()
 		return true
@@ -174,10 +187,11 @@ class ModifyPointCommand extends Command
 		@item.updateModifySegment(event)
 		return
 
-	end: ()->
+	end: (valid)->
 		@position = new Point(@segment.point)
 		@handleIn = new Point(@segment.handleIn)
 		@handleOut = new Point(@segment.handleOut)
+		if not valid then return
 		if @position.equals(@previousPosition) and @previousHandleIn.equals(@handleIn) and @previousHandleOut.equals(@handleOut) then return false
 		@item.endModifySegment()
 		super()
@@ -211,7 +225,8 @@ class ModifySpeedCommand extends Command
 		@item.updateModifySpeed(event)
 		return
 
-	end: ()->
+	end: (valid)->
+		if not valid then return
 		# @speeds = speeds.splice()
 		@item.endModifySpeed()
 		super()
@@ -240,9 +255,10 @@ class ChangeParameterCommand extends Command
 		@item.changeParameter(name, value)
 		return
 
-	end: ()->
+	end: (valid)->
 		@value = @item.data[@parameterName]
 		if @value == @previousValue then return false
+		if not valid then return
 		@item.update(@parameterName)
 		super()
 		return true
@@ -257,11 +273,13 @@ class ChangeParameterCommand extends Command
 class MoveViewCommand extends Command
 	constructor: (@previousPosition, @newPosition)->
 		super("Move view")
-		@done = true
-		@liJ.addClass('done')
+		@superDo()
+		# if not @previousPosition? or not @newPosition?
+		# 	debugger
 		return
 
 	updateCommandItems: ()=>
+		console.log "updateCommandItems"
 		document.removeEventListener('command executed', @updateCommandItems)
 		for command in g.commandManager.history
 			if command.item? 
@@ -286,7 +304,6 @@ class MoveViewCommand extends Command
 		return somethingToLoad
 
 @MoveViewCommand = MoveViewCommand
-
 
 # class MoveCommand extends Command
 # 	constructor: (@item, @newPosition=null)->
@@ -336,6 +353,9 @@ class SelectCommand extends Command
 			item.deselect(false)
 		for item in @items
 			item.select(false)
+		
+		items = @items.map( (item)-> return { tool: item.constructor, item: item } )
+		g.updateParameters(items, true)
 		super()
 		return
 
@@ -352,6 +372,9 @@ class SelectCommand extends Command
 			item.deselect(false)
 		for item in @previouslySelectedItems
 			item.select(false)
+
+		items = @items.map( (item)-> return { tool: item.constructor, item: item } )
+		g.updateParameters(items, true)
 		super()
 		return
 
@@ -361,8 +384,7 @@ class CreateItemCommand extends Command
 	constructor: (@item, name=null)->
 		@itemConstructor = @item.constructor
 		super(name)
-		@done = true
-		@liJ.addClass('done')
+		@superDo()
 		return
 
 	duplicateItem: ()->
@@ -425,12 +447,12 @@ class DeletePathCommand extends CreatePathCommand
 
 	do: ()->
 		@deleteItem()
-		@constructor.__super__.constructor.__super__.constructor.__super__["do"].call(this)
+		@superDo()
 		return
 
 	undo: ()->
 		@duplicateItem()
-		@constructor.__super__.constructor.__super__.constructor.__super__["undo"].call(this)
+		@superUndo()
 		return
 
 @DeletePathCommand = DeletePathCommand
@@ -465,12 +487,12 @@ class DeleteDivCommand extends CreateDivCommand
 	
 	do: ()->
 		@deleteItem()
-		@constructor.__super__.constructor.__super__.constructor.__super__["do"].call(this)
+		@superDo()
 		return
 
 	undo: ()->
 		@duplicateItem()
-		@constructor.__super__.constructor.__super__.constructor.__super__["undo"].call(this)
+		@superUndo()
 		return RMedia.prototype.isPrototypeOf(@item) 	# deferred if item is an RMedia
 
 @DeleteDivCommand = DeleteDivCommand
@@ -479,20 +501,11 @@ class CreateLockCommand extends CreateDivCommand
 	constructor: (item, name)->
 		super(item, name or 'Create lock')
 
-	# never return true: it is never deferred
-	do: ()->
-		super()
-		return
-
 @CreateLockCommand = CreateLockCommand
 
 class DeleteLockCommand extends DeleteDivCommand
 	constructor: (item)->
 		super(item, 'Delete lock')
-
-	# never return true: it is never deferred
-	undo: ()->
-		super()
 		return
 
 @DeleteLockCommand = DeleteLockCommand
@@ -532,14 +545,14 @@ class DeletePointCommand extends AddPointCommand
 		@previousHandleIn = new Point(@selectionState.segment.handleIn)
 		@previousHandleOut = new Point(@selectionState.segment.handleOut)
 		@deletePoint()
-		@constructor.__super__.constructor.__super__["do"].call(this)
+		@superDo()
 		return
 
 	undo: ()->
 		@addPoint(false)
 		@item.selectionState.segment = @segment
 		@item.changeSelectedSegment(@previousPosition, @previousHandleIn, @previousHandleOut)
-		@constructor.__super__.constructor.__super__["undo"].call(this)
+		@superUndo()
 		return
 
 @DeletePointCommand = DeletePointCommand
@@ -647,14 +660,18 @@ class CommandManager
 		return
 
 	toggleCurrentCommand: ()=>
-		if @currentCommand == @commandIndex then return
-		
+
+		console.log "toggleCurrentCommand"
+		$('#loadingMask').css('visibility': 'hidden')
 		document.removeEventListener('command executed', @toggleCurrentCommand)
+
+		if @currentCommand == @commandIndex then return
 		
 		deferred = @history[@currentCommand+@offset].toggle()
 		@currentCommand += @direction
 
 		if deferred
+			$('#loadingMask').css('visibility': 'visible')
 			document.addEventListener('command executed', @toggleCurrentCommand)
 		else
 			@toggleCurrentCommand()

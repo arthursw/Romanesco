@@ -205,10 +205,14 @@
 
     MoveTool.prototype.update = function(event) {};
 
-    MoveTool.prototype.end = function(event) {};
+    MoveTool.prototype.end = function(moved) {};
 
     MoveTool.prototype.beginNative = function(event) {
       this.dragging = true;
+      this.initialPosition = {
+        x: event.pageX,
+        y: event.pageY
+      };
       this.prevPoint = {
         x: event.pageX,
         y: event.pageY
@@ -439,16 +443,12 @@
         path = _ref1[name];
         path.finishHitTest();
       }
-      console.log(hitResult);
-      console.log('selected items: ');
-      console.log(g.selectedItems);
       if (hitResult && (hitResult.item.controller != null)) {
         this.selectedItem = hitResult.item.controller;
         if (!event.modifiers.shift) {
           if (g.selectedItems.length > 0) {
             if (g.selectedItems.indexOf((_ref2 = hitResult.item) != null ? _ref2.controller : void 0) < 0) {
               g.deselectAll();
-              console.log('deselected all');
             }
           }
         }
@@ -456,7 +456,6 @@
           _base.beginSelect(event);
         }
       } else {
-        console.log('deselected all');
         g.deselectAll();
         this.createSelectionRectangle(event);
       }
@@ -499,13 +498,6 @@
           }
           i--;
         }
-        itemsToSelect = itemsToSelect.map(function(item) {
-          return {
-            tool: item.constructor,
-            item: item
-          };
-        });
-        g.updateParameters(itemsToSelect);
         g.currentPaths[g.me].remove();
         delete g.currentPaths[g.me];
         _ref1 = g.items;
@@ -622,6 +614,7 @@
       if (!((g.currentPaths[from] != null) && ((_ref = g.currentPaths[from].data) != null ? _ref.polygonMode : void 0))) {
         g.deselectAll();
         g.currentPaths[from] = new this.RPath(Date.now(), data);
+        g.currentPaths[from].select(false, false);
       }
       g.currentPaths[from].beginCreate(event.point, event, false);
       if ((g.me != null) && from === g.me) {
@@ -648,20 +641,41 @@
       }
     };
 
+    PathTool.prototype.createPath = function(event, from) {
+      var bounds, lock, locks, path, _i, _len;
+      path = g.currentPaths[from];
+      if ((g.me != null) && from === g.me) {
+        bounds = path.getBounds();
+        locks = RLock.getLocksWhichIntersect(bounds);
+        for (_i = 0, _len = locks.length; _i < _len; _i++) {
+          lock = locks[_i];
+          if (lock.rectangle.contains(bounds)) {
+            lock.addItem(path);
+          }
+        }
+        path.save(true);
+        path.select(false);
+        g.chatSocket.emit("end", g.me, g.eventToObject(event), this.name);
+      }
+      delete g.currentPaths[from];
+    };
+
     PathTool.prototype.end = function(event, from) {
-      var _ref;
+      var path, _ref;
       if (from == null) {
         from = g.me;
       }
-      g.currentPaths[from].endCreate(event.point, event, false);
-      if (!((_ref = g.currentPaths[from].data) != null ? _ref.polygonMode : void 0)) {
-        if ((g.me != null) && from === g.me) {
-          g.currentPaths[from].select(false);
-          g.currentPaths[from].save();
-          g.commandManager.add(new CreatePathCommand(g.currentPaths[from]));
-          g.chatSocket.emit("end", g.me, g.eventToObject(event), this.name);
+      path = g.currentPaths[from];
+      if (!((_ref = path.data) != null ? _ref.polygonMode : void 0)) {
+        if (event.downPoint.equals(event.point)) {
+          path.remove();
+          delete g.currentPaths[from];
+          return;
         }
-        delete g.currentPaths[from];
+        path.endCreate(event.point, event, false);
+        this.createPath(event, from);
+      } else {
+        path.endCreate(event.point, event, false);
       }
     };
 
@@ -674,17 +688,7 @@
         return;
       }
       g.currentPaths[from].finishPath();
-      if ((g.me != null) && from === g.me) {
-        g.currentPaths[from].select(false);
-        g.currentPaths[from].save();
-        g.commandManager.add(new CreatePathCommand(g.currentPaths[from]));
-        g.chatSocket.emit("bounce", {
-          tool: this.name,
-          "function": "finishPath",
-          "arguments": g.me
-        });
-      }
-      delete g.currentPaths[from];
+      this.createPath(event, from);
     };
 
     return PathTool;
@@ -716,6 +720,7 @@
         from = g.me;
       }
       point = event.point;
+      g.deselectAll();
       g.currentPaths[from] = new Path.Rectangle(point, point);
       g.currentPaths[from].name = 'div tool rectangle';
       g.currentPaths[from].dashArray = [4, 10];
@@ -727,7 +732,7 @@
     };
 
     ItemTool.prototype.update = function(event, from) {
-      var point;
+      var bounds, lock, locks, point, _i, _len;
       if (from == null) {
         from = g.me;
       }
@@ -736,7 +741,15 @@
       g.currentPaths[from].segments[1].point.x = point.x;
       g.currentPaths[from].segments[3].point.y = point.y;
       g.currentPaths[from].fillColor = null;
-      if (g.rectangleOverlapsTwoPlanets(g.currentPaths[from].bounds) || RLock.intersectsRectangle(g.currentPaths[from].bounds)) {
+      bounds = g.currentPaths[from].bounds;
+      locks = RLock.getLocksWhichIntersect(bounds);
+      for (_i = 0, _len = locks.length; _i < _len; _i++) {
+        lock = locks[_i];
+        if (lock.owner !== g.me || (this.name !== 'Lock' && !lock.rectangle.contains(bounds))) {
+          g.currentPaths[from].fillColor = 'red';
+        }
+      }
+      if (g.rectangleOverlapsTwoPlanets(bounds)) {
         g.currentPaths[from].fillColor = 'red';
       }
       if ((g.me != null) && from === g.me) {
@@ -745,7 +758,7 @@
     };
 
     ItemTool.prototype.end = function(event, from) {
-      var point;
+      var bounds, lock, locks, point, _i, _len;
       if (from == null) {
         from = g.me;
       }
@@ -756,12 +769,17 @@
       }
       point = event.point;
       g.currentPaths[from].remove();
-      if (g.rectangleOverlapsTwoPlanets(g.currentPaths[from].bounds)) {
-        g.romanesco_alert('Your item overlaps with two planets.', 'error');
-        return false;
+      bounds = g.currentPaths[from].bounds;
+      locks = RLock.getLocksWhichIntersect(bounds);
+      for (_i = 0, _len = locks.length; _i < _len; _i++) {
+        lock = locks[_i];
+        if (lock.owner !== g.me || (this.name !== 'Lock' && !lock.rectangle.contains(bounds))) {
+          g.romanesco_alert('Your item intersects with a locked area.', 'error');
+          return false;
+        }
       }
-      if (RLock.intersectsRectangle(g.currentPaths[from].bounds)) {
-        g.romanesco_alert('Your item intersects with a locked area.', 'error');
+      if (g.rectangleOverlapsTwoPlanets(bounds)) {
+        g.romanesco_alert('Your item overlaps with two planets.', 'error');
         return false;
       }
       if (g.currentPaths[from].bounds.area < 100) {
@@ -841,9 +859,9 @@
       }
       if (TextTool.__super__.end.call(this, event, from)) {
         text = new RText(g.currentPaths[from].bounds);
+        text.addToParent();
         text.select();
-        text.save();
-        g.commandManager.add(new CreateDivCommand(text));
+        text.save(true);
         delete g.currentPaths[from];
       }
     };

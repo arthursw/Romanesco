@@ -197,6 +197,403 @@ Notations:
     }
   };
 
+  this.initializeGlobalParameters = function() {
+    g.parameters = {};
+    g.parameters.location = {
+      type: 'string',
+      label: 'Location',
+      "default": '0.0, 0.0',
+      permanent: true,
+      onFinishChange: function(value) {
+        g.ignoreHashChange = false;
+        location.hash = value;
+      }
+    };
+    g.parameters.zoom = {
+      type: 'slider',
+      label: 'Zoom',
+      min: 1,
+      max: 500,
+      "default": 100,
+      permanent: true,
+      onChange: function(value) {
+        var div, _i, _len, _ref;
+        g.project.view.zoom = value / 100.0;
+        g.updateGrid();
+        _ref = g.divs;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          div = _ref[_i];
+          div.updateTransform();
+        }
+      },
+      onFinishChange: function(value) {
+        return g.load();
+      }
+    };
+    g.parameters.displayGrid = {
+      type: 'checkbox',
+      label: 'Display grid',
+      "default": false,
+      permanent: true,
+      onChange: function(value) {
+        g.displayGrid = !g.displayGrid;
+        g.updateGrid();
+      }
+    };
+    g.parameters.fastMode = {
+      type: 'checkbox',
+      label: 'Fast mode',
+      "default": g.fastMode,
+      permanent: true,
+      onChange: function(value) {
+        g.fastMode = value;
+      }
+    };
+    g.parameters.strokeWidth = {
+      type: 'slider',
+      label: 'Stroke width',
+      min: 1,
+      max: 100,
+      "default": 1
+    };
+    g.parameters.strokeColor = {
+      type: 'color',
+      label: 'Stroke color',
+      "default": g.defaultColors.random(),
+      defaultFunction: function() {
+        return g.defaultColors.random();
+      },
+      defaultCheck: true
+    };
+    g.parameters.fillColor = {
+      type: 'color',
+      label: 'Fill color',
+      "default": g.defaultColors.random(),
+      defaultCheck: false
+    };
+    g.parameters["delete"] = {
+      type: 'button',
+      label: 'Delete items',
+      "default": function() {
+        var item, _i, _len, _ref, _results;
+        _ref = g.selectedItems;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          item = _ref[_i];
+          _results.push(item.deleteCommand());
+        }
+        return _results;
+      }
+    };
+    g.parameters.duplicate = {
+      type: 'button',
+      label: 'Duplicate items',
+      "default": function() {
+        var item, _i, _len, _ref, _results;
+        _ref = g.selectedItems;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          item = _ref[_i];
+          _results.push(item.duplicateCommand());
+        }
+        return _results;
+      }
+    };
+    g.parameters.snap = {
+      type: 'slider',
+      label: 'Snap',
+      min: 0,
+      max: 100,
+      step: 5,
+      "default": 0,
+      snap: 0,
+      permanent: true,
+      onChange: function() {
+        return g.updateGrid();
+      }
+    };
+    g.parameters.align = {
+      type: 'button-group',
+      label: 'Align',
+      value: '',
+      initializeController: function(controller) {
+        var align, alignJ;
+        $(controller.domElement).find('input').remove();
+        align = function(type) {
+          var avgX, avgY, bottom, bounds, item, items, left, right, top, xMax, xMin, yMax, yMin, _i, _j, _k, _l, _len, _len1, _len10, _len11, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s, _t;
+          items = g.selectedItems;
+          switch (type) {
+            case 'h-top':
+              yMin = NaN;
+              for (_i = 0, _len = items.length; _i < _len; _i++) {
+                item = items[_i];
+                top = item.getBounds().top;
+                if (isNaN(yMin) || top < yMin) {
+                  yMin = top;
+                }
+              }
+              items.sort(function(a, b) {
+                return a.getBounds().top - b.getBounds().top;
+              });
+              for (_j = 0, _len1 = items.length; _j < _len1; _j++) {
+                item = items[_j];
+                bounds = item.getBounds();
+                item.moveTo(new Point(bounds.centerX, top + bounds.height / 2));
+              }
+              break;
+            case 'h-center':
+              avgY = 0;
+              for (_k = 0, _len2 = items.length; _k < _len2; _k++) {
+                item = items[_k];
+                avgY += item.getBounds().centerY;
+              }
+              avgY /= items.length;
+              items.sort(function(a, b) {
+                return a.getBounds().centerY - b.getBounds().centerY;
+              });
+              for (_l = 0, _len3 = items.length; _l < _len3; _l++) {
+                item = items[_l];
+                bounds = item.getBounds();
+                item.moveTo(new Point(bounds.centerX, avgY));
+              }
+              break;
+            case 'h-bottom':
+              yMax = NaN;
+              for (_m = 0, _len4 = items.length; _m < _len4; _m++) {
+                item = items[_m];
+                bottom = item.getBounds().bottom;
+                if (isNaN(yMax) || bottom > yMax) {
+                  yMax = bottom;
+                }
+              }
+              items.sort(function(a, b) {
+                return a.getBounds().bottom - b.getBounds().bottom;
+              });
+              for (_n = 0, _len5 = items.length; _n < _len5; _n++) {
+                item = items[_n];
+                bounds = item.getBounds();
+                item.moveTo(new Point(bounds.centerX, bottom - bounds.height / 2));
+              }
+              break;
+            case 'v-left':
+              xMin = NaN;
+              for (_o = 0, _len6 = items.length; _o < _len6; _o++) {
+                item = items[_o];
+                left = item.getBounds().left;
+                if (isNaN(xMin) || left < xMin) {
+                  xMin = left;
+                }
+              }
+              items.sort(function(a, b) {
+                return a.getBounds().left - b.getBounds().left;
+              });
+              for (_p = 0, _len7 = items.length; _p < _len7; _p++) {
+                item = items[_p];
+                bounds = item.getBounds();
+                item.moveTo(new Point(xMin + bounds.width / 2, bounds.centerY));
+              }
+              break;
+            case 'v-center':
+              avgX = 0;
+              for (_q = 0, _len8 = items.length; _q < _len8; _q++) {
+                item = items[_q];
+                avgX += item.getBounds().centerX;
+              }
+              avgX /= items.length;
+              items.sort(function(a, b) {
+                return a.getBounds().centerY - b.getBounds().centerY;
+              });
+              for (_r = 0, _len9 = items.length; _r < _len9; _r++) {
+                item = items[_r];
+                bounds = item.getBounds();
+                item.moveTo(new Point(avgX, bounds.centerY));
+              }
+              break;
+            case 'v-right':
+              xMax = NaN;
+              for (_s = 0, _len10 = items.length; _s < _len10; _s++) {
+                item = items[_s];
+                right = item.getBounds().right;
+                if (isNaN(xMax) || right > xMax) {
+                  xMax = right;
+                }
+              }
+              items.sort(function(a, b) {
+                return a.getBounds().right - b.getBounds().right;
+              });
+              for (_t = 0, _len11 = items.length; _t < _len11; _t++) {
+                item = items[_t];
+                bounds = item.getBounds();
+                item.moveTo(new Point(xMax - bounds.width / 2, bounds.centerY));
+              }
+          }
+        };
+        g.templatesJ.find("#align").clone().appendTo(controller.domElement);
+        alignJ = $("#align:first");
+        alignJ.find("button").click(function() {
+          return align($(this).attr("data-type"));
+        });
+      }
+    };
+    g.parameters.distribute = {
+      type: 'button-group',
+      label: 'Distribute',
+      value: '',
+      initializeController: function(controller) {
+        var distribute, distributeJ;
+        $(controller.domElement).find('input').remove();
+        distribute = function(type) {
+          var bottom, bounds, center, i, item, items, left, right, step, top, xMax, xMin, yMax, yMin, _i, _j, _k, _l, _len, _len1, _len10, _len11, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s, _t;
+          items = g.selectedItems;
+          switch (type) {
+            case 'h-top':
+              yMin = NaN;
+              yMax = NaN;
+              for (_i = 0, _len = items.length; _i < _len; _i++) {
+                item = items[_i];
+                top = item.getBounds().top;
+                if (isNaN(yMin) || top < yMin) {
+                  yMin = top;
+                }
+                if (isNaN(yMax) || top > yMax) {
+                  yMax = top;
+                }
+              }
+              step = (yMax - yMin) / (items.length - 1);
+              items.sort(function(a, b) {
+                return a.getBounds().top - b.getBounds().top;
+              });
+              for (i = _j = 0, _len1 = items.length; _j < _len1; i = ++_j) {
+                item = items[i];
+                bounds = item.getBounds();
+                item.moveTo(new Point(bounds.centerX, yMin + i * step + bounds.height / 2));
+              }
+              break;
+            case 'h-center':
+              yMin = NaN;
+              yMax = NaN;
+              for (_k = 0, _len2 = items.length; _k < _len2; _k++) {
+                item = items[_k];
+                center = item.getBounds().centerY;
+                if (isNaN(yMin) || center < yMin) {
+                  yMin = center;
+                }
+                if (isNaN(yMax) || center > yMax) {
+                  yMax = center;
+                }
+              }
+              step = (yMax - yMin) / (items.length - 1);
+              items.sort(function(a, b) {
+                return a.getBounds().centerY - b.getBounds().centerY;
+              });
+              for (i = _l = 0, _len3 = items.length; _l < _len3; i = ++_l) {
+                item = items[i];
+                bounds = item.getBounds();
+                item.moveTo(new Point(bounds.centerX, yMin + i * step));
+              }
+              break;
+            case 'h-bottom':
+              yMin = NaN;
+              yMax = NaN;
+              for (_m = 0, _len4 = items.length; _m < _len4; _m++) {
+                item = items[_m];
+                bottom = item.getBounds().bottom;
+                if (isNaN(yMin) || bottom < yMin) {
+                  yMin = bottom;
+                }
+                if (isNaN(yMax) || bottom > yMax) {
+                  yMax = bottom;
+                }
+              }
+              step = (yMax - yMin) / (items.length - 1);
+              items.sort(function(a, b) {
+                return a.getBounds().bottom - b.getBounds().bottom;
+              });
+              for (i = _n = 0, _len5 = items.length; _n < _len5; i = ++_n) {
+                item = items[i];
+                bounds = item.getBounds();
+                item.moveTo(new Point(bounds.centerX, yMin + i * step - bounds.height / 2));
+              }
+              break;
+            case 'v-left':
+              xMin = NaN;
+              xMax = NaN;
+              for (_o = 0, _len6 = items.length; _o < _len6; _o++) {
+                item = items[_o];
+                left = item.getBounds().left;
+                if (isNaN(xMin) || left < xMin) {
+                  xMin = left;
+                }
+                if (isNaN(xMax) || left > xMax) {
+                  xMax = left;
+                }
+              }
+              step = (xMax - xMin) / (items.length - 1);
+              items.sort(function(a, b) {
+                return a.getBounds().left - b.getBounds().left;
+              });
+              for (i = _p = 0, _len7 = items.length; _p < _len7; i = ++_p) {
+                item = items[i];
+                bounds = item.getBounds();
+                item.moveTo(new Point(xMin + i * step + bounds.width / 2, bounds.centerY));
+              }
+              break;
+            case 'v-center':
+              xMin = NaN;
+              xMax = NaN;
+              for (_q = 0, _len8 = items.length; _q < _len8; _q++) {
+                item = items[_q];
+                center = item.getBounds().centerX;
+                if (isNaN(xMin) || center < xMin) {
+                  xMin = center;
+                }
+                if (isNaN(xMax) || center > xMax) {
+                  xMax = center;
+                }
+              }
+              step = (xMax - xMin) / (items.length - 1);
+              items.sort(function(a, b) {
+                return a.getBounds().centerX - b.getBounds().centerX;
+              });
+              for (i = _r = 0, _len9 = items.length; _r < _len9; i = ++_r) {
+                item = items[i];
+                bounds = item.getBounds();
+                item.moveTo(new Point(xMin + i * step, bounds.centerY));
+              }
+              break;
+            case 'v-right':
+              xMin = NaN;
+              xMax = NaN;
+              for (_s = 0, _len10 = items.length; _s < _len10; _s++) {
+                item = items[_s];
+                right = item.getBounds().right;
+                if (isNaN(xMin) || right < xMin) {
+                  xMin = right;
+                }
+                if (isNaN(xMax) || right > xMax) {
+                  xMax = right;
+                }
+              }
+              step = (xMax - xMin) / (items.length - 1);
+              items.sort(function(a, b) {
+                return a.getBounds().right - b.getBounds().right;
+              });
+              for (i = _t = 0, _len11 = items.length; _t < _len11; i = ++_t) {
+                item = items[i];
+                bounds = item.getBounds();
+                item.moveTo(new Point(xMin + i * step - bounds.width / 2, bounds.centerY));
+              }
+          }
+        };
+        g.templatesJ.find("#distribute").clone().appendTo(controller.domElement);
+        distributeJ = $("#distribute:first");
+        distributeJ.find("button").click(function() {
+          return distribute($(this).attr("data-type"));
+        });
+      }
+    };
+  };
+
   paper.install(window);
 
   init = function() {
@@ -207,7 +604,14 @@ Notations:
     g.sidebarJ = $("#sidebar");
     g.canvasJ = g.stageJ.find("#canvas");
     g.canvas = g.canvasJ[0];
+    g.backgroundCanvasJ = g.stageJ.find("#background-canvas");
+    g.backgroundCanvas = g.backgroundCanvasJ[0];
+    g.backgroundCanvas.width = window.innerWidth;
+    g.backgroundCanvas.height = window.innerHeight;
+    g.backgroundCanvasJ.width(window.innerWidth);
+    g.backgroundCanvasJ.height(window.innerHeight);
     g.context = g.canvas.getContext('2d');
+    g.backgroundContext = g.backgroundCanvas.getContext('2d');
     g.templatesJ = $("#templates");
     g.me = null;
     g.selectionLayer = null;
@@ -269,7 +673,6 @@ Notations:
       $(this).parent().toggleClass('closed');
     });
     g.commandManager = new CommandManager();
-    g.commandManager.add(new Command('Load Romanesco'), true);
     Dajaxice.setup({
       'default_exception_callback': function(error) {
         console.log('Dajaxice error!');
@@ -299,6 +702,7 @@ Notations:
     g.grid = new Group();
     g.grid.name = 'grid group';
     view.zoom = 1;
+    g.previousViewPosition = view.center;
     Point.prototype.toJSON = function() {
       return {
         x: this.x,
@@ -319,7 +723,6 @@ Notations:
     Rectangle.prototype.exportJSON = function() {
       return JSON.stringify(this.toJSON());
     };
-    g.tool = new Tool();
     g.defaultColors = [];
     hueRange = g.random(10, 180);
     minHue = g.random(0, 360 - hueRange);
@@ -364,6 +767,7 @@ Notations:
         }
       }
     });
+    initializeGlobalParameters();
     initParameters();
     initCodeEditor();
     initTools();
@@ -391,7 +795,8 @@ Notations:
         return false;
       }
     });
-    tool.onMouseDown = function(event) {
+    g.tool = new Tool();
+    g.tool.onMouseDown = function(event) {
       var _ref;
       if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
         tool.onKeyUp({
@@ -402,7 +807,7 @@ Notations:
       $(document.activeElement).blur();
       return g.selectedTool.begin(event);
     };
-    tool.onMouseDrag = function(event) {
+    g.tool.onMouseDrag = function(event) {
       var _ref;
       if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
         return;
@@ -413,7 +818,7 @@ Notations:
       event = g.snap(event);
       return g.selectedTool.update(event);
     };
-    tool.onMouseUp = function(event) {
+    g.tool.onMouseUp = function(event) {
       var _ref;
       if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
         return;
@@ -424,7 +829,7 @@ Notations:
       event = g.snap(event);
       return g.selectedTool.end(event);
     };
-    tool.onKeyDown = function(event) {
+    g.tool.onKeyDown = function(event) {
       if ($(document.activeElement).parents(".sidebar").length || $(document.activeElement).is("textarea") || $(document.activeElement).parents(".dat-gui").length) {
         return;
       }
@@ -436,7 +841,7 @@ Notations:
         return g.tools['Move'].select();
       }
     };
-    tool.onKeyUp = function(event) {
+    g.tool.onKeyUp = function(event) {
       var delta, item, selectedItems, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
       if ($(document.activeElement).parents(".sidebar").length || $(document.activeElement).is("textarea") || $(document.activeElement).parents(".dat-gui").length) {
         return;
@@ -525,6 +930,8 @@ Notations:
       }
     };
     g.windowJ.resize(function(event) {
+      g.backgroundCanvas.width = window.innerWidth;
+      g.backgroundCanvas.height = window.innerHeight;
       updateGrid();
       $(".mCustomScrollbar").mCustomScrollbar("update");
       return view.draw();
@@ -546,14 +953,15 @@ Notations:
       g.selectedTool.beginNative(event);
       return;
     }
-    g.initialPosition = g.jEventToPoint(event);
-    g.previousPosition = g.initialPosition;
+    g.initialMousePosition = g.jEventToPoint(event);
+    g.previousMousePosition = g.initialMousePosition.clone();
   };
 
   this.mousemove = function(event) {
     var paperEvent, _base;
-    if (g.selectedTool.name === 'Move') {
+    if (g.selectedTool.name === 'Move' && g.selectedTool.dragging) {
       g.selectedTool.updateNative(event);
+      return;
     }
     if (g.draggingEditor) {
       g.editorJ.css({
@@ -561,11 +969,11 @@ Notations:
       });
     }
     if (g.currentDiv != null) {
-      paperEvent = g.jEventToPaperEvent(event, g.previousPosition, g.initialPosition, 'mousemove');
-      g.previousPosition = paperEvent.point;
+      paperEvent = g.jEventToPaperEvent(event, g.previousMousePosition, g.initialMousePosition, 'mousemove');
       if (typeof (_base = g.currentDiv).updateSelect === "function") {
         _base.updateSelect(paperEvent);
       }
+      g.previousMousePosition = paperEvent.point;
     }
   };
 
@@ -573,6 +981,7 @@ Notations:
     var paperEvent, _base, _ref;
     if (g.selectedTool.name === 'Move') {
       g.selectedTool.endNative(event);
+      return;
     }
     if (event.which === 2) {
       if ((_ref = g.previousTool) != null) {
@@ -580,11 +989,11 @@ Notations:
       }
     }
     if (g.currentDiv != null) {
-      paperEvent = g.jEventToPaperEvent(event, g.previousPosition, g.initialPosition, 'mouseup');
-      g.previousPosition = paperEvent.point;
+      paperEvent = g.jEventToPaperEvent(event, g.previousMousePosition, g.initialMousePosition, 'mouseup');
       if (typeof (_base = g.currentDiv).endSelect === "function") {
         _base.endSelect(paperEvent);
       }
+      g.previousMousePosition = paperEvent.point;
     }
     g.draggingEditor = false;
   };

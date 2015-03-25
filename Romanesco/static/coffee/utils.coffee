@@ -1,5 +1,11 @@
 this.g = this
 
+this.getParentPrototype = (object, ParentClass)->
+	prototype = object.constructor.prototype
+	while prototype != ParentClass.prototype
+		prototype = prototype.constructor.__super__
+	return prototype
+
 # @return [Number] sign of *x* (+1 or -1)
 this.sign = (x) ->
 	(if typeof x is "number" then (if x then (if x < 0 then -1 else 1) else (if x is x then 0 else NaN)) else NaN)

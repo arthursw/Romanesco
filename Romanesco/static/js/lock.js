@@ -29,10 +29,9 @@
           case 'link':
             lock = new RLink(rectangle, data);
         }
-        lock.save();
+        lock.save(true);
         lock.update('rectangle');
         lock.select();
-        g.commandManager.add(new CreateLockCommand(lock));
       };
       RModal.initialize('Create a locked area', submit);
       radioButtons = [
@@ -93,33 +92,29 @@
       radioGroupJ.find('input:first').focus();
     };
 
-    RLock.intersectPoint = function(point) {
+    RLock.getLockWhichContains = function(rectangle) {
       var lock, _i, _len, _ref;
       _ref = g.locks;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         lock = _ref[_i];
-        if (lock.getBounds().contains(point)) {
-          return g.items[lock.pk];
+        if (lock.getBounds().contains(rectangle)) {
+          return lock;
         }
       }
       return null;
     };
 
-    RLock.intersectRectangle = function(rectangle) {
+    RLock.getLocksWhichIntersect = function(rectangle) {
       var lock, locks, _i, _len, _ref;
       locks = [];
       _ref = g.locks;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         lock = _ref[_i];
         if (lock.getBounds().intersects(rectangle)) {
-          locks.push(g.items[lock.pk]);
+          locks.push(lock);
         }
       }
       return locks;
-    };
-
-    RLock.intersectsRectangle = function(rectangle) {
-      return this.intersectRectangle(rectangle).length > 0;
     };
 
     RLock.duplicate = function(rectangle, data) {
@@ -146,12 +141,13 @@
       return parameters;
     };
 
-    function RLock(rectangle, data, pk, owner) {
+    function RLock(rectangle, data, pk, owner, date) {
       var item, pkString, title, titleJ, _i, _len, _ref, _ref1;
       this.rectangle = rectangle;
       this.data = data != null ? data : null;
       this.pk = pk != null ? pk : null;
       this.owner = owner != null ? owner : null;
+      this.date = date;
       this.select = __bind(this.select, this);
       this.update = __bind(this.update, this);
       this.save_callback = __bind(this.save_callback, this);
@@ -207,7 +203,7 @@
           continue;
         }
         if (item.getBounds().intersects(this.rectangle)) {
-          this.addRItem(item);
+          this.addItem(item);
         }
       }
       if ((_ref1 = this.data) != null ? _ref1.loadEntireArea : void 0) {
@@ -226,8 +222,9 @@
       }
     };
 
-    RLock.prototype.save = function(clonePk) {
+    RLock.prototype.save = function(addCreateCommand) {
       var data, siteData;
+      this.addCreateCommand = addCreateCommand;
       if (g.rectangleOverlapsTwoPlanets(this.rectangle)) {
         return;
       }
@@ -256,6 +253,10 @@
       if (result.pk == null) {
         this.remove();
         return;
+      }
+      if (this.addCreateCommand) {
+        g.commandManager.add(new CreateLockCommand(this));
+        delete this.addCreateCommand;
       }
       this.owner = result.owner;
       this.setPK(result.pk);
@@ -294,7 +295,7 @@
           item = _ref[pk];
           if (!RLock.prototype.isPrototypeOf(item)) {
             if (item.lock !== this && this.rectangle.contains(item.getBounds())) {
-              this.addRItem(item);
+              this.addItem(item);
               itemsToUpdate.push(item);
             }
           }
@@ -389,7 +390,7 @@
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (!RLock.__super__.select.call(this, updateOptions) || !this.owner !== g.me) {
+      if (!RLock.__super__.select.call(this, updateOptions) || this.owner !== g.me) {
         return false;
       }
       _ref = this.children();
@@ -405,7 +406,7 @@
       _ref = this.children();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         path = _ref[_i];
-        this.removeRItem(path);
+        this.removeItem(path);
       }
       this.itemListsJ.remove();
       this.itemListsJ = null;
@@ -418,56 +419,17 @@
       return this.sortedDivs.concat(this.sortedPaths);
     };
 
-    RLock.prototype.addRItem = function(item) {
-      var wasSelected;
-      wasSelected = item.isSelected();
-      if (wasSelected) {
-        item.deselect();
-      }
-      this.group.addChild(item.group);
-      item.lock = this;
-      item.sortedItems.remove(item);
-      if (RDiv.prototype.isPrototypeOf(item)) {
-        item.sortedItems = this.sortedDivs;
-        this.itemListsJ.find(".rDiv-list").append(item.liJ);
-      } else if (RPath.prototype.isPrototypeOf(item)) {
-        item.sortedItems = this.sortedPaths;
-        this.itemListsJ.find(".rPath-list").append(item.liJ);
-      } else {
-        console.error("Error: the item is neither an RDiv nor an RPath");
-      }
-      item.updateZIndex();
-      if (wasSelected) {
-        item.select();
-      }
+    RLock.prototype.addItem = function(item) {
+      g.addItemTo(item, this);
     };
 
-    RLock.prototype.removeRItem = function(item) {
-      var wasSelected;
-      wasSelected = item.isSelected();
-      if (wasSelected) {
-        item.deselect();
-      }
-      g.mainLayer.addChild(item.group);
-      item.lock = null;
-      item.sortedItems.remove(item);
-      if (RDiv.prototype.isPrototypeOf(item)) {
-        item.sortedItems = g.sortedDivs;
-        item.liJ.appendTo(g.divList);
-      } else if (RPath.prototype.isPrototypeOf(item)) {
-        item.sortedItems = g.sortedPaths;
-        item.liJ.appendTo(g.pathList);
-      } else {
-        console.error("Error: the item is neither an RDiv nor an RPath");
-      }
-      item.updateZIndex();
-      if (wasSelected) {
-        item.select();
-      }
+    RLock.prototype.removeItem = function(item) {
+      g.addItemToStage(item);
     };
 
     RLock.prototype.highlight = function(color) {
       RLock.__super__.highlight.call(this);
+      this.highlightRectangle.moveAbove(this.background);
       if (color) {
         this.highlightRectangle.fillColor = color;
         this.highlightRectangle.strokeColor = color;
@@ -488,12 +450,15 @@
 
     RWebsite.object_type = 'website';
 
-    function RWebsite(rectangle, data, pk, owner) {
+    function RWebsite(rectangle, data, pk, owner, date) {
       this.rectangle = rectangle;
       this.data = data != null ? data : null;
       this.pk = pk != null ? pk : null;
       this.owner = owner != null ? owner : null;
-      RWebsite.__super__.constructor.call(this, this.rectangle, this.data, this.pk, this.owner);
+      if (date == null) {
+        date = null;
+      }
+      RWebsite.__super__.constructor.call(this, this.rectangle, this.data, this.pk, this.owner, date);
       return;
     }
 
@@ -512,12 +477,15 @@
 
     RVideoGame.object_type = 'video-game';
 
-    function RVideoGame(rectangle, data, pk, owner) {
+    function RVideoGame(rectangle, data, pk, owner, date) {
       this.rectangle = rectangle;
       this.data = data != null ? data : null;
       this.pk = pk != null ? pk : null;
       this.owner = owner != null ? owner : null;
-      RVideoGame.__super__.constructor.call(this, this.rectangle, this.data, this.pk, this.owner);
+      if (date == null) {
+        date = null;
+      }
+      RVideoGame.__super__.constructor.call(this, this.rectangle, this.data, this.pk, this.owner, date);
       this.currentCheckpoint = -1;
       this.checkpoints = [];
       return;
@@ -589,13 +557,16 @@
       return parameters;
     };
 
-    function RLink(rectangle, data, pk, owner) {
+    function RLink(rectangle, data, pk, owner, date) {
       var _ref;
       this.rectangle = rectangle;
       this.data = data != null ? data : null;
       this.pk = pk != null ? pk : null;
       this.owner = owner != null ? owner : null;
-      RLink.__super__.constructor.call(this, this.rectangle, this.data, this.pk, this.owner);
+      if (date == null) {
+        date = null;
+      }
+      RLink.__super__.constructor.call(this, this.rectangle, this.data, this.pk, this.owner, date);
       if ((_ref = this.linkJ) != null) {
         _ref.click((function(_this) {
           return function(event) {

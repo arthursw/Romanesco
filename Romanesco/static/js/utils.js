@@ -4,6 +4,15 @@
 
   this.g = this;
 
+  this.getParentPrototype = function(object, ParentClass) {
+    var prototype;
+    prototype = object.constructor.prototype;
+    while (prototype !== ParentClass.prototype) {
+      prototype = prototype.constructor.__super__;
+    }
+    return prototype;
+  };
+
   this.sign = function(x) {
     if (typeof x === "number") {
       if (x) {

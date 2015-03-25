@@ -645,6 +645,7 @@ this.deselectAll = ()->
 	g.previouslySelectedItems = g.selectedItems.slice()
 	item.deselect?(false) for item in g.previouslySelectedItems
 	project.activeLayer.selected = false
+	g.selectedItems = []
 	return
 
 # Toggle (hide/show) sidebar (called when user clicks on the sidebar handle)
@@ -725,7 +726,7 @@ this.validatePosition = (item, bounds=null, highlight=false)->
 		else
 			return false
 
-	locks = RLock.intersectRectangle(bounds)
+	locks = RLock.getLocksWhichIntersect(bounds)
 
 	for lock in locks
 		if RLock.prototype.isPrototypeOf(item)
@@ -740,7 +741,7 @@ this.validatePosition = (item, bounds=null, highlight=false)->
 					if highlight
 						lock.highlight('green')
 					else
-						lock.addRItem(item)
+						lock.addItem(item)
 			else
 				if highlight
 					lock.highlight('red')
@@ -752,7 +753,7 @@ this.validatePosition = (item, bounds=null, highlight=false)->
 			if highlight
 				this.highlightStage('green')
 			else
-				lock.removeRItem(item)
+				g.addItemToStage(item)
 
 	# if item is a lock: check that it still contains its children
 	if RLock.prototype.isPrototypeOf(item)
@@ -777,6 +778,30 @@ this.zIndexSortStop = (event, ui)=>
 		item.select()
 	return
 
+this.addItemToStage = (item)->
+	g.addItemTo(item)
+	return
+
+this.addItemTo = (item, lock=null)->
+	wasSelected = item.isSelected()
+	if wasSelected then item.deselect()
+	group = if lock then lock.group else g.mainLayer
+	group.addChild(item.group)
+	item.lock = lock
+	item.sortedItems.remove(item)
+	parent = lock or g
+	if RDiv.prototype.isPrototypeOf(item)
+		item.sortedItems = parent.sortedDivs
+		parent.itemListsJ.find(".rDiv-list").append(item.liJ)
+	else if RPath.prototype.isPrototypeOf(item)
+		item.sortedItems = parent.sortedPaths
+		parent.itemListsJ.find(".rPath-list").append(item.liJ)
+	else
+		console.error "Error: the item is neither an RDiv nor an RPath"
+	item.updateZIndex()
+	if wasSelected then item.select()
+	return
+
 # @return [Paper Rectangle] the bounding box of *rectangle* (smallest rectangle containing *rectangle*) when it is rotated by *rotation*
 this.getRotatedBounds = (rectangle, rotation=0)->
 	topLeft = rectangle.topLeft.subtract(rectangle.center)
@@ -791,6 +816,49 @@ this.getRotatedBounds = (rectangle, rotation=0)->
 	bounds = bounds.include(rectangle.center.add(bottomLeft))
 	bounds = bounds.include(rectangle.center.add(topRight))
 	return bounds
+
+this.rasterizePaths = ()->
+	for pk, path of g.paths
+		raster = path.drawing.rasterize()
+		position = Point.max(view.projectToView(raster.bounds.topLeft), new Point(0,0))
+		g.context.drawImage(raster.canvas, position.x, position.y)
+		raster.remove()
+		path.group.visible = false
+	return
+
+this.deletePaths = ()->
+	for pk, path of g.paths
+		path.remove()
+	return
+
+this.rasterizeProject = (path)->
+	if path.controlPath?
+		path.group.visible = false
+		view.draw()
+	g.backgroundCanvasJ.show()
+	g.backgroundContext.drawImage(g.canvas, 0, 0, g.canvas.width, g.canvas.height)
+	for pk, p of g.paths
+		if p != path
+			p.group.visible = false
+	path.group.visible = true
+	return
+
+this.restoreProject = ()->
+	g.backgroundCanvasJ.hide()
+	g.backgroundContext.clearRect(0, 0, canvas.width, canvas.height)
+	for pk, p of g.paths
+		p.group.visible = true
+	return
+
+this.hidePaths = ()->
+	for pk, path of g.paths
+		path.group.visible = false
+	return
+
+this.showPaths = ()->
+	for pk, path of g.paths
+		path.group.visible = true
+	return
 
 # get a list of rectangles obtained from the cut of rectangle 2 in rectangle 1
 # the rectangles A, B, C and D are the resulting rectangles
@@ -872,6 +940,9 @@ this.areaToImageDataUrl = (rectangle, convertToView=true)->
 		viewRectangle = g.projectToViewRectangle(rectangle)
 	else
 		viewRectangle = rectangle
+
+	if viewRectangle.size.equals(view.size) and viewRectangle.x == 0 and viewRectangle.y == 0
+		return g.canvas.toDataURL("image/png")
 
 	canvasTemp = document.createElement('canvas')
 	canvasTemp.width = viewRectangle.width
@@ -1477,6 +1548,29 @@ this.testRectangleIntersection = ()->
 		p.strokeColor = 'red'
 		p.strokeWidth = 1
 	
+	return
+
+this.fakeGeoJsonBox = (rectangle)->
+	box = {}
+
+	planet = pointToObj( projectToPlanet(rectangle.topLeft) )
+
+	box.planetX = planet.x
+	box.planetY = planet.y
+
+	box.box = coordinates: [[
+		g.pointToArray(projectToPosOnPlanet(rectangle.topLeft, planet))
+		g.pointToArray(projectToPosOnPlanet(rectangle.topRight, planet))
+		g.pointToArray(projectToPosOnPlanet(rectangle.bottomRight, planet))
+		g.pointToArray(projectToPosOnPlanet(rectangle.bottomLeft, planet))
+	]]
+	return JSON.stringify(box)
+
+this.getControllerFromFomElement = ()->
+	for folderName, folder of g.gui.__folders
+		for controller in folder.__controllers
+			if controller.domElement == $0 or $($0).find(controller.domElement).length>0
+				return controller
 	return
 
 # one complicated solution to handle the loading:

@@ -73,6 +73,7 @@ class Path(Document):
     rType = StringField(default='Path')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
+    lastUpdate = DateTimeField(default=datetime.datetime.now)
     object_type = StringField(default='brush')
     lock = StringField(default=None)
     # areas = ListField(ReferenceField('Area'))
@@ -90,6 +91,7 @@ class Box(Document):
     rType = StringField(default='Box')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
+    lastUpdate = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
 
     # deprecated: put in data
@@ -123,6 +125,7 @@ class Div(Document):
     rType = StringField(default='Div')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
+    lastUpdate = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
     lock = StringField(default=None)
 

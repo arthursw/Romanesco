@@ -417,7 +417,9 @@
         
           <div class="hidden media-separator"></div>
           <div class="hidden text-separator"></div>
+          <canvas id="background-canvas" resize hidpi="off"></canvas>
           <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message=" {{ message }}" data-load-entire-area=" {{ loadEntireArea }} "></canvas>
+
           
 
         </div>
@@ -456,7 +458,7 @@
     
     <!-- <div id="loadingBar"><img src="static/images/loader.GIF"></div> -->
     <div id="loadingBar">Drawing...</div>
-    <!-- <div id="globalMask"></div> -->
+    <div id="loadingMask">Loading...</div>
     <!-- <canvas id="loadingBar"></canvas> -->
 
     <div id="templates">
@@ -692,11 +694,11 @@
         <div class="lock-content content" data-container="body"></div>
         
         <button class="dat-gui-toggle" type="button"> <span class="glyphicon glyphicon-transfer" aria-hidden="true"></span></button>
-
+<!-- 
         <div class="slider-group">
           <label for="" class="slider"></label>
           <input id="" type="text" class="bootstrap-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="0">
-        </div>
+        </div> -->
 
         <label class="checkbox"><input type="checkbox" class="" name="" checked=""><span class="text"></span></label>
 
@@ -778,7 +780,7 @@
     <script src="{% static 'libs/tinycolor.js' %}"></script> -->
     <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/tinycolor/0.11.1/tinycolor.min.js"></script> -->
     <script src="{% static 'libs/bootstrap-colorpickersliders/bootstrap.colorpickersliders.nocielch.js' %}"></script>
-    <script src="{% static 'libs/bootstrap-slider.js' %}"></script>
+    <!-- <script src="{% static 'libs/bootstrap-slider.js' %}"></script> -->
     <script src="{% static 'libs/dat.gui.js' %}"></script>
     <!-- <script src="{% static 'libs/paper/paper-core.min.js' %}"></script> -->
     <script src="{% static 'libs/paper/paper-full.js' %}"></script>

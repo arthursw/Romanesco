@@ -33,10 +33,9 @@ class RLock extends RItem
 					lock = new RVideoGame(rectangle, data)
 				when 'link'
 					lock = new RLink(rectangle, data)
-			lock.save()
+			lock.save(true)
 			lock.update('rectangle') 	# update to add items which are under the lock
 			lock.select()
-			g.commandManager.add(new CreateLockCommand(lock))
 			return
 		RModal.initialize('Create a locked area', submit)
 
@@ -82,27 +81,36 @@ class RLock extends RItem
 		radioGroupJ.find('input:first').focus()
 		return
 
-	# @param point [Paper point] the point to test
-	# @return [RLock] the intersecting lock or null
-	@intersectPoint: (point)->
+	# # @param point [Paper point] the point to test
+	# # @return [RLock] the intersecting lock or null
+	# @intersectPoint: (point)->
+	# 	for lock in g.locks
+	# 		if lock.getBounds().contains(point)
+	# 			return g.items[lock.pk]
+	# 	return null
+
+	# # @param rectangle [Paper Rectangle] the rectangle to test
+	# # @return [Boolean] whether it intersects a lock
+	# @intersectsRectangle: (rectangle)->
+	# 	return @intersectRectangle(rectangle).length>0
+
+	# @param rectangle [Paper Rectangle] the rectangle to test
+	# @return [Array<RLock>] the locks
+	@getLockWhichContains: (rectangle)->
 		for lock in g.locks
-			if lock.getBounds().contains(point)
-				return g.items[lock.pk]
+			if lock.getBounds().contains(rectangle)
+				return lock
 		return null
 
 	# @param rectangle [Paper Rectangle] the rectangle to test
 	# @return [Array<RLock>] the intersecting locks
-	@intersectRectangle: (rectangle)->
+	@getLocksWhichIntersect: (rectangle)->
 		locks = []
 		for lock in g.locks
 			if lock.getBounds().intersects(rectangle)
-				locks.push(g.items[lock.pk])
+				locks.push(lock)
 		return locks
 
-	# @param rectangle [Paper Rectangle] the rectangle to test
-	# @return [Boolean] whether it intersects a lock
-	@intersectsRectangle: (rectangle)->
-		return @intersectRectangle(rectangle).length>0
 
 	@duplicate: (rectangle, data)->
 		copy = new @(rectangle, data)
@@ -127,7 +135,7 @@ class RLock extends RItem
 
 		return parameters
 
-	constructor: (@rectangle, @data=null, @pk=null, @owner=null) ->
+	constructor: (@rectangle, @data=null, @pk=null, @owner=null, @date) ->
 		super(@data, @pk)
 		
 		g.locks.push(@)
@@ -178,7 +186,7 @@ class RLock extends RItem
 			if RLock.prototype.isPrototypeOf(item)
 				continue
 			if item.getBounds().intersects(@rectangle)
-				@addRItem(item)
+				@addItem(item)
 		
 		# check if the lock must be entirely loaded
 		if @data?.loadEntireArea
@@ -196,7 +204,7 @@ class RLock extends RItem
 				@background[name] = @data[name]
 		return
 
-	save: (clonePk) ->
+	save: (@addCreateCommand) ->
 		
 		if g.rectangleOverlapsTwoPlanets(@rectangle)
 			return
@@ -223,6 +231,9 @@ class RLock extends RItem
 		if not result.pk?  		# if @pk is null, the path was not saved, do not set pk nor rasterize
 			@remove()
 			return
+		if @addCreateCommand
+			g.commandManager.add(new CreateLockCommand(@))
+			delete @addCreateCommand
 		@owner = result.owner
 		@setPK(result.pk)
 		
@@ -230,7 +241,7 @@ class RLock extends RItem
 			@update(@updateAfterSave)
 
 		return
-	
+
 	update: (type) =>
 		if not @pk?
 			@updateAfterSave = type
@@ -262,7 +273,7 @@ class RLock extends RItem
 			for pk, item of g.items
 				if not RLock.prototype.isPrototypeOf(item)
 					if item.lock != @ and @rectangle.contains(item.getBounds())
-						@addRItem(item)
+						@addItem(item)
 						itemsToUpdate.push(item)
 
 			for item in itemsToUpdate
@@ -326,7 +337,7 @@ class RLock extends RItem
 
 	# can not select a lock which the user does not own
 	select: (updateOptions=true) =>
-		if not super(updateOptions) or not @owner != g.me then return false
+		if not super(updateOptions) or @owner != g.me then return false
 		for item in @children()
 			item.deselect()
 		return true
@@ -334,7 +345,7 @@ class RLock extends RItem
 	remove: () ->
 		
 		for path in @children()
-			@removeRItem(path)
+			@removeItem(path)
 		
 		@itemListsJ.remove()
 		@itemListsJ = null
@@ -346,46 +357,17 @@ class RLock extends RItem
 	children: ()->
 		return @sortedDivs.concat(@sortedPaths)
 
-	# add an item to this lock
-	addRItem: (item)->
-		wasSelected = item.isSelected()
-		if wasSelected then item.deselect()
-		@group.addChild(item.group)
-		item.lock = @
-		item.sortedItems.remove(item)
-		if RDiv.prototype.isPrototypeOf(item)
-			item.sortedItems = @sortedDivs
-			@itemListsJ.find(".rDiv-list").append(item.liJ)
-		else if RPath.prototype.isPrototypeOf(item)
-			item.sortedItems = @sortedPaths
-			@itemListsJ.find(".rPath-list").append(item.liJ)
-		else
-			console.error "Error: the item is neither an RDiv nor an RPath"
-		item.updateZIndex()
-		if wasSelected then item.select()
+	addItem: (item)->
+		g.addItemTo(item, @)
 		return
-
-	# remove an item to this lock
-	removeRItem: (item)->
-		wasSelected = item.isSelected()
-		if wasSelected then item.deselect()
-		g.mainLayer.addChild(item.group)
-		item.lock = null
-		item.sortedItems.remove(item)
-		if RDiv.prototype.isPrototypeOf(item)
-			item.sortedItems = g.sortedDivs
-			item.liJ.appendTo(g.divList)
-		else if RPath.prototype.isPrototypeOf(item)
-			item.sortedItems = g.sortedPaths
-			item.liJ.appendTo(g.pathList)
-		else
-			console.error "Error: the item is neither an RDiv nor an RPath"
-		item.updateZIndex()
-		if wasSelected then item.select()
+	
+	removeItem: (item)->
+		g.addItemToStage(item)
 		return
 
 	highlight: (color)->
 		super()
+		@highlightRectangle.moveAbove(@background)
 		if color
 			@highlightRectangle.fillColor = color
 			@highlightRectangle.strokeColor = color
@@ -405,8 +387,8 @@ class RWebsite extends RLock
 
 	# overload {RDiv#constructor}
 	# the mouse interaction is modified to enable user navigation (the user can scroll the view by dragging on the website area)
-	constructor: (@rectangle, @data=null, @pk=null, @owner=null) ->
-		super(@rectangle, @data, @pk, @owner)
+	constructor: (@rectangle, @data=null, @pk=null, @owner=null, date=null) ->
+		super(@rectangle, @data, @pk, @owner, date)
 		return
 
 	# todo: remove
@@ -426,8 +408,8 @@ class RVideoGame extends RLock
 
 	# overload {RDiv#constructor}
 	# the mouse interaction is modified to enable user navigation (the user can scroll the view by dragging on the videogame area)
-	constructor: (@rectangle, @data=null, @pk=null, @owner=null) ->
-		super(@rectangle, @data, @pk, @owner)
+	constructor: (@rectangle, @data=null, @pk=null, @owner=null, date=null) ->
+		super(@rectangle, @data, @pk, @owner, date)
 		@currentCheckpoint = -1
 		@checkpoints = []
 		return
@@ -487,8 +469,8 @@ class RLink extends RLock
 		delete parameters['Lock']
 		return parameters
 
-	constructor: (@rectangle, @data=null, @pk=null, @owner=null) ->
-		super(@rectangle, @data, @pk, @owner)
+	constructor: (@rectangle, @data=null, @pk=null, @owner=null, date=null) ->
+		super(@rectangle, @data, @pk, @owner, date)
 
 		@linkJ?.click (event)=>
 			if @linkJ.attr("href").indexOf("http://romanesc.co/#") == 0

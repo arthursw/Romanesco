@@ -6,7 +6,9 @@ socketio.sdjango.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
-    url(r'^#(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$', views.index, name='index-location'),
+    url(r'^#(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$', views.index, name='index'),
+    url(r'^rasterizer/$', views.rasterizer, name='rasterizer'),
+    url(r'^rasterizer/#(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$', views.rasterizer, name='index'),
     # url(r'^([\w,.,-]+)$', views.index, name='index'),
 	# url(r'^(?P<sitename>([\w,.,-]+)).romanesc.co/', views.index, name='index'),
     url("^socket\.io", include(socketio.sdjango.urls)),

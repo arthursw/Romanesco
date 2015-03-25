@@ -17,6 +17,12 @@ def index(request, sitename=None):
 	else:
 		return render_to_response(	"index.html", RequestContext(request) )
 
+def rasterizer(request, sitename=None):
+	if sitename:
+		result = loadSite(request, sitename)
+		return render_to_response(	"rasterizer.html", result, RequestContext(request) )
+	else:
+		return render_to_response(	"rasterizer.html", RequestContext(request) )
 
 # socketio_manage(request.environ, {'': BaseNamespace, '/chat': ChatNamespace, '/draw': DrawNamespace}, request)
 

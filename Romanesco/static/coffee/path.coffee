@@ -25,7 +25,7 @@
 # - RShape defined by a rectangle in which the drawing should be included (the user draws the rectangle with the mouse)
 
 # Those three RPaths (PrecisePath, SpeedPath and RShape) provide drawing functionnalities and are meant to be overridden to generate some advanced paths:
-# - in PrecisePath and SpeedPath, three methods are meant to be overridden: drawBegin, drawUpdate and drawEnd, 
+# - in PrecisePath and SpeedPath, three methods are meant to be overridden: beginDraw, updateDraw and endDraw, 
 #   see {PrecisePath} to see how those methods are called while drawing.
 # - in RShape, {RShape#createShape} is meant to be overloaded
 
@@ -154,7 +154,7 @@ class RPath extends RContent
 
 	# return [Rectangle] the bounds of the drawing group
 	getDrawingBounds: ()->
-		return @drawing?.strokeBounds
+		return if not @canvasRaster? then @drawing?.strokeBounds else @getBounds().expand(@data.strokeWidth)
 
 	endSetRectangle: ()->
 		super()
@@ -175,10 +175,11 @@ class RPath extends RContent
 	# set path items (control path, drawing, etc.) to the right state before performing hitTest
 	# store the current state of items, and change their state (the original states will be restored in @finishHitTest())
 	# @param fullySelected [Boolean] (optional) whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles)
-	# @param strokeWidth [Number] (optional) contorl path width will be set to *strokeWidth* if it is provided
+	# @param strokeWidth [Number] (optional) control path width will be set to *strokeWidth* if it is provided
 	prepareHitTest: (fullySelected=true, strokeWidth)->
 		super(fullySelected, strokeWidth)
 
+		@group.visible = true
 		@hitTestSelected = @controlPath.selected  				# store control path select state
 
 		if fullySelected 										# select control path
@@ -224,8 +225,8 @@ class RPath extends RContent
 	# - (optionally) update controller in the gui accordingly
 	# @param updateOptions [Boolean] whether to update controllers in gui or not
 	# @return whether the ritem was selected or not
-	select: (updateOptions=true)->
-		if not super(updateOptions) or not @controlPath? then return false
+	select: (updateOptions=true, updateSelectionRectangle=true)->
+		if not super(updateOptions, updateSelectionRectangle) or not @controlPath? then return false
 		return true
 
 	# deselect: remove the selection rectangle (and rasterize)
@@ -233,6 +234,18 @@ class RPath extends RContent
 		if not super(updatePreviouslySelectedItems) then return false
 		@rasterize()
 		return true
+
+	beginAction: (command)->
+		super(command)
+		if not ( @selectionState.move? or @selectionState.rotation? )
+			g.rasterizeProject(@)
+		return
+
+	endAction: ()->
+		super()
+		if not ( @selectionState.move? or @selectionState.rotation? )
+			g.restoreProject(@)
+		return
 
 	# called when user deselects, after a not simplified draw or once the user finished creating the path
 	# this is suppose to convert all the group to a raster to speed up paper.js operations, but it does not drastically improve speed, so it is just commented out
@@ -323,7 +336,7 @@ class RPath extends RContent
 	#     - create canvas to the dimensions of the control path
 	# @param createCanvas [Boolean] (optional, default to true) whether to create a child canavs *@canverRaster*
 	initializeDrawing: (createCanvas=false)->
-		
+
 		@raster?.remove()
 		@raster = null
 
@@ -345,15 +358,15 @@ class RPath extends RContent
 		if createCanvas
 			canvas = document.createElement("canvas")
 
-			# if their is no control path yet (meaning the user did not even start drawing the RPath, mouse was just pressed)
-			if @controlPath.length<=1
+			# if rectangle has no area yet (meaning the user did not finish drawing the RPath)
+			if @rectangle.area < 2
 				# create the canvas at the size of the view
 				canvas.width = view.size.width
 				canvas.height = view.size.height
 				position = view.center
 			else
 				# create canvas to the dimensions of the bounds
-				bounds = @getBounds()
+				bounds = @getDrawingBounds()
 				canvas.width = bounds.width
 				canvas.height = bounds.height
 				position = bounds.center
@@ -394,8 +407,7 @@ class RPath extends RContent
 	# must be redefined in children RPath
 	# because the path are rendered on rasters, path are not drawn on load unless they are animated
 	# @param simplified [Boolean] whether to draw in simplified mode or not (much faster)
-	# @param loading [Boolean] whether the path is being loaded or drawn by a user
-	draw: (simplified=false, loading=false)->
+	draw: (simplified=false)->
 		return
 
 	# called once after endCreate to initialize the path (add it to a game, or to the animated paths)
@@ -417,7 +429,6 @@ class RPath extends RContent
 
 	# see beginCreate
 	endCreate: (point, event) ->
-		@initialize()
 		return
 
 	# insert above given *path*
@@ -453,7 +464,7 @@ class RPath extends RContent
 		return projectToPlanet( @controlPath.segments[0].point )
 
 	# save RPath to server
-	save: ()->
+	save: (@addCreateCommand)->
 		if not @controlPath? then return
 
 		# ajaxPost '/savePath', {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData() } , @save_callback
@@ -462,7 +473,7 @@ class RPath extends RContent
 		# if not @data?.animate
 		# 	extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
 
-		Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'date': @date, 'data': @getStringifiedData(), 'bounds': @getBounds() } )
+		Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'date': @date, 'data': @getStringifiedData(), 'bounds': g.boxFromRectangle( @getDrawingBounds() ) } )
 		# Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData(), 'rasterData': extraction.dataURL, 'rasterPosition': rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized } )
 		
 		# rectangle = @getBounds()
@@ -476,6 +487,9 @@ class RPath extends RContent
 		g.checkError(result)
 		if not result.pk? then return 		# if @pk is null, the path was not saved, do not set pk nor rasterize
 		@setPK(result.pk)
+		if @addCreateCommand
+			g.commandManager.add(new CreatePathCommand(@))
+			delete @addCreateCommand
 		if not @data?.animate
 			g.rasterizeArea(@getDrawingBounds())
 		if @updateAfterSave?
@@ -495,6 +509,7 @@ class RPath extends RContent
 					points: @pathOnPlanet()
 					planet: @planet()
 					data: @getStringifiedData()
+					bounds: g.boxFromRectangle( @getDrawingBounds() )
 		return args
 
 	# update the RPath in the database
@@ -586,13 +601,13 @@ class RPath extends RContent
 	# @remove() just removes visually
 	delete: ()->
 		@group.visible = false
-		bounds = @getDrawingBounds()
+		bounds = g.boxFromRectangle(@getDrawingBounds())
 		@remove()
-		g.rasterizeArea(bounds)
+		# g.rasterizeArea(bounds)
 		if not @pk? then return
 		console.log @pk
 		# ajaxPost '/deletePath', { pk: @pk } , @deletePath_callback
-		Dajaxice.draw.deletePath(@deletePath_callback, { pk: @pk })
+		Dajaxice.draw.deletePath(@deletePath_callback, { pk: @pk, bounds: bounds })
 
 		@pk = null
 		return
@@ -647,19 +662,19 @@ class RPath extends RContent
 # a more complexe precise path would also be function of the normal and the tangent of the control point at each point.
 
 # The drawing is performed with three methods:
-# - drawBegin() called to initialize the drawing,
-# - drawUpdate() called at each update,
-# - drawEnd() called at the end of the drawing.
+# - beginDraw() called to initialize the drawing,
+# - updateDraw() called at each update,
+# - endDraw() called at the end of the drawing.
 
 # There are two cases where precise path is created:
 # - when the user creates the path with the mouse:
 #     - each time a new point is added to the control path:
-#       drawUpdate() is called to continue the drawing along the control path until *offset* (the length of the drawing) equals the control path length (minus the remaining step)
+#       updateDraw() is called to continue the drawing along the control path until *offset* (the length of the drawing) equals the control path length (minus the remaining step)
 #       this process takes place in {PrecisePath#checkUpdateDrawing} (it is overridden by {SpeedPath#checkUpdateDrawing})
 #       it is part of the beginCreate/Update/End() process
 # - when the path is loaded (or when the control path exists):
 #     - the remaining step (which is shorter) is split in half and distributed among the first and last step
-#     - drawUpdate() is called in a loop to draw the whole drawing along the control path at once, in {PrecisePath#draw}
+#     - updateDraw() is called in a loop to draw the whole drawing along the control path at once, in {PrecisePath#draw}
 
 class PrecisePath extends RPath
 	@rname = 'Precise path'
@@ -677,16 +692,18 @@ class PrecisePath extends RPath
 		tolerance: 5
 
 	@secureStep = 25
+	@polygonMode = true
 
 	@parameters: ()->
 
 		parameters = super()
 
-		parameters['General'].polygonMode =
-			type: 'checkbox'
-			label: 'Polygon mode'
-			default: g.polygonMode
-			onChange: (value)-> g.polygonMode = value
+		if @polygonMode
+			parameters['General'].polygonMode =
+				type: 'checkbox'
+				label: 'Polygon mode'
+				default: g.polygonMode
+				onChange: (value)-> g.polygonMode = value
 
 		parameters['Edit curve'] =
 			smooth:
@@ -717,9 +734,9 @@ class PrecisePath extends RPath
 		return parameters
 
 	# overload {RPath#constructor}
-	constructor: (@date=null, @data=null, @pk=null, points=null) ->
-		super(@date, @data, @pk, points)
-		@data.polygonMode = g.polygonMode
+	constructor: (@date=null, @data=null, @pk=null, points=null, @lock) ->
+		super(@date, @data, @pk, points, @lock)
+		if @constructor.polygonMode then @data.polygonMode = g.polygonMode
 		@rotation = @data.rotation = 0
 		return
 
@@ -736,7 +753,6 @@ class PrecisePath extends RPath
 		if points.length == 2 then @controlPath.add(points[1])
 
 		@finishPath(true)
-		@initialize()
 
 		if @data?.animate 	# only draw if animated thanks to rasterization
 			@draw()
@@ -783,26 +799,27 @@ class PrecisePath extends RPath
 		super(createCanvas)
 		return
 
-	# default drawBegin function, will be redefined by children PrecisePath
+	# default beginDraw function, will be redefined by children PrecisePath
 	# @param redrawing [Boolean] (optional) whether the path is being redrawn or the user draws the path (the path is being loaded/updated or the user is drawing it with the mouse)
-	drawBegin: (redrawing=false)->
+	beginDraw: (redrawing=false)->
 		@initializeDrawing(false)
 		@path = @addPath()
 		@path.segments = @controlPath.segments
 		@path.selected = false
+		@path.strokeCap = 'round'
 		return
 
-	# default drawUpdate function, will be redefined by children PrecisePath
+	# default updateDraw function, will be redefined by children PrecisePath
 	# @param offset [Number] the offset along the control path to begin drawing
 	# @param step [Boolean] whether it is a key step or not (we must draw something special or not)
-	drawUpdate: (offset, step)->
+	updateDraw: (offset, step)->
 		@path.segments = @controlPath.segments
 		@path.selected = false
 		return
 
-	# default drawEnd function, will be redefined by children PrecisePath
+	# default endDraw function, will be redefined by children PrecisePath
 	# @param redrawing [Boolean] (optional) whether the path is being redrawn or the user draws the path (the path is being loaded/updated or the user is drawing it with the mouse)
-	drawEnd: (redrawing=false)->
+	endDraw: (redrawing=false)->
 		@path.segments = @controlPath.segments
 		@path.selected = false
 		return
@@ -810,9 +827,9 @@ class PrecisePath extends RPath
 	# continue drawing the path along the control path if necessary:
 	# - the drawing is performed every *@data.step* along the control path
 	# - each time the user adds a point to the control path (either by moving the mouse in normal mode, or by clicking in polygon mode)
-	#   *checkUpdateDrawing* check by how long the control path was extended, and calls @drawUpdate() if some draw step must be performed
+	#   *checkUpdateDrawing* check by how long the control path was extended, and calls @updateDraw() if some draw step must be performed
 	# called when creating the path (by @updateCreate() and @finishPath()) and in @draw()
-	# @param segment [Paper Segment] the segment on the control path where we want to drawUpdate
+	# @param segment [Paper Segment] the segment on the control path where we want to updateDraw
 	# @param redrawing [Boolean] (optional) whether the path is being redrawn or the user draws the path (the path is being loaded/updated or the user is drawing it with the mouse)
 	checkUpdateDrawing: (segment, redrawing=true)->
 		step = @data.step
@@ -820,10 +837,10 @@ class PrecisePath extends RPath
 
 		while @drawingOffset+step<controlPathOffset
 			@drawingOffset += step
-			@drawUpdate(@drawingOffset, true, redrawing)
+			@updateDraw(@drawingOffset, true, redrawing)
 
 		if @drawingOffset+step>controlPathOffset 	# we can not make a step between drawingOffset and the controlPathOffset
-			@drawUpdate(controlPathOffset, false, redrawing)
+			@updateDraw(controlPathOffset, false, redrawing)
 
 		return
 
@@ -845,13 +862,15 @@ class PrecisePath extends RPath
 		super()
 
 		if not @data.polygonMode 				# in normal mode: just initialize the control path and begin drawing
+			g.rasterizeProject(@)
 			@initializeControlPath(point)
-			@drawBegin(false)
+			@beginDraw(false)
 		else 									# in polygon mode:
 			if not @controlPath?					# if the user just started the creation (first point, on mouse down)
+				g.rasterizeProject(@)
 				@initializeControlPath(point)		# 	initialize the control path, add the point and begin drawing
 				@controlPath.add(point)
-				@drawBegin(false)
+				@beginDraw(false)
 			else 									# if the user already added some points: just add the point to the control path
 				@controlPath.add(point)
 			@controlPath.lastSegment.rtype = 'point'
@@ -870,7 +889,6 @@ class PrecisePath extends RPath
 	# @param point [Point] the point to add
 	# @param event [Event] the mouse event
 	updateCreate: (point, event)->
-
 		if not @data.polygonMode
 			
 			@controlPath.add(point)
@@ -886,7 +904,8 @@ class PrecisePath extends RPath
 				previousSegment.handleIn = previousSegment.handleOut.multiply(-1)
 			lastSegment.handleIn = lastSegment.handleOut = null
 			lastSegment.point = point
-			@draw(true) 		# draw in simplified (quick) mode
+			console.log 'update create'
+			@draw(true, false) 		# draw in simplified (quick) mode
 		return
 
 	# update create action: only used when in polygon mode
@@ -895,7 +914,8 @@ class PrecisePath extends RPath
 	# @param event [Event] the mouse event
 	createMove: (event)->
 		@controlPath.lastSegment.point = event.point
-		@draw(true)
+		console.log 'create move'
+		@draw(true, false)
 		return
 
 	# redefine {RPath#endCreate}
@@ -905,13 +925,22 @@ class PrecisePath extends RPath
 	# @param point [Point] the point to add
 	# @param event [Event] the mouse event
 	endCreate: (point, event)->
-		if not @data.polygonMode 
-			if @controlPath.segments.length>=2
-				# if @speeds? then @computeSpeed()
-				@controlPath.simplify()
-				# if @speeds? then @updateSpeed()
-			@finishPath()
+		if @data.polygonMode then return 	# in polygon mode, finishPath is called by the path tool
+
+		if @controlPath.segments.length>=2
+			# if @speeds? then @computeSpeed()
+			@controlPath.simplify()
+			for segment in @controlPath.segments
+				if segment.handleIn.length>200
+					segment.handleIn = segment.handleIn.normalize().multiply(100)
+					console.log 'ADJUSTING HANDLE LENGTH'
+				if segment.handleOut.length>200
+					segment.handleOut = segment.handleOut.normalize().multiply(100)
+					console.log 'ADJUSTING HANDLE LENGTH'
+			# if @speeds? then @updateSpeed()
+		@finishPath()
 		super()
+
 		return
 
 	# finish path creation:
@@ -926,11 +955,17 @@ class PrecisePath extends RPath
 			return
 
 		if @data.smooth then @controlPath.smooth()
+
 		if not loading
-			@drawEnd(loading)
+			@endDraw(loading)
 			@drawingOffset = 0
+			g.restoreProject(@)
+
+		@rectangle = @controlPath.bounds
+		@initialize()
 		@draw(false, loading) 	# enable to have the correct @canvasRaster size and to have the exact same result after a load or a change
 		@rasterize()
+
 		return
 
 	# in simplified mode, the path is drawn quickly, with less details
@@ -956,12 +991,12 @@ class PrecisePath extends RPath
 	# update the appearance of the path (the drawing group)
 	# called anytime the path is modified:
 	# by beginCreate/Update/End, updateSelect/End, parameterChanged, deletePoint, changePoint etc. and loadPath
-	# - begin drawing (@drawBegin())
-	# - update drawing (@drawUpdate()) every *step* along the control path
-	# - end drawing (@drawEnd())
+	# - begin drawing (@beginDraw())
+	# - update drawing (@updateDraw()) every *step* along the control path
+	# - end drawing (@endDraw())
 	# because the path are rendered on rasters, path are not drawn on load unless they are animated
 	# @param simplified [Boolean] whether to draw in simplified mode or not (much faster)
-	draw: (simplified=false)->
+	draw: (simplified=false, redrawing=true)->
 
 		if @controlPath.segments.length < 2 then return
 	
@@ -980,13 +1015,13 @@ class PrecisePath extends RPath
 		@drawingOffset = 0
 
 		process = ()=>
-			@drawBegin(true)
+			@beginDraw(redrawing)
 
-			# # update drawing (@drawUpdate()) every *step* along the control path
+			# # update drawing (@updateDraw()) every *step* along the control path
 			# # n=0
 			# while offset<controlPathLength
 
-			# 	@drawUpdate(offset)
+			# 	@updateDraw(offset)
 			# 	offset += step
 
 			# 	# if n%10==0 then g.updateLoadingBar(offset/controlPathLength)
@@ -994,9 +1029,9 @@ class PrecisePath extends RPath
 
 			for segment, i in @controlPath.segments
 				if i==0 then continue
-				@checkUpdateDrawing(segment, true)
+				@checkUpdateDrawing(segment, redrawing)
 
-			@drawEnd(true)
+			@endDraw(redrawing)
 			return
 		
 		if not g.catchErrors
@@ -1039,8 +1074,8 @@ class PrecisePath extends RPath
 	# - bring control path to front and select it
 	# - call RPath.select
 	# @param updateOptions [Boolean] whether to update gui parameters with this RPath or not
-	select: (updateOptions=true)->
-		if not super(updateOptions) then return
+	select: (updateOptions=true, updateSelectionRectangle=true)->
+		if not super(updateOptions, updateSelectionRectangle) then return
 		@controlPath.selected = true
 		if not @data.smooth then @controlPath.fullySelected = true
 		return true
@@ -1389,6 +1424,7 @@ class PrecisePath extends RPath
 		@selectionHighlight = null
 		@canvasRaster = null
 		super()
+		return
 
 @PrecisePath = PrecisePath
 
@@ -1686,9 +1722,9 @@ class SpeedPath extends PrecisePath
 		return
 
 	# overload {PrecisePath#draw} and add speed update when *loading* is false
-	draw: (simplified=false, loading=false)->
+	draw: (simplified=false)->
 		@speedOffset = 0
-		super(simplified, loading)
+		super(simplified)
 		if @controlPath.selected then @updateSpeed()
 		return
 
@@ -1700,8 +1736,8 @@ class SpeedPath extends PrecisePath
 		return data
 
 	# overload {PrecisePath#select}, update speeds and show speed group
-	select: (updateOptions=true)->
-		if not super(updateOptions) then return false
+	select: (updateOptions=true, updateSelectionRectangle=true)->
+		if not super(updateOptions, updateSelectionRectangle) then return false
 		@showSpeed()
 		if @data.showSpeed
 			if not @speedGroup? then @updateSpeed()
@@ -1838,18 +1874,19 @@ class ThicknessPath extends SpeedPath
 		parameters['Parameters'].trackWidth =
 			type: 'slider'
 			label: 'Track width'
-			min: 1
-			max: 10
-			default: 2
+			min: 0.1
+			max: 3
+			default: 0.5
 		return parameters
 	
-	drawBegin: ()->
+	beginDraw: ()->
 		@initializeDrawing(false)
 		@path = @addPath()
 		@path.add(@controlPath.firstSegment.point)
+		@path.add(@controlPath.firstSegment.point)
 		return
 
-	drawUpdate: (offset, step)->
+	updateDraw: (offset, step)->
 		# get point, normal and speed at current position
 		point = @controlPath.getPointAt(offset)
 		normal = @controlPath.getNormalAt(offset).normalize()
@@ -1875,7 +1912,7 @@ class ThicknessPath extends SpeedPath
 
 		return
 
-	drawEnd: ()->
+	endDraw: ()->
 		# add the last segment, close and smooth the path
 		@path.add(@controlPath.lastSegment.point)
 		@path.closed = true
@@ -1923,13 +1960,13 @@ class Meander extends PrecisePath
 
 		return parameters
 	
-	drawBegin: ()->
+	beginDraw: ()->
 		@initializeDrawing(false)
 		@line = @addPath()
 		@spiral = @addPath()
 		return
 
-	drawUpdate: (offset, step)->
+	updateDraw: (offset, step)->
 		if not step then return
 
 		point = @controlPath.getPointAt(offset)
@@ -1994,7 +2031,7 @@ class Meander extends PrecisePath
 
 		return
 
-	drawEnd: ()->
+	endDraw: ()->
 		if @data.rsmooth
 			@spiral.smooth()
 			@line.smooth()
@@ -2017,7 +2054,7 @@ class GridPath extends SpeedPath
 			label: 'Step'
 			min: 5
 			max: 100
-			default: 20
+			default: 5
 			simplified: 20
 			step: 1
 		parameters['Parameters'].minWidth =
@@ -2056,7 +2093,7 @@ class GridPath extends SpeedPath
 			type: 'dropdown'
 			label: 'Symmetry'
 			values: ['symmetric', 'top', 'bottom']
-			default: 'symmetric'
+			default: 'top'
 		parameters['Parameters'].speedForWidth =
 			type: 'checkbox'
 			label: 'Speed for width'
@@ -2076,7 +2113,7 @@ class GridPath extends SpeedPath
 
 		return parameters
 
-	drawBegin: ()->
+	beginDraw: ()->
 		@initializeDrawing(false)
 
 		if @data.lengthLines
@@ -2091,7 +2128,7 @@ class GridPath extends SpeedPath
 
 		return
 
-	drawUpdate: (offset, step)->
+	updateDraw: (offset, step)->
 		if not step then return
 
 		speed = @speedAt(offset)
@@ -2154,7 +2191,7 @@ class GridPath extends SpeedPath
 
 		return
 
-	drawEnd: ()->
+	endDraw: ()->
 		return
 
 @GridPath = GridPath
@@ -2196,12 +2233,12 @@ class GeometricLines extends PrecisePath
 
 		return parameters
 
-	drawBegin: ()->
+	beginDraw: ()->
 		@initializeDrawing(true)
 		@points = [] 							# will contain the points to check distances
 		return
 
-	drawUpdate: (offset, step)->
+	updateDraw: (offset, step)->
 		if not step then return
 
 		point = @controlPath.getPointAt(offset)
@@ -2223,7 +2260,7 @@ class GeometricLines extends PrecisePath
 		
 		return
 
-	drawEnd: ()->
+	endDraw: ()->
 		return
 
 @GeometricLines = GeometricLines
@@ -2262,15 +2299,18 @@ class PaintBrush extends PrecisePath
 			default: 20
 
 		return parameters
+	
+	getDrawingBounds: ()->
+		return @getBounds().expand(@data.size)
 
-	drawBegin: ()->
+	beginDraw: ()->
 		@initializeDrawing(true)
 		point = @controlPath.firstSegment.point
 		point = @projectToRaster(point)
 		@context.moveTo(point.x, point.y)
 		return
 
-	drawUpdate: (offset, step)->
+	updateDraw: (offset, step)->
 		if not step then return
 
 		point = @controlPath.getPointAt(offset)
@@ -2296,7 +2336,7 @@ class PaintBrush extends PrecisePath
 
 		return
 
-	drawEnd: ()->
+	endDraw: ()->
 		return
 
 @PaintBrush = PaintBrush
@@ -2343,7 +2383,16 @@ class PaintGun extends SpeedPath
 
 		return parameters
 
-	drawBegin: ()->
+	getDrawingBounds: ()->
+		width = 0
+		if not @data.inverseThickness
+			width = @speeds.max() * @data.trackWidth / 2
+		else
+			width = Math.max(@maxSpeed-@speeds.min(), 0) * @data.trackWidth / 2
+
+		return @getBounds().expand(width)
+
+	beginDraw: ()->
 		@initializeDrawing(true)
 		point = @controlPath.firstSegment.point
 		point = @projectToRaster(point) 		#  convert the points from project to canvas coordinates
@@ -2405,11 +2454,11 @@ class PaintGun extends SpeedPath
 
 		return
 
-	drawUpdate: (offset, step)->
+	updateDraw: (offset, step)->
 		@drawStep(offset, step)
 		return
 
-	drawEnd: ()->
+	endDraw: ()->
 		@drawStep(@controlPath.length, false, true)
 
 		if @data.roundEnd
@@ -2427,6 +2476,8 @@ class PaintGun extends SpeedPath
 class DynamicBrush extends SpeedPath
 	@rname = 'Dynamic brush'
 	@rdescription = "The stroke width is function of the drawing speed: the faster the wider."
+	@polygonMode = false
+
 	# "http://thenounproject.com/term/spray-bottle/7835/"
 	# "http://thenounproject.com/term/spray-bottle/93690/"
 	# "http://thenounproject.com/term/spray-paint/3533/"
@@ -2497,7 +2548,13 @@ class DynamicBrush extends SpeedPath
 
 		return parameters
 
-	drawBegin: (redrawing=false)->
+	getDrawingBounds: ()->
+		width = if @data.inverseThickness then @speeds.max() else @speeds.min()
+		width = if @data.inverseThickness then width else (@data.maxSpeed-width)
+		width *= @data.trackWidth
+		return @getBounds().expand(2*width)
+
+	beginDraw: (redrawing=false)->
 		@initializeDrawing(true)
 	
 		@point = @controlPath.firstSegment.point
@@ -2647,7 +2704,7 @@ class DynamicBrush extends SpeedPath
 			@drawStep()
 		return
 
-	drawUpdate: (offset, step, redrawing)->
+	updateDraw: (offset, step, redrawing)->
 		@point = @controlPath.getPointAt(offset)
 		
 		if redrawing
@@ -2675,7 +2732,7 @@ class DynamicBrush extends SpeedPath
 			###
 		return
 
-	drawEnd: (redrawing=false)->
+	endDraw: (redrawing=false)->
 		if not redrawing
 			@setAnimated(false)
 
@@ -2713,6 +2770,7 @@ class DynamicBrush extends SpeedPath
 
 	remove: ()->
 		clearInterval(@timerId)
+		super()
 		return
 
 @DynamicBrush = DynamicBrush
@@ -2770,12 +2828,12 @@ class ShapePath extends SpeedPath
 
 		return parameters
 
-	drawBegin: ()->
+	beginDraw: ()->
 		@initializeDrawing(false)
 		@lastOffset = 0
 		return
 
-	drawUpdate: (offset, step)->
+	updateDraw: (offset, step)->
 		if not step then return
 
 		speed = @speedAt(offset)
@@ -2811,7 +2869,7 @@ class ShapePath extends SpeedPath
 
 		return
 
-	drawEnd: ()->
+	endDraw: ()->
 		return
 
 @ShapePath = ShapePath
@@ -2848,9 +2906,10 @@ class RShape extends RPath
 		if not @data.rectangle? then console.log 'Error loading shape ' + @pk + ': invalid rectangle.'
 		@rectangle = if @data.rectangle? then new Rectangle(@data.rectangle) else new Rectangle()
 		@initializeControlPath(@rectangle.topLeft, @rectangle.bottomRight, false, false, true)
-		@draw(null, true)
+		@draw(false, true)
 		@controlPath.rotation = @rotation
 		@initialize()
+
 		# Check shape validity
 		distanceMax = @constructor.secureDistance*@constructor.secureDistance
 		for point, i in points
@@ -2871,8 +2930,7 @@ class RShape extends RPath
 
 	# redefine {RPath#draw}
 	# initialize the drawing and draw the shape
-	draw: (simplified=false, loading=false)->
-		if loading and not @data?.animate then return
+	draw: (simplified=false)->
 		process = ()=>
 			@initializeDrawing()
 			@createShape()
@@ -2939,18 +2997,18 @@ class RShape extends RPath
 		super()
 		@downPoint = point
 		@initializeControlPath(@downPoint, point, event?.modifiers?.shift, g.specialKey(event))
-		@draw()
+		# @draw() can not draw with an empty rectangle
 		return
 
 	# redefine {RPath#updateCreate}: 
 	# initialize the control path and draw
-	updateCreate: (point, event, loading) ->
+	updateCreate: (point, event) ->
 		# console.log " event.modifiers.command"
 		# console.log event.modifiers.command
 		# console.log g.specialKey(event)
 		# console.log event?.modifiers?.shift
 		@initializeControlPath(@downPoint, point, event?.modifiers?.shift, g.specialKey(event))
-		if not loading then @draw()
+		@draw()
 		return
 
 	# overload {RPath#endCreate} + initialize the control path and draw
@@ -3030,7 +3088,7 @@ class StarShape extends RShape
 			min: 1
 			max: 100
 			default: 5
-			step: 2
+			step: 1
 		parameters['Style'].internalRadius =
 			type: 'slider'
 			label: 'Internal radius'
@@ -3292,14 +3350,14 @@ class FaceShape extends RShape
 #   constructor: (@date=null, @data=null, @pk=null, points=null) ->
 #     super(@date, @data, @pk, points)
 
-#   drawBegin: ()->
+#   beginDraw: ()->
 
 #     @initializeDrawing(false)
 
 #     @path = @addPath()
 #     return
 
-#   drawUpdate: (length)->
+#   updateDraw: (length)->
 
 #     point = @controlPath.getPointAt(length)
 #     quantification = @data.quantification
@@ -3308,7 +3366,7 @@ class FaceShape extends RShape
 #     @path.add(point)
 #     return
 
-#   drawEnd: ()->
+#   endDraw: ()->
 #     return
 
 # @QuantificationPath = QuantificationPath
@@ -3333,7 +3391,7 @@ class FaceShape extends RShape
 # 		###
 # 		return parameters
 
-# 	drawBegin: ()->
+# 	beginDraw: ()->
 # 		@initializeDrawing(true)
 		
 # 		width = @data.strokeWidth
@@ -3348,14 +3406,14 @@ class FaceShape extends RShape
 # 		@gradientData = context.getImageData(0, 0, width, width)
 # 		return
 
-# 	drawUpdate: (length)->
+# 	updateDraw: (length)->
 # 		point = @controlPath.getPointAt(length)
 # 		point = @projectToRaster(point)
 # 		width = @data.strokeWidth
 # 		@context.putImageData(@gradientData, point.x-width/2, point.y-width/2)
 # 		return
 
-# 	drawEnd: ()->
+# 	endDraw: ()->
 # 		return
 
 # Checkpoint is a video game element:

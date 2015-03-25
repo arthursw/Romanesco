@@ -14,14 +14,22 @@
       return;
     }
 
-    Command.prototype["do"] = function() {
+    Command.prototype.superDo = function() {
       this.done = true;
       this.liJ.addClass('done');
     };
 
-    Command.prototype.undo = function() {
+    Command.prototype.superUndo = function() {
       this.done = false;
       this.liJ.removeClass('done');
+    };
+
+    Command.prototype["do"] = function() {
+      this.superDo();
+    };
+
+    Command.prototype.undo = function() {
+      this.superUndo();
     };
 
     Command.prototype.click = function() {
@@ -43,8 +51,7 @@
     Command.prototype.update = function() {};
 
     Command.prototype.end = function() {
-      this.done = true;
-      this.liJ.addClass('done');
+      this.superDo();
     };
 
     return Command;
@@ -78,9 +85,12 @@
       this.item.updateSetRectangle(event);
     };
 
-    ResizeCommand.prototype.end = function() {
+    ResizeCommand.prototype.end = function(valid) {
       this.newRectangle = this.item.rectangle;
       if (this.newRectangle === this.previousRectangle) {
+        return false;
+      }
+      if (!valid) {
         return false;
       }
       this.item.endSetRectangle();
@@ -119,9 +129,12 @@
       this.item.updateSetRotation(event);
     };
 
-    RotationCommand.prototype.end = function() {
+    RotationCommand.prototype.end = function(valid) {
       this.newRotation = this.item.rotation;
       if (this.newRotation === this.previousRotation) {
+        return false;
+      }
+      if (!valid) {
         return false;
       }
       this.item.endSetRotation();
@@ -176,20 +189,27 @@
       }
     };
 
-    MoveCommand.prototype.end = function() {
+    MoveCommand.prototype.end = function(valid) {
       var args, item, _i, _len, _ref;
       this.newPosition = this.item.rectangle.center;
       if (this.newPosition.equals(this.previousPosition)) {
+        return false;
+      }
+      if (!valid) {
         return false;
       }
       args = [];
       _ref = this.items;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         item = _ref[_i];
-        args.push({
-          "function": item.getUpdateFunction(),
-          "arguments": item.getUpdateArguments('position')
-        });
+        if (RLock.prototype.isPrototypeOf(item)) {
+          item.update('position');
+        } else {
+          args.push({
+            "function": item.getUpdateFunction(),
+            "arguments": item.getUpdateArguments('position')
+          });
+        }
       }
       Dajaxice.draw.multipleCalls(this.update_callback, {
         functionsAndArguments: args
@@ -239,10 +259,13 @@
       this.item.updateModifySegment(event);
     };
 
-    ModifyPointCommand.prototype.end = function() {
+    ModifyPointCommand.prototype.end = function(valid) {
       this.position = new Point(this.segment.point);
       this.handleIn = new Point(this.segment.handleIn);
       this.handleOut = new Point(this.segment.handleOut);
+      if (!valid) {
+        return;
+      }
       if (this.position.equals(this.previousPosition) && this.previousHandleIn.equals(this.handleIn) && this.previousHandleOut.equals(this.handleOut)) {
         return false;
       }
@@ -286,7 +309,10 @@
       this.item.updateModifySpeed(event);
     };
 
-    ModifySpeedCommand.prototype.end = function() {
+    ModifySpeedCommand.prototype.end = function(valid) {
+      if (!valid) {
+        return;
+      }
       this.item.endModifySpeed();
       ModifySpeedCommand.__super__.end.call(this);
       return true;
@@ -323,10 +349,13 @@
       this.item.changeParameter(name, value);
     };
 
-    ChangeParameterCommand.prototype.end = function() {
+    ChangeParameterCommand.prototype.end = function(valid) {
       this.value = this.item.data[this.parameterName];
       if (this.value === this.previousValue) {
         return false;
+      }
+      if (!valid) {
+        return;
       }
       this.item.update(this.parameterName);
       ChangeParameterCommand.__super__.end.call(this);
@@ -347,13 +376,13 @@
       this.newPosition = newPosition;
       this.updateCommandItems = __bind(this.updateCommandItems, this);
       MoveViewCommand.__super__.constructor.call(this, "Move view");
-      this.done = true;
-      this.liJ.addClass('done');
+      this.superDo();
       return;
     }
 
     MoveViewCommand.prototype.updateCommandItems = function() {
       var command, i, item, _i, _j, _len, _len1, _ref, _ref1;
+      console.log("updateCommandItems");
       document.removeEventListener('command executed', this.updateCommandItems);
       _ref = g.commandManager.history;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -413,7 +442,7 @@
     }
 
     SelectCommand.prototype["do"] = function() {
-      var item, _i, _j, _len, _len1, _ref, _ref1;
+      var item, items, _i, _j, _len, _len1, _ref, _ref1;
       g.previouslySelectedItems = this.previouslySelectedItems;
       _ref = this.previouslySelectedItems;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -425,11 +454,18 @@
         item = _ref1[_j];
         item.select(false);
       }
+      items = this.items.map(function(item) {
+        return {
+          tool: item.constructor,
+          item: item
+        };
+      });
+      g.updateParameters(items, true);
       SelectCommand.__super__["do"].call(this);
     };
 
     SelectCommand.prototype.undo = function() {
-      var item, _i, _j, _len, _len1, _ref, _ref1;
+      var item, items, _i, _j, _len, _len1, _ref, _ref1;
       g.previouslySelectedItems = g.selectedItems.slice();
       _ref = this.items;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -441,6 +477,13 @@
         item = _ref1[_j];
         item.select(false);
       }
+      items = this.items.map(function(item) {
+        return {
+          tool: item.constructor,
+          item: item
+        };
+      });
+      g.updateParameters(items, true);
       SelectCommand.__super__.undo.call(this);
     };
 
@@ -460,8 +503,7 @@
       }
       this.itemConstructor = this.item.constructor;
       CreateItemCommand.__super__.constructor.call(this, name);
-      this.done = true;
-      this.liJ.addClass('done');
+      this.superDo();
       return;
     }
 
@@ -574,12 +616,12 @@
 
     DeletePathCommand.prototype["do"] = function() {
       this.deleteItem();
-      this.constructor.__super__.constructor.__super__.constructor.__super__["do"].call(this);
+      this.superDo();
     };
 
     DeletePathCommand.prototype.undo = function() {
       this.duplicateItem();
-      this.constructor.__super__.constructor.__super__.constructor.__super__["undo"].call(this);
+      this.superUndo();
     };
 
     return DeletePathCommand;
@@ -637,12 +679,12 @@
 
     DeleteDivCommand.prototype["do"] = function() {
       this.deleteItem();
-      this.constructor.__super__.constructor.__super__.constructor.__super__["do"].call(this);
+      this.superDo();
     };
 
     DeleteDivCommand.prototype.undo = function() {
       this.duplicateItem();
-      this.constructor.__super__.constructor.__super__.constructor.__super__["undo"].call(this);
+      this.superUndo();
       return RMedia.prototype.isPrototypeOf(this.item);
     };
 
@@ -659,10 +701,6 @@
       CreateLockCommand.__super__.constructor.call(this, item, name || 'Create lock');
     }
 
-    CreateLockCommand.prototype["do"] = function() {
-      CreateLockCommand.__super__["do"].call(this);
-    };
-
     return CreateLockCommand;
 
   })(CreateDivCommand);
@@ -674,11 +712,8 @@
 
     function DeleteLockCommand(item) {
       DeleteLockCommand.__super__.constructor.call(this, item, 'Delete lock');
+      return;
     }
-
-    DeleteLockCommand.prototype.undo = function() {
-      DeleteLockCommand.__super__.undo.call(this);
-    };
 
     return DeleteLockCommand;
 
@@ -742,14 +777,14 @@
       this.previousHandleIn = new Point(this.selectionState.segment.handleIn);
       this.previousHandleOut = new Point(this.selectionState.segment.handleOut);
       this.deletePoint();
-      this.constructor.__super__.constructor.__super__["do"].call(this);
+      this.superDo();
     };
 
     DeletePointCommand.prototype.undo = function() {
       this.addPoint(false);
       this.item.selectionState.segment = this.segment;
       this.item.changeSelectedSegment(this.previousPosition, this.previousHandleIn, this.previousHandleOut);
-      this.constructor.__super__.constructor.__super__["undo"].call(this);
+      this.superUndo();
     };
 
     return DeletePointCommand;
@@ -829,13 +864,20 @@
 
     CommandManager.prototype.toggleCurrentCommand = function() {
       var deferred;
+      console.log("toggleCurrentCommand");
+      $('#loadingMask').css({
+        'visibility': 'hidden'
+      });
+      document.removeEventListener('command executed', this.toggleCurrentCommand);
       if (this.currentCommand === this.commandIndex) {
         return;
       }
-      document.removeEventListener('command executed', this.toggleCurrentCommand);
       deferred = this.history[this.currentCommand + this.offset].toggle();
       this.currentCommand += this.direction;
       if (deferred) {
+        $('#loadingMask').css({
+          'visibility': 'visible'
+        });
         document.addEventListener('command executed', this.toggleCurrentCommand);
       } else {
         this.toggleCurrentCommand();

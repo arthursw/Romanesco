@@ -95,7 +95,8 @@
       return;
     }
 
-    RDiv.prototype.save = function() {
+    RDiv.prototype.save = function(addCreateCommand) {
+      this.addCreateCommand = addCreateCommand;
       if (g.rectangleOverlapsTwoPlanets(this.rectangle)) {
         return;
       }
@@ -120,6 +121,10 @@
       }
       this.owner = result.owner;
       this.setPK(result.pk);
+      if (this.addCreateCommand) {
+        g.commandManager.add(new CreateDivCommand(this));
+        delete this.addCreateCommand;
+      }
       if (this.updateAfterSave != null) {
         this.update(this.updateAfterSave);
       }
@@ -281,8 +286,11 @@
       g.checkError(result);
     };
 
-    RDiv.prototype.select = function(updateOptions) {
-      if (!RDiv.__super__.select.call(this, updateOptions) || this.divJ.hasClass("selected")) {
+    RDiv.prototype.select = function(updateOptions, updateSelectionRectangle) {
+      if (updateSelectionRectangle == null) {
+        updateSelectionRectangle = true;
+      }
+      if (!RDiv.__super__.select.call(this, updateOptions, updateSelectionRectangle) || this.divJ.hasClass("selected")) {
         return false;
       }
       if (g.selectedTool !== g.tools['Select']) {
@@ -826,9 +834,9 @@
       submit = function(data) {
         var div;
         div = new RMedia(rectangle, data);
-        div.save();
+        div.addToParent();
+        div.save(true);
         div.select();
-        g.commandManager.add(new CreateDivCommand(div));
       };
       RModal.initialize('Add media', submit);
       RModal.addTextInput('url', 'http:// or <iframe>', 'url', 'url', 'URL', true);
@@ -891,12 +899,15 @@
       }
     };
 
-    RMedia.prototype.select = function(updateOptions) {
+    RMedia.prototype.select = function(updateOptions, updateSelectionRectangle) {
       var _ref;
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (!RMedia.__super__.select.call(this, updateOptions)) {
+      if (updateSelectionRectangle == null) {
+        updateSelectionRectangle = true;
+      }
+      if (!RMedia.__super__.select.call(this, updateOptions, updateSelectionRectangle)) {
         return false;
       }
       if ((_ref = this.contentJ) != null) {

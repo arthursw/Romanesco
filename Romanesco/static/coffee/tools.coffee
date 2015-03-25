@@ -196,18 +196,25 @@ class MoveTool extends RTool
 		return
 
 	begin: (event) ->
+		# @dragging = true
 		return
 
 	update: (event) ->
+		# if @dragging
+		# 	g.RMoveBy(event.delta)
 		return
 
-	end: (event) ->
+	end: (moved) ->
+		# if moved
+		# 	g.commandManager.add(new MoveViewCommand())
+		# @dragging = false
 		return
 
 	# begin with jQuery event
 	# note: we could use g.eventToObject to convert the Native event into Paper.ToolEvent, however onMouseDown/Drag/Up also fire begin/update/end
 	beginNative: (event) ->
 		@dragging = true
+		@initialPosition = { x: event.pageX, y: event.pageY }
 		@prevPoint = { x: event.pageX, y: event.pageY }
 		return
 
@@ -220,6 +227,8 @@ class MoveTool extends RTool
 
 	# end with jQuery event
 	endNative: (event) ->
+		# if @initialPosition? and ( @initialPosition.x != event.pageX or @initialPosition.y != event.pageY )
+		# 	g.commandManager.add(new MoveViewCommand())
 		@dragging = false
 		return
 
@@ -442,10 +451,6 @@ class SelectTool extends RTool
 		hitResult = g.project.hitTest(event.point, hitOptions)
 		path.finishHitTest() for name, path of g.paths
 		
-		console.log hitResult
-		console.log 'selected items: '
-		console.log g.selectedItems
-
 		if hitResult and hitResult.item.controller? 		# if user hits a path: select it
 			@selectedItem = hitResult.item.controller
 
@@ -453,13 +458,11 @@ class SelectTool extends RTool
 				if g.selectedItems.length>0
 					if g.selectedItems.indexOf(hitResult.item?.controller)<0
 						g.deselectAll() 	# if the item is not in selection group: deselect selection group
-						console.log 'deselected all'
 				# else 
 				# 	if g.selectedDivs.length>0 then g.deselectAll()
 
 			hitResult.item.controller.beginSelect?(event)
 		else 												# otherwise: remove selection group and create selection rectangle
-			console.log 'deselected all'
 			g.deselectAll()
 			@createSelectionRectangle(event)
 		return
@@ -525,9 +528,9 @@ class SelectTool extends RTool
 			# for item in itemsToSelect
 			# 	item.select(false)
 
-			# update parameters
-			itemsToSelect = itemsToSelect.map( (item)-> return { tool: item.constructor, item: item } )
-			g.updateParameters(itemsToSelect)
+			# # update parameters
+			# itemsToSelect = itemsToSelect.map( (item)-> return { tool: item.constructor, item: item } )
+			# g.updateParameters(itemsToSelect)
 
 			# for div in g.divs
 			# 	if div.getBounds().intersects(rectangle)
@@ -659,6 +662,7 @@ class PathTool extends RTool
 		if not (g.currentPaths[from]? and g.currentPaths[from].data?.polygonMode) 	# if not in polygon mode
 			g.deselectAll()
 			g.currentPaths[from] = new @RPath(Date.now(), data)
+			g.currentPaths[from].select(false, false)
 
 		g.currentPaths[from].beginCreate(event.point, event, false)
 
@@ -681,21 +685,36 @@ class PathTool extends RTool
 		if g.currentPaths[g.me]?.data?.polygonMode then g.currentPaths[g.me].createMove?(event)
 		return
 
+	createPath: (event, from)->
+		path = g.currentPaths[from]
+		if g.me? and from==g.me 						# if user is the author of the event: select and save path and emit event on websocket
+			bounds = path.getBounds()
+			locks = RLock.getLocksWhichIntersect(bounds)
+			for lock in locks
+				if lock.rectangle.contains(bounds) then lock.addItem(path)
+			path.save(true)
+			path.select(false)
+			g.chatSocket.emit( "end", g.me, g.eventToObject(event), @name )
+		delete g.currentPaths[from]
+		return
+
 	# End path action:
 	# - end path action 
 	# - if not in polygon mode: select and save path and emit event on websocket (if user is the author of the event), (remove path from g.currentPaths)
 	# @param [Paper event or REvent] (usually) mouse up event
 	# @param [String] author (username) of the event
 	end: (event, from=g.me) ->
-		g.currentPaths[from].endCreate(event.point, event, false)
+		path = g.currentPaths[from]
 
-		if not g.currentPaths[from].data?.polygonMode 		# if not in polygon mode
-			if g.me? and from==g.me 						# if user is the author of the event: select and save path and emit event on websocket
-				g.currentPaths[from].select(false)
-				g.currentPaths[from].save()
-				g.commandManager.add(new CreatePathCommand(g.currentPaths[from]))
-				g.chatSocket.emit( "end", g.me, g.eventToObject(event), @name )
-			delete g.currentPaths[from]
+		if not path.data?.polygonMode 
+			if event.downPoint.equals(event.point)
+				path.remove()
+				delete g.currentPaths[from]
+				return
+			path.endCreate(event.point, event, false)
+			@createPath(event, from)
+		else
+			path.endCreate(event.point, event, false)
 		return
 
 	# Finish path action (necessary in polygon mode):
@@ -705,14 +724,8 @@ class PathTool extends RTool
 	# @param [String] author (username) of the event
 	finishPath: (from=g.me)->
 		if not g.currentPaths[g.me]?.data?.polygonMode then return
-		
 		g.currentPaths[from].finishPath()
-		if g.me? and from==g.me
-			g.currentPaths[from].select(false)
-			g.currentPaths[from].save()
-			g.commandManager.add(new CreatePathCommand(g.currentPaths[from]))
-			g.chatSocket.emit( "bounce", { tool: @name, function: "finishPath", arguments: g.me } )
-		delete g.currentPaths[from]
+		@createPath(event, from)
 		return
 
 @PathTool = PathTool
@@ -748,6 +761,8 @@ class ItemTool extends RTool
 	begin: (event, from=g.me) ->
 		point = event.point
 
+		g.deselectAll()
+
 		g.currentPaths[from] = new Path.Rectangle(point, point)
 		g.currentPaths[from].name = 'div tool rectangle'
 		g.currentPaths[from].dashArray = [4, 10]
@@ -770,7 +785,13 @@ class ItemTool extends RTool
 		g.currentPaths[from].segments[3].point.y = point.y
 		g.currentPaths[from].fillColor = null
 
-		if g.rectangleOverlapsTwoPlanets(g.currentPaths[from].bounds) or RLock.intersectsRectangle(g.currentPaths[from].bounds)
+		bounds = g.currentPaths[from].bounds
+		locks = RLock.getLocksWhichIntersect(bounds)
+		for lock in locks
+			if lock.owner != g.me or (@name != 'Lock' and not lock.rectangle.contains(bounds))
+				g.currentPaths[from].fillColor = 'red'
+
+		if g.rectangleOverlapsTwoPlanets(bounds)
 			g.currentPaths[from].fillColor = 'red'
 
 		if g.me? and from==g.me then g.chatSocket.emit( "update", g.me, point, @name )
@@ -793,13 +814,16 @@ class ItemTool extends RTool
 
 		g.currentPaths[from].remove()
 
-		# check if div if valid (does not overlap two planets, and does not intersects with an RLock), return false otherwise
-		if g.rectangleOverlapsTwoPlanets(g.currentPaths[from].bounds)
-			g.romanesco_alert 'Your item overlaps with two planets.', 'error'
-			return false
+		bounds = g.currentPaths[from].bounds
+		locks = RLock.getLocksWhichIntersect(bounds)
+		for lock in locks
+			if lock.owner != g.me or (@name != 'Lock' and not lock.rectangle.contains(bounds))
+				g.romanesco_alert 'Your item intersects with a locked area.', 'error'
+				return false
 
-		if RLock.intersectsRectangle(g.currentPaths[from].bounds)
-			g.romanesco_alert 'Your item intersects with a locked area.', 'error'
+		# check if div if valid (does not overlap two planets, and does not intersects with an RLock), return false otherwise
+		if g.rectangleOverlapsTwoPlanets(bounds)
+			g.romanesco_alert 'Your item overlaps with two planets.', 'error'
 			return false
 
 		if g.currentPaths[from].bounds.area < 100 			# resize div to 10x10 if area if lower than 100
@@ -893,9 +917,9 @@ class TextTool extends ItemTool
 	end: (event, from=g.me) ->
 		if super(event, from)
 			text = new RText(g.currentPaths[from].bounds)
+			text.addToParent()
 			text.select()
-			text.save()
-			g.commandManager.add(new CreateDivCommand(text))
+			text.save(true)
 			delete g.currentPaths[from]
 		return
 

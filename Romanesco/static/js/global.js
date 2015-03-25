@@ -510,6 +510,7 @@ Here are all global functions (which do not belong to classes and are not event 
       }
     }
     project.activeLayer.selected = false;
+    g.selectedItems = [];
   };
 
   this.toggleSidebar = function(show) {
@@ -603,7 +604,7 @@ Here are all global functions (which do not belong to classes and are not event 
         return false;
       }
     }
-    locks = RLock.intersectRectangle(bounds);
+    locks = RLock.getLocksWhichIntersect(bounds);
     for (_j = 0, _len1 = locks.length; _j < _len1; _j++) {
       lock = locks[_j];
       if (RLock.prototype.isPrototypeOf(item)) {
@@ -620,7 +621,7 @@ Here are all global functions (which do not belong to classes and are not event 
             if (highlight) {
               lock.highlight('green');
             } else {
-              lock.addRItem(item);
+              lock.addItem(item);
             }
           }
         } else {
@@ -637,7 +638,7 @@ Here are all global functions (which do not belong to classes and are not event 
         if (highlight) {
           this.highlightStage('green');
         } else {
-          lock.removeRItem(item);
+          g.addItemToStage(item);
         }
       }
     }
@@ -675,6 +676,39 @@ Here are all global functions (which do not belong to classes and are not event 
     };
   })(this);
 
+  this.addItemToStage = function(item) {
+    g.addItemTo(item);
+  };
+
+  this.addItemTo = function(item, lock) {
+    var group, parent, wasSelected;
+    if (lock == null) {
+      lock = null;
+    }
+    wasSelected = item.isSelected();
+    if (wasSelected) {
+      item.deselect();
+    }
+    group = lock ? lock.group : g.mainLayer;
+    group.addChild(item.group);
+    item.lock = lock;
+    item.sortedItems.remove(item);
+    parent = lock || g;
+    if (RDiv.prototype.isPrototypeOf(item)) {
+      item.sortedItems = parent.sortedDivs;
+      parent.itemListsJ.find(".rDiv-list").append(item.liJ);
+    } else if (RPath.prototype.isPrototypeOf(item)) {
+      item.sortedItems = parent.sortedPaths;
+      parent.itemListsJ.find(".rPath-list").append(item.liJ);
+    } else {
+      console.error("Error: the item is neither an RDiv nor an RPath");
+    }
+    item.updateZIndex();
+    if (wasSelected) {
+      item.select();
+    }
+  };
+
   this.getRotatedBounds = function(rectangle, rotation) {
     var bottomLeft, bottomRight, bounds, topLeft, topRight;
     if (rotation == null) {
@@ -692,6 +726,75 @@ Here are all global functions (which do not belong to classes and are not event 
     bounds = bounds.include(rectangle.center.add(bottomLeft));
     bounds = bounds.include(rectangle.center.add(topRight));
     return bounds;
+  };
+
+  this.rasterizePaths = function() {
+    var path, pk, position, raster, _ref;
+    _ref = g.paths;
+    for (pk in _ref) {
+      path = _ref[pk];
+      raster = path.drawing.rasterize();
+      position = Point.max(view.projectToView(raster.bounds.topLeft), new Point(0, 0));
+      g.context.drawImage(raster.canvas, position.x, position.y);
+      raster.remove();
+      path.group.visible = false;
+    }
+  };
+
+  this.deletePaths = function() {
+    var path, pk, _ref;
+    _ref = g.paths;
+    for (pk in _ref) {
+      path = _ref[pk];
+      path.remove();
+    }
+  };
+
+  this.rasterizeProject = function(path) {
+    var p, pk, _ref;
+    if (path.controlPath != null) {
+      path.group.visible = false;
+      view.draw();
+    }
+    g.backgroundCanvasJ.show();
+    g.backgroundContext.drawImage(g.canvas, 0, 0, g.canvas.width, g.canvas.height);
+    _ref = g.paths;
+    for (pk in _ref) {
+      p = _ref[pk];
+      if (p !== path) {
+        p.group.visible = false;
+      }
+    }
+    path.group.visible = true;
+  };
+
+  this.restoreProject = function() {
+    var p, pk, _ref;
+    g.backgroundCanvasJ.hide();
+    g.backgroundContext.clearRect(0, 0, canvas.width, canvas.height);
+    _ref = g.paths;
+    for (pk in _ref) {
+      p = _ref[pk];
+      p.group.visible = true;
+    }
+  };
+
+  this.hidePaths = function() {
+    var path, pk, _ref;
+    _ref = g.paths;
+    for (pk in _ref) {
+      path = _ref[pk];
+      path.group.visible = false;
+    }
+  };
+
+  this.showPaths = function() {
+    var path, pk, _ref;
+    _ref = g.paths;
+    for (pk in _ref) {
+      path = _ref[pk];
+      path.group.visible = true;
+    }
   };
 
   this.getRectangleListFromIntersection = function(rectangle1, rectangle2) {
@@ -741,6 +844,9 @@ Here are all global functions (which do not belong to classes and are not event 
       viewRectangle = g.projectToViewRectangle(rectangle);
     } else {
       viewRectangle = rectangle;
+    }
+    if (viewRectangle.size.equals(view.size) && viewRectangle.x === 0 && viewRectangle.y === 0) {
+      return g.canvas.toDataURL("image/png");
     }
     canvasTemp = document.createElement('canvas');
     canvasTemp.width = viewRectangle.width;
@@ -1303,6 +1409,33 @@ Here are all global functions (which do not belong to classes and are not event 
       p = new Path.Rectangle(rectangle);
       p.strokeColor = 'red';
       p.strokeWidth = 1;
+    }
+  };
+
+  this.fakeGeoJsonBox = function(rectangle) {
+    var box, planet;
+    box = {};
+    planet = pointToObj(projectToPlanet(rectangle.topLeft));
+    box.planetX = planet.x;
+    box.planetY = planet.y;
+    box.box = {
+      coordinates: [[g.pointToArray(projectToPosOnPlanet(rectangle.topLeft, planet)), g.pointToArray(projectToPosOnPlanet(rectangle.topRight, planet)), g.pointToArray(projectToPosOnPlanet(rectangle.bottomRight, planet)), g.pointToArray(projectToPosOnPlanet(rectangle.bottomLeft, planet))]]
+    };
+    return JSON.stringify(box);
+  };
+
+  this.getControllerFromFomElement = function() {
+    var controller, folder, folderName, _i, _len, _ref, _ref1;
+    _ref = g.gui.__folders;
+    for (folderName in _ref) {
+      folder = _ref[folderName];
+      _ref1 = folder.__controllers;
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        controller = _ref1[_i];
+        if (controller.domElement === $0 || $($0).find(controller.domElement).length > 0) {
+          return controller;
+        }
+      }
     }
   };
 

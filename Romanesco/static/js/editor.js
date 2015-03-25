@@ -65,7 +65,7 @@
       localStorage.romanescoCode = JSON.stringify(romanescoCode);
     };
     g.editor.getSession().on('change', function(e) {
-      g.defferedExecution(saveChanges, 1000);
+      g.deferredExecution(saveChanges, 1000);
     });
     runBtnJ = g.editorJ.find("button.submit.run");
     runBtnJ.click(function(event) {

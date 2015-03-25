@@ -191,8 +191,9 @@ class RItem
 		return
 
 	endAction: ()=>
-		commandChanged = @currentCommand.end()
-		if g.validatePosition(@)
+		positionIsValid = g.validatePosition(@)
+		commandChanged = @currentCommand.end(positionIsValid)
+		if positionIsValid
 			if commandChanged then g.commandManager.add(@currentCommand)
 		else
 			@currentCommand.undo()
@@ -364,8 +365,9 @@ class RItem
 	# - update the selection rectangle, 
 	# - (optionally) update controller in the gui accordingly
 	# @param updateOptions [Boolean] whether to update controllers in gui or not
+	# @param updateSelectionRectangle [Boolean] whether to the selection rectangle (always true except when creating a path)
 	# @return whether the ritem was selected or not
-	select: (updateOptions=true)->
+	select: (updateOptions=true, updateSelectionRectangle=true)->
 		if @selectionRectangle? then return false
 
 		g.previouslySelectedItems = g.selectedItems.slice()
@@ -374,13 +376,16 @@ class RItem
 		
 		# create or update the selection rectangle
 		@selectionState = move: true
-		@updateSelectionRectangle(true)
-
+		
 		# create or update the global selection group
 		if updateOptions then g.updateParameters( { tool: @constructor, item: @ } , true)
 
 		g.s = @
-		g.selectedItems.push(@)
+	
+		if updateSelectionRectangle 
+			@updateSelectionRectangle(true)
+			g.selectedItems.push(@)
+		
 		return true
 
 	deselect: (updatePreviouslySelectedItems=true)->
@@ -455,6 +460,16 @@ class RContent extends RItem
 		$("#RItems .mCustomScrollbar").mCustomScrollbar("scrollTo", "bottom")
 
 		@updateZIndex()
+
+		return
+
+	addToParent: ()->
+		bounds = @getBounds()
+		lock = RLock.getLockWhichContains(bounds)
+		if lock? and lock.owner == g.me
+			lock.addItem(@)
+		else
+			g.addItemToStage(@)
 		return
 
 	setZindexLabel: ()->
@@ -620,8 +635,8 @@ class RContent extends RItem
 	# - (optionally) update controller in the gui accordingly
 	# @param updateOptions [Boolean] whether to update controllers in gui or not
 	# @return whether the ritem was selected or not
-	select: (updateOptions=true)->
-		if not super(updateOptions) then return false
+	select: (updateOptions=true, updateSelectionRectangle=true)->
+		if not super(updateOptions, updateSelectionRectangle) then return false
 
 		@liJ.addClass('selected')
 

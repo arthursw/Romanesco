@@ -102,7 +102,7 @@ class RDiv extends RContent
 
 		return
 
-	save: () ->
+	save: (@addCreateCommand) ->
 		if g.rectangleOverlapsTwoPlanets(@rectangle)
 			return
 		
@@ -123,7 +123,9 @@ class RDiv extends RContent
 			return
 		@owner = result.owner
 		@setPK(result.pk)
-
+		if @addCreateCommand
+			g.commandManager.add(new CreateDivCommand(@))
+			delete @addCreateCommand
 		if @updateAfterSave?
 			@update(@updateAfterSave)
 
@@ -271,8 +273,8 @@ class RDiv extends RContent
 	# - select the RDiv is not already selected
 	# - select the select tool
 	# - update parameters according to @data
-	select: (updateOptions) =>
-		if not super(updateOptions) or @divJ.hasClass("selected") then return false
+	select: (updateOptions, updateSelectionRectangle=true) =>
+		if not super(updateOptions, updateSelectionRectangle) or @divJ.hasClass("selected") then return false
 		if g.selectedTool != g.tools['Select'] then g.tools['Select'].select()
 		@divJ.addClass("selected")
 		return true
@@ -690,9 +692,9 @@ class RMedia extends RDiv
 	@initialize: (rectangle)->
 		submit = (data)->
 			div = new RMedia(rectangle, data)
-			div.save()
+			div.addToParent()
+			div.save(true)
 			div.select()
-			g.commandManager.add(new CreateDivCommand(div))
 			return
 		RModal.initialize('Add media', submit)
 		RModal.addTextInput('url', 'http:// or <iframe>', 'url', 'url', 'URL', true)
@@ -736,8 +738,8 @@ class RMedia extends RDiv
 		@contentJ?.css( 'pointer-events': 'auto' )
 		return
 
-	select: (updateOptions=true)->
-		if not super(updateOptions) then return false
+	select: (updateOptions=true, updateSelectionRectangle=true)->
+		if not super(updateOptions, updateSelectionRectangle) then return false
 		@contentJ?.css( 'pointer-events': 'auto' )
 		return true
 
@@ -850,7 +852,7 @@ class RMedia extends RDiv
 			@contentJ.css( 'pointer-events': 'none' )
 
 		commandEvent = document.createEvent('Event')
-		commandEvent .initEvent('command executed', true, true)
+		commandEvent.initEvent('command executed', true, true)
 		document.dispatchEvent(commandEvent)
 		return
 

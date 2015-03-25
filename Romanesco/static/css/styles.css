@@ -121,6 +121,19 @@ body {
   -o-user-select: none;
   user-select: none;
 }
+#stage.main #background-canvas {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+#stage.main #canvas {
+  z-index: 0;
+}
 #stage.main.moveTool {
   cursor: url(images/hand.png) 32 32, move;
 }
@@ -1270,7 +1283,14 @@ body {
   bottom: 0;
   right: 0;
 }
-#globalMask {
+#loadingMask {
+  z-index: 1005;
+  display: flex;
+  visibility: hidden;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Lucida Grande';
+  font-size: 20px;
   position: fixed;
   top: 0;
   bottom: 0;

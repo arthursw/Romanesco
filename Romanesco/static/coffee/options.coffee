@@ -21,8 +21,7 @@
 # 		updateDiv(g.itemsToUpdate)
 # 	return
 
-# Initialize general and default parameters
-this.initParameters = () ->
+this.initializeGlobalParameters = ()->
 
 	g.parameters = {}
 	g.parameters.location = 
@@ -276,6 +275,10 @@ this.initParameters = () ->
 			distributeJ = $("#distribute:first")
 			distributeJ.find("button").click ()-> distribute($(this).attr("data-type"))
 			return
+	return
+
+# Initialize general and default parameters
+this.initParameters = () ->
 
 	g.optionsJ = $(".option-list")
 	colorName = g.defaultColors.random()
@@ -522,11 +525,13 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 	# - call item.parameterChanged()
 	# - emit "parameter change" on websocket
 	onParameterChange = (value) -> 
-		for item in g.selectedItems
-			if typeof item?.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
-				if parameter.step? then value = value-value%parameter.step
-				item.changeParameterCommand(name, value)
-				if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
+		g.c = this
+		if item?
+			for item in g.selectedItems
+				if typeof item?.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
+					if parameter.step? then value = value-value%parameter.step
+					item.changeParameterCommand(name, value)
+					if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
 		return
 
 	# if parameter has no onChange function: create a default one which will update item.data[name]

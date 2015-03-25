@@ -204,9 +204,10 @@
     };
 
     RItem.prototype.endAction = function() {
-      var commandChanged;
-      commandChanged = this.currentCommand.end();
-      if (g.validatePosition(this)) {
+      var commandChanged, positionIsValid;
+      positionIsValid = g.validatePosition(this);
+      commandChanged = this.currentCommand.end(positionIsValid);
+      if (positionIsValid) {
         if (commandChanged) {
           g.commandManager.add(this.currentCommand);
         }
@@ -384,10 +385,13 @@
       return this.selectionRectangle != null;
     };
 
-    RItem.prototype.select = function(updateOptions) {
+    RItem.prototype.select = function(updateOptions, updateSelectionRectangle) {
       var _ref;
       if (updateOptions == null) {
         updateOptions = true;
+      }
+      if (updateSelectionRectangle == null) {
+        updateSelectionRectangle = true;
       }
       if (this.selectionRectangle != null) {
         return false;
@@ -399,7 +403,6 @@
       this.selectionState = {
         move: true
       };
-      this.updateSelectionRectangle(true);
       if (updateOptions) {
         g.updateParameters({
           tool: this.constructor,
@@ -407,7 +410,10 @@
         }, true);
       }
       g.s = this;
-      g.selectedItems.push(this);
+      if (updateSelectionRectangle) {
+        this.updateSelectionRectangle(true);
+        g.selectedItems.push(this);
+      }
       return true;
     };
 
@@ -515,6 +521,17 @@
       this.updateZIndex();
       return;
     }
+
+    RContent.prototype.addToParent = function() {
+      var bounds, lock;
+      bounds = this.getBounds();
+      lock = RLock.getLockWhichContains(bounds);
+      if ((lock != null) && lock.owner === g.me) {
+        lock.addItem(this);
+      } else {
+        g.addItemToStage(this);
+      }
+    };
 
     RContent.prototype.setZindexLabel = function() {
       var dateLabel, zindexLabel;
@@ -703,11 +720,14 @@
       }
     };
 
-    RContent.prototype.select = function(updateOptions) {
+    RContent.prototype.select = function(updateOptions, updateSelectionRectangle) {
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (!RContent.__super__.select.call(this, updateOptions)) {
+      if (updateSelectionRectangle == null) {
+        updateSelectionRectangle = true;
+      }
+      if (!RContent.__super__.select.call(this, updateOptions, updateSelectionRectangle)) {
         return false;
       }
       this.liJ.addClass('selected');

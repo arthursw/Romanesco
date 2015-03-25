@@ -29,14 +29,17 @@
   };
 
   this.load = function(area) {
-    var areaRectangle, areasToLoad, b, bounds, debug, i, item, itemsOutsideLimit, j, l, limit, pk, planet, pos, r, raster, rasterColumn, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3, _ref4;
+    var areaRectangle, areasToLoad, b, bounds, debug, i, item, itemsDates, itemsOutsideLimit, j, l, limit, pk, planet, pos, r, raster, rasterColumn, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3, _ref4;
     if (area == null) {
       area = null;
     }
-    if ((g.previousLoadPosition != null) && g.previousLoadPosition.subtract(view.center).length < 50) {
+    if (!g.rasterizerMode && (g.previousLoadPosition != null) && g.previousLoadPosition.subtract(view.center).length < 50) {
       return false;
     }
     console.log("load");
+    if (area != null) {
+      console.log(area.toString());
+    }
     debug = true;
     scale = !debug ? g.scale : 200;
     g.previousLoadPosition = view.center;
@@ -168,7 +171,7 @@
         }
       }
     }
-    if (areasToLoad.length <= 0) {
+    if (!g.rasterizerMode && areasToLoad.length <= 0) {
       return false;
     }
     if (g.loadingBarTimeout == null) {
@@ -183,18 +186,25 @@
       right: r / 1000,
       bottom: b / 1000
     };
+    console.log('request loading');
+    console.log(rectangle);
+    itemsDates = g.rasterizerMode ? g.createItemsDates() : null;
     Dajaxice.draw.load(load_callback, {
       rectangle: rectangle,
       areasToLoad: areasToLoad,
-      zoom: view.zoom
+      zoom: view.zoom,
+      loadRasters: !g.rasterizerMode,
+      itemsDates: itemsDates
     });
     return true;
   };
 
   this.load_callback = function(results) {
     var box, data, date, dispatchLoadFinished, div, i, item, itemIsLoaded, itemsToLoad, lock, newAreasToUpdate, path, pk, planet, point, points, position, raster, rdiv, rectangle, rpath, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _name, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    console.log("load callback");
     dispatchLoadFinished = function() {
       var commandEvent;
+      console.log("dispatch command executed");
       commandEvent = document.createEvent('Event');
       commandEvent.initEvent('command executed', true, true);
       document.dispatchEvent(commandEvent);
@@ -206,7 +216,7 @@
     }
     if (g.me == null) {
       g.me = results.user;
-      if (g.chatJ.find("#chatUserNameInput").length === 0) {
+      if ((g.chatJ != null) && g.chatJ.find("#chatUserNameInput").length === 0) {
         g.startChatting(g.me);
       }
     }
@@ -241,6 +251,9 @@
       }
       g.rasters[position.x][position.y] = raster;
     }
+    if (g.rasterizerMode) {
+      g.removeItemsToUpdate(results.itemsToUpdate);
+    }
     newAreasToUpdate = [];
     itemsToLoad = [];
     _ref3 = results.items;
@@ -256,20 +269,22 @@
           console.log("Error: box has less than 5 points");
         }
         data = (box.data != null) && box.data.length > 0 ? JSON.parse(box.data) : null;
+        date = box.date.$date;
         lock = null;
         switch (box.object_type) {
           case 'link':
-            lock = new RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner);
+            lock = new RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date);
             break;
           case 'lock':
-            lock = new RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner);
+            lock = new RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date);
             break;
           case 'website':
-            lock = new RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner);
+            lock = new RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date);
             break;
           case 'video-game':
-            lock = new RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner);
+            lock = new RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date);
         }
+        lock.lastUpdateDate = box.lastUpdate.$date;
       } else {
         itemsToLoad.push(item);
       }
@@ -291,6 +306,7 @@
             case 'media':
               rdiv = new RMedia(g.rectangleFromBox(div), data, div._id.$oid, date, div.lock != null ? g.items[div.lock] : null);
           }
+          rdiv.lastUpdateDate = div.lastUpdate.$date;
           break;
         case 'Path':
           path = item;
@@ -309,6 +325,7 @@
           rpath = null;
           if (g.tools[path.object_type] != null) {
             rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points, path.lock != null ? g.items[path.lock] : null);
+            rpath.lastUpdateDate = path.lastUpdate.$date;
             if (rpath.constructor.name === "Checkpoint") {
               console.log(rpath);
             }
@@ -324,21 +341,116 @@
       }
     }
     RDiv.updateZIndex(g.sortedDivs);
-    g.addAreasToUpdate(newAreasToUpdate);
-    _ref5 = g.areasToUpdate;
-    for (pk in _ref5) {
-      rectangle = _ref5[pk];
-      if (rectangle.intersects(view.bounds)) {
-        g.updateView();
-        break;
+    if (!g.rasterizerMode) {
+      g.addAreasToUpdate(newAreasToUpdate);
+      _ref5 = g.areasToUpdate;
+      for (pk in _ref5) {
+        rectangle = _ref5[pk];
+        if (rectangle.intersects(view.bounds)) {
+          g.updateView();
+          break;
+        }
       }
+      view.draw();
+      updateView();
+      clearTimeout(g.loadingBarTimeout);
+      g.loadingBarTimeout = null;
+      $("#loadingBar").hide();
+      dispatchLoadFinished();
     }
-    view.draw();
-    updateView();
-    clearTimeout(g.loadingBarTimeout);
-    g.loadingBarTimeout = null;
-    $("#loadingBar").hide();
-    dispatchLoadFinished();
+    console.log(typeof window.saveOnServer === "function");
+    if (typeof window.saveOnServer === "function") {
+      g.rasterizeAndSaveOnServer();
+    }
+  };
+
+  this.createItemsDates = function() {
+    var item, itemsDates, pk, type, _ref;
+    itemsDates = [];
+    _ref = g.items;
+    for (pk in _ref) {
+      item = _ref[pk];
+      type = '';
+      if (RLock.prototype.isPrototypeOf(item)) {
+        type = 'Box';
+      } else if (RDiv.prototype.isPrototypeOf(item)) {
+        type = 'Div';
+      } else if (RPath.prototype.isPrototypeOf(item)) {
+        type = 'Path';
+      }
+      itemsDates.push({
+        pk: pk,
+        lastUpdate: item.lastUpdateDate,
+        type: type
+      });
+    }
+    return itemsDates;
+  };
+
+  this.removeItemsToUpdate = function(itemsToUpdate) {
+    var pk, _i, _len;
+    for (_i = 0, _len = itemsToUpdate.length; _i < _len; _i++) {
+      pk = itemsToUpdate[_i];
+      g.items[pk].remove();
+    }
+  };
+
+  this.loopRasterize = function() {
+    var center, dataURL, finished, height, imagePosition, rectangle, width;
+    rectangle = g.areaToRasterize;
+    width = Math.min(Math.min(view.size.width, 1000), rectangle.right - view.bounds.left);
+    height = Math.min(Math.min(view.size.height, 1000), rectangle.bottom - view.bounds.top);
+    center = view.center.clone();
+    view.viewSize = new Size(width, height);
+    view.center = center;
+    imagePosition = view.bounds.topLeft.clone();
+    dataURL = areaToImageDataUrl(new Rectangle(0, 0, width, height), false);
+    view.center = view.center.add(Math.min(view.size.width, 1000), 0);
+    if (view.bounds.left > rectangle.right) {
+      view.center = new Point(rectangle.left + view.size.width * 0.5, view.center.y + Math.min(view.size.height, 1000));
+    }
+    finished = view.bounds.top > rectangle.bottom;
+    window.saveOnServer(dataURL, imagePosition.x, imagePosition.y, finished);
+  };
+
+  this.rasterizeAndSaveOnServer = function() {
+    var position, rectangle;
+    console.log("area rasterized");
+    g.debugIsLoading = false;
+    position = view.bounds.topLeft;
+    rectangle = g.areaToRasterize;
+    if (view.bounds.contains(rectangle)) {
+      view.draw();
+      console.log('dimensions');
+      console.log(view.bounds.toString());
+      console.log(window.innerWidth);
+      console.log(window.innerHeight);
+      window.saveOnServer(g.canvas.toDataURL(), rectangle.x, rectangle.y, true);
+    } else {
+      view.center = rectangle.topLeft.add(view.size.multiply(0.5));
+      g.loopRasterize();
+    }
+  };
+
+  this.loadArea = function(args) {
+    var area, delta, div, _i, _len, _ref;
+    console.log("load_area");
+    if (g.areaToRasterize != null) {
+      console.log("error: load_area while loading !!");
+      debugger;
+    }
+    area = g.rectangleFromBox(JSON.parse(args));
+    g.areaToRasterize = area;
+    view.viewSize = Size.min(area.size, new Size(1000, 1000));
+    delta = area.center.subtract(view.center);
+    project.view.scrollBy(delta);
+    _ref = g.divs;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      div = _ref[_i];
+      div.updateTransform();
+    }
+    console.log("call load");
+    g.load(area);
   };
 
   this.benchmark_load = function() {

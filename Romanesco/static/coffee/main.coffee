@@ -290,6 +290,262 @@ initPosition = ()->
 
 	return
 
+this.initializeGlobalParameters = ()->
+
+	g.parameters = {}
+	g.parameters.location = 
+		type: 'string'
+		label: 'Location'
+		default: '0.0, 0.0'
+		permanent: true
+		onFinishChange: (value)->
+			g.ignoreHashChange = false
+			location.hash = value
+			return
+	g.parameters.zoom = 
+		type: 'slider'
+		label: 'Zoom'
+		min: 1
+		max: 500
+		default: 100
+		permanent: true
+		onChange: (value)->
+			g.project.view.zoom = value/100.0
+			g.updateGrid()
+			for div in g.divs
+				div.updateTransform()
+			return
+		onFinishChange: (value) -> return g.load()
+	g.parameters.displayGrid = 
+		type: 'checkbox'
+		label: 'Display grid'
+		default: false
+		permanent: true
+		onChange: (value)->
+			g.displayGrid = !g.displayGrid
+			g.updateGrid()
+			return
+	g.parameters.fastMode = 
+		type: 'checkbox'
+		label: 'Fast mode'
+		default: g.fastMode
+		permanent: true
+		onChange: (value)->
+			g.fastMode = value
+			return
+	g.parameters.strokeWidth = 
+		type: 'slider'
+		label: 'Stroke width'
+		min: 1
+		max: 100
+		default: 1
+	g.parameters.strokeColor =
+		type: 'color'
+		label: 'Stroke color'
+		default: g.defaultColors.random()
+		defaultFunction: () -> return g.defaultColors.random()
+		defaultCheck: true 						# checked/activated by default or not
+	g.parameters.fillColor =
+		type: 'color'
+		label: 'Fill color'
+		default: g.defaultColors.random()
+		defaultCheck: false 					# checked/activated by default or not
+	g.parameters.delete =
+		type: 'button'
+		label: 'Delete items'
+		default: ()-> item.deleteCommand() for item in g.selectedItems
+	g.parameters.duplicate =
+		type: 'button'
+		label: 'Duplicate items'
+		default: ()-> item.duplicateCommand() for item in g.selectedItems
+	g.parameters.snap =
+		type: 'slider'
+		label: 'Snap'
+		min: 0
+		max: 100
+		step: 5
+		default: 0
+		snap: 0
+		permanent: true
+		onChange: ()-> g.updateGrid()
+	g.parameters.align =
+		type: 'button-group'
+		label: 'Align'
+		value: ''
+		initializeController: (controller)->
+			$(controller.domElement).find('input').remove()
+
+			align = (type)->
+				items = g.selectedItems
+				switch type	
+					when 'h-top'
+						yMin = NaN
+						for item in items
+							top = item.getBounds().top
+							if isNaN(yMin) or top < yMin
+								yMin = top
+						items.sort((a, b)-> return a.getBounds().top - b.getBounds().top)
+						for item in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(bounds.centerX, top+bounds.height/2))
+					when 'h-center'
+						avgY = 0
+						for item in items
+							avgY += item.getBounds().centerY
+						avgY /= items.length
+						items.sort((a, b)-> return a.getBounds().centerY - b.getBounds().centerY)
+						for item in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(bounds.centerX, avgY))
+					when 'h-bottom'
+						yMax = NaN
+						for item in items
+							bottom = item.getBounds().bottom
+							if isNaN(yMax) or bottom > yMax
+								yMax = bottom
+						items.sort((a, b)-> return a.getBounds().bottom - b.getBounds().bottom)
+						for item in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(bounds.centerX, bottom-bounds.height/2))
+					when 'v-left'
+						xMin = NaN
+						for item in items
+							left = item.getBounds().left
+							if isNaN(xMin) or left < xMin
+								xMin = left
+						items.sort((a, b)-> return a.getBounds().left - b.getBounds().left)
+						for item in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(xMin+bounds.width/2, bounds.centerY))
+					when 'v-center'
+						avgX = 0
+						for item in items
+							avgX += item.getBounds().centerX
+						avgX /= items.length
+						items.sort((a, b)-> return a.getBounds().centerY - b.getBounds().centerY)
+						for item in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(avgX, bounds.centerY))
+					when 'v-right'
+						xMax = NaN
+						for item in items
+							right = item.getBounds().right
+							if isNaN(xMax) or right > xMax
+								xMax = right
+						items.sort((a, b)-> return a.getBounds().right - b.getBounds().right)
+						for item in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(xMax-bounds.width/2, bounds.centerY))
+				return
+
+			# todo: change fontStyle id to class
+			g.templatesJ.find("#align").clone().appendTo(controller.domElement)
+			alignJ = $("#align:first")
+			alignJ.find("button").click ()-> align($(this).attr("data-type"))
+			return
+	g.parameters.distribute =
+		type: 'button-group'
+		label: 'Distribute'
+		value: ''
+		initializeController: (controller)->
+			$(controller.domElement).find('input').remove()
+
+			distribute = (type)->
+				items = g.selectedItems
+				switch type	
+					when 'h-top'
+						yMin = NaN
+						yMax = NaN
+						for item in items
+							top = item.getBounds().top
+							if isNaN(yMin) or top < yMin
+								yMin = top
+							if isNaN(yMax) or top > yMax
+								yMax = top
+						step = (yMax-yMin)/(items.length-1)
+						items.sort((a, b)-> return a.getBounds().top - b.getBounds().top)
+						for item, i in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(bounds.centerX, yMin+i*step+bounds.height/2))
+					when 'h-center'
+						yMin = NaN
+						yMax = NaN
+						for item in items
+							center = item.getBounds().centerY
+							if isNaN(yMin) or center < yMin
+								yMin = center
+							if isNaN(yMax) or center > yMax
+								yMax = center
+						step = (yMax-yMin)/(items.length-1)
+						items.sort((a, b)-> return a.getBounds().centerY - b.getBounds().centerY)
+						for item, i in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(bounds.centerX, yMin+i*step))
+					when 'h-bottom'
+						yMin = NaN
+						yMax = NaN
+						for item in items
+							bottom = item.getBounds().bottom
+							if isNaN(yMin) or bottom < yMin
+								yMin = bottom
+							if isNaN(yMax) or bottom > yMax
+								yMax = bottom
+						step = (yMax-yMin)/(items.length-1)
+						items.sort((a, b)-> return a.getBounds().bottom - b.getBounds().bottom)
+						for item, i in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(bounds.centerX, yMin+i*step-bounds.height/2))
+					when 'v-left'
+						xMin = NaN
+						xMax = NaN
+						for item in items
+							left = item.getBounds().left
+							if isNaN(xMin) or left < xMin
+								xMin = left
+							if isNaN(xMax) or left > xMax
+								xMax = left
+						step = (xMax-xMin)/(items.length-1)
+						items.sort((a, b)-> return a.getBounds().left - b.getBounds().left)
+						for item, i in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(xMin+i*step+bounds.width/2, bounds.centerY))
+					when 'v-center'
+						xMin = NaN
+						xMax = NaN
+						for item in items
+							center = item.getBounds().centerX
+							if isNaN(xMin) or center < xMin
+								xMin = center
+							if isNaN(xMax) or center > xMax
+								xMax = center
+						step = (xMax-xMin)/(items.length-1)
+						items.sort((a, b)-> return a.getBounds().centerX - b.getBounds().centerX)
+						for item, i in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(xMin+i*step, bounds.centerY))
+					when 'v-right'
+						xMin = NaN
+						xMax = NaN
+						for item in items
+							right = item.getBounds().right
+							if isNaN(xMin) or right < xMin
+								xMin = right
+							if isNaN(xMax) or right > xMax
+								xMax = right
+						step = (xMax-xMin)/(items.length-1)
+						items.sort((a, b)-> return a.getBounds().right - b.getBounds().right)
+						for item, i in items
+							bounds = item.getBounds()
+							item.moveTo(new Point(xMin+i*step-bounds.width/2, bounds.centerY))
+				return
+
+			# todo: change fontStyle id to class
+			g.templatesJ.find("#distribute").clone().appendTo(controller.domElement)
+			distributeJ = $("#distribute:first")
+			distributeJ.find("button").click ()-> distribute($(this).attr("data-type"))
+			return
+	return
+	
 paper.install(window)
 
 # initialize Romanesco
@@ -303,7 +559,14 @@ init = ()->
 	g.sidebarJ = $("#sidebar")
 	g.canvasJ = g.stageJ.find("#canvas")
 	g.canvas = g.canvasJ[0]
+	g.backgroundCanvasJ = g.stageJ.find("#background-canvas")
+	g.backgroundCanvas = g.backgroundCanvasJ[0]
+	g.backgroundCanvas.width = window.innerWidth
+	g.backgroundCanvas.height = window.innerHeight
+	g.backgroundCanvasJ.width(window.innerWidth)
+	g.backgroundCanvasJ.height(window.innerHeight)
 	g.context = g.canvas.getContext('2d')
+	g.backgroundContext = g.backgroundCanvas.getContext('2d')
 	g.templatesJ = $("#templates")
 	g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
 	g.selectionLayer = null					# paper layer containing all selected paper items
@@ -348,7 +611,6 @@ init = ()->
 	g.limitPathV = null 					# the vertical limit path (line between two planets)
 	g.limitPathH = null 					# the horizontal limit path (line between two planets)
 	g.selectedItems = [] 					# the selectedItems
-	
 	# initialize sort
 
 	g.itemListsJ = $("#RItems .layers")
@@ -362,7 +624,6 @@ init = ()->
 		$(this).parent().toggleClass('closed')
 		return
 	g.commandManager = new CommandManager()
-	g.commandManager.add(new Command('Load Romanesco'), true)
 	# g.globalMaskJ = $("#globalMask")
 	# g.globalMaskJ.hide()
 	
@@ -391,6 +652,7 @@ init = ()->
 	g.grid = new Group() 					# Paper Group to append all grid items
 	g.grid.name = 'grid group'
 	view.zoom = 1 # 0.01
+	g.previousViewPosition = view.center
 
 	# add custom methods to export Paper Point and Rectangle to JSON
 	Point.prototype.toJSON = ()->
@@ -401,8 +663,6 @@ init = ()->
 		return { x: this.x, y: this.y, width: this.width, height: this.height }
 	Rectangle.prototype.exportJSON = ()->
 		return JSON.stringify(this.toJSON())
-
-	g.tool = new Tool()
 
 	# g.defaultColors = ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5' ]
 	# g.defaultColors = ['#d7dddb', '#4f8a83', '#e76278', '#fac699', '#712164']
@@ -495,7 +755,7 @@ init = ()->
 
 		return
 
-
+	initializeGlobalParameters()
 	initParameters()
 	initCodeEditor()
 	initTools()
@@ -527,8 +787,10 @@ $(document).ready () ->
 	canvasJ.dblclick( (event) -> g.selectedTool.doubleClick?(event) )
 	canvasJ.keydown( (event) -> if event.key == 46 then event.preventDefault(); return false ) # cancel default delete key behaviour (not really working)
 
+	g.tool = new Tool()
+
 	# Paper listeners
-	tool.onMouseDown = (event) ->
+	g.tool.onMouseDown = (event) ->
 		if g.wacomPenAPI?.isEraser
 			tool.onKeyUp( key: 'delete' )
 			return
@@ -536,19 +798,19 @@ $(document).ready () ->
 		# event = g.snap(event) 		# snapping mouseDown event causes some problems
 		g.selectedTool.begin(event)
 
-	tool.onMouseDrag = (event) ->
+	g.tool.onMouseDrag = (event) ->
 		if g.wacomPenAPI?.isEraser then return
 		if g.currentDiv? then return
 		event = g.snap(event)
 		g.selectedTool.update(event)
 
-	tool.onMouseUp = (event) ->
+	g.tool.onMouseUp = (event) ->
 		if g.wacomPenAPI?.isEraser then return
 		if g.currentDiv? then return
 		event = g.snap(event)
 		g.selectedTool.end(event)
 
-	tool.onKeyDown = (event) ->
+	g.tool.onKeyDown = (event) ->
 	
 		# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the event
 		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea") or $(document.activeElement).parents(".dat-gui").length
@@ -561,7 +823,7 @@ $(document).ready () ->
 		if event.key == 'space' and g.selectedTool.name != 'Move' 	# select 'Move' tool when user press space key (and reselect previous tool after)
 			g.tools['Move'].select()
 
-	tool.onKeyUp = (event) ->
+	g.tool.onKeyUp = (event) ->
 		# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the event
 		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea") or $(document.activeElement).parents(".dat-gui").length
 			return
@@ -621,6 +883,8 @@ $(document).ready () ->
 
 	# update grid and mCustomScrollbar when window is resized
 	g.windowJ.resize( (event) ->
+		g.backgroundCanvas.width = window.innerWidth
+		g.backgroundCanvas.height = window.innerHeight
 		updateGrid()
 		$(".mCustomScrollbar").mCustomScrollbar("update")
 		view.draw()
@@ -637,18 +901,29 @@ this.mousedown = (event) ->
 			g.selectedTool.finishPath?() 	# finish current path (in polygon mode) if right click
 
 	if g.selectedTool.name == 'Move' 		# update 'Move' tool if it is the one selected, and return
+		# g.initialMousePosition = new Point(event.pageX, event.pageY)
+		# g.previousMousePosition = g.initialMousePosition.clone()
+		# g.selectedTool.begin()
 		g.selectedTool.beginNative(event)
 		return
 	
-	
-	g.initialPosition = g.jEventToPoint(event)
-	g.previousPosition = g.initialPosition
+	g.initialMousePosition = g.jEventToPoint(event)
+	g.previousMousePosition = g.initialMousePosition.clone()
+
 	return
 
 # mousemove event listener
 this.mousemove = (event) ->
-	if g.selectedTool.name == 'Move' then g.selectedTool.updateNative(event) 	# update 'Move' tool if it is the one selected
-		
+
+	if g.selectedTool.name == 'Move' and g.selectedTool.dragging
+		# mousePosition = new Point(event.pageX, event.pageY)
+		# simpleEvent = delta: g.previousMousePosition.subtract(mousePosition)
+		# g.previousMousePosition = mousePosition
+		# console.log simpleEvent.delta.toString()
+		# g.selectedTool.update(simpleEvent) 	# update 'Move' tool if it is the one selected
+		g.selectedTool.updateNative(event)
+		return
+
 	# update selected RDivs
 	# if g.previousPoint?
 	# 	event.delta = new Point(event.pageX-g.previousPoint.x, event.pageY-g.previousPoint.y)
@@ -662,24 +937,28 @@ this.mousemove = (event) ->
 		g.editorJ.css( right: g.windowJ.width()-event.pageX)
 	
 	if g.currentDiv?
-		paperEvent = g.jEventToPaperEvent(event, g.previousPosition, g.initialPosition, 'mousemove')
-		g.previousPosition = paperEvent.point
+		paperEvent = g.jEventToPaperEvent(event, g.previousMousePosition, g.initialMousePosition, 'mousemove')
 		g.currentDiv.updateSelect?(paperEvent)
+		g.previousMousePosition = paperEvent.point
 
 	return
 
 # mouseup event listener
 this.mouseup = (event) ->
-	if g.selectedTool.name == 'Move' then g.selectedTool.endNative(event) 	# update 'Move' tool if it is the one selected
+
+	if g.selectedTool.name == 'Move'
+		# g.selectedTool.end(g.previousMousePosition.equals(g.initialMousePosition))
+		g.selectedTool.endNative(event)
+		return
 
 	# deselect move tool and select previous tool if middle mouse button
 	if event.which == 2 # middle mouse button
 		g.previousTool?.select()
 
 	if g.currentDiv?
-		paperEvent = g.jEventToPaperEvent(event, g.previousPosition, g.initialPosition, 'mouseup')
-		g.previousPosition = paperEvent.point
+		paperEvent = g.jEventToPaperEvent(event, g.previousMousePosition, g.initialMousePosition, 'mouseup')
 		g.currentDiv.endSelect?(paperEvent)
+		g.previousMousePosition = paperEvent.point
 
 	# drag handles	
 	# g.mousemove(event)

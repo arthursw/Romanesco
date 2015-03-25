@@ -112,7 +112,7 @@ this.initCodeEditor = ()->
 
 	# save the code in localStorage after 1 second
 	g.editor.getSession().on 'change', (e)->
-		g.defferedExecution(saveChanges, 1000)
+		g.deferredExecution(saveChanges, 1000)
 		return
 
 	# todo: try compile at each change, see if name is in DB to determine if it's a update or a new tool and make notice to user

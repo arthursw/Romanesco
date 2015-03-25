@@ -28,10 +28,11 @@ this.areaIsQuickLoaded = (area) ->
 # @param [Rectangle] (optional) the area to load, *area* equals the bounds of the view if not defined
 this.load = (area=null) ->
 
-	if g.previousLoadPosition? and g.previousLoadPosition.subtract(view.center).length<50
+	if not g.rasterizerMode and g.previousLoadPosition? and g.previousLoadPosition.subtract(view.center).length<50
 		return false
 
 	console.log "load"
+	if area? then console.log area.toString()
 
 	# g.startLoadingBar()
 
@@ -168,7 +169,7 @@ this.load = (area=null) ->
 				if debug then area.rectangle = areaRectangle
 				g.loadedAreas.push(area)
 
-	if areasToLoad.length<=0 	# return if there is nothing to load
+	if not g.rasterizerMode and areasToLoad.length<=0 	# return if there is nothing to load
 		return false
 
 	# load areas
@@ -180,14 +181,21 @@ this.load = (area=null) ->
 
 	rectangle = { left: l/1000, top: t/1000, right: r/1000, bottom: b/1000 }
 
-	Dajaxice.draw.load(load_callback, { rectangle: rectangle, areasToLoad: areasToLoad, zoom: view.zoom })
+	console.log 'request loading'
+	console.log rectangle
+
+	itemsDates = if g.rasterizerMode then g.createItemsDates() else null
+	
+	Dajaxice.draw.load(load_callback, { rectangle: rectangle, areasToLoad: areasToLoad, zoom: view.zoom, loadRasters: not g.rasterizerMode, itemsDates: itemsDates })
 	# ajaxPost '/load', args, load_callback
 	return true
 
 # load callback: add loaded RItems
 this.load_callback = (results)->
+	console.log "load callback"
 
 	dispatchLoadFinished = ()->
+		console.log "dispatch command executed"
 		commandEvent = document.createEvent('Event')
 		commandEvent .initEvent('command executed', true, true)
 		document.dispatchEvent(commandEvent)
@@ -202,7 +210,7 @@ this.load_callback = (results)->
 	# set g.me (the server sends the username at each load)
 	if not g.me?
 		g.me = results.user
-		if g.chatJ.find("#chatUserNameInput").length==0
+		if g.chatJ? and g.chatJ.find("#chatUserNameInput").length==0
 			g.startChatting( g.me )
 
 	# helper to check it the item is already loaded
@@ -232,6 +240,8 @@ this.load_callback = (results)->
 		g.rasters[position.x] ?= {}
 		g.rasters[position.x][position.y] = raster
 
+	if g.rasterizerMode then g.removeItemsToUpdate(results.itemsToUpdate)
+
 	newAreasToUpdate = []
 
 	itemsToLoad = []
@@ -247,17 +257,20 @@ this.load_callback = (results)->
 				console.log "Error: box has less than 5 points"
 			
 			data = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
+			date = box.date.$date
 
 			lock = null
 			switch box.object_type
 				when 'link'
-					lock = new RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner)
+					lock = new RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
 				when 'lock'
-					lock = new RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner)
+					lock = new RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
 				when 'website'
-					lock = new RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner)
+					lock = new RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
 				when 'video-game'
-					lock = new RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner)
+					lock = new RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
+			
+			lock.lastUpdateDate = box.lastUpdate.$date
 		else
 			itemsToLoad.push(item)
 
@@ -280,6 +293,8 @@ this.load_callback = (results)->
 					when 'media'
 						rdiv = new RMedia(g.rectangleFromBox(div), data, div._id.$oid, date, if div.lock? then g.items[div.lock] else null)
 
+				rdiv.lastUpdateDate = div.lastUpdate.$date
+
 			when 'Path' 		# add RPaths
 				path = item
 				planet = new Point(path.planetX, path.planetY)
@@ -300,6 +315,9 @@ this.load_callback = (results)->
 				rpath = null
 				if g.tools[path.object_type]?
 					rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points, if path.lock? then g.items[path.lock] else null)
+					
+					rpath.lastUpdateDate = path.lastUpdate.$date
+
 					if rpath.constructor.name == "Checkpoint"
 						console.log rpath
 				else
@@ -311,24 +329,115 @@ this.load_callback = (results)->
 
 	RDiv.updateZIndex(g.sortedDivs)
 
-	# update areas to update (draw items which lie on those areas)
-	g.addAreasToUpdate(newAreasToUpdate)
-	for pk, rectangle of g.areasToUpdate
-		if rectangle.intersects(view.bounds)
-			g.updateView()
-			break
+	if not g.rasterizerMode
+		# update areas to update (draw items which lie on those areas)
+		g.addAreasToUpdate(newAreasToUpdate)
+		for pk, rectangle of g.areasToUpdate
+			if rectangle.intersects(view.bounds)
+				g.updateView()
+				break
 
-	# loadFonts()
-	view.draw()
-	updateView()
+		# loadFonts()
+		view.draw()
+		updateView()
+		
+		clearTimeout(g.loadingBarTimeout)
+		g.loadingBarTimeout = null
+		$("#loadingBar").hide()
+
+		dispatchLoadFinished()
+
+	console.log typeof window.saveOnServer == "function"
 	
-	clearTimeout(g.loadingBarTimeout)
-	g.loadingBarTimeout = null
-	$("#loadingBar").hide()
-
-	dispatchLoadFinished()
+	if typeof window.saveOnServer == "function"
+		g.rasterizeAndSaveOnServer()
 
 	# g.stopLoadingBar()
+	return
+
+this.createItemsDates = ()->
+	itemsDates = []
+	for pk, item of g.items
+		type = ''
+		if RLock.prototype.isPrototypeOf(item)
+			type = 'Box'
+		else if RDiv.prototype.isPrototypeOf(item)
+			type = 'Div'
+		else if RPath.prototype.isPrototypeOf(item)
+			type = 'Path'
+		itemsDates.push( pk: pk, lastUpdate: item.lastUpdateDate, type: type )
+	return itemsDates
+
+this.removeItemsToUpdate = (itemsToUpdate)->
+	for pk in itemsToUpdate
+		g.items[pk].remove()
+	return
+
+
+this.loopRasterize = ()->
+
+	rectangle = g.areaToRasterize
+
+	width = Math.min(Math.min(view.size.width, 1000), rectangle.right - view.bounds.left)
+	height = Math.min(Math.min(view.size.height, 1000), rectangle.bottom - view.bounds.top)
+	
+	center = view.center.clone()
+	view.viewSize = new Size(width, height)
+	view.center = center
+
+	imagePosition = view.bounds.topLeft.clone()
+
+	dataURL = areaToImageDataUrl(new Rectangle(0, 0, width, height), false)
+
+	view.center = view.center.add(Math.min(view.size.width, 1000), 0)
+	if view.bounds.left > rectangle.right
+		view.center = new Point(rectangle.left+view.size.width*0.5, view.center.y+Math.min(view.size.height, 1000))
+	
+	finished = view.bounds.top > rectangle.bottom
+	
+	window.saveOnServer(dataURL, imagePosition.x, imagePosition.y, finished)
+	return
+
+this.rasterizeAndSaveOnServer = ()->
+	console.log "area rasterized"
+	g.debugIsLoading = false
+	position = view.bounds.topLeft
+
+	rectangle = g.areaToRasterize
+	if view.bounds.contains(rectangle)
+		view.draw()
+		console.log 'dimensions'
+		console.log view.bounds.toString()
+		console.log window.innerWidth
+		console.log window.innerHeight
+		window.saveOnServer(g.canvas.toDataURL(), rectangle.x, rectangle.y, true)
+	else
+		view.center = rectangle.topLeft.add(view.size.multiply(0.5))
+		g.loopRasterize()
+
+	return
+
+this.loadArea = (args)->
+	console.log "load_area"
+
+	if g.areaToRasterize?
+		console.log "error: load_area while loading !!"
+		debugger
+	
+	area = g.rectangleFromBox(JSON.parse(args))
+	g.areaToRasterize = area
+	view.viewSize = Size.min(area.size, new Size(1000, 1000))
+
+	# move the view
+	delta = area.center.subtract(view.center)
+	project.view.scrollBy(delta)
+	for div in g.divs
+		div.updateTransform()
+
+	console.log "call load"
+
+	g.load(area)
+	
 	return
 
 this.benchmark_load = ()->
@@ -356,4 +465,3 @@ this.benchmark_load = ()->
 
 	Dajaxice.draw.benchmark_load(g.checkError, { areasToLoad: areasToLoad })
 	return
-

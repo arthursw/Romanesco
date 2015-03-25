@@ -132,7 +132,11 @@
 
     RPath.prototype.getDrawingBounds = function() {
       var _ref;
-      return (_ref = this.drawing) != null ? _ref.strokeBounds : void 0;
+      if (this.canvasRaster == null) {
+        return (_ref = this.drawing) != null ? _ref.strokeBounds : void 0;
+      } else {
+        return this.getBounds().expand(this.data.strokeWidth);
+      }
     };
 
     RPath.prototype.endSetRectangle = function() {
@@ -155,6 +159,7 @@
         fullySelected = true;
       }
       RPath.__super__.prepareHitTest.call(this, fullySelected, strokeWidth);
+      this.group.visible = true;
       this.hitTestSelected = this.controlPath.selected;
       if (fullySelected) {
         this.hitTestFullySelected = this.controlPath.fullySelected;
@@ -190,11 +195,14 @@
       }
     };
 
-    RPath.prototype.select = function(updateOptions) {
+    RPath.prototype.select = function(updateOptions, updateSelectionRectangle) {
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (!RPath.__super__.select.call(this, updateOptions) || (this.controlPath == null)) {
+      if (updateSelectionRectangle == null) {
+        updateSelectionRectangle = true;
+      }
+      if (!RPath.__super__.select.call(this, updateOptions, updateSelectionRectangle) || (this.controlPath == null)) {
         return false;
       }
       return true;
@@ -206,6 +214,20 @@
       }
       this.rasterize();
       return true;
+    };
+
+    RPath.prototype.beginAction = function(command) {
+      RPath.__super__.beginAction.call(this, command);
+      if (!((this.selectionState.move != null) || (this.selectionState.rotation != null))) {
+        g.rasterizeProject(this);
+      }
+    };
+
+    RPath.prototype.endAction = function() {
+      RPath.__super__.endAction.call(this);
+      if (!((this.selectionState.move != null) || (this.selectionState.rotation != null))) {
+        g.restoreProject(this);
+      }
     };
 
     RPath.prototype.rasterize = function() {};
@@ -290,12 +312,12 @@
       this.group.addChild(this.drawing);
       if (createCanvas) {
         canvas = document.createElement("canvas");
-        if (this.controlPath.length <= 1) {
+        if (this.rectangle.area < 2) {
           canvas.width = view.size.width;
           canvas.height = view.size.height;
           position = view.center;
         } else {
-          bounds = this.getBounds();
+          bounds = this.getDrawingBounds();
           canvas.width = bounds.width;
           canvas.height = bounds.height;
           position = bounds.center;
@@ -336,12 +358,9 @@
       }
     };
 
-    RPath.prototype.draw = function(simplified, loading) {
+    RPath.prototype.draw = function(simplified) {
       if (simplified == null) {
         simplified = false;
-      }
-      if (loading == null) {
-        loading = false;
       }
     };
 
@@ -351,9 +370,7 @@
 
     RPath.prototype.updateCreate = function(point, event) {};
 
-    RPath.prototype.endCreate = function(point, event) {
-      this.initialize();
-    };
+    RPath.prototype.endCreate = function(point, event) {};
 
     RPath.prototype.insertAbove = function(path, index, update) {
       if (index == null) {
@@ -395,7 +412,8 @@
       return projectToPlanet(this.controlPath.segments[0].point);
     };
 
-    RPath.prototype.save = function() {
+    RPath.prototype.save = function(addCreateCommand) {
+      this.addCreateCommand = addCreateCommand;
       if (this.controlPath == null) {
         return;
       }
@@ -406,7 +424,7 @@
         'object_type': this.constructor.rname,
         'date': this.date,
         'data': this.getStringifiedData(),
-        'bounds': this.getBounds()
+        'bounds': g.boxFromRectangle(this.getDrawingBounds())
       });
     };
 
@@ -417,6 +435,10 @@
         return;
       }
       this.setPK(result.pk);
+      if (this.addCreateCommand) {
+        g.commandManager.add(new CreatePathCommand(this));
+        delete this.addCreateCommand;
+      }
       if (!((_ref = this.data) != null ? _ref.animate : void 0)) {
         g.rasterizeArea(this.getDrawingBounds());
       }
@@ -443,7 +465,8 @@
             pk: this.pk,
             points: this.pathOnPlanet(),
             planet: this.planet(),
-            data: this.getStringifiedData()
+            data: this.getStringifiedData(),
+            bounds: g.boxFromRectangle(this.getDrawingBounds())
           };
       }
       return args;
@@ -533,15 +556,15 @@
     RPath.prototype["delete"] = function() {
       var bounds;
       this.group.visible = false;
-      bounds = this.getDrawingBounds();
+      bounds = g.boxFromRectangle(this.getDrawingBounds());
       this.remove();
-      g.rasterizeArea(bounds);
       if (this.pk == null) {
         return;
       }
       console.log(this.pk);
       Dajaxice.draw.deletePath(this.deletePath_callback, {
-        pk: this.pk
+        pk: this.pk,
+        bounds: bounds
       });
       this.pk = null;
     };
@@ -596,17 +619,21 @@
 
     PrecisePath.secureStep = 25;
 
+    PrecisePath.polygonMode = true;
+
     PrecisePath.parameters = function() {
       var parameters;
       parameters = PrecisePath.__super__.constructor.parameters.call(this);
-      parameters['General'].polygonMode = {
-        type: 'checkbox',
-        label: 'Polygon mode',
-        "default": g.polygonMode,
-        onChange: function(value) {
-          return g.polygonMode = value;
-        }
-      };
+      if (this.polygonMode) {
+        parameters['General'].polygonMode = {
+          type: 'checkbox',
+          label: 'Polygon mode',
+          "default": g.polygonMode,
+          onChange: function(value) {
+            return g.polygonMode = value;
+          }
+        };
+      }
       parameters['Edit curve'] = {
         smooth: {
           type: 'checkbox',
@@ -664,15 +691,18 @@
       return parameters;
     };
 
-    function PrecisePath(date, data, pk, points) {
+    function PrecisePath(date, data, pk, points, lock) {
       this.date = date != null ? date : null;
       this.data = data != null ? data : null;
       this.pk = pk != null ? pk : null;
       if (points == null) {
         points = null;
       }
-      PrecisePath.__super__.constructor.call(this, this.date, this.data, this.pk, points);
-      this.data.polygonMode = g.polygonMode;
+      this.lock = lock;
+      PrecisePath.__super__.constructor.call(this, this.date, this.data, this.pk, points, this.lock);
+      if (this.constructor.polygonMode) {
+        this.data.polygonMode = g.polygonMode;
+      }
       this.rotation = this.data.rotation = 0;
       return;
     }
@@ -694,7 +724,6 @@
         this.controlPath.add(points[1]);
       }
       this.finishPath(true);
-      this.initialize();
       if ((_ref1 = this.data) != null ? _ref1.animate : void 0) {
         this.draw();
       }
@@ -743,7 +772,7 @@
       PrecisePath.__super__.initializeDrawing.call(this, createCanvas);
     };
 
-    PrecisePath.prototype.drawBegin = function(redrawing) {
+    PrecisePath.prototype.beginDraw = function(redrawing) {
       if (redrawing == null) {
         redrawing = false;
       }
@@ -751,14 +780,15 @@
       this.path = this.addPath();
       this.path.segments = this.controlPath.segments;
       this.path.selected = false;
+      this.path.strokeCap = 'round';
     };
 
-    PrecisePath.prototype.drawUpdate = function(offset, step) {
+    PrecisePath.prototype.updateDraw = function(offset, step) {
       this.path.segments = this.controlPath.segments;
       this.path.selected = false;
     };
 
-    PrecisePath.prototype.drawEnd = function(redrawing) {
+    PrecisePath.prototype.endDraw = function(redrawing) {
       if (redrawing == null) {
         redrawing = false;
       }
@@ -775,10 +805,10 @@
       controlPathOffset = segment.location.offset;
       while (this.drawingOffset + step < controlPathOffset) {
         this.drawingOffset += step;
-        this.drawUpdate(this.drawingOffset, true, redrawing);
+        this.updateDraw(this.drawingOffset, true, redrawing);
       }
       if (this.drawingOffset + step > controlPathOffset) {
-        this.drawUpdate(controlPathOffset, false, redrawing);
+        this.updateDraw(controlPathOffset, false, redrawing);
       }
     };
 
@@ -791,13 +821,15 @@
     PrecisePath.prototype.beginCreate = function(point, event) {
       PrecisePath.__super__.beginCreate.call(this);
       if (!this.data.polygonMode) {
+        g.rasterizeProject(this);
         this.initializeControlPath(point);
-        this.drawBegin(false);
+        this.beginDraw(false);
       } else {
         if (this.controlPath == null) {
+          g.rasterizeProject(this);
           this.initializeControlPath(point);
           this.controlPath.add(point);
-          this.drawBegin(false);
+          this.beginDraw(false);
         } else {
           this.controlPath.add(point);
         }
@@ -820,22 +852,38 @@
         }
         lastSegment.handleIn = lastSegment.handleOut = null;
         lastSegment.point = point;
-        this.draw(true);
+        console.log('update create');
+        this.draw(true, false);
       }
     };
 
     PrecisePath.prototype.createMove = function(event) {
       this.controlPath.lastSegment.point = event.point;
-      this.draw(true);
+      console.log('create move');
+      this.draw(true, false);
     };
 
     PrecisePath.prototype.endCreate = function(point, event) {
-      if (!this.data.polygonMode) {
-        if (this.controlPath.segments.length >= 2) {
-          this.controlPath.simplify();
-        }
-        this.finishPath();
+      var segment, _i, _len, _ref;
+      if (this.data.polygonMode) {
+        return;
       }
+      if (this.controlPath.segments.length >= 2) {
+        this.controlPath.simplify();
+        _ref = this.controlPath.segments;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          segment = _ref[_i];
+          if (segment.handleIn.length > 200) {
+            segment.handleIn = segment.handleIn.normalize().multiply(100);
+            console.log('ADJUSTING HANDLE LENGTH');
+          }
+          if (segment.handleOut.length > 200) {
+            segment.handleOut = segment.handleOut.normalize().multiply(100);
+            console.log('ADJUSTING HANDLE LENGTH');
+          }
+        }
+      }
+      this.finishPath();
       PrecisePath.__super__.endCreate.call(this);
     };
 
@@ -855,9 +903,12 @@
         this.controlPath.smooth();
       }
       if (!loading) {
-        this.drawEnd(loading);
+        this.endDraw(loading);
         this.drawingOffset = 0;
+        g.restoreProject(this);
       }
+      this.rectangle = this.controlPath.bounds;
+      this.initialize();
       this.draw(false, loading);
       this.rasterize();
     };
@@ -893,10 +944,13 @@
       }
     };
 
-    PrecisePath.prototype.draw = function(simplified) {
+    PrecisePath.prototype.draw = function(simplified, redrawing) {
       var controlPathLength, error, nIteration, nf, offset, process, reminder, step;
       if (simplified == null) {
         simplified = false;
+      }
+      if (redrawing == null) {
+        redrawing = true;
       }
       if (this.controlPath.segments.length < 2) {
         return;
@@ -914,16 +968,16 @@
       process = (function(_this) {
         return function() {
           var i, segment, _i, _len, _ref;
-          _this.drawBegin(true);
+          _this.beginDraw(redrawing);
           _ref = _this.controlPath.segments;
           for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
             segment = _ref[i];
             if (i === 0) {
               continue;
             }
-            _this.checkUpdateDrawing(segment, true);
+            _this.checkUpdateDrawing(segment, redrawing);
           }
-          _this.drawEnd(true);
+          _this.endDraw(redrawing);
         };
       })(this);
       if (!g.catchErrors) {
@@ -968,11 +1022,14 @@
       return this.data;
     };
 
-    PrecisePath.prototype.select = function(updateOptions) {
+    PrecisePath.prototype.select = function(updateOptions, updateSelectionRectangle) {
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (!PrecisePath.__super__.select.call(this, updateOptions)) {
+      if (updateSelectionRectangle == null) {
+        updateSelectionRectangle = true;
+      }
+      if (!PrecisePath.__super__.select.call(this, updateOptions, updateSelectionRectangle)) {
         return;
       }
       this.controlPath.selected = true;
@@ -1363,7 +1420,7 @@
     PrecisePath.prototype.remove = function() {
       this.selectionHighlight = null;
       this.canvasRaster = null;
-      return PrecisePath.__super__.remove.call(this);
+      PrecisePath.__super__.remove.call(this);
     };
 
     return PrecisePath;
@@ -1651,15 +1708,12 @@
       }
     };
 
-    SpeedPath.prototype.draw = function(simplified, loading) {
+    SpeedPath.prototype.draw = function(simplified) {
       if (simplified == null) {
         simplified = false;
       }
-      if (loading == null) {
-        loading = false;
-      }
       this.speedOffset = 0;
-      SpeedPath.__super__.draw.call(this, simplified, loading);
+      SpeedPath.__super__.draw.call(this, simplified);
       if (this.controlPath.selected) {
         this.updateSpeed();
       }
@@ -1673,12 +1727,15 @@
       return data;
     };
 
-    SpeedPath.prototype.select = function(updateOptions) {
+    SpeedPath.prototype.select = function(updateOptions, updateSelectionRectangle) {
       var _ref;
       if (updateOptions == null) {
         updateOptions = true;
       }
-      if (!SpeedPath.__super__.select.call(this, updateOptions)) {
+      if (updateSelectionRectangle == null) {
+        updateSelectionRectangle = true;
+      }
+      if (!SpeedPath.__super__.select.call(this, updateOptions, updateSelectionRectangle)) {
         return false;
       }
       this.showSpeed();
@@ -1835,20 +1892,21 @@
       parameters['Parameters'].trackWidth = {
         type: 'slider',
         label: 'Track width',
-        min: 1,
-        max: 10,
-        "default": 2
+        min: 0.1,
+        max: 3,
+        "default": 0.5
       };
       return parameters;
     };
 
-    ThicknessPath.prototype.drawBegin = function() {
+    ThicknessPath.prototype.beginDraw = function() {
       this.initializeDrawing(false);
       this.path = this.addPath();
       this.path.add(this.controlPath.firstSegment.point);
+      this.path.add(this.controlPath.firstSegment.point);
     };
 
-    ThicknessPath.prototype.drawUpdate = function(offset, step) {
+    ThicknessPath.prototype.updateDraw = function(offset, step) {
       var bottom, delta, normal, point, speed, top;
       point = this.controlPath.getPointAt(offset);
       normal = this.controlPath.getNormalAt(offset).normalize();
@@ -1870,7 +1928,7 @@
       this.path.smooth();
     };
 
-    ThicknessPath.prototype.drawEnd = function() {
+    ThicknessPath.prototype.endDraw = function() {
       this.path.add(this.controlPath.lastSegment.point);
       this.path.closed = true;
       this.path.smooth();
@@ -1931,13 +1989,13 @@
       return parameters;
     };
 
-    Meander.prototype.drawBegin = function() {
+    Meander.prototype.beginDraw = function() {
       this.initializeDrawing(false);
       this.line = this.addPath();
       this.spiral = this.addPath();
     };
 
-    Meander.prototype.drawUpdate = function(offset, step) {
+    Meander.prototype.updateDraw = function(offset, step) {
       var normal, p1, p2, p3, p4, p5, p6, p7, p8, p9, point, tangent;
       if (!step) {
         return;
@@ -1967,7 +2025,7 @@
       this.spiral.add(p9);
     };
 
-    Meander.prototype.drawEnd = function() {
+    Meander.prototype.endDraw = function() {
       if (this.data.rsmooth) {
         this.spiral.smooth();
         this.line.smooth();
@@ -2004,7 +2062,7 @@
         label: 'Step',
         min: 5,
         max: 100,
-        "default": 20,
+        "default": 5,
         simplified: 20,
         step: 1
       };
@@ -2049,7 +2107,7 @@
         type: 'dropdown',
         label: 'Symmetry',
         values: ['symmetric', 'top', 'bottom'],
-        "default": 'symmetric'
+        "default": 'top'
       };
       parameters['Parameters'].speedForWidth = {
         type: 'checkbox',
@@ -2074,7 +2132,7 @@
       return parameters;
     };
 
-    GridPath.prototype.drawBegin = function() {
+    GridPath.prototype.beginDraw = function() {
       var i, nLines, _i;
       this.initializeDrawing(false);
       if (this.data.lengthLines) {
@@ -2090,7 +2148,7 @@
       this.lastOffset = 0;
     };
 
-    GridPath.prototype.drawUpdate = function(offset, step) {
+    GridPath.prototype.updateDraw = function(offset, step) {
       var addPoint, midOffset, speed, stepOffset;
       if (!step) {
         return;
@@ -2163,7 +2221,7 @@
       }
     };
 
-    GridPath.prototype.drawEnd = function() {};
+    GridPath.prototype.endDraw = function() {};
 
     return GridPath;
 
@@ -2217,12 +2275,12 @@
       return parameters;
     };
 
-    GeometricLines.prototype.drawBegin = function() {
+    GeometricLines.prototype.beginDraw = function() {
       this.initializeDrawing(true);
       this.points = [];
     };
 
-    GeometricLines.prototype.drawUpdate = function(offset, step) {
+    GeometricLines.prototype.updateDraw = function(offset, step) {
       var distMax, normal, point, pt, _i, _len, _ref;
       if (!step) {
         return;
@@ -2244,7 +2302,7 @@
       }
     };
 
-    GeometricLines.prototype.drawEnd = function() {};
+    GeometricLines.prototype.endDraw = function() {};
 
     return GeometricLines;
 
@@ -2302,7 +2360,11 @@
       return parameters;
     };
 
-    PaintBrush.prototype.drawBegin = function() {
+    PaintBrush.prototype.getDrawingBounds = function() {
+      return this.getBounds().expand(this.data.size);
+    };
+
+    PaintBrush.prototype.beginDraw = function() {
       var point;
       this.initializeDrawing(true);
       point = this.controlPath.firstSegment.point;
@@ -2310,7 +2372,7 @@
       this.context.moveTo(point.x, point.y);
     };
 
-    PaintBrush.prototype.drawUpdate = function(offset, step) {
+    PaintBrush.prototype.updateDraw = function(offset, step) {
       var endColor, innerRadius, midColor, normal, outerRadius, point, radialGradient;
       if (!step) {
         return;
@@ -2332,7 +2394,7 @@
       this.context.fillRect(point.x - outerRadius, point.y - outerRadius, 2 * outerRadius, 2 * outerRadius);
     };
 
-    PaintBrush.prototype.drawEnd = function() {};
+    PaintBrush.prototype.endDraw = function() {};
 
     return PaintBrush;
 
@@ -2390,7 +2452,18 @@
       return parameters;
     };
 
-    PaintGun.prototype.drawBegin = function() {
+    PaintGun.prototype.getDrawingBounds = function() {
+      var width;
+      width = 0;
+      if (!this.data.inverseThickness) {
+        width = this.speeds.max() * this.data.trackWidth / 2;
+      } else {
+        width = Math.max(this.maxSpeed - this.speeds.min(), 0) * this.data.trackWidth / 2;
+      }
+      return this.getBounds().expand(width);
+    };
+
+    PaintGun.prototype.beginDraw = function() {
       var point;
       this.initializeDrawing(true);
       point = this.controlPath.firstSegment.point;
@@ -2443,11 +2516,11 @@
       }
     };
 
-    PaintGun.prototype.drawUpdate = function(offset, step) {
+    PaintGun.prototype.updateDraw = function(offset, step) {
       this.drawStep(offset, step);
     };
 
-    PaintGun.prototype.drawEnd = function() {
+    PaintGun.prototype.endDraw = function() {
       var point;
       this.drawStep(this.controlPath.length, false, true);
       if (this.data.roundEnd) {
@@ -2479,6 +2552,8 @@
     DynamicBrush.rname = 'Dynamic brush';
 
     DynamicBrush.rdescription = "The stroke width is function of the drawing speed: the faster the wider.";
+
+    DynamicBrush.polygonMode = false;
 
     DynamicBrush.parameters = function() {
       var parameters;
@@ -2555,7 +2630,15 @@
       return parameters;
     };
 
-    DynamicBrush.prototype.drawBegin = function(redrawing) {
+    DynamicBrush.prototype.getDrawingBounds = function() {
+      var width;
+      width = this.data.inverseThickness ? this.speeds.max() : this.speeds.min();
+      width = this.data.inverseThickness ? width : this.data.maxSpeed - width;
+      width *= this.data.trackWidth;
+      return this.getBounds().expand(2 * width);
+    };
+
+    DynamicBrush.prototype.beginDraw = function(redrawing) {
       if (redrawing == null) {
         redrawing = false;
       }
@@ -2673,7 +2756,7 @@
       }
     };
 
-    DynamicBrush.prototype.drawUpdate = function(offset, step, redrawing) {
+    DynamicBrush.prototype.updateDraw = function(offset, step, redrawing) {
       var v;
       this.point = this.controlPath.getPointAt(offset);
       if (redrawing) {
@@ -2701,7 +2784,7 @@
       }
     };
 
-    DynamicBrush.prototype.drawEnd = function(redrawing) {
+    DynamicBrush.prototype.endDraw = function(redrawing) {
       var f, i, length, location, offset;
       if (redrawing == null) {
         redrawing = false;
@@ -2736,6 +2819,7 @@
 
     DynamicBrush.prototype.remove = function() {
       clearInterval(this.timerId);
+      DynamicBrush.__super__.remove.call(this);
     };
 
     return DynamicBrush;
@@ -2813,12 +2897,12 @@
       return parameters;
     };
 
-    ShapePath.prototype.drawBegin = function() {
+    ShapePath.prototype.beginDraw = function() {
       this.initializeDrawing(false);
       this.lastOffset = 0;
     };
 
-    ShapePath.prototype.drawUpdate = function(offset, step) {
+    ShapePath.prototype.updateDraw = function(offset, step) {
       var addShape, midOffset, speed, stepOffset;
       if (!step) {
         return;
@@ -2852,7 +2936,7 @@
       }
     };
 
-    ShapePath.prototype.drawEnd = function() {};
+    ShapePath.prototype.endDraw = function() {};
 
     return ShapePath;
 
@@ -2902,7 +2986,7 @@
       }
       this.rectangle = this.data.rectangle != null ? new Rectangle(this.data.rectangle) : new Rectangle();
       this.initializeControlPath(this.rectangle.topLeft, this.rectangle.bottomRight, false, false, true);
-      this.draw(null, true);
+      this.draw(false, true);
       this.controlPath.rotation = this.rotation;
       this.initialize();
       distanceMax = this.constructor.secureDistance * this.constructor.secureDistance;
@@ -2922,16 +3006,10 @@
       this.shape = this.addPath(new this.constructor.Shape(this.rectangle));
     };
 
-    RShape.prototype.draw = function(simplified, loading) {
-      var error, process, _ref;
+    RShape.prototype.draw = function(simplified) {
+      var error, process;
       if (simplified == null) {
         simplified = false;
-      }
-      if (loading == null) {
-        loading = false;
-      }
-      if (loading && !((_ref = this.data) != null ? _ref.animate : void 0)) {
-        return;
       }
       process = (function(_this) {
         return function() {
@@ -3001,15 +3079,12 @@
       RShape.__super__.beginCreate.call(this);
       this.downPoint = point;
       this.initializeControlPath(this.downPoint, point, event != null ? (_ref = event.modifiers) != null ? _ref.shift : void 0 : void 0, g.specialKey(event));
-      this.draw();
     };
 
-    RShape.prototype.updateCreate = function(point, event, loading) {
+    RShape.prototype.updateCreate = function(point, event) {
       var _ref;
       this.initializeControlPath(this.downPoint, point, event != null ? (_ref = event.modifiers) != null ? _ref.shift : void 0 : void 0, g.specialKey(event));
-      if (!loading) {
-        this.draw();
-      }
+      this.draw();
     };
 
     RShape.prototype.endCreate = function(point, event) {
@@ -3141,7 +3216,7 @@
         min: 1,
         max: 100,
         "default": 5,
-        step: 2
+        step: 1
       };
       parameters['Style'].internalRadius = {
         type: 'slider',

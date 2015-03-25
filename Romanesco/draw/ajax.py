@@ -186,7 +186,7 @@ def benchmark_load(request, areasToLoad):
 # 	return json.dumps( { 'items': items.values(), 'rasters': rasters, 'zoom': zoom, 'user': user } )
 
 @dajaxice_register
-def load(request, rectangle, areasToLoad, zoom):
+def load(request, rectangle, areasToLoad, zoom, loadRasters=True, itemsDates=None):
 
 	items = {}
 
@@ -222,46 +222,65 @@ def load(request, rectangle, areasToLoad, zoom):
 			if not items.has_key(area.pk):
 				items[area.pk] = area.to_json()
 
+	# add items to update
+	itemsToUpdate = None
+	if itemsDates != None:
+		itemsToUpdate = []
+		for itemDate in itemsDates:
+			Class = globals()[itemDate['type']]
+			pk = itemDate['pk']
+			lastUpdate = datetime.datetime.fromtimestamp(itemDate['lastUpdate']/1000.0)
+			try:
+				item = Class.objects.get(pk=pk)
+			except Class.DoesNotExist:
+				itemsToUpdate.append( pk )
+				continue
+			if item.lastUpdate > lastUpdate:
+				itemsToUpdate.append( pk )
+				items[item.pk] = item.to_json()
+
 	# load rasters
 	rasters = []
 
-	step = 1
+	if loadRasters:
 
-	if zoom > 0.2:
 		step = 1
-	elif zoom > 0.04:
-		step = 5
-	else:
-		step = 25
 
-	left = int(rectangle['left'])
-	top = int(rectangle['top'])
-	right = int(rectangle['right'])
-	bottom = int(rectangle['bottom'])
+		if zoom > 0.2:
+			step = 1
+		elif zoom > 0.04:
+			step = 5
+		else:
+			step = 25
 
-	for x1 in range(left,right+step,step):
-		for y1 in range(top,bottom+step,step):
+		left = int(rectangle['left'])
+		top = int(rectangle['top'])
+		right = int(rectangle['right'])
+		bottom = int(rectangle['bottom'])
 
-			x5 = roundToLowerMultiple(x1, 5)
-			y5 = roundToLowerMultiple(y1, 5)
+		for x1 in range(left,right+step,step):
+			for y1 in range(top,bottom+step,step):
 
-			x25 = roundToLowerMultiple(x1, 25)
-			y25 = roundToLowerMultiple(y1, 25)
+				x5 = roundToLowerMultiple(x1, 5)
+				y5 = roundToLowerMultiple(y1, 5)
 
-			if zoom > 0.2:
-				position = { 'x': x1, 'y': y1 }
-				rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
-			elif zoom > 0.04:
-				position = { 'x': x5, 'y': y5 }
-				rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
-			else:
-				position = { 'x': x25, 'y': y25 }
-				rasterPath = 'media/rasters/zoom4/'
+				x25 = roundToLowerMultiple(x1, 25)
+				y25 = roundToLowerMultiple(y1, 25)
 
-			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
-			
-			if os.path.isfile(os.getcwd() + '/' + rasterName):
-				rasters.append( { 'url': rasterName, 'position': position } )
+				if zoom > 0.2:
+					position = { 'x': x1, 'y': y1 }
+					rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
+				elif zoom > 0.04:
+					position = { 'x': x5, 'y': y5 }
+					rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
+				else:
+					position = { 'x': x25, 'y': y25 }
+					rasterPath = 'media/rasters/zoom4/'
+
+				rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
+				
+				if os.path.isfile(os.getcwd() + '/' + rasterName):
+					rasters.append( { 'url': rasterName, 'position': position } )
 
 	end = time.time()
 	print "Time elapsed: " + str(end - start)
@@ -273,7 +292,7 @@ def load(request, rectangle, areasToLoad, zoom):
 	userID += 1
 
 	# return json.dumps( { 'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user, 'rasters': rasters, 'areasToUpdate': areas, 'zoom': zoom } )
-	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'zoom': zoom } )
+	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'zoom': zoom, 'itemsToUpdate': itemsToUpdate } )
 
 
 # @return [Array<{x: x, y: y}>] the list of areas on which the bounds lie
@@ -543,10 +562,12 @@ def savePath(request, points, pID, planet, object_type, bounds, date, data=None)
 	except Tool.DoesNotExist:
 		global defaultPathTools
 		if not object_type in defaultPathTools:
-			return json.dumps( { 'state': 'warning', 'message': 'The path "' + object_type + '" does not exist.' } )
+			return json.dumps( { 'state': 'error', 'message': 'The path "' + object_type + '" does not exist.' } )
 
 	p = Path(planetX=planetX, planetY=planetY, points=points, owner=request.user.username, object_type=object_type, data=data, date=datetime.datetime.fromtimestamp(date/1000.0), lock=lock )
 	p.save()
+	if bounds:
+		addAreaToUpdate( bounds['points'], bounds['planet']['x'], bounds['planet']['y'] )
 
 	# addAreas(bounds, p)
 
@@ -573,6 +594,7 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, da
 		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) #, owner__ne=request.user.username )
 		p.lock = None
 		p.owner = None
+
 		for area in lockedAreas:
 			if area.owner == request.user.username:
 				p.lock = str(area.pk)
@@ -582,6 +604,8 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, da
 
 	if points:
 		p.points = points
+		if bounds:
+			addAreaToUpdate( bounds['points'], bounds['planet']['x'], bounds['planet']['y'] )
 	if planet:
 		p.planetX = planet['x']
 		p.planetY = planet['y']
@@ -589,7 +613,7 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, da
 		p.data = data
 	if date:
 		p.date = datetime.datetime.fromtimestamp(date/1000.0)
-
+	p.lastUpdate = datetime.datetime.now()
 	# updateAreas(bounds, p)
 
 	p.save()
@@ -597,7 +621,7 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, da
 	return json.dumps( {'state': 'success'} )
 
 @dajaxice_register
-def deletePath(request, pk):
+def deletePath(request, pk, bounds=None):
 
 	try:
 		p = Path.objects.get(pk=pk)
@@ -609,6 +633,8 @@ def deletePath(request, pk):
 
 	# deleteAreas(p)
 	p.delete()
+	if bounds:
+		addAreaToUpdate( bounds['points'], bounds['planet']['x'], bounds['planet']['y'] )
 	
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
@@ -634,6 +660,7 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 		data = json.dumps( { 'loadEntireArea': loadEntireArea } )
 		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data) # , website=website
 		b.save()
+		addAreaToUpdate( point, planetX, planetY )
 	except ValidationError:
 		return json.dumps({'state': 'error', 'message': 'invalid_url'})
 
@@ -718,9 +745,11 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 		b.box = [box['points']]
 		b.planetX = box['planet']['x']
 		b.planetY = box['planet']['y']
+		addAreaToUpdate( b.box[0], b.planetX, b.planetY )
 	if data:
 		b.data = data
-
+	b.lastUpdate = datetime.datetime.now()
+	
 	try:
 		b.save()
 	except ValidationError:
@@ -777,6 +806,7 @@ def deleteBox(request, pk):
 		return json.dumps({'state': 'error', 'message': 'Not owner of div'})
 
 	# deleteAreas(b)
+	addAreaToUpdate( points, planetX, planetY )
 	b.delete()
 	
 	return json.dumps( { 'state': 'success', 'pk': pk } )
@@ -800,6 +830,7 @@ def saveDiv(request, box, object_type, date=None, data=None, lock=None):
 	# 	return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
 
 	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data, lock=lock, date=datetime.datetime.fromtimestamp(date/1000.0))
+	addAreaToUpdate( points, planetX, planetY )
 	d.save()
 
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(d.pk), 'box': box } )
@@ -838,11 +869,13 @@ def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, loc
 		d.box = [box['points']]
 		d.planetX = box['planet']['x']
 		d.planetY = box['planet']['y']
+		addAreaToUpdate( d.box[0], d.planetX, d.planetY )
 	if date:
 		d.date = datetime.datetime.fromtimestamp(date/1000.0)
 	if data:
 		d.data = data
-	
+	d.lastUpdate = datetime.datetime.now()
+
 	d.save()
 
 	return json.dumps( {'state': 'success' } )
@@ -859,11 +892,73 @@ def deleteDiv(request, pk):
 		return json.dumps({'state': 'error', 'message': 'You are not the owner of this div.'})
 
 	# deleteAreas(d)
+	addAreaToUpdate( d.box['coordinates'][0], d.planetX, d.planetY )
+	
 	d.delete()
+
 	
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 # --- rasters --- #
+
+def addAreaToUpdate(points, planetX, planetY):
+
+	# merge all overlapping areas into one (and delete them)
+	print '<<<'
+	print 'start merging all regions overlapping with the new area to update: '
+	print 'points: ' + str(points)
+	overlappingAreas = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=[points])
+	left = xMin = points[0][0]
+	right = xMax = points[2][0]
+	top = yMin = points[0][1]
+	bottom = yMax = points[2][1]
+	for overlappingArea in overlappingAreas:
+		
+		cbox = overlappingArea.box['coordinates'][0]
+		cleft = cbox[0][0]
+		ctop = cbox[0][1]
+		cright = cbox[2][0]
+		cbottom = cbox[2][1]
+		
+		# if the areas just share an edge: continue
+		# check if intersection has a positive area
+		ileft = max(left, cleft)
+		itop = max(top, ctop)
+		iright = min(right, cright)
+		ibottom = min(bottom, cbottom)
+		
+		if (iright-ileft) <= 0 or (ibottom-itop) <= 0 or (iright-ileft) * (ibottom-itop) <= 0.001:
+			continue
+
+		print '!!! OVERLAPPING !!!'
+		
+		if not xMin or cleft < xMin:
+			xMin = cleft
+		if not xMax or cright > xMax:
+			xMax = cright
+		if not yMin or ctop < yMin:
+			yMin = ctop
+		if not yMax or cbottom > yMax:
+			yMax = cbottom
+
+
+		print 'start deleting areas of overlapping area: ' + str(overlappingArea.pk)
+		print 'start deleting overlapping area: ' + str(overlappingArea.pk) + '...'
+		try:
+			overlappingArea.delete()
+		except Area.DoesNotExist:
+			print "Impossible to delete area: " + str(overlappingArea.pk) + ", skipping area merging"
+			xMin = points[0][0]
+			xMax = points[2][0]
+			yMin = points[0][1]
+			yMax = points[2][1]
+			break
+		print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
+	
+	areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[[ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]])
+	areaToUpdate.save()
+
+	return
 
 # Get the position in project coordinate system of *point* on *planet*
 # This is the opposite of projectToPlanetJson
