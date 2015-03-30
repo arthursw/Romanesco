@@ -221,12 +221,12 @@ class RLock extends RItem
 			disableToolbar: data.disableToolbar
 			loadEntireArea: data.loadEntireArea
 		
-		Dajaxice.draw.saveBox( @save_callback, { 'box': g.boxFromRectangle(@rectangle), 'object_type': @constructor.object_type, 'data': JSON.stringify(data), 'siteData': JSON.stringify(siteData), 'name': data.name } )
+		Dajaxice.draw.saveBox( @saveCallback, { 'box': g.boxFromRectangle(@rectangle), 'object_type': @constructor.object_type, 'data': JSON.stringify(data), 'siteData': JSON.stringify(siteData), 'name': data.name } )
 		
 		return
 
 	# check if the save was successful and set @pk if it is
-	save_callback: (result)=>
+	saveCallback: (result)=>
 		g.checkError(result)
 		if not result.pk?  		# if @pk is null, the path was not saved, do not set pk nor rasterize
 			@remove()
@@ -262,7 +262,7 @@ class RLock extends RItem
 			updateType: type
 			# message: @data.message
 	
-		# Dajaxice.draw.updateBox( @update_callback, args )
+		# Dajaxice.draw.updateBox( @updateCallback, args )
 		args = []
 		args.push( function: 'updateBox', arguments: updateBoxArgs )
 		
@@ -279,10 +279,10 @@ class RLock extends RItem
 			for item in itemsToUpdate
 				args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments() )
 		
-		Dajaxice.draw.multipleCalls( @update_callback, functionsAndArguments: args)
+		Dajaxice.draw.multipleCalls( @updateCallback, functionsAndArguments: args)
 		return
 	
-	update_callback: (results)->
+	updateCallback: (results)->
 		for result in results
 			g.checkError(result)
 		return
@@ -298,7 +298,7 @@ class RLock extends RItem
 	delete: () ->
 		@remove()
 		if not @pk? then return
-		Dajaxice.draw.deleteBox( @deleteBox_callback, { 'pk': @pk } )
+		Dajaxice.draw.deleteBox( @deleteBoxCallback, { 'pk': @pk } )
 		return
 	
 	deleteCommand: ()->
@@ -306,7 +306,7 @@ class RLock extends RItem
 		return
 
 	# check for any error during delete, transmit delete on websocket if no errors
-	deleteBox_callback: (result)->
+	deleteBoxCallback: (result)->
 		if g.checkError(result)
 			g.chatSocket.emit( "delete box", result.pk )
 		return

@@ -172,13 +172,13 @@ this.initSocket = ()->
 	g.chatSocket.on "update", (from, event, tool) ->
 		console.log "update"
 		g.tools[tool].update(objectToEvent(event), from)
-		view.draw()
+		view.update()
 		return
 
 	g.chatSocket.on "end", (from, event, tool) ->
 		console.log "end"
 		g.tools[tool].end(objectToEvent(event), from)
-		view.draw()
+		view.update()
 		return
 
 	g.chatSocket.on "setPathPK", (from, pid, pk) ->
@@ -189,41 +189,41 @@ this.initSocket = ()->
 	g.chatSocket.on "deletePath", (pk) ->
 		console.log "deletePath"
 		g.paths[pk]?.remove()
-		view.draw()
+		view.update()
 		return
 
 	g.chatSocket.on "beginSelect", (from, pk, event) ->
 		console.log "beginSelect"
 		g.items[pk].beginSelect(objectToEvent(event), false)
-		view.draw()
+		view.update()
 		return
 
 	g.chatSocket.on "updateSelect", (from, pk, event) ->
 		console.log "updateSelect"
 		g.items[pk].updateSelect(objectToEvent(event), false)
-		view.draw()
+		view.update()
 		return
 
 	g.chatSocket.on "doubleClick", (from, pk, event) ->
 		console.log "doubleClick"
 		g.items[pk].doubleClick(objectToEvent(event), false)
-		view.draw()
+		view.update()
 		return
 
 	g.chatSocket.on "endSelect", (from, pk, event) ->
 		console.log "endSelect"
 		g.items[pk].endSelect(objectToEvent(event), false)
-		view.draw()
+		view.update()
 		return
 
 	g.chatSocket.on "createDiv", (data) ->
 		console.log "createDiv"
-		RDiv.save_callback(data, false)
+		RDiv.saveCallback(data, false)
 
 	g.chatSocket.on "deleteDiv", (pk) ->
 		console.log "deleteDiv"
 		g.items[pk]?.remove()
-		view.draw()
+		view.update()
 		return
 
 	# on car move: create car (Raster) if the car for this user does not exist, and update position, rotation and speed.
@@ -244,7 +244,7 @@ this.initSocket = ()->
 			g.items[pk].changeParameter(name, value)
 		else
 			g.items[pk][name]?(false, value)
-		view.draw()
+		view.update()
 		return
 
 	# on bounce: call *function* of *tool*
@@ -252,6 +252,6 @@ this.initSocket = ()->
 		console.log "bounce"
 		if data.tool? and data.function?
 			g.tools[data.tool][data.function](data.arguments)
-		view.draw()
+		view.update()
 		return
 

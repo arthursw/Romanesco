@@ -111,12 +111,12 @@ class RDiv extends RContent
 			romanesco_alert "Error: your div is not valid.", "error"
 			return
 
-		Dajaxice.draw.saveDiv( @save_callback, { 'box': g.boxFromRectangle(@getBounds()), 'object_type': @object_type, 'date': Date.now(), 'data': @getStringifiedData() } )
+		Dajaxice.draw.saveDiv( @saveCallback, { 'box': g.boxFromRectangle(@getBounds()), 'object_type': @object_type, 'date': Date.now(), 'data': @getStringifiedData() } )
 		
 		return
 
 	# check if the save was successful and set @pk if it is
-	save_callback: (result)=>
+	saveCallback: (result)=>
 		g.checkError(result)
 		if not result.pk?  		# if @pk is null, the path was not saved, do not set pk nor rasterize
 			@remove()
@@ -259,13 +259,13 @@ class RDiv extends RContent
 		if g.rectangleOverlapsTwoPlanets(bounds)
 			return
 		
-		Dajaxice.draw.updateDiv( @update_callback, @getUpdateArguments(type) )
+		Dajaxice.draw.updateDiv( @updateCallback, @getUpdateArguments(type) )
 
 		return
 
 	# called after udpate, on server response
 	# @param result [Object] the server response
-	update_callback: (result)->
+	updateCallback: (result)->
 		g.checkError(result)
 		return
 
@@ -332,11 +332,11 @@ class RDiv extends RContent
 	delete: () ->
 		@remove()
 		if not @pk? then return
-		Dajaxice.draw.deleteDiv( @deleteDiv_callback, { 'pk': @pk } )
+		Dajaxice.draw.deleteDiv( @deleteDivCallback, { 'pk': @pk } )
 		return
 
 	# check for any error during delete, transmit delete on websocket if no errors
-	deleteDiv_callback: (result)->
+	deleteDivCallback: (result)->
 		if g.checkError(result)
 			g.chatSocket.emit( "delete div", result.pk )
 		return

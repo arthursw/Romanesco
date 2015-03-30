@@ -56,14 +56,14 @@ this.initializeGlobalParameters = ()->
 			g.displayGrid = !g.displayGrid
 			g.updateGrid()
 			return
-	g.parameters.fastMode = 
-		type: 'checkbox'
-		label: 'Fast mode'
-		default: g.fastMode
-		permanent: true
-		onChange: (value)->
-			g.fastMode = value
-			return
+	# g.parameters.fastMode = 
+	# 	type: 'checkbox'
+	# 	label: 'Fast mode'
+	# 	default: g.fastMode
+	# 	permanent: true
+	# 	onChange: (value)->
+	# 		g.fastMode = value
+	# 		return
 	g.parameters.strokeWidth = 
 		type: 'slider'
 		label: 'Stroke width'
@@ -302,7 +302,7 @@ this.initParameters = () ->
 	g.parameters.location.controller = controller
 	g.generalFolder.add({zoom: 100}, 'zoom', g.parameters.zoom.min, g.parameters.zoom.max).name("Zoom").onChange( g.parameters.zoom.onChange ).onFinishChange( g.parameters.zoom.onFinishChange )
 	g.generalFolder.add({displayGrid: g.parameters.displayGrid.default}, 'displayGrid', true).name("Display grid").onChange(g.parameters.displayGrid.onChange)
-	g.generalFolder.add({fastMode: g.parameters.fastMode.default}, 'fastMode', true).name("Fast mode").onChange(g.parameters.fastMode.onChange)
+	# g.generalFolder.add({fastMode: g.parameters.fastMode.default}, 'fastMode', true).name("Fast mode").onChange(g.parameters.fastMode.onChange)
 	g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max).name(g.parameters.snap.label).onChange(g.parameters.snap.onChange)
 	
 	g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement)
@@ -526,12 +526,11 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 	# - emit "parameter change" on websocket
 	onParameterChange = (value) -> 
 		g.c = this
-		if item?
-			for item in g.selectedItems
-				if typeof item?.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
-					if parameter.step? then value = value-value%parameter.step
-					item.changeParameterCommand(name, value)
-					if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
+		for item in g.selectedItems
+			if typeof item.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
+				# if parameter.step? then value = value-value%parameter.step
+				item.changeParameterCommand(name, value)
+				if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
 		return
 
 	# if parameter has no onChange function: create a default one which will update item.data[name]
@@ -622,9 +621,10 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 		when 'slider', 'checkbox', 'dropdown', 'button', 'button-group', 'radio-button-group', 'string', 'input-typeahead'		# create any other controller
 			obj[name] = value
 			firstOptionalParameter = if parameter.min? then parameter.min else parameter.values
-			controller = datFolder.add(obj, name, firstOptionalParameter, parameter.max).name(parameter.label).onChange(parameter.onChange).onFinishChange(parameter.onFinishChange)
+			controllerBox = datFolder.add(obj, name, firstOptionalParameter, parameter.max).name(parameter.label).onChange(parameter.onChange).onFinishChange(parameter.onFinishChange)
+			controller = datFolder.__controllers.last()
 			if parameter.step? then controller.step?(parameter.step)
-			datFolder.__controllers[datFolder.__controllers.length-1].rValue = controller.getValue
+			controller.rValue = controller.getValue
 
 			controller.rSetValue = parameter.setValue
 			updateItemControllers(parameter, name, item, controller)

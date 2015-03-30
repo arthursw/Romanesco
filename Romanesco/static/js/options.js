@@ -43,15 +43,6 @@
         g.updateGrid();
       }
     };
-    g.parameters.fastMode = {
-      type: 'checkbox',
-      label: 'Fast mode',
-      "default": g.fastMode,
-      permanent: true,
-      onChange: function(value) {
-        g.fastMode = value;
-      }
-    };
     g.parameters.strokeWidth = {
       type: 'slider',
       label: 'Stroke width',
@@ -421,9 +412,6 @@
     g.generalFolder.add({
       displayGrid: g.parameters.displayGrid["default"]
     }, 'displayGrid', true).name("Display grid").onChange(g.parameters.displayGrid.onChange);
-    g.generalFolder.add({
-      fastMode: g.parameters.fastMode["default"]
-    }, 'fastMode', true).name("Fast mode").onChange(g.parameters.fastMode.onChange);
     g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max).name(g.parameters.snap.label).onChange(g.parameters.snap.onChange);
     g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement);
     toggleGuiButtonJ = $(g.gui.domElement).find("button.dat-gui-toggle");
@@ -578,7 +566,7 @@
   };
 
   this.addItem = function(name, parameter, item, datFolder, resetValues) {
-    var checkboxJ, checked, colorPicker, controller, firstOptionalParameter, inputJ, obj, onParameterChange, updateItemControllers, value, _i, _len, _ref;
+    var checkboxJ, checked, colorPicker, controller, controllerBox, firstOptionalParameter, inputJ, obj, onParameterChange, updateItemControllers, value, _i, _len, _ref;
     if ((item != null) && datFolder.name !== 'General' && (item.data != null) && ((item.data[name] != null) || parameter.type === 'color')) {
       value = item.data[name];
     } else if (parameter.value != null) {
@@ -620,18 +608,13 @@
     onParameterChange = function(value) {
       var _j, _len1, _ref1, _ref2;
       g.c = this;
-      if (item != null) {
-        _ref1 = g.selectedItems;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          item = _ref1[_j];
-          if (typeof (item != null ? (_ref2 = item.data) != null ? _ref2[name] : void 0 : void 0) !== 'undefined') {
-            if (parameter.step != null) {
-              value = value - value % parameter.step;
-            }
-            item.changeParameterCommand(name, value);
-            if ((g.me != null) && datFolder.name !== 'General') {
-              g.chatSocket.emit("parameter change", g.me, item.pk, name, value);
-            }
+      _ref1 = g.selectedItems;
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        item = _ref1[_j];
+        if (typeof ((_ref2 = item.data) != null ? _ref2[name] : void 0) !== 'undefined') {
+          item.changeParameterCommand(name, value);
+          if ((g.me != null) && datFolder.name !== 'General') {
+            g.chatSocket.emit("parameter change", g.me, item.pk, name, value);
           }
         }
       }
@@ -732,13 +715,14 @@
       case 'input-typeahead':
         obj[name] = value;
         firstOptionalParameter = parameter.min != null ? parameter.min : parameter.values;
-        controller = datFolder.add(obj, name, firstOptionalParameter, parameter.max).name(parameter.label).onChange(parameter.onChange).onFinishChange(parameter.onFinishChange);
+        controllerBox = datFolder.add(obj, name, firstOptionalParameter, parameter.max).name(parameter.label).onChange(parameter.onChange).onFinishChange(parameter.onFinishChange);
+        controller = datFolder.__controllers.last();
         if (parameter.step != null) {
           if (typeof controller.step === "function") {
             controller.step(parameter.step);
           }
         }
-        datFolder.__controllers[datFolder.__controllers.length - 1].rValue = controller.getValue;
+        controller.rValue = controller.getValue;
         controller.rSetValue = parameter.setValue;
         updateItemControllers(parameter, name, item, controller);
         if (typeof parameter.initializeController === "function") {

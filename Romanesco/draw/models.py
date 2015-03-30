@@ -69,6 +69,7 @@ User.profile = property(lambda u: UserProfile.objects.get_or_create(user=u)[0])
 class Path(Document):
     planetX = DecimalField()
     planetY = DecimalField()
+    box = PolygonField()
     points = LineStringField()
     rType = StringField(default='Path')
     owner = StringField()

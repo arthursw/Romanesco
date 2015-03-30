@@ -325,14 +325,14 @@ this.initializeGlobalParameters = ()->
 			g.displayGrid = !g.displayGrid
 			g.updateGrid()
 			return
-	g.parameters.fastMode = 
-		type: 'checkbox'
-		label: 'Fast mode'
-		default: g.fastMode
-		permanent: true
-		onChange: (value)->
-			g.fastMode = value
-			return
+	# g.parameters.fastMode = 
+	# 	type: 'checkbox'
+	# 	label: 'Fast mode'
+	# 	default: g.fastMode
+	# 	permanent: true
+	# 	onChange: (value)->
+	# 		g.fastMode = value
+	# 		return
 	g.parameters.strokeWidth = 
 		type: 'slider'
 		label: 'Stroke width'
@@ -559,14 +559,14 @@ init = ()->
 	g.sidebarJ = $("#sidebar")
 	g.canvasJ = g.stageJ.find("#canvas")
 	g.canvas = g.canvasJ[0]
-	g.backgroundCanvasJ = g.stageJ.find("#background-canvas")
-	g.backgroundCanvas = g.backgroundCanvasJ[0]
-	g.backgroundCanvas.width = window.innerWidth
-	g.backgroundCanvas.height = window.innerHeight
-	g.backgroundCanvasJ.width(window.innerWidth)
-	g.backgroundCanvasJ.height(window.innerHeight)
 	g.context = g.canvas.getContext('2d')
-	g.backgroundContext = g.backgroundCanvas.getContext('2d')
+	# g.backgroundCanvasJ = g.stageJ.find("#background-canvas")
+	# g.backgroundCanvas = g.backgroundCanvasJ[0]
+	# g.backgroundCanvas.width = window.innerWidth
+	# g.backgroundCanvas.height = window.innerHeight
+	# g.backgroundCanvasJ.width(window.innerWidth)
+	# g.backgroundCanvasJ.height(window.innerHeight)
+	# g.backgroundContext = g.backgroundCanvas.getContext('2d')
 	g.templatesJ = $("#templates")
 	g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
 	g.selectionLayer = null					# paper layer containing all selected paper items
@@ -588,13 +588,13 @@ init = ()->
 	g.sortedDivs = []						# an array where divs are sorted by index (z-index)
 	g.animatedItems = [] 					# an array of animated items to be updated each frame
 	g.cars = {} 							# a map of username -> cars which will be updated each frame
-	g.fastMode = false 						# fastMode will hide all items except the one being edited (when user edits an item)
-	g.fastModeOn = false					# fastModeOn is true when the user is edditing an item
+	# g.fastMode = false 						# fastMode will hide all items except the one being edited (when user edits an item)
+	# g.fastModeOn = false					# fastModeOn is true when the user is edditing an item
 	g.alerts = null 						# An array of alerts ({ type: type, message: message }) containing all alerts info. It is append to the alert box in showAlert()
 	g.scale = 1000.0 						# the scale to go from project coordinates to planet coordinates
 	g.previousPoint = null 					# the previous mouse event point
 	g.draggingEditor = false 				# boolean, true when user is dragging the code editor
-	g.rasters = {}							# map to store rasters (tiles, rasterized version of the view)
+	# g.rasters = {}							# map to store rasters (tiles, rasterized version of the view)
 	g.areasToUpdate = {} 					# map of areas to update { pk->rectangle } (areas which are not rasterize on the server, that we must send if we can rasterize them)
 	g.rastersToUpload = [] 					# an array of { data: dataURL, position: position } containing the rasters to upload on the server 
 	g.areasToRasterize = [] 				# an array of Rectangle to rasterize
@@ -653,6 +653,8 @@ init = ()->
 	g.grid.name = 'grid group'
 	view.zoom = 1 # 0.01
 	g.previousViewPosition = view.center
+
+	g.rasterizer = new Rasterizer()
 
 	# add custom methods to export Paper Point and Rectangle to JSON
 	Point.prototype.toJSON = ()->
@@ -883,11 +885,13 @@ $(document).ready () ->
 
 	# update grid and mCustomScrollbar when window is resized
 	g.windowJ.resize( (event) ->
-		g.backgroundCanvas.width = window.innerWidth
-		g.backgroundCanvas.height = window.innerHeight
+		# g.backgroundCanvas.width = window.innerWidth
+		# g.backgroundCanvas.height = window.innerHeight
+		# g.backgroundCanvasJ.width(window.innerWidth)
+		# g.backgroundCanvasJ.height(window.innerHeight)
 		updateGrid()
 		$(".mCustomScrollbar").mCustomScrollbar("update")
-		view.draw()
+		view.update()
 	)
 	return
 

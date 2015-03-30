@@ -415,12 +415,11 @@
 
         <div id="stage" class="main">
         
+          <div id="background-canvases"></div>
+          <!-- <canvas id="background-canvas" resize hidpi="off"></canvas> -->
+          <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message=" {{ message }}" data-load-entire-area=" {{ loadEntireArea }} "></canvas>
           <div class="hidden media-separator"></div>
           <div class="hidden text-separator"></div>
-          <canvas id="background-canvas" resize hidpi="off"></canvas>
-          <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message=" {{ message }}" data-load-entire-area=" {{ loadEntireArea }} "></canvas>
-
-          
 
         </div>
 
@@ -831,6 +830,7 @@
     <script src="{% static 'js/sound.js' %}"></script>
     <script src="{% static 'js/editor.js' %}"></script>
     <script src="{% static 'js/modal.js' %}"></script>
+    <script src="{% static 'js/rasterizer.js' %}"></script>
     <script src="{% static 'js/item.js' %}"></script>
     <script src="{% static 'js/path.js' %}"></script>
     <script src="{% static 'js/div.js' %}"></script>

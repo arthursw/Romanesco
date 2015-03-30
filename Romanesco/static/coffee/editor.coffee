@@ -135,7 +135,7 @@ this.initCodeEditor = ()->
 		return
 
 	# just check for an error message on tool update callback
-	toolUpdate_callback = (result)=>
+	toolUpdateCallback = (result)=>
 		g.checkError(result)
 		return
 
@@ -144,11 +144,11 @@ this.initCodeEditor = ()->
 		tool = compileSource()
 		if tool?
 			if g.editorJ.rNewtool
-				# ajaxPost '/addTool', { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource }, toolUpdate_callback
-				Dajaxice.draw.addTool( toolUpdate_callback, { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource, 'isTool': tool.isTool } )
+				# ajaxPost '/addTool', { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource }, toolUpdateCallback
+				Dajaxice.draw.addTool( toolUpdateCallback, { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource, 'isTool': tool.isTool } )
 			else
-				# ajaxPost '/updateTool', { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource }, toolUpdate_callback
-				Dajaxice.draw.updateTool( toolUpdate_callback, { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource } )
+				# ajaxPost '/updateTool', { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource }, toolUpdateCallback
+				Dajaxice.draw.updateTool( toolUpdateCallback, { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource } )
 		return
 
 	# close button handler: hide code editor and reset default console.log and console.error functions
@@ -332,20 +332,20 @@ this.toolEditor = (RPath)->
 
 # set tool as accepted in the database
 this.acceptTool = (tool)->
-	acceptTool_callback = (result)-> g.checkError(result)
-	# ajaxPost '/acceptTool', { 'name':tool.name }, acceptTool_callback
-	Dajaxice.draw.acceptTool( acceptTool_callback, { 'name': tool.name } )
+	acceptToolCallback = (result)-> g.checkError(result)
+	# ajaxPost '/acceptTool', { 'name':tool.name }, acceptToolCallback
+	Dajaxice.draw.acceptTool( acceptToolCallback, { 'name': tool.name } )
 	return
 
 # get tools which are not accepted yet, and put them in g.waitingTools
 this.getWaitingTools = (value)->
 
-	getWaitingTools_callback = (result)->
+	getWaitingToolsCallback = (result)->
 		if g.checkError(result)
 			g.waitingTools = JSON.parse(result.tools)
 			console.log g.waitingTools
 		return
 
-	# ajaxPost '/getWaitingTools', { }, getWaitingTools_callback
-	Dajaxice.draw.getWaitingTools( getWaitingTools_callback, {} )
+	# ajaxPost '/getWaitingTools', { }, getWaitingToolsCallback
+	Dajaxice.draw.getWaitingTools( getWaitingToolsCallback, {} )
 	return

@@ -16,20 +16,8 @@
     return false;
   };
 
-  this.areaIsQuickLoaded = function(area) {
-    var a, _i, _len, _ref;
-    _ref = g.loadedAreas;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      a = _ref[_i];
-      if (a.x === area.x && a.y === area.y) {
-        return true;
-      }
-    }
-    return false;
-  };
-
   this.load = function(area) {
-    var areaRectangle, areasToLoad, b, bounds, debug, i, item, itemsDates, itemsOutsideLimit, j, l, limit, pk, planet, pos, r, raster, rasterColumn, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3, _ref4;
+    var areaRectangle, areasToLoad, b, bounds, debug, halfSize, i, item, itemsDates, itemsOutsideLimit, j, l, limit, pk, planet, pos, r, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3;
     if (area == null) {
       area = null;
     }
@@ -40,11 +28,16 @@
     if (area != null) {
       console.log(area.toString());
     }
-    debug = true;
-    scale = !debug ? g.scale : 200;
+    debug = false;
+    scale = g.scale;
     g.previousLoadPosition = view.center;
     if (area == null) {
-      bounds = !debug ? view.bounds : view.bounds.scale(0.3, 0.3);
+      if (view.bounds.width <= window.innerWidth && view.bounds.height <= window.innerHeight) {
+        bounds = view.bounds;
+      } else {
+        halfSize = new Point(window.innerWidth * 0.5, window.innerHeight * 0.5);
+        bounds = new Rectangle(view.center.subtract(halfSize), view.center.add(halfSize));
+      }
     } else {
       bounds = area;
     }
@@ -59,7 +52,7 @@
         _ref2.remove();
       }
     }
-    unloadDist = debug ? 50 : Math.round(scale);
+    unloadDist = Math.round(scale / view.zoom);
     if (!g.entireArea) {
       limit = bounds.expand(unloadDist);
     } else {
@@ -91,20 +84,7 @@
         setTimeout(removeRect, 1500);
       };
     }
-    _ref4 = g.rasters;
-    for (x in _ref4) {
-      rasterColumn = _ref4[x];
-      for (y in rasterColumn) {
-        raster = rasterColumn[y];
-        if (!raster.rRectangle.intersects(limit)) {
-          raster.remove();
-          delete g.rasters[x][y];
-          if (g.isEmpty(g.rasters[x])) {
-            delete g.rasters[x];
-          }
-        }
-      }
-    }
+    g.rasterizer.unload(limit);
     i = g.loadedAreas.length;
     while (i--) {
       area = g.loadedAreas[i];
@@ -149,7 +129,7 @@
       for (y = _j = t; scale > 0 ? _j <= b : _j >= b; y = _j += scale) {
         planet = projectToPlanet(new Point(x, y));
         pos = projectToPosOnPlanet(new Point(x, y));
-        if (!areaIsLoaded(pos, planet)) {
+        if (g.rasterizerMode || !areaIsLoaded(pos, planet)) {
           if (debug) {
             areaRectangle = new Path.Rectangle(x, y, scale, scale);
             areaRectangle.name = 'debug load area rectangle';
@@ -159,15 +139,15 @@
           }
           area = {
             pos: pos,
-            planet: planet,
-            x: x / 1000,
-            y: y / 1000
+            planet: planet
           };
           areasToLoad.push(area);
           if (debug) {
             area.rectangle = areaRectangle;
           }
-          g.loadedAreas.push(area);
+          if (!g.rasterizerMode || !areaIsLoaded(pos, planet)) {
+            g.loadedAreas.push(area);
+          }
         }
       }
     }
@@ -181,26 +161,31 @@
       g.loadingBarTimeout = setTimeout(showLoadingBar, 0);
     }
     rectangle = {
-      left: l / 1000,
-      top: t / 1000,
-      right: r / 1000,
-      bottom: b / 1000
+      left: l,
+      top: t,
+      right: r,
+      bottom: b
     };
     console.log('request loading');
     console.log(rectangle);
-    itemsDates = g.rasterizerMode ? g.createItemsDates() : null;
-    Dajaxice.draw.load(load_callback, {
-      rectangle: rectangle,
-      areasToLoad: areasToLoad,
-      zoom: view.zoom,
-      loadRasters: !g.rasterizerMode,
-      itemsDates: itemsDates
-    });
+    if (!g.rasterizerMode) {
+      Dajaxice.draw.load(loadCallback, {
+        rectangle: rectangle,
+        areasToLoad: areasToLoad,
+        zoom: 1.0 / view.zoom
+      });
+    } else {
+      itemsDates = g.createItemsDates(bounds);
+      Dajaxice.draw.loadRasterizer(loadCallback, {
+        areasToLoad: areasToLoad,
+        itemsDates: itemsDates
+      });
+    }
     return true;
   };
 
-  this.load_callback = function(results) {
-    var box, data, date, dispatchLoadFinished, div, i, item, itemIsLoaded, itemsToLoad, lock, newAreasToUpdate, path, pk, planet, point, points, position, raster, rdiv, rectangle, rpath, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _name, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+  this.loadCallback = function(results) {
+    var box, data, date, dispatchLoadFinished, div, i, item, itemsToLoad, lock, path, planet, point, points, rdiv, rpath, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
     console.log("load callback");
     dispatchLoadFinished = function() {
       var commandEvent;
@@ -214,54 +199,22 @@
       dispatchLoadFinished();
       return;
     }
-    if (g.me == null) {
+    if ((g.me == null) && (results.user != null)) {
       g.me = results.user;
       if ((g.chatJ != null) && g.chatJ.find("#chatUserNameInput").length === 0) {
         g.startChatting(g.me);
       }
     }
-    itemIsLoaded = function(pk) {
-      return g.items[pk] != null;
-    };
-    _ref = results.rasters;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      raster = _ref[_i];
-      position = new Point(raster.position).multiply(1000);
-      if (((_ref1 = g.rasters[position.x]) != null ? (_ref2 = _ref1[position.y]) != null ? _ref2.rZoom : void 0 : void 0) === results.zoom) {
-        continue;
-      }
-      raster = new Raster(g.romanescoURL + raster.url);
-      if (results.zoom > 0.2) {
-        raster.position = position.add(1000 / 2);
-        raster.rRectangle = new Rectangle(position, new Size(1000, 1000));
-      } else if (results.zoom > 0.04) {
-        raster.scale(5);
-        raster.position = position.add(5000 / 2);
-        raster.rRectangle = new Rectangle(position, new Size(5000, 5000));
-      } else {
-        raster.scale(25);
-        raster.position = position.add(25000 / 2);
-        raster.rRectangle = new Rectangle(position, new Size(25000, 25000));
-      }
-      console.log("raster.position: " + raster.position.toString() + ", raster.scaling" + raster.scaling.toString());
-      raster.name = 'raster: ' + raster.position.toString() + ', zoom: ' + results.zoom;
-      raster.rZoom = results.zoom;
-      if ((_base = g.rasters)[_name = position.x] == null) {
-        _base[_name] = {};
-      }
-      g.rasters[position.x][position.y] = raster;
+    if (results.rasters != null) {
+      g.rasterizer.load(results.rasters, results.zoom);
     }
-    if (g.rasterizerMode) {
-      g.removeItemsToUpdate(results.itemsToUpdate);
-    }
-    newAreasToUpdate = [];
     itemsToLoad = [];
-    _ref3 = results.items;
-    for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
-      i = _ref3[_j];
+    _ref = results.items;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      i = _ref[_i];
       item = JSON.parse(i);
-      if (g.items[item._id.$oid] != null) {
-        continue;
+      if ((_ref1 = g.items[item._id.$oid]) != null) {
+        _ref1.remove();
       }
       if (item.rType === 'Box') {
         box = item;
@@ -289,8 +242,8 @@
         itemsToLoad.push(item);
       }
     }
-    for (_k = 0, _len2 = itemsToLoad.length; _k < _len2; _k++) {
-      item = itemsToLoad[_k];
+    for (_j = 0, _len1 = itemsToLoad.length; _j < _len1; _j++) {
+      item = itemsToLoad[_j];
       switch (item.rType) {
         case 'Div':
           div = item;
@@ -317,9 +270,9 @@
             data.planet = planet;
           }
           points = [];
-          _ref4 = path.points.coordinates;
-          for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
-            point = _ref4[_l];
+          _ref2 = path.points.coordinates;
+          for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+            point = _ref2[_k];
             points.push(posOnPlanetToProject(point, planet));
           }
           rpath = null;
@@ -333,153 +286,20 @@
             console.log("Unknown path type: " + path.object_type);
           }
           break;
-        case 'AreaToUpdate':
-          newAreasToUpdate.push(item);
-          break;
         default:
           continue;
       }
     }
     RDiv.updateZIndex(g.sortedDivs);
     if (!g.rasterizerMode) {
-      g.addAreasToUpdate(newAreasToUpdate);
-      _ref5 = g.areasToUpdate;
-      for (pk in _ref5) {
-        rectangle = _ref5[pk];
-        if (rectangle.intersects(view.bounds)) {
-          g.updateView();
-          break;
-        }
-      }
-      view.draw();
-      updateView();
       clearTimeout(g.loadingBarTimeout);
       g.loadingBarTimeout = null;
       $("#loadingBar").hide();
       dispatchLoadFinished();
     }
-    console.log(typeof window.saveOnServer === "function");
     if (typeof window.saveOnServer === "function") {
       g.rasterizeAndSaveOnServer();
     }
-  };
-
-  this.createItemsDates = function() {
-    var item, itemsDates, pk, type, _ref;
-    itemsDates = [];
-    _ref = g.items;
-    for (pk in _ref) {
-      item = _ref[pk];
-      type = '';
-      if (RLock.prototype.isPrototypeOf(item)) {
-        type = 'Box';
-      } else if (RDiv.prototype.isPrototypeOf(item)) {
-        type = 'Div';
-      } else if (RPath.prototype.isPrototypeOf(item)) {
-        type = 'Path';
-      }
-      itemsDates.push({
-        pk: pk,
-        lastUpdate: item.lastUpdateDate,
-        type: type
-      });
-    }
-    return itemsDates;
-  };
-
-  this.removeItemsToUpdate = function(itemsToUpdate) {
-    var pk, _i, _len;
-    for (_i = 0, _len = itemsToUpdate.length; _i < _len; _i++) {
-      pk = itemsToUpdate[_i];
-      g.items[pk].remove();
-    }
-  };
-
-  this.loopRasterize = function() {
-    var center, dataURL, finished, height, imagePosition, rectangle, width;
-    rectangle = g.areaToRasterize;
-    width = Math.min(Math.min(view.size.width, 1000), rectangle.right - view.bounds.left);
-    height = Math.min(Math.min(view.size.height, 1000), rectangle.bottom - view.bounds.top);
-    center = view.center.clone();
-    view.viewSize = new Size(width, height);
-    view.center = center;
-    imagePosition = view.bounds.topLeft.clone();
-    dataURL = areaToImageDataUrl(new Rectangle(0, 0, width, height), false);
-    view.center = view.center.add(Math.min(view.size.width, 1000), 0);
-    if (view.bounds.left > rectangle.right) {
-      view.center = new Point(rectangle.left + view.size.width * 0.5, view.center.y + Math.min(view.size.height, 1000));
-    }
-    finished = view.bounds.top > rectangle.bottom;
-    window.saveOnServer(dataURL, imagePosition.x, imagePosition.y, finished);
-  };
-
-  this.rasterizeAndSaveOnServer = function() {
-    var position, rectangle;
-    console.log("area rasterized");
-    g.debugIsLoading = false;
-    position = view.bounds.topLeft;
-    rectangle = g.areaToRasterize;
-    if (view.bounds.contains(rectangle)) {
-      view.draw();
-      console.log('dimensions');
-      console.log(view.bounds.toString());
-      console.log(window.innerWidth);
-      console.log(window.innerHeight);
-      window.saveOnServer(g.canvas.toDataURL(), rectangle.x, rectangle.y, true);
-    } else {
-      view.center = rectangle.topLeft.add(view.size.multiply(0.5));
-      g.loopRasterize();
-    }
-  };
-
-  this.loadArea = function(args) {
-    var area, delta, div, _i, _len, _ref;
-    console.log("load_area");
-    if (g.areaToRasterize != null) {
-      console.log("error: load_area while loading !!");
-      debugger;
-    }
-    area = g.rectangleFromBox(JSON.parse(args));
-    g.areaToRasterize = area;
-    view.viewSize = Size.min(area.size, new Size(1000, 1000));
-    delta = area.center.subtract(view.center);
-    project.view.scrollBy(delta);
-    _ref = g.divs;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      div = _ref[_i];
-      div.updateTransform();
-    }
-    console.log("call load");
-    g.load(area);
-  };
-
-  this.benchmark_load = function() {
-    var area, areasToLoad, b, bounds, l, planet, pos, r, scale, t, x, y, _i, _j;
-    bounds = view.bounds;
-    scale = g.scale;
-    t = g.roundToLowerMultiple(bounds.top, scale);
-    l = g.roundToLowerMultiple(bounds.left, scale);
-    b = g.roundToLowerMultiple(bounds.bottom, scale);
-    r = g.roundToLowerMultiple(bounds.right, scale);
-    areasToLoad = [];
-    for (x = _i = l; scale > 0 ? _i <= r : _i >= r; x = _i += scale) {
-      for (y = _j = t; scale > 0 ? _j <= b : _j >= b; y = _j += scale) {
-        planet = projectToPlanet(new Point(x, y));
-        pos = projectToPosOnPlanet(new Point(x, y));
-        area = {
-          pos: pos,
-          planet: planet,
-          x: x / 1000,
-          y: y / 1000
-        };
-        areasToLoad.push(area);
-      }
-    }
-    console.log("areasToLoad: ");
-    console.log(areasToLoad);
-    Dajaxice.draw.benchmark_load(g.checkError, {
-      areasToLoad: areasToLoad
-    });
   };
 
 }).call(this);

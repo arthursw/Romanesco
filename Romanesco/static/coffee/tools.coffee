@@ -1003,7 +1003,7 @@ class ScreenshotTool extends RTool
 		# remove selection rectangle
 		g.currentPaths[from].remove()
 		delete g.currentPaths[from]
-		g.view.draw()
+		g.view.update()
 
 		# return if rectangle is too small
 		r = new Rectangle(event.downPoint, event.point) 
@@ -1073,12 +1073,12 @@ class ScreenshotTool extends RTool
 
 	# Save image and call publish on facebook callback
 	publishOnFacebook: ()=>
-		@saveImage(@publishOnFacebook_callback)
+		@saveImage(@publishOnFacebookCallback)
 		return
 
 	# (Called once the image is uploaded) add a facebook dialog box in which user can add more info and publish the image
 	# todo: check if upload was successful?
-	publishOnFacebook_callback: (result)=>
+	publishOnFacebookCallback: (result)=>
 		romanesco_alert "Your image was successfully uploaded to Romanesco, posting to Facebook...", "info"
 		caption = @getDescription()
 		FB.ui(
@@ -1137,18 +1137,18 @@ class ScreenshotTool extends RTool
 		if not g.loggedIntoFacebook
 			FB.login( (response)=>
 				if response and !response.error
-					@saveImage(@publishOnFacebookAsPhoto_callback)
+					@saveImage(@publishOnFacebookAsPhotoCallback)
 				else
 					romanesco_alert "An error occured when trying to log you into facebook.", "error"
 				return
 			)
 		else
-			@saveImage(@publishOnFacebookAsPhoto_callback)
+			@saveImage(@publishOnFacebookAsPhotoCallback)
 		return
 
 	# (Called once the image is uploaded) directly publish the image
 	# todo: check if upload was successful?
-	publishOnFacebookAsPhoto_callback: (result)=>
+	publishOnFacebookAsPhotoCallback: (result)=>
 		romanesco_alert "Your image was successfully uploaded to Romanesco, posting to Facebook...", "info"
 		caption = @getDescription()
 		FB.api(
@@ -1170,12 +1170,12 @@ class ScreenshotTool extends RTool
 
 	# Save image and call publish on pinterest callback
 	publishOnPinterest: ()=>
-		@saveImage(@publishOnPinterest_callback)
+		@saveImage(@publishOnPinterestCallback)
 		return
 
 	# (Called once the image is uploaded) add a modal dialog to publish the image on pinterest (the pinterest button must link to an image already existing on the server)
 	# todo: check if upload was successful?
-	publishOnPinterest_callback: (result)=>
+	publishOnPinterestCallback: (result)=>
 		romanesco_alert "Your image was successfully uploaded to Romanesco...", "info"
 
 		# initialize pinterest modal

@@ -240,15 +240,6 @@ Notations:
         g.updateGrid();
       }
     };
-    g.parameters.fastMode = {
-      type: 'checkbox',
-      label: 'Fast mode',
-      "default": g.fastMode,
-      permanent: true,
-      onChange: function(value) {
-        g.fastMode = value;
-      }
-    };
     g.parameters.strokeWidth = {
       type: 'slider',
       label: 'Stroke width',
@@ -604,14 +595,7 @@ Notations:
     g.sidebarJ = $("#sidebar");
     g.canvasJ = g.stageJ.find("#canvas");
     g.canvas = g.canvasJ[0];
-    g.backgroundCanvasJ = g.stageJ.find("#background-canvas");
-    g.backgroundCanvas = g.backgroundCanvasJ[0];
-    g.backgroundCanvas.width = window.innerWidth;
-    g.backgroundCanvas.height = window.innerHeight;
-    g.backgroundCanvasJ.width(window.innerWidth);
-    g.backgroundCanvasJ.height(window.innerHeight);
     g.context = g.canvas.getContext('2d');
-    g.backgroundContext = g.backgroundCanvas.getContext('2d');
     g.templatesJ = $("#templates");
     g.me = null;
     g.selectionLayer = null;
@@ -633,13 +617,10 @@ Notations:
     g.sortedDivs = [];
     g.animatedItems = [];
     g.cars = {};
-    g.fastMode = false;
-    g.fastModeOn = false;
     g.alerts = null;
     g.scale = 1000.0;
     g.previousPoint = null;
     g.draggingEditor = false;
-    g.rasters = {};
     g.areasToUpdate = {};
     g.rastersToUpload = [];
     g.areasToRasterize = [];
@@ -703,6 +684,7 @@ Notations:
     g.grid.name = 'grid group';
     view.zoom = 1;
     g.previousViewPosition = view.center;
+    g.rasterizer = new Rasterizer();
     Point.prototype.toJSON = function() {
       return {
         x: this.x,
@@ -930,11 +912,9 @@ Notations:
       }
     };
     g.windowJ.resize(function(event) {
-      g.backgroundCanvas.width = window.innerWidth;
-      g.backgroundCanvas.height = window.innerHeight;
       updateGrid();
       $(".mCustomScrollbar").mCustomScrollbar("update");
-      return view.draw();
+      return view.update();
     });
   });
 

@@ -903,11 +903,11 @@
       this.copyURL = __bind(this.copyURL, this);
       this.downloadSVG = __bind(this.downloadSVG, this);
       this.downloadPNG = __bind(this.downloadPNG, this);
-      this.publishOnPinterest_callback = __bind(this.publishOnPinterest_callback, this);
+      this.publishOnPinterestCallback = __bind(this.publishOnPinterestCallback, this);
       this.publishOnPinterest = __bind(this.publishOnPinterest, this);
-      this.publishOnFacebookAsPhoto_callback = __bind(this.publishOnFacebookAsPhoto_callback, this);
+      this.publishOnFacebookAsPhotoCallback = __bind(this.publishOnFacebookAsPhotoCallback, this);
       this.publishOnFacebookAsPhoto = __bind(this.publishOnFacebookAsPhoto, this);
-      this.publishOnFacebook_callback = __bind(this.publishOnFacebook_callback, this);
+      this.publishOnFacebookCallback = __bind(this.publishOnFacebookCallback, this);
       this.publishOnFacebook = __bind(this.publishOnFacebook, this);
       this.extractImage = __bind(this.extractImage, this);
       ScreenshotTool.__super__.constructor.call(this, 'Screenshot', {
@@ -984,7 +984,7 @@
       from = g.me;
       g.currentPaths[from].remove();
       delete g.currentPaths[from];
-      g.view.draw();
+      g.view.update();
       r = new Rectangle(event.downPoint, event.point);
       if (r.area < 100) {
         return;
@@ -1037,10 +1037,10 @@
     };
 
     ScreenshotTool.prototype.publishOnFacebook = function() {
-      this.saveImage(this.publishOnFacebook_callback);
+      this.saveImage(this.publishOnFacebookCallback);
     };
 
-    ScreenshotTool.prototype.publishOnFacebook_callback = function(result) {
+    ScreenshotTool.prototype.publishOnFacebookCallback = function(result) {
       var caption;
       romanesco_alert("Your image was successfully uploaded to Romanesco, posting to Facebook...", "info");
       caption = this.getDescription();
@@ -1065,18 +1065,18 @@
         FB.login((function(_this) {
           return function(response) {
             if (response && !response.error) {
-              _this.saveImage(_this.publishOnFacebookAsPhoto_callback);
+              _this.saveImage(_this.publishOnFacebookAsPhotoCallback);
             } else {
               romanesco_alert("An error occured when trying to log you into facebook.", "error");
             }
           };
         })(this));
       } else {
-        this.saveImage(this.publishOnFacebookAsPhoto_callback);
+        this.saveImage(this.publishOnFacebookAsPhotoCallback);
       }
     };
 
-    ScreenshotTool.prototype.publishOnFacebookAsPhoto_callback = function(result) {
+    ScreenshotTool.prototype.publishOnFacebookAsPhotoCallback = function(result) {
       var caption;
       romanesco_alert("Your image was successfully uploaded to Romanesco, posting to Facebook...", "info");
       caption = this.getDescription();
@@ -1094,10 +1094,10 @@
     };
 
     ScreenshotTool.prototype.publishOnPinterest = function() {
-      this.saveImage(this.publishOnPinterest_callback);
+      this.saveImage(this.publishOnPinterestCallback);
     };
 
-    ScreenshotTool.prototype.publishOnPinterest_callback = function(result) {
+    ScreenshotTool.prototype.publishOnPinterestCallback = function(result) {
       var buttonJ, caption, description, imageUrl, imgJ, linkJ, linkJcopy, pinterestModalJ, siteUrl, submit;
       romanesco_alert("Your image was successfully uploaded to Romanesco...", "info");
       pinterestModalJ = $("#customModal");

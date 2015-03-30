@@ -153,12 +153,12 @@
     g.chatSocket.on("update", function(from, event, tool) {
       console.log("update");
       g.tools[tool].update(objectToEvent(event), from);
-      view.draw();
+      view.update();
     });
     g.chatSocket.on("end", function(from, event, tool) {
       console.log("end");
       g.tools[tool].end(objectToEvent(event), from);
-      view.draw();
+      view.update();
     });
     g.chatSocket.on("setPathPK", function(from, pid, pk) {
       var _ref;
@@ -173,31 +173,31 @@
       if ((_ref = g.paths[pk]) != null) {
         _ref.remove();
       }
-      view.draw();
+      view.update();
     });
     g.chatSocket.on("beginSelect", function(from, pk, event) {
       console.log("beginSelect");
       g.items[pk].beginSelect(objectToEvent(event), false);
-      view.draw();
+      view.update();
     });
     g.chatSocket.on("updateSelect", function(from, pk, event) {
       console.log("updateSelect");
       g.items[pk].updateSelect(objectToEvent(event), false);
-      view.draw();
+      view.update();
     });
     g.chatSocket.on("doubleClick", function(from, pk, event) {
       console.log("doubleClick");
       g.items[pk].doubleClick(objectToEvent(event), false);
-      view.draw();
+      view.update();
     });
     g.chatSocket.on("endSelect", function(from, pk, event) {
       console.log("endSelect");
       g.items[pk].endSelect(objectToEvent(event), false);
-      view.draw();
+      view.update();
     });
     g.chatSocket.on("createDiv", function(data) {
       console.log("createDiv");
-      return RDiv.save_callback(data, false);
+      return RDiv.saveCallback(data, false);
     });
     g.chatSocket.on("deleteDiv", function(pk) {
       var _ref;
@@ -205,7 +205,7 @@
       if ((_ref = g.items[pk]) != null) {
         _ref.remove();
       }
-      view.draw();
+      view.update();
     });
     g.chatSocket.on("car move", function(user, position, rotation, speed) {
       var _base;
@@ -229,14 +229,14 @@
           _base[name](false, value);
         }
       }
-      view.draw();
+      view.update();
     });
     return g.chatSocket.on("bounce", function(data) {
       console.log("bounce");
       if ((data.tool != null) && (data["function"] != null)) {
         g.tools[data.tool][data["function"]](data["arguments"]);
       }
-      view.draw();
+      view.update();
     });
   };
 

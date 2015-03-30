@@ -157,26 +157,31 @@
       MoveCommand.__super__.constructor.call(this, "Move item");
       this.previousPosition = this.item.rectangle.center;
       this.items = g.selectedItems.slice();
+      g.rasterizer.rasterize(this.items, true);
       return;
     }
 
     MoveCommand.prototype["do"] = function() {
       var item, _i, _len, _ref;
+      g.rasterizer.rasterize(this.items, false);
       _ref = this.items;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         item = _ref[_i];
         item.moveBy(this.newPosition.subtract(this.previousPosition), true);
       }
+      g.rasterizer.rasterize(this.items);
       MoveCommand.__super__["do"].call(this);
     };
 
     MoveCommand.prototype.undo = function() {
       var item, _i, _len, _ref;
+      g.rasterizer.rasterize(this.items, false);
       _ref = this.items;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         item = _ref[_i];
         item.moveBy(this.previousPosition.subtract(this.newPosition), true);
       }
+      g.rasterizer.rasterize(this.items);
       MoveCommand.__super__.undo.call(this);
     };
 
@@ -211,14 +216,15 @@
           });
         }
       }
-      Dajaxice.draw.multipleCalls(this.update_callback, {
+      Dajaxice.draw.multipleCalls(this.updateCallback, {
         functionsAndArguments: args
       });
+      g.rasterizer.rasterize(this.items);
       MoveCommand.__super__.end.call(this);
       return true;
     };
 
-    MoveCommand.prototype.update_callback = function(results) {
+    MoveCommand.prototype.updateCallback = function(results) {
       var result, _i, _len;
       for (_i = 0, _len = results.length; _i < _len; _i++) {
         result = results[_i];

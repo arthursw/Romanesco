@@ -71,8 +71,8 @@ init = ()->
 	g.divs = [] 							# array of loaded RDivs
 	g.sortedPaths = []						# an array where paths are sorted by index (z-index)
 	g.sortedDivs = []						# an array where divs are sorted by index (z-index)
-	g.fastMode = false 						# fastMode will hide all items except the one being edited (when user edits an item)
-	g.fastModeOn = false					# fastModeOn is true when the user is edditing an item
+	# g.fastMode = false 						# fastMode will hide all items except the one being edited (when user edits an item)
+	# g.fastModeOn = false					# fastModeOn is true when the user is edditing an item
 	g.scale = 1000.0 						# the scale to go from project coordinates to planet coordinates
 	g.rasters = {}							# map to store rasters (tiles, rasterized version of the view)
 	g.catchErrors = false 					# the error will not be caught when drawing an RPath (let chrome catch them at the right time)
@@ -106,6 +106,7 @@ init = ()->
 	g.grid.name = 'grid group'
 
 	view.zoom = 1 # 0.01
+	view.pause()
 
 	# load path source code
 	$.ajax( url: g.romanescoURL + "static/coffee/path.coffee" ).done (data)->
@@ -133,6 +134,7 @@ $(document).ready () ->
 	return
 
 # fake functions
+
 this.fakeFunction = ()->
 	return
 
@@ -142,3 +144,139 @@ this.setControllerValue = this.fakeFunction
 this.deferredExecution = this.fakeFunction
 this.romanesco_alert = this.fakeFunction
 jQuery.fn.mCustomScrollbar = this.fakeFunction
+
+# rasterizer
+
+this.createItemsDates = (bounds)->
+	itemsDates = {}
+	for pk, item of g.items
+		if bounds.contains(item.getBounds())
+			type = ''
+			if RLock.prototype.isPrototypeOf(item)
+				type = 'Box'
+			else if RDiv.prototype.isPrototypeOf(item)
+				type = 'Div'
+			else if RPath.prototype.isPrototypeOf(item)
+				type = 'Path'
+			itemsDates[pk] = item.lastUpdateDate
+		# itemsDates.push( pk: pk, lastUpdate: item.lastUpdateDate, type: type )
+	return itemsDates
+
+# this.removeItemsToUpdate = (itemsToUpdate)->
+# 	for pk in itemsToUpdate
+# 		g.items[pk].remove()
+# 	return
+
+
+this.loopRasterize = ()->
+
+	rectangle = g.areaToRasterize
+
+	width = Math.min(1000, rectangle.right - view.bounds.left)
+	height = Math.min(1000, rectangle.bottom - view.bounds.top)
+	
+	newSize = new Size(width, height)
+	
+	if not view.viewSize.equals(newSize)
+		topLeft = view.bounds.topLeft
+		view.viewSize = newSize
+		view.center = topLeft.add(newSize.multiply(0.5))
+
+	imagePosition = view.bounds.topLeft.clone()
+	debugger 	# view.draw() should be necessary now
+
+	dataURL = g.canvas.toDataURL()
+
+	finished = view.bounds.bottom >= rectangle.bottom and view.bounds.right >= rectangle.right
+
+	if not finished 
+		if view.bounds.right < rectangle.right
+			view.center = view.center.add(1000, 0)
+		else
+			view.center = new Point(rectangle.left+view.viewSize.width*0.5, view.bounds.bottom+view.viewSize.height*0.5)
+	else	
+		g.areaToRasterize = null
+	window.saveOnServer(dataURL, imagePosition.x, imagePosition.y, finished)
+	return
+
+this.rasterizeAndSaveOnServer = ()->
+	console.log "area rasterized"
+
+	view.viewSize = Size.min(new Size(1000,1000), g.areaToRasterize.size)
+	view.center = g.areaToRasterize.topLeft.add(view.size.multiply(0.5))
+	g.loopRasterize()
+
+	return
+
+this.loadArea = (args)->
+	console.log "load_area"
+
+	if g.areaToRasterize?
+		console.log "error: load_area while loading !!"
+		debugger
+	
+	area = g.expandRectangleToInteger(g.rectangleFromBox(JSON.parse(args)))
+	g.areaToRasterize = area
+	# view.viewSize = Size.min(area.size, new Size(1000, 1000))
+
+	# move the view
+	delta = area.center.subtract(view.center)
+	project.view.scrollBy(delta)
+	for div in g.divs
+		div.updateTransform()
+
+	console.log "call load"
+
+	g.load(area)
+	
+	return
+
+# rasterizer tests
+
+this.getAreasToUpdate = ()->
+	if g.areasToRasterize.length==0 and g.imageSaved
+		Dajaxice.draw.getAreasToUpdate(g.getAreasToUpdateCallback)
+	return
+
+this.loadNextArea = ()->
+	if g.areasToRasterize.length>0
+		area = g.areasToRasterize.pop()
+		g.areaToRasterizePk = area._id.$oid
+		g.imageSaved = false
+		g.loadArea(JSON.stringify(area))
+	return
+
+this.getAreasToUpdateCallback = (areas)->
+	g.areasToRasterize = areas
+	loadNextArea()
+	return
+
+this.testSaveOnServer = (imageDataURL, x, y, finished)->
+	if not imageDataURL
+		debugger
+	g.rasterizedAreasJ.append($('<img src="' + imageDataURL + '" data-position="' + x + ', ' + y + '" finished="' + finished + '">').css( border: '1px solid black'))
+	console.log 'position: ' + x + ', ' + y
+	console.log 'finished: ' + finished
+	if finished
+		Dajaxice.draw.deleteAreaToUpdate(g.deleteAreaToUpdateCallback, { pk: g.areaToRasterizePk } )
+	else
+		g.loopRasterize()
+	return
+
+this.deleteAreaToUpdateCallback = (result)->
+	g.checkError(result)
+	g.imageSaved = true
+	loadNextArea()
+	return
+
+this.testRasterizer = ()->
+	g.rasterizedAreasJ = $('<div class="rasterized-areas">')
+	g.rasterizedAreasJ.css( position: 'absolute', top: 1000, left: 0 )
+	$('body').css( overflow: 'auto' ).prepend(g.rasterizedAreasJ)
+	window.saveOnServer = g.testSaveOnServer
+	g.areasToRasterize = []
+	g.imageSaved = true
+	setInterval(getAreasToUpdate, 1000)
+	return
+
+

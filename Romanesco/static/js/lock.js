@@ -150,7 +150,7 @@
       this.date = date;
       this.select = __bind(this.select, this);
       this.update = __bind(this.update, this);
-      this.save_callback = __bind(this.save_callback, this);
+      this.saveCallback = __bind(this.saveCallback, this);
       RLock.__super__.constructor.call(this, this.data, this.pk);
       g.locks.push(this);
       this.group.name = 'lock group';
@@ -239,7 +239,7 @@
         disableToolbar: data.disableToolbar,
         loadEntireArea: data.loadEntireArea
       };
-      Dajaxice.draw.saveBox(this.save_callback, {
+      Dajaxice.draw.saveBox(this.saveCallback, {
         'box': g.boxFromRectangle(this.rectangle),
         'object_type': this.constructor.object_type,
         'data': JSON.stringify(data),
@@ -248,7 +248,7 @@
       });
     };
 
-    RLock.prototype.save_callback = function(result) {
+    RLock.prototype.saveCallback = function(result) {
       g.checkError(result);
       if (result.pk == null) {
         this.remove();
@@ -308,12 +308,12 @@
           });
         }
       }
-      Dajaxice.draw.multipleCalls(this.update_callback, {
+      Dajaxice.draw.multipleCalls(this.updateCallback, {
         functionsAndArguments: args
       });
     };
 
-    RLock.prototype.update_callback = function(results) {
+    RLock.prototype.updateCallback = function(results) {
       var result, _i, _len;
       for (_i = 0, _len = results.length; _i < _len; _i++) {
         result = results[_i];
@@ -335,7 +335,7 @@
       if (this.pk == null) {
         return;
       }
-      Dajaxice.draw.deleteBox(this.deleteBox_callback, {
+      Dajaxice.draw.deleteBox(this.deleteBoxCallback, {
         'pk': this.pk
       });
     };
@@ -344,7 +344,7 @@
       g.commandManager.add(new DeleteLockCommand(this), true);
     };
 
-    RLock.prototype.deleteBox_callback = function(result) {
+    RLock.prototype.deleteBoxCallback = function(result) {
       if (g.checkError(result)) {
         g.chatSocket.emit("delete box", result.pk);
       }

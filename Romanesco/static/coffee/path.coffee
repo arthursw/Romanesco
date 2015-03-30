@@ -232,29 +232,28 @@ class RPath extends RContent
 	# deselect: remove the selection rectangle (and rasterize)
 	deselect: (updatePreviouslySelectedItems)->
 		if not super(updatePreviouslySelectedItems) then return false
-		@rasterize()
 		return true
 
 	beginAction: (command)->
 		super(command)
-		if not ( @selectionState.move? or @selectionState.rotation? )
-			g.rasterizeProject(@)
+		if not @selectionState.move?
+			g.rasterizer.rasterize(@, true)
 		return
 
 	endAction: ()->
 		super()
-		if not ( @selectionState.move? or @selectionState.rotation? )
-			g.restoreProject(@)
+		if not @selectionState.move?
+			g.rasterizer.drawItem(@)
 		return
 
 	# called when user deselects, after a not simplified draw or once the user finished creating the path
 	# this is suppose to convert all the group to a raster to speed up paper.js operations, but it does not drastically improve speed, so it is just commented out
-	rasterize: ()->
-		# if @raster? or not @drawing? then return
-		# @raster = @drawing.rasterize()
-		# @group.addChild(@raster)
-		# @drawing.visible = false
-		return
+	# rasterize: ()->
+	# 	# if @raster? or not @drawing? then return
+	# 	# @raster = @drawing.rasterize()
+	# 	# @group.addChild(@raster)
+	# 	# @drawing.visible = false
+	# 	returnrasterize
 
 	# common to all RItems
 	# update select action
@@ -467,31 +466,27 @@ class RPath extends RContent
 	save: (@addCreateCommand)->
 		if not @controlPath? then return
 
-		# ajaxPost '/savePath', {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData() } , @save_callback
-		
-		# rectangle = @getBounds()
-		# if not @data?.animate
-		# 	extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
+		args = 
+			box: g.boxFromRectangle( @getDrawingBounds() )
+			points: @pathOnPlanet()
+			data: @getStringifiedData()
+			date: @date
+			object_type: @constructor.rname
 
-		Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'date': @date, 'data': @getStringifiedData(), 'bounds': g.boxFromRectangle( @getDrawingBounds() ) } )
-		# Dajaxice.draw.savePath( @save_callback, {'points': @pathOnPlanet(), 'pID': @id, 'planet': @planet(), 'object_type': @constructor.rname, 'data': @getStringifiedData(), 'rasterData': extraction.dataURL, 'rasterPosition': rectangle.topLeft, 'areasNotRasterized': extraction.areasNotRasterized } )
+		Dajaxice.draw.savePath( @saveCallback, args )
 		
-		# rectangle = @getBounds()
-		# if not @data?.animate
-		# 	extraction = g.areaToImageDataUrlWithAreasNotRasterized(rectangle)
-		# 	Dajaxice.draw.updateRasters( g.checkError, { 'data': extraction.dataURL, 'rectangle': rectangle, 'areasNotExtracted': extraction.areasNotExtracted } )
 		return
 
 	# check if the save was successful and set @pk if it is
-	save_callback: (result)=>
+	saveCallback: (result)=>
 		g.checkError(result)
 		if not result.pk? then return 		# if @pk is null, the path was not saved, do not set pk nor rasterize
 		@setPK(result.pk)
 		if @addCreateCommand
 			g.commandManager.add(new CreatePathCommand(@))
 			delete @addCreateCommand
-		if not @data?.animate
-			g.rasterizeArea(@getDrawingBounds())
+		# if not @data?.animate
+		# 	g.rasterizeArea(@getDrawingBounds())
 		if @updateAfterSave?
 			@update(@updateAfterSave)
 		return
@@ -507,9 +502,8 @@ class RPath extends RContent
 				args =
 					pk: @pk
 					points: @pathOnPlanet()
-					planet: @planet()
 					data: @getStringifiedData()
-					bounds: g.boxFromRectangle( @getDrawingBounds() )
+					box: g.boxFromRectangle( @getDrawingBounds() )
 		return args
 
 	# update the RPath in the database
@@ -521,45 +515,46 @@ class RPath extends RContent
 			return
 		delete @updateAfterSave
 
-		Dajaxice.draw.updatePath(@updatePath_callback, @getUpdateArguments(type))
+		Dajaxice.draw.updatePath(@updatePathCallback, @getUpdateArguments(type))
 
-		if not @data?.animate
+		# if not @data?.animate
 			
-			if not @drawing?
-				@draw()
+		# 	if not @drawing?
+		# 		@draw()
 
-			selectionHighlightVisible = @selectionHighlight?.visible
-			@selectionHighlight?.visible = false
-			speedGroupVisible = @speedGroup?.visible
-			@speedGroup?.visible = false
+		# 	selectionHighlightVisible = @selectionHighlight?.visible
+		# 	@selectionHighlight?.visible = false
+		# 	speedGroupVisible = @speedGroup?.visible
+		# 	@speedGroup?.visible = false
 
-			rectangle = @getDrawingBounds()
+		# 	rectangle = @getDrawingBounds()
 
-			if @previousBoundingBox?
-				union = rectangle.unite(@previousBoundingBox)
-				if rectangle.intersects(@previousBoundingBox) and union.area < @previousBoundingBox.area*2
-					g.rasterizeArea(union)
-				else
-					g.rasterizeArea(rectangle)
-					g.rasterizeArea(@previousBoundingBox)
+		# 	if @previousBoundingBox?
+		# 		union = rectangle.unite(@previousBoundingBox)
+		# 		if rectangle.intersects(@previousBoundingBox) and union.area < @previousBoundingBox.area*2
+		# 			g.rasterizeArea(union)
+		# 		else
+		# 			g.rasterizeArea(rectangle)
+		# 			g.rasterizeArea(@previousBoundingBox)
 
-				@previousBoundingBox = null
-			else
-				g.rasterizeArea(rectangle)
+		# 		@previousBoundingBox = null
+		# 	else
+		# 		g.rasterizeArea(rectangle)
 
-			@selectionHighlight?.visible = selectionHighlightVisible
-			@speedGroup?.visible = speedGroupVisible
+		# 	@selectionHighlight?.visible = selectionHighlightVisible
+		# 	@speedGroup?.visible = speedGroupVisible
+		
 		# if type == 'points'
-		# 	# ajaxPost '/updatePath', {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData() }, @updatePath_callback
-		# 	Dajaxice.draw.updatePath( @updatePath_callback, {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData() } )
+		# 	# ajaxPost '/updatePath', {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData() }, @updatePathCallback
+		# 	Dajaxice.draw.updatePath( @updatePathCallback, {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData() } )
 		# else
-		# 	# ajaxPost '/updatePath', {'pk': @pk, 'data': @getStringifiedData() } , @updatePath_callback
-		# 	Dajaxice.draw.updatePath( @updatePath_callback, {'pk': @pk, 'data': @getStringifiedData() } )
+		# 	# ajaxPost '/updatePath', {'pk': @pk, 'data': @getStringifiedData() } , @updatePathCallback
+		# 	Dajaxice.draw.updatePath( @updatePathCallback, {'pk': @pk, 'data': @getStringifiedData() } )
 
 		return
 
 	# check if update was successful
-	updatePath_callback: (result)->
+	updatePathCallback: (result)->
 		g.checkError(result)
 		return
 
@@ -601,19 +596,18 @@ class RPath extends RContent
 	# @remove() just removes visually
 	delete: ()->
 		@group.visible = false
-		bounds = g.boxFromRectangle(@getDrawingBounds())
 		@remove()
 		# g.rasterizeArea(bounds)
 		if not @pk? then return
 		console.log @pk
-		# ajaxPost '/deletePath', { pk: @pk } , @deletePath_callback
-		Dajaxice.draw.deletePath(@deletePath_callback, { pk: @pk, bounds: bounds })
+		# ajaxPost '/deletePath', { pk: @pk } , @deletePathCallback
+		Dajaxice.draw.deletePath(@deletePathCallback, { pk: @pk })
 
 		@pk = null
 		return
 
 	# check if delete was successful and emit "delete path" to other users if so
-	deletePath_callback: (result)->
+	deletePathCallback: (result)->
 		if g.checkError(result)
 			g.chatSocket.emit( "delete path", result.pk )
 		return
@@ -862,12 +856,10 @@ class PrecisePath extends RPath
 		super()
 
 		if not @data.polygonMode 				# in normal mode: just initialize the control path and begin drawing
-			g.rasterizeProject(@)
 			@initializeControlPath(point)
 			@beginDraw(false)
 		else 									# in polygon mode:
 			if not @controlPath?					# if the user just started the creation (first point, on mouse down)
-				g.rasterizeProject(@)
 				@initializeControlPath(point)		# 	initialize the control path, add the point and begin drawing
 				@controlPath.add(point)
 				@beginDraw(false)
@@ -959,12 +951,10 @@ class PrecisePath extends RPath
 		if not loading
 			@endDraw(loading)
 			@drawingOffset = 0
-			g.restoreProject(@)
 
 		@rectangle = @controlPath.bounds
 		@initialize()
 		@draw(false, loading) 	# enable to have the correct @canvasRaster size and to have the exact same result after a load or a change
-		@rasterize()
 
 		return
 
@@ -1046,8 +1036,6 @@ class PrecisePath extends RPath
 
 		if simplified 
 			@simplifiedModeOff()
-		else
-			@rasterize()
 
 		return
 
@@ -2906,9 +2894,11 @@ class RShape extends RPath
 		if not @data.rectangle? then console.log 'Error loading shape ' + @pk + ': invalid rectangle.'
 		@rectangle = if @data.rectangle? then new Rectangle(@data.rectangle) else new Rectangle()
 		@initializeControlPath(@rectangle.topLeft, @rectangle.bottomRight, false, false, true)
-		@draw(false, true)
 		@controlPath.rotation = @rotation
 		@initialize()
+
+		if @data?.animate 	# only draw if animated thanks to rasterization
+			@draw()
 
 		# Check shape validity
 		distanceMax = @constructor.secureDistance*@constructor.secureDistance
@@ -2935,7 +2925,6 @@ class RShape extends RPath
 			@initializeDrawing()
 			@createShape()
 			@drawing.rotation = @rotation
-			@rasterize()
 			return
 		if not g.catchErrors
 			process()
@@ -3094,7 +3083,7 @@ class StarShape extends RShape
 			label: 'Internal radius'
 			min: -200
 			max: 100
-			default: 37
+			default: 38
 		parameters['Style'].rsmooth =
 			type: 'checkbox'
 			label: 'Smooth'

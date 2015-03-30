@@ -55,7 +55,7 @@ def multipleCalls(request, functionsAndArguments):
 	return json.dumps(results)
 
 @dajaxice_register
-def benchmark_load(request, areasToLoad):
+def benchmarkLoad(request, areasToLoad):
 
 	start = time.time()
 
@@ -186,11 +186,13 @@ def benchmark_load(request, areasToLoad):
 # 	return json.dumps( { 'items': items.values(), 'rasters': rasters, 'zoom': zoom, 'user': user } )
 
 @dajaxice_register
-def load(request, rectangle, areasToLoad, zoom, loadRasters=True, itemsDates=None):
+def load(request, rectangle, areasToLoad, zoom):
 
 	items = {}
 
 	start = time.time()
+
+	models = ['Path', 'Div', 'Box'] # , 'AreaToUpdate']
 
 	for area in areasToLoad:
 				
@@ -200,87 +202,75 @@ def load(request, rectangle, areasToLoad, zoom, loadRasters=True, itemsDates=Non
 		planetX = area['planet']['x']
 		planetY = area['planet']['y']
 
-		# geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
-		geometry = makeBox(tlX, tlY, tlX+0.2, tlY+0.2)
+		geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
+		# geometry = makeBox(tlX, tlY, tlX+0.2, tlY+0.2)
 
-		# load items
-		p = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry)
-		d = Div.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
-		b = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
-		a = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+		for model in models:
+			itemsQuerySet = globals()[model].objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+
+			for item in itemsQuerySet:
+				if not items.has_key(item.pk):
+					items[item.pk] = item.to_json()
 		
-		for path in p:
-			if not items.has_key(path.pk):
-				items[path.pk] = path.to_json()
-		for div in d:
-			if not items.has_key(div.pk):
-				items[div.pk] = div.to_json()
-		for box in b:
-			if not items.has_key(box.pk):
-				items[box.pk] = box.to_json()
-		for area in a:
-			if not items.has_key(area.pk):
-				items[area.pk] = area.to_json()
-
-	# add items to update
-	itemsToUpdate = None
-	if itemsDates != None:
-		itemsToUpdate = []
-		for itemDate in itemsDates:
-			Class = globals()[itemDate['type']]
-			pk = itemDate['pk']
-			lastUpdate = datetime.datetime.fromtimestamp(itemDate['lastUpdate']/1000.0)
-			try:
-				item = Class.objects.get(pk=pk)
-			except Class.DoesNotExist:
-				itemsToUpdate.append( pk )
-				continue
-			if item.lastUpdate > lastUpdate:
-				itemsToUpdate.append( pk )
-				items[item.pk] = item.to_json()
+		# # load items
+		# p = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry)
+		# d = Div.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+		# b = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+		# a = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+		
+		# for path in p:
+		# 	if not items.has_key(path.pk):
+		# 		items[path.pk] = path.to_json()
+		# for div in d:
+		# 	if not items.has_key(div.pk):
+		# 		items[div.pk] = div.to_json()
+		# for box in b:
+		# 	if not items.has_key(box.pk):
+		# 		items[box.pk] = box.to_json()
+		# for area in a:
+		# 	if not items.has_key(area.pk):
+		# 		items[area.pk] = area.to_json()
 
 	# load rasters
 	rasters = []
 
-	if loadRasters:
+	step = 1
 
+	if zoom < 5:
 		step = 1
+	elif zoom < 25:
+		step = 5
+	else:
+		step = 25
 
-		if zoom > 0.2:
-			step = 1
-		elif zoom > 0.04:
-			step = 5
-		else:
-			step = 25
+	left = int(rectangle['left'] / 1000.0)
+	top = int(rectangle['top'] / 1000.0)
+	right = int(rectangle['right'] / 1000.0)
+	bottom = int(rectangle['bottom'] / 1000.0)
 
-		left = int(rectangle['left'])
-		top = int(rectangle['top'])
-		right = int(rectangle['right'])
-		bottom = int(rectangle['bottom'])
+	for x1 in range(left,right+step,step):
+		for y1 in range(top,bottom+step,step):
 
-		for x1 in range(left,right+step,step):
-			for y1 in range(top,bottom+step,step):
+			x5 = roundToLowerMultiple(x1, 5)
+			y5 = roundToLowerMultiple(y1, 5)
 
-				x5 = roundToLowerMultiple(x1, 5)
-				y5 = roundToLowerMultiple(y1, 5)
+			x25 = roundToLowerMultiple(x1, 25)
+			y25 = roundToLowerMultiple(y1, 25)
 
-				x25 = roundToLowerMultiple(x1, 25)
-				y25 = roundToLowerMultiple(y1, 25)
+			if zoom < 5:
+				position = { 'x': x1, 'y': y1 }
+				rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
+			elif zoom < 25:
+				position = { 'x': x5, 'y': y5 }
+				rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
+			else:
+				position = { 'x': x25, 'y': y25 }
+				rasterPath = 'media/rasters/zoom4/'
 
-				if zoom > 0.2:
-					position = { 'x': x1, 'y': y1 }
-					rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
-				elif zoom > 0.04:
-					position = { 'x': x5, 'y': y5 }
-					rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
-				else:
-					position = { 'x': x25, 'y': y25 }
-					rasterPath = 'media/rasters/zoom4/'
-
-				rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
-				
-				if os.path.isfile(os.getcwd() + '/' + rasterName):
-					rasters.append( { 'url': rasterName, 'position': position } )
+			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
+			
+			if os.path.isfile(os.getcwd() + '/' + rasterName):
+				rasters.append( { 'url': rasterName, 'position': position } )
 
 	end = time.time()
 	print "Time elapsed: " + str(end - start)
@@ -292,8 +282,41 @@ def load(request, rectangle, areasToLoad, zoom, loadRasters=True, itemsDates=Non
 	userID += 1
 
 	# return json.dumps( { 'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user, 'rasters': rasters, 'areasToUpdate': areas, 'zoom': zoom } )
-	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'zoom': zoom, 'itemsToUpdate': itemsToUpdate } )
+	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'zoom': zoom } )
 
+
+@dajaxice_register
+def loadRasterizer(request, areasToLoad, itemsDates):
+
+	items = {}
+
+	start = time.time()
+	
+	models = ['Path', 'Box']
+
+	for area in areasToLoad:
+				
+		tlX = area['pos']['x']
+		tlY = area['pos']['y']
+
+		planetX = area['planet']['x']
+		planetY = area['planet']['y']
+
+		geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
+		# geometry = makeBox(tlX, tlY, tlX+0.2, tlY+0.2)
+
+		for model in models:
+			itemsQuerySet = globals()[model].objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+
+			for item in itemsQuerySet:
+				pk = item.pk
+				if not items.has_key(pk) and (not itemsDates.has_key(pk) or itemsDates[pk]<item.lastUpdate):
+					items[pk] = item.to_json()
+
+	end = time.time()
+	print "Time elapsed: " + str(end - start)
+
+	return json.dumps( { 'items': items.values() } )
 
 # @return [Array<{x: x, y: y}>] the list of areas on which the bounds lie
 def getAreas(bounds):
@@ -543,11 +566,12 @@ def getAreas(bounds):
 # 	return
 
 @dajaxice_register
-def savePath(request, points, pID, planet, object_type, bounds, date, data=None):
+def savePath(request, points, object_type, box, date, data=None):
 # def savePath(request, points, pID, planet, object_type, data=None, rasterData=None, rasterPosition=None, areasNotRasterized=None):
 
-	planetX = planet['x']
-	planetY = planet['y']
+	boxPoints = box['points']
+	planetX = box['planet']['x']
+	planetY = box['planet']['y']
 
 	lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) # , owner__ne=request.user.username )
 	lock = None
@@ -564,20 +588,22 @@ def savePath(request, points, pID, planet, object_type, bounds, date, data=None)
 		if not object_type in defaultPathTools:
 			return json.dumps( { 'state': 'error', 'message': 'The path "' + object_type + '" does not exist.' } )
 
-	p = Path(planetX=planetX, planetY=planetY, points=points, owner=request.user.username, object_type=object_type, data=data, date=datetime.datetime.fromtimestamp(date/1000.0), lock=lock )
+	boxGeometry = makeBox(boxPoints[0][0], boxPoints[0][1], boxPoints[2][0], boxPoints[2][1])
+
+	p = Path(planetX=planetX, planetY=planetY, box=boxGeometry, points=points, owner=request.user.username, object_type=object_type, data=data, date=datetime.datetime.fromtimestamp(date/1000.0), lock=lock )
 	p.save()
-	if bounds:
-		addAreaToUpdate( bounds['points'], bounds['planet']['x'], bounds['planet']['y'] )
+
+	addAreaToUpdate( boxPoints, planetX, planetY )
 
 	# addAreas(bounds, p)
 
 	# rasterResult = updateRastersJson(rasterData, rasterPosition, areasNotRasterized)
 
 	# return json.dumps( {'state': rasterResult['state'], 'pID': pID, 'pk': str(p.pk), 'message': rasterResult['message'] if 'message' in rasterResult else '' } )
-	return json.dumps( {'state': 'success', 'pID': pID, 'pk': str(p.pk) } )
+	return json.dumps( {'state': 'success', 'pk': str(p.pk) } )
 
 @dajaxice_register
-def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, date=None):
+def updatePath(request, pk, points=None, box=None, data=None, date=None):
 
 	try:
 		p = Path.objects.get(pk=pk)
@@ -587,9 +613,13 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, da
 	if p.lock and request.user.username != p.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
-	if points or planet:
-		planetX = planet['x']
-		planetY = planet['y']
+	if box and not points or points and not box:
+		return json.dumps( { 'state': 'error', 'message': 'Modifying points without box or box without points' } )
+	
+	if points and box:
+		boxPoints = box['points']
+		planetX = box['planet']['x']
+		planetY = box['planet']['y']
 
 		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) #, owner__ne=request.user.username )
 		p.lock = None
@@ -602,13 +632,14 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, da
 			else:
 				return json.dumps( {'state': 'error', 'message': 'Your path intersects with a locked area which you do not own'} )
 
-	if points:
+		addAreaToUpdate( p.box['coordinates'][0], p.planetX, p.planetY )
+
+		p.box = [boxPoints]
+		p.planetX = planetX
+		p.planetY = planetY
 		p.points = points
-		if bounds:
-			addAreaToUpdate( bounds['points'], bounds['planet']['x'], bounds['planet']['y'] )
-	if planet:
-		p.planetX = planet['x']
-		p.planetY = planet['y']
+		
+		addAreaToUpdate( boxPoints, planetX, planetY )
 	if data:
 		p.data = data
 	if date:
@@ -621,7 +652,7 @@ def updatePath(request, pk, points=None, planet=None, bounds=None, data=None, da
 	return json.dumps( {'state': 'success'} )
 
 @dajaxice_register
-def deletePath(request, pk, bounds=None):
+def deletePath(request, pk):
 
 	try:
 		p = Path.objects.get(pk=pk)
@@ -631,11 +662,10 @@ def deletePath(request, pk, bounds=None):
 	if p.lock and request.user.username != p.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
-	# deleteAreas(p)
+	addAreaToUpdate( p.box['coordinates'][0], p.planetX, p.planetY )
+
 	p.delete()
-	if bounds:
-		addAreaToUpdate( bounds['points'], bounds['planet']['x'], bounds['planet']['y'] )
-	
+
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
@@ -742,10 +772,11 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 
 	# update the box:
 	if box:
-		b.box = [box['points']]
-		b.planetX = box['planet']['x']
-		b.planetY = box['planet']['y']
-		addAreaToUpdate( b.box[0], b.planetX, b.planetY )
+		addAreaToUpdate( b.box['coordinates'][0], b.planetX, b.planetY )
+		b.box = [points]
+		b.planetX = planetX
+		b.planetY = planetY
+		addAreaToUpdate( points, planetX, planetY )
 	if data:
 		b.data = data
 	b.lastUpdate = datetime.datetime.now()
@@ -830,7 +861,7 @@ def saveDiv(request, box, object_type, date=None, data=None, lock=None):
 	# 	return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
 
 	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data, lock=lock, date=datetime.datetime.fromtimestamp(date/1000.0))
-	addAreaToUpdate( points, planetX, planetY )
+	# addAreaToUpdate( points, planetX, planetY )
 	d.save()
 
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(d.pk), 'box': box } )
@@ -865,11 +896,11 @@ def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, loc
 			else:
 				return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area which you do not own'} )
 
-	if box:
-		d.box = [box['points']]
-		d.planetX = box['planet']['x']
-		d.planetY = box['planet']['y']
-		addAreaToUpdate( d.box[0], d.planetX, d.planetY )
+		# addAreaToUpdate( d.box['coordinates'][0], d.planetX, d.planetY )
+		d.box = [points]
+		d.planetX = planetX
+		d.planetY = planetY
+		# addAreaToUpdate( d.box[0], d.planetX, d.planetY )
 	if date:
 		d.date = datetime.datetime.fromtimestamp(date/1000.0)
 	if data:
@@ -891,8 +922,7 @@ def deleteDiv(request, pk):
 	if d.lock and request.user.username != d.owner:
 		return json.dumps({'state': 'error', 'message': 'You are not the owner of this div.'})
 
-	# deleteAreas(d)
-	addAreaToUpdate( d.box['coordinates'][0], d.planetX, d.planetY )
+	# addAreaToUpdate( d.box['coordinates'][0], d.planetX, d.planetY )
 	
 	d.delete()
 
@@ -977,10 +1007,10 @@ def batchUpdateRasters(request, args):
 		results.append(updateRastersJson(arg['data'], arg['position'], arg['areasNotRasterized'], arg['areaToDeletePk']))
 	return json.dumps(results)
 
-@dajaxice_register
-def updateRasters(request, data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
-	result = updateRastersJson(data, position, areasNotRasterized, areaToDeletePk)
-	return json.dumps(result)
+# @dajaxice_register
+# def updateRasters(request, data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
+# 	result = updateRastersJson(data, position, areasNotRasterized, areaToDeletePk)
+# 	return json.dumps(result)
 	
 def roundToLowerMultiple(x, m):
 	return int(floor(x/float(m))*m)
@@ -989,679 +1019,688 @@ def roundToLowerMultiple(x, m):
 def roundToGreaterMultiple(x, m):
 	return int(ceil(x/float(m))*m)
 
+# # @dajaxice_register
+# def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
+# 	print "updateRastersJson"
+
+# 	# for line in traceback.format_stack():
+# 	# 	print line.strip()
+
+# 	# global isUpdatingRasters
+	
+# 	# if isUpdatingRasters:
+# 	# 	print 'Error: isUpdatingRasters!'
+# 	# 	import pdb; pdb.set_trace()
+	
+# 	# isUpdatingRasters = True
+
+# 	if areaToDeletePk:
+# 		try:
+# 			areaToDelete = AreaToUpdate.objects.get(pk=areaToDeletePk)
+# 		except AreaToUpdate.DoesNotExist:
+# 			return json.dumps({'state': 'log', 'message': 'Delete impossible: area does not exist'})
+# 		print '<<<'
+# 		print "1. attempt to delete areas from area to delete " + str(areaToDelete.pk) + "..."
+# 		# deleteAreas(areaToDelete)
+# 		print "2. attempt to delete areas to delete " + str(areaToDelete.pk) + "..."
+# 		areaToDelete.delete()
+
+# 		try:
+# 			a = AreaToUpdate.objects.get(pk=areaToDeletePk)
+# 			print 'WHAT?'
+# 			import pdb; pdb.set_trace()
+# 		except AreaToUpdate.DoesNotExist:
+# 			print 'ok'
+# 		print '3. finished deleting area to delete'
+# 		print '>>>'
+
+# 	areasDeleted = []
+# 	areasToUpdate = []
+
+# 	if areasNotRasterized:
+# 		for area in areasNotRasterized:
+
+# 			points = area['points']
+# 			planetX = area['planet']['x']
+# 			planetY = area['planet']['y']
+
+# 			# merge all overlapping areas into one (and delete them)
+# 			print '<<<'
+# 			print 'start merging all regions overlapping with the new area to update: '
+# 			print 'points: ' + str(points)
+# 			overlappingAreas = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=[points])
+# 			left = xMin = points[0][0]
+# 			right = xMax = points[2][0]
+# 			top = yMin = points[0][1]
+# 			bottom = yMax = points[2][1]
+# 			for overlappingArea in overlappingAreas:
+				
+# 				cbox = overlappingArea.box['coordinates'][0]
+# 				cleft = cbox[0][0]
+# 				ctop = cbox[0][1]
+# 				cright = cbox[2][0]
+# 				cbottom = cbox[2][1]
+				
+# 				# if the areas just share an edge: continue
+# 				# check if intersection has a positive area
+# 				ileft = max(left, cleft)
+# 				itop = max(top, ctop)
+# 				iright = min(right, cright)
+# 				ibottom = min(bottom, cbottom)
+				
+# 				if (iright-ileft) <= 0 or (ibottom-itop) <= 0 or (iright-ileft) * (ibottom-itop) <= 0.001:
+# 					continue
+
+# 				print '!!! OVERLAPPING !!!'
+# 				print '!!! OVERLAPPING !!!'
+# 				print '!!! OVERLAPPING !!!'
+				
+# 				if not xMin or cleft < xMin:
+# 					xMin = cleft
+# 				if not xMax or cright > xMax:
+# 					xMax = cright
+# 				if not yMin or ctop < yMin:
+# 					yMin = ctop
+# 				if not yMax or cbottom > yMax:
+# 					yMax = cbottom
+
+# 				areasDeleted.append(str(overlappingArea.pk))
+# 				print 'start deleting areas of overlapping area: ' + str(overlappingArea.pk)
+# 				# deleteAreas(overlappingArea)
+# 				print 'start deleting overlapping area: ' + str(overlappingArea.pk) + '...'
+# 				try:
+# 					overlappingArea.delete()
+# 				except Area.DoesNotExist:
+# 					print "Impossible to delete area: " + str(overlappingArea.pk) + ", skipping area merging"
+# 					xMin = points[0][0]
+# 					xMax = points[2][0]
+# 					yMin = points[0][1]
+# 					yMax = points[2][1]
+# 					break
+# 				print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
+			
+# 			print 'creating new area to update...'
+# 			areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[[ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]])
+# 			areaToUpdate.save()
+# 			# print '...created new area to update'
+			
+# 			# topLeft = posOnPlanetToProject(xMin, yMin, planetX, planetY)
+# 			# bottomRight = posOnPlanetToProject(xMax, yMax, planetX, planetY)
+# 			# print "planet"
+# 			# print planetX
+# 			# print planetY
+# 			# print "rectangle"
+# 			# print xMin
+# 			# print yMin
+# 			# print xMax
+# 			# print yMax
+# 			# print "rectangle in project coordinates"
+# 			# print topLeft
+# 			# print bottomRight
+# 			# bounds = {'x': topLeft[0], 'y': topLeft[1], 'width': bottomRight[0]-topLeft[0], 'height': bottomRight[1]-topLeft[1]}
+			
+# 			# print 'adding new area to area to update...'
+# 			# addAreas(bounds, areaToUpdate)
+# 			# print '...added new area to area to update'
+			
+# 			areasToUpdate.append( areaToUpdate.to_json() )
+# 			print '>>>'
+
+# 	if (not data) or (data == "data:,"):
+# 		return { 'state': 'success', 'areasToUpdate': areasToUpdate, 'areasDeleted': areasDeleted }
+
+# 	imageData = re.search(r'base64,(.*)', data).group(1)
+
+# 	try:
+# 		image = Image.open(StringIO.StringIO(imageData.decode('base64')))				# Pillow version
+# 	except IOError:
+# 		return { 'state': 'error', 'message': 'impossible to read image.'}
+
+# 	# with Image(file=cStringIO.StringIO(imageData.decode('base64'))) as image: 		# Wand version
+
+# 	# # find top, left, bottom and right positions of the area in the quantized space
+
+# 	start = time.time()
+
+# 	x = int(position['x'])
+# 	y = int(position['y'])
+# 	width = int(image.size[0])
+# 	height = int(image.size[1])
+
+# 	l = roundToLowerMultiple(x, 1000)
+# 	t = roundToLowerMultiple(y, 1000)
+# 	r = roundToLowerMultiple(x+width, 1000)+1000
+# 	b = roundToLowerMultiple(y+height, 1000)+1000
+
+# 	imageOnGrid25x = roundToLowerMultiple(x, 25)
+# 	imageOnGrid25y = roundToLowerMultiple(y, 25)
+# 	imageOnGrid25width = roundToGreaterMultiple(x+width, 25)-imageOnGrid25x
+# 	imageOnGrid25height = roundToGreaterMultiple(y+height, 25)-imageOnGrid25y
+
+# 	# debug
+
+# 	# image.save('media/rasters/image.png')
+
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print 'original rect'
+# 	# print x
+# 	# print y
+# 	# print width
+# 	# print height
+# 	# print 'rounded rect'
+# 	# print l
+# 	# print t
+# 	# print r
+# 	# print b
+
+# 	# print 'image size:'
+# 	# print image.size[0]
+# 	# print image.size[1]
+
+# 	# print 'big image:'
+# 	# print imageOnGrid25x
+# 	# print imageOnGrid25y
+# 	# print imageOnGrid25width
+# 	# print imageOnGrid25height
+
+# 	# try:
+# 	imageOnGrid25 = Image.new("RGBA", (1000, 1000))
+
+# 	for xi in range(l,r,1000):
+# 		for yi in range(t,b,1000):
+
+# 			x1 = int(xi/1000)
+# 			y1 = int(yi/1000)
+
+# 			x5 = roundToLowerMultiple(x1, 5)
+# 			y5 = roundToLowerMultiple(y1, 5)
+
+# 			x25 = roundToLowerMultiple(x1, 25)
+# 			y25 = roundToLowerMultiple(y1, 25)
+
+# 			rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
+
+# 			try:
+# 				os.makedirs(rasterPath)
+# 			except OSError as exception:
+# 				if exception.errno != errno.EEXIST:
+# 					raise
+
+# 			rasterName = rasterPath + str(x1) + "," + str(y1) + ".png"
+
+# 			try:
+# 				# raster = Image(filename=rasterName)  		# Wand version
+# 				raster = Image.open(rasterName)				# Pillow version
+# 			except IOError:
+# 				# raster = Image(width=1000, height=1000) 	# Wand version
+# 				raster = Image.new("RGBA", (1000, 1000)) 	# Pillow version
+				
+# 			left = max(xi,x)
+# 			right = min(xi+1000,x+width)
+# 			top = max(yi,y)
+# 			bottom = min(yi+1000,y+height)
+
+# 			# print '-----'
+# 			# print '-----'
+# 			# print 'raster pos:'
+# 			# print xi
+# 			# print yi
+			
+# 			# print 'rectangle cutted:'
+# 			# print left
+# 			# print top
+# 			# print right
+# 			# print bottom
+
+# 			# print 'width, height:'
+# 			# print right-left
+# 			# print bottom-top
+
+# 			# print 'sub image rect:'
+# 			# print left-x
+# 			# print top-y
+# 			# print right-x
+# 			# print bottom-y
+			
+# 			# import pdb; pdb.set_trace()
+# 			subImage = image.crop((left-x, top-y, right-x, bottom-y))
+
+# 			# subImage = image.clone().crop(left=subImageLeft,top=subImageTop,width=subImageWidth,height=subImageHeight) # unefficient: clone the whole image instead of the sub image
+
+# 			# print 'posInRaster:'
+# 			# print left-xi
+# 			# print top-yi
+			
+# 			# print 'sub image size:'
+# 			# print subImage.size[0]
+# 			# print subImage.size[1]
+
+# 			# import pdb; pdb.set_trace()
+
+# 			# raster.composite(image=subImage, left=posInRasterX, top=posInRasterY) 	# problem: we want to totally replace current raster with new one
+# 			# raster100.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY) 		# Wand version
+# 			raster.paste(subImage, (left-xi, top-yi))
+# 			raster.save(rasterName)
+
+# 			left = max(xi,imageOnGrid25x)
+# 			right = min(xi+1000,imageOnGrid25x+imageOnGrid25width)
+# 			top = max(yi,imageOnGrid25y)
+# 			bottom = min(yi+1000,imageOnGrid25y+imageOnGrid25height)
+
+# 			# subImage.save('media/rasters/subimage_' + str(x1) + ',' + str(y1) + '.png')
+# 			# print 'sub imageOnGrid25 in global coordinates:'
+# 			# print left
+# 			# print top
+# 			# print right
+# 			# print bottom
+# 			# print 'in raster100 coordinates:'
+# 			# print left-xi
+# 			# print top-yi
+# 			# print 'in imageOnGrid25 coordinates:'
+# 			# print left-imageOnGrid25x
+# 			# print top-imageOnGrid25y
+
+# 			subRaster = raster.crop((left-xi, top-yi, right-xi, bottom-yi))
+# 			imageOnGrid25.paste(subRaster, (left-imageOnGrid25x, top-imageOnGrid25y))
+	
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print 'raster20:'
+
+# 	l = roundToLowerMultiple(x, 5000)
+# 	t = roundToLowerMultiple(y, 5000)
+# 	r = roundToLowerMultiple(x+width, 5000)+5000
+# 	b = roundToLowerMultiple(y+height, 5000)+5000
+
+# 	for xi in range(l,r,5000):
+# 		for yi in range(t,b,5000):
+
+# 			x1 = int(xi/1000)
+# 			y1 = int(yi/1000)
+
+# 			x5 = roundToLowerMultiple(x1, 5)
+# 			y5 = roundToLowerMultiple(y1, 5)
+
+# 			x25 = roundToLowerMultiple(x1, 25)
+# 			y25 = roundToLowerMultiple(y1, 25)
+
+# 			rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
+
+# 			try:
+# 				os.makedirs(rasterPath)
+# 			except OSError as exception:
+# 				if exception.errno != errno.EEXIST:
+# 					raise
+
+# 			rasterName = rasterPath + str(x5) + "," + str(y5) + ".png"
+	
+# 			try:
+# 				raster = Image.open(rasterName)
+# 			except IOError:
+# 				raster = Image.new("RGBA", (1000, 1000))
+			
+# 			left = max(xi,imageOnGrid25x)
+# 			right = min(xi+5000,imageOnGrid25x+imageOnGrid25width)
+# 			top = max(yi,imageOnGrid25y)
+# 			bottom = min(yi+5000,imageOnGrid25y+imageOnGrid25height)
+
+# 			# print '-----'
+# 			# print '-----'
+# 			# print 'raster pos:'
+# 			# print xi
+# 			# print yi
+# 			# print 'sub imageOnGrid25 in global coordinates:'
+# 			# print left
+# 			# print top
+# 			# print right
+# 			# print bottom
+# 			# print 'in raster20 coordinates:'
+# 			# print (left-xi)/5
+# 			# print (top-yi)/5
+# 			# print 'in imageOnGrid25 coordinates:'
+# 			# print left-imageOnGrid25x
+# 			# print top-imageOnGrid25y
+
+# 			subImage = imageOnGrid25.crop((left-imageOnGrid25x, top-imageOnGrid25y, right-imageOnGrid25x, bottom-imageOnGrid25y))
+# 			subImageSmall = subImage.resize((subImage.size[0]/5, subImage.size[1]/5), Image.LANCZOS)
+# 			raster.paste(subImageSmall, ((left-xi)/5, (top-yi)/5))
+# 			raster.save(rasterName)
+	
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print '-----'
+# 	# print 'raster4:'
+
+# 	l = roundToLowerMultiple(x, 25000)
+# 	t = roundToLowerMultiple(y, 25000)
+# 	r = roundToLowerMultiple(x+width, 25000)+25000
+# 	b = roundToLowerMultiple(y+height, 25000)+25000
+
+# 	for xi in range(l,r,25000):
+# 		for yi in range(t,b,25000):
+
+# 			x1 = int(xi/1000)
+# 			y1 = int(yi/1000)
+
+# 			x25 = roundToLowerMultiple(x1, 25)
+# 			y25 = roundToLowerMultiple(y1, 25)
+
+# 			rasterPath = 'media/rasters/zoom4/'
+
+# 			try:
+# 				os.makedirs(rasterPath)
+# 			except OSError as exception:
+# 				if exception.errno != errno.EEXIST:
+# 					raise
+
+# 			rasterName = rasterPath + str(x25) + "," + str(y25) + ".png"
+
+# 			try:
+# 				raster = Image.open(rasterName)
+# 			except IOError:
+# 				raster = Image.new("RGBA", (1000, 1000))
+				
+# 			left = max(xi,imageOnGrid25x)
+# 			right = min(xi+25000,imageOnGrid25x+imageOnGrid25width)
+# 			top = max(yi,imageOnGrid25y)
+# 			bottom = min(yi+25000,imageOnGrid25y+imageOnGrid25height)
+
+# 			# print '-----'
+# 			# print '-----'
+# 			# print 'raster pos:'
+# 			# print xi
+# 			# print yi
+# 			# print 'sub imageOnGrid25 in global coordinates:'
+# 			# print left
+# 			# print top
+# 			# print right
+# 			# print bottom
+# 			# print 'in raster4 coordinates:'
+# 			# print (left-xi)/25
+# 			# print (top-yi)/25
+# 			# print 'in imageOnGrid25 coordinates:'
+# 			# print left-imageOnGrid25x
+# 			# print top-imageOnGrid25y
+
+# 			subImage = imageOnGrid25.crop((left-imageOnGrid25x, top-imageOnGrid25y, right-imageOnGrid25x, bottom-imageOnGrid25y))
+# 			subImageSmall = subImage.resize((subImage.size[0]/25, subImage.size[1]/25), Image.LANCZOS)
+# 			raster.paste(subImageSmall, ((left-xi)/25, (top-yi)/25))
+# 			raster.save(rasterName)
+
+# 	# except:
+# 	# 	import pdb; pdb.set_trace()
+# 	# 	return { 'state': 'error', 'message': 'Failed to open, create or save an image.' }
+
+# 	# another solution, slower since open and close many images
+
+# 	# for xi in range(l,r,1000):
+# 	# 	for yi in range(t,b,1000):
+
+# 	# 		xm = int(xi/1000)
+# 	# 		ym = int(yi/1000)
+
+# 	# 		x5 = roundToLowerMultiple(xm, 5)
+# 	# 		y5 = roundToLowerMultiple(ym, 5)
+
+# 	# 		x25 = roundToLowerMultiple(xm, 25)
+# 	# 		y25 = roundToLowerMultiple(ym, 25)
+
+# 	# 		rasterPath100 = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
+# 	# 		rasterPath20 = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
+# 	# 		rasterPath4 = 'media/rasters/zoom4/'
+
+# 	# 		try:
+# 	# 			os.makedirs(rasterPath100)
+# 	# 		except OSError as exception:
+# 	# 			if exception.errno != errno.EEXIST:
+# 	# 				raise
+
+# 	# 		try:
+# 	# 			os.makedirs(rasterPath20)
+# 	# 		except OSError as exception:
+# 	# 			if exception.errno != errno.EEXIST:
+# 	# 				raise
+
+# 	# 		try:
+# 	# 			os.makedirs(rasterPath4)
+# 	# 		except OSError as exception:
+# 	# 			if exception.errno != errno.EEXIST:
+# 	# 				raise
+
+# 	# 		rasterName100 = rasterPath100 + str(xm) + "," + str(ym) + ".png"
+# 	# 		rasterName20 = rasterPath20 + str(x5) + "," + str(y5) + ".png"
+# 	# 		rasterName4 = rasterPath4 + str(x25) + "," + str(y25) + ".png"
+
+# 	# 		try:
+# 	# 			# raster100 = Image(filename=rasterName100)  		# Wand version
+# 	# 			raster100 = Image.open(rasterName100)				# Pillow version
+# 	# 		except IOError:
+# 	# 			try:
+# 	# 				# raster100 = Image(width=1000, height=1000) 	# Wand version
+# 	# 				raster100 = Image.new("RGBA", (1000, 1000)) 	# Pillow version
+# 	# 			except:
+# 	# 				return { 'state': 'error', 'message': 'Failed to create the image.' }
+			
+# 	# 		try:
+# 	# 			raster20 = Image.open(rasterName20)
+# 	# 		except IOError:
+# 	# 			try:
+# 	# 				raster20 = Image.new("RGBA", (1000, 1000))
+# 	# 			except:
+# 	# 				return { 'state': 'error', 'message': 'Failed to create the image.' }
+			
+# 	# 		try:
+# 	# 			raster4 = Image.open(rasterName4)
+# 	# 		except IOError:
+# 	# 			try:
+# 	# 				raster4 = Image.new("RGBA", (1000, 1000))
+# 	# 			except:
+# 	# 				return { 'state': 'error', 'message': 'Failed to create the image.' }
+
+# 	# 		left = max(xi,x)
+# 	# 		right = min(xi+1000,x+width)
+# 	# 		top = max(yi,y)
+# 	# 		bottom = min(yi+1000,y+height)
+
+# 	# 		print '-----'
+# 	# 		print '-----'
+# 	# 		print '-----'
+# 	# 		print '-----'
+# 	# 		print '-----'
+# 	# 		print '-----'
+# 	# 		print 'raster pos:'
+# 	# 		print xi
+# 	# 		print yi
+			
+# 	# 		print 'rectangle:'
+# 	# 		print x
+# 	# 		print y
+# 	# 		print width
+# 	# 		print height
+
+# 	# 		print 'rectangle cutted:'
+# 	# 		print left
+# 	# 		print top
+# 	# 		print right
+# 	# 		print bottom
+# 	# 		print 'width, height:'
+# 	# 		print right-left
+# 	# 		print bottom-top
+
+# 	# 		subImageLeft = left-x
+# 	# 		subImageTop = top-y
+# 	# 		subImageRight = right-x
+# 	# 		subImageBottom = bottom-y
+# 	# 		subImageWidth = subImageRight-subImageLeft
+# 	# 		subImageHeight = subImageBottom-subImageTop
+
+# 	# 		print 'sub image rect:'
+# 	# 		print subImageLeft
+# 	# 		print subImageTop
+# 	# 		print subImageRight
+# 	# 		print subImageBottom
+# 	# 		print 'width, height:'
+# 	# 		print subImageWidth
+# 	# 		print subImageHeight
+			
+# 	# 		print 'image size:'
+# 	# 		print image.size[0]
+# 	# 		print image.size[1]
+
+# 	# 		print 'raster size:'
+# 	# 		print raster100.size[0]
+# 	# 		print raster100.size[1]
+
+# 	# 		# import pdb; pdb.set_trace()
+# 	# 		subImage = image.crop((subImageLeft, subImageTop, subImageWidth, subImageHeight))
+
+# 	# 		# subImage = image.clone().crop(left=subImageLeft,top=subImageTop,width=subImageWidth,height=subImageHeight) # unefficient: clone the whole image instead of the sub image
+# 	# 		posInRasterX = left-xi
+# 	# 		posInRasterY = top-yi
+
+# 	# 		print 'posInRaster:'
+# 	# 		print posInRasterX
+# 	# 		print posInRasterY
+
+# 	# 		# import pdb; pdb.set_trace()
+
+# 	# 		# raster.composite(image=subImage, left=posInRasterX, top=posInRasterY) 	# problem: we want to totally replace current raster with new one
+# 	# 		# raster100.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY) 		# Wand version
+# 	# 		raster100.paste(subImage, (posInRasterX, posInRasterY))
+# 	# 		raster100.save(rasterName100)
+			
+# 	# 		raster100cropX = roundToLowerMultiple(posInRasterX, 5)
+# 	# 		raster100cropY = roundToLowerMultiple(posInRasterY, 5)
+# 	# 		raster100cropWidth = roundToGreaterMultiple(posInRasterX+subImageWidth, 5)-raster100cropX
+# 	# 		raster100cropHeight = roundToGreaterMultiple(posInRasterY+subImageHeight, 5)-raster100cropY
+
+# 	# 		print 'raster100crop:'
+# 	# 		print raster100cropX
+# 	# 		print raster100cropY
+# 	# 		print raster100cropWidth
+# 	# 		print raster100cropHeight
+# 	# 		raster100crop = raster100.crop((raster100cropX, raster100cropY, raster100cropWidth, raster100cropHeight))
+# 	# 		raster100crop.resize((raster100cropWidth/5, raster100cropHeight/5), Image.LANCZOS)
+
+# 	# 		print 'raster100crop final size:'
+# 	# 		print raster100cropWidth/5
+# 	# 		print raster100cropHeight/5
+
+# 	# 		print 'xm & ym:'
+# 	# 		print xm
+# 	# 		print ym
+# 	# 		print 'x5 & y5:'
+# 	# 		print x5
+# 	# 		print y5
+# 	# 		print '(xm-x5)*1000:'
+# 	# 		print (xm-x5)*1000
+# 	# 		print (ym-y5)*1000
+
+# 	# 		posInRasterX = ((xm-x5)*1000+raster100cropX)/5
+# 	# 		posInRasterY = ((ym-y5)*1000+raster100cropY)/5
+# 	# 		print 'posInRaster:'
+# 	# 		print posInRasterX
+# 	# 		print posInRasterY
+# 	# 		raster20.paste(raster100crop, (posInRasterX, posInRasterY))
+# 	# 		raster20.save(rasterName20)
+
+# 	# 		raster20cropX = roundToLowerMultiple(posInRasterX,5)
+# 	# 		raster20cropY = roundToLowerMultiple(posInRasterY,5)
+# 	# 		raster20cropWidth = roundToGreaterMultiple(posInRasterX+raster100cropWidth/5, 5)-raster20cropX
+# 	# 		raster20cropHeight = roundToGreaterMultiple(posInRasterY+raster100cropHeight/5, 5)-raster20cropY
+
+# 	# 		print 'x25 & y25:'
+# 	# 		print x25
+# 	# 		print y25
+# 	# 		print 'raster20crop:'
+# 	# 		print raster20cropX
+# 	# 		print raster20cropY
+# 	# 		print raster20cropWidth
+# 	# 		print raster20cropHeight
+# 	# 		raster20crop = raster20.crop((raster20cropX, raster20cropY, raster20cropWidth, raster20cropHeight))
+# 	# 		raster20crop.resize((raster20cropWidth/5, raster20cropHeight/5), Image.LANCZOS)
+
+# 	# 		posInRasterX = ((x5-x25)*1000/5+raster20cropX)/5
+# 	# 		posInRasterY = ((y5-y25)*1000/5+raster20cropY)/5
+# 	# 		print 'posInRaster:'
+# 	# 		print posInRasterX
+# 	# 		print posInRasterY
+# 	# 		raster4.paste(raster20crop, (posInRasterX, posInRasterY))
+# 	# 		raster20.save(rasterName4)
+			
+# 	# 		# Wand version
+# 	# 		# with image[subImageLeft:subImageRight, subImageTop:subImageBottom] as subImage: 		
+
+# 	# 		# subImage.resize(filter='triangle', width=subImage.width/5, height=subImage.height/5)
+# 	# 		# raster20.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY)
+# 	# 		# raster20.save(filename=rasterName)
+
+# 	# 		# posInRasterX = int((left-x25*1000)/25)
+# 	# 		# posInRasterY = int((top-y25*1000)/25)
+# 	# 		# subImage.resize(filter='triangle', width=subImage.width/5, height=subImage.height/5)
+# 	# 		# raster4.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY)
+# 	# 		# raster4.save(filename=rasterName)
+
+
+# 	# 		raster100.close()
+# 	# 		raster20.close()
+# 	# 		raster4.close()
+
+# 	image.close()
+
+# 	end = time.time()
+
+# 	print "Time elapsed: " + str(end - start)
+# 	# isUpdatingRasters = False
+
+# 	return { 'state': 'success', 'areasToUpdate': areasToUpdate, 'areasDeleted': areasDeleted }
+
 # @dajaxice_register
-def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
-	print "updateRastersJson"
+# def loadRasters(request, areasToLoad):
 
-	# for line in traceback.format_stack():
-	# 	print line.strip()
+# 	images = []
+# 	start = time.time()
+# 	for area in areasToLoad:
 
-	# global isUpdatingRasters
-	
-	# if isUpdatingRasters:
-	# 	print 'Error: isUpdatingRasters!'
-	# 	import pdb; pdb.set_trace()
-	
-	# isUpdatingRasters = True
+# 		x = area['x']
+# 		y = area['y']
 
-	if areaToDeletePk:
-		try:
-			areaToDelete = AreaToUpdate.objects.get(pk=areaToDeletePk)
-		except AreaToUpdate.DoesNotExist:
-			return json.dumps({'state': 'log', 'message': 'Delete impossible: area does not exist'})
-		print '<<<'
-		print "1. attempt to delete areas from area to delete " + str(areaToDelete.pk) + "..."
-		# deleteAreas(areaToDelete)
-		print "2. attempt to delete areas to delete " + str(areaToDelete.pk) + "..."
-		areaToDelete.delete()
+# 		rasterPath = 'media/rasters/' + str(floor(x/10)*10) + ',' + str(floor(y/10)*10) + '/'
+# 		rasterName = rasterPath + str(x) + "," + str(y) + ".png"
 
-		try:
-			a = AreaToUpdate.objects.get(pk=areaToDeletePk)
-			print 'WHAT?'
-			import pdb; pdb.set_trace()
-		except AreaToUpdate.DoesNotExist:
-			print 'ok'
-		print '3. finished deleting area to delete'
-		print '>>>'
+# 		with open(rasterName, 'rb') as inputFile:
+# 			imageData = inputfile.read().encode('base64')
+# 			inputfile.close()
+# 			images.append(imageData)
 
-	areasDeleted = []
-	areasToUpdate = []
+# 	end = time.time()
+# 	print "Time elapsed: " + str(end - start)
 
-	if areasNotRasterized:
-		for area in areasNotRasterized:
-
-			points = area['points']
-			planetX = area['planet']['x']
-			planetY = area['planet']['y']
-
-			# merge all overlapping areas into one (and delete them)
-			print '<<<'
-			print 'start merging all regions overlapping with the new area to update: '
-			print 'points: ' + str(points)
-			overlappingAreas = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=[points])
-			left = xMin = points[0][0]
-			right = xMax = points[2][0]
-			top = yMin = points[0][1]
-			bottom = yMax = points[2][1]
-			for overlappingArea in overlappingAreas:
-				
-				cbox = overlappingArea.box['coordinates'][0]
-				cleft = cbox[0][0]
-				ctop = cbox[0][1]
-				cright = cbox[2][0]
-				cbottom = cbox[2][1]
-				
-				# if the areas just share an edge: continue
-				# check if intersection has a positive area
-				ileft = max(left, cleft)
-				itop = max(top, ctop)
-				iright = min(right, cright)
-				ibottom = min(bottom, cbottom)
-				
-				if (iright-ileft) <= 0 or (ibottom-itop) <= 0 or (iright-ileft) * (ibottom-itop) <= 0.001:
-					continue
-
-				print '!!! OVERLAPPING !!!'
-				print '!!! OVERLAPPING !!!'
-				print '!!! OVERLAPPING !!!'
-				
-				if not xMin or cleft < xMin:
-					xMin = cleft
-				if not xMax or cright > xMax:
-					xMax = cright
-				if not yMin or ctop < yMin:
-					yMin = ctop
-				if not yMax or cbottom > yMax:
-					yMax = cbottom
-
-				areasDeleted.append(str(overlappingArea.pk))
-				print 'start deleting areas of overlapping area: ' + str(overlappingArea.pk)
-				# deleteAreas(overlappingArea)
-				print 'start deleting overlapping area: ' + str(overlappingArea.pk) + '...'
-				try:
-					overlappingArea.delete()
-				except Area.DoesNotExist:
-					print "Impossible to delete area: " + str(overlappingArea.pk) + ", skipping area merging"
-					xMin = points[0][0]
-					xMax = points[2][0]
-					yMin = points[0][1]
-					yMax = points[2][1]
-					break
-				print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
-			
-			print 'creating new area to update...'
-			areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[[ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]])
-			areaToUpdate.save()
-			# print '...created new area to update'
-			
-			# topLeft = posOnPlanetToProject(xMin, yMin, planetX, planetY)
-			# bottomRight = posOnPlanetToProject(xMax, yMax, planetX, planetY)
-			# print "planet"
-			# print planetX
-			# print planetY
-			# print "rectangle"
-			# print xMin
-			# print yMin
-			# print xMax
-			# print yMax
-			# print "rectangle in project coordinates"
-			# print topLeft
-			# print bottomRight
-			# bounds = {'x': topLeft[0], 'y': topLeft[1], 'width': bottomRight[0]-topLeft[0], 'height': bottomRight[1]-topLeft[1]}
-			
-			# print 'adding new area to area to update...'
-			# addAreas(bounds, areaToUpdate)
-			# print '...added new area to area to update'
-			
-			areasToUpdate.append( areaToUpdate.to_json() )
-			print '>>>'
-
-	if (not data) or (data == "data:,"):
-		return { 'state': 'success', 'areasToUpdate': areasToUpdate, 'areasDeleted': areasDeleted }
-
-	imageData = re.search(r'base64,(.*)', data).group(1)
-
-	try:
-		image = Image.open(StringIO.StringIO(imageData.decode('base64')))				# Pillow version
-	except IOError:
-		return { 'state': 'error', 'message': 'impossible to read image.'}
-
-	# with Image(file=cStringIO.StringIO(imageData.decode('base64'))) as image: 		# Wand version
-
-	# # find top, left, bottom and right positions of the area in the quantized space
-
-	start = time.time()
-
-	x = int(position['x'])
-	y = int(position['y'])
-	width = int(image.size[0])
-	height = int(image.size[1])
-
-	l = roundToLowerMultiple(x, 1000)
-	t = roundToLowerMultiple(y, 1000)
-	r = roundToLowerMultiple(x+width, 1000)+1000
-	b = roundToLowerMultiple(y+height, 1000)+1000
-
-	imageOnGrid25x = roundToLowerMultiple(x, 25)
-	imageOnGrid25y = roundToLowerMultiple(y, 25)
-	imageOnGrid25width = roundToGreaterMultiple(x+width, 25)-imageOnGrid25x
-	imageOnGrid25height = roundToGreaterMultiple(y+height, 25)-imageOnGrid25y
-
-	# debug
-
-	# image.save('media/rasters/image.png')
-
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print 'original rect'
-	# print x
-	# print y
-	# print width
-	# print height
-	# print 'rounded rect'
-	# print l
-	# print t
-	# print r
-	# print b
-
-	# print 'image size:'
-	# print image.size[0]
-	# print image.size[1]
-
-	# print 'big image:'
-	# print imageOnGrid25x
-	# print imageOnGrid25y
-	# print imageOnGrid25width
-	# print imageOnGrid25height
-
-	# try:
-	imageOnGrid25 = Image.new("RGBA", (1000, 1000))
-
-	for xi in range(l,r,1000):
-		for yi in range(t,b,1000):
-
-			x1 = int(xi/1000)
-			y1 = int(yi/1000)
-
-			x5 = roundToLowerMultiple(x1, 5)
-			y5 = roundToLowerMultiple(y1, 5)
-
-			x25 = roundToLowerMultiple(x1, 25)
-			y25 = roundToLowerMultiple(y1, 25)
-
-			rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
-
-			try:
-				os.makedirs(rasterPath)
-			except OSError as exception:
-				if exception.errno != errno.EEXIST:
-					raise
-
-			rasterName = rasterPath + str(x1) + "," + str(y1) + ".png"
-
-			try:
-				# raster = Image(filename=rasterName)  		# Wand version
-				raster = Image.open(rasterName)				# Pillow version
-			except IOError:
-				# raster = Image(width=1000, height=1000) 	# Wand version
-				raster = Image.new("RGBA", (1000, 1000)) 	# Pillow version
-				
-			left = max(xi,x)
-			right = min(xi+1000,x+width)
-			top = max(yi,y)
-			bottom = min(yi+1000,y+height)
-
-			# print '-----'
-			# print '-----'
-			# print 'raster pos:'
-			# print xi
-			# print yi
-			
-			# print 'rectangle cutted:'
-			# print left
-			# print top
-			# print right
-			# print bottom
-
-			# print 'width, height:'
-			# print right-left
-			# print bottom-top
-
-			# print 'sub image rect:'
-			# print left-x
-			# print top-y
-			# print right-x
-			# print bottom-y
-			
-			# import pdb; pdb.set_trace()
-			subImage = image.crop((left-x, top-y, right-x, bottom-y))
-
-			# subImage = image.clone().crop(left=subImageLeft,top=subImageTop,width=subImageWidth,height=subImageHeight) # unefficient: clone the whole image instead of the sub image
-
-			# print 'posInRaster:'
-			# print left-xi
-			# print top-yi
-			
-			# print 'sub image size:'
-			# print subImage.size[0]
-			# print subImage.size[1]
-
-			# import pdb; pdb.set_trace()
-
-			# raster.composite(image=subImage, left=posInRasterX, top=posInRasterY) 	# problem: we want to totally replace current raster with new one
-			# raster100.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY) 		# Wand version
-			raster.paste(subImage, (left-xi, top-yi))
-			raster.save(rasterName)
-
-			left = max(xi,imageOnGrid25x)
-			right = min(xi+1000,imageOnGrid25x+imageOnGrid25width)
-			top = max(yi,imageOnGrid25y)
-			bottom = min(yi+1000,imageOnGrid25y+imageOnGrid25height)
-
-			# subImage.save('media/rasters/subimage_' + str(x1) + ',' + str(y1) + '.png')
-			# print 'sub imageOnGrid25 in global coordinates:'
-			# print left
-			# print top
-			# print right
-			# print bottom
-			# print 'in raster100 coordinates:'
-			# print left-xi
-			# print top-yi
-			# print 'in imageOnGrid25 coordinates:'
-			# print left-imageOnGrid25x
-			# print top-imageOnGrid25y
-
-			subRaster = raster.crop((left-xi, top-yi, right-xi, bottom-yi))
-			imageOnGrid25.paste(subRaster, (left-imageOnGrid25x, top-imageOnGrid25y))
-	
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print 'raster20:'
-
-	l = roundToLowerMultiple(x, 5000)
-	t = roundToLowerMultiple(y, 5000)
-	r = roundToLowerMultiple(x+width, 5000)+5000
-	b = roundToLowerMultiple(y+height, 5000)+5000
-
-	for xi in range(l,r,5000):
-		for yi in range(t,b,5000):
-
-			x1 = int(xi/1000)
-			y1 = int(yi/1000)
-
-			x5 = roundToLowerMultiple(x1, 5)
-			y5 = roundToLowerMultiple(y1, 5)
-
-			x25 = roundToLowerMultiple(x1, 25)
-			y25 = roundToLowerMultiple(y1, 25)
-
-			rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
-
-			try:
-				os.makedirs(rasterPath)
-			except OSError as exception:
-				if exception.errno != errno.EEXIST:
-					raise
-
-			rasterName = rasterPath + str(x5) + "," + str(y5) + ".png"
-	
-			try:
-				raster = Image.open(rasterName)
-			except IOError:
-				raster = Image.new("RGBA", (1000, 1000))
-			
-			left = max(xi,imageOnGrid25x)
-			right = min(xi+5000,imageOnGrid25x+imageOnGrid25width)
-			top = max(yi,imageOnGrid25y)
-			bottom = min(yi+5000,imageOnGrid25y+imageOnGrid25height)
-
-			# print '-----'
-			# print '-----'
-			# print 'raster pos:'
-			# print xi
-			# print yi
-			# print 'sub imageOnGrid25 in global coordinates:'
-			# print left
-			# print top
-			# print right
-			# print bottom
-			# print 'in raster20 coordinates:'
-			# print (left-xi)/5
-			# print (top-yi)/5
-			# print 'in imageOnGrid25 coordinates:'
-			# print left-imageOnGrid25x
-			# print top-imageOnGrid25y
-
-			subImage = imageOnGrid25.crop((left-imageOnGrid25x, top-imageOnGrid25y, right-imageOnGrid25x, bottom-imageOnGrid25y))
-			subImageSmall = subImage.resize((subImage.size[0]/5, subImage.size[1]/5), Image.LANCZOS)
-			raster.paste(subImageSmall, ((left-xi)/5, (top-yi)/5))
-			raster.save(rasterName)
-	
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print '-----'
-	# print 'raster4:'
-
-	l = roundToLowerMultiple(x, 25000)
-	t = roundToLowerMultiple(y, 25000)
-	r = roundToLowerMultiple(x+width, 25000)+25000
-	b = roundToLowerMultiple(y+height, 25000)+25000
-
-	for xi in range(l,r,25000):
-		for yi in range(t,b,25000):
-
-			x1 = int(xi/1000)
-			y1 = int(yi/1000)
-
-			x25 = roundToLowerMultiple(x1, 25)
-			y25 = roundToLowerMultiple(y1, 25)
-
-			rasterPath = 'media/rasters/zoom4/'
-
-			try:
-				os.makedirs(rasterPath)
-			except OSError as exception:
-				if exception.errno != errno.EEXIST:
-					raise
-
-			rasterName = rasterPath + str(x25) + "," + str(y25) + ".png"
-
-			try:
-				raster = Image.open(rasterName)
-			except IOError:
-				raster = Image.new("RGBA", (1000, 1000))
-				
-			left = max(xi,imageOnGrid25x)
-			right = min(xi+25000,imageOnGrid25x+imageOnGrid25width)
-			top = max(yi,imageOnGrid25y)
-			bottom = min(yi+25000,imageOnGrid25y+imageOnGrid25height)
-
-			# print '-----'
-			# print '-----'
-			# print 'raster pos:'
-			# print xi
-			# print yi
-			# print 'sub imageOnGrid25 in global coordinates:'
-			# print left
-			# print top
-			# print right
-			# print bottom
-			# print 'in raster4 coordinates:'
-			# print (left-xi)/25
-			# print (top-yi)/25
-			# print 'in imageOnGrid25 coordinates:'
-			# print left-imageOnGrid25x
-			# print top-imageOnGrid25y
-
-			subImage = imageOnGrid25.crop((left-imageOnGrid25x, top-imageOnGrid25y, right-imageOnGrid25x, bottom-imageOnGrid25y))
-			subImageSmall = subImage.resize((subImage.size[0]/25, subImage.size[1]/25), Image.LANCZOS)
-			raster.paste(subImageSmall, ((left-xi)/25, (top-yi)/25))
-			raster.save(rasterName)
-
-	# except:
-	# 	import pdb; pdb.set_trace()
-	# 	return { 'state': 'error', 'message': 'Failed to open, create or save an image.' }
-
-	# another solution, slower since open and close many images
-
-	# for xi in range(l,r,1000):
-	# 	for yi in range(t,b,1000):
-
-	# 		xm = int(xi/1000)
-	# 		ym = int(yi/1000)
-
-	# 		x5 = roundToLowerMultiple(xm, 5)
-	# 		y5 = roundToLowerMultiple(ym, 5)
-
-	# 		x25 = roundToLowerMultiple(xm, 25)
-	# 		y25 = roundToLowerMultiple(ym, 25)
-
-	# 		rasterPath100 = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
-	# 		rasterPath20 = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
-	# 		rasterPath4 = 'media/rasters/zoom4/'
-
-	# 		try:
-	# 			os.makedirs(rasterPath100)
-	# 		except OSError as exception:
-	# 			if exception.errno != errno.EEXIST:
-	# 				raise
-
-	# 		try:
-	# 			os.makedirs(rasterPath20)
-	# 		except OSError as exception:
-	# 			if exception.errno != errno.EEXIST:
-	# 				raise
-
-	# 		try:
-	# 			os.makedirs(rasterPath4)
-	# 		except OSError as exception:
-	# 			if exception.errno != errno.EEXIST:
-	# 				raise
-
-	# 		rasterName100 = rasterPath100 + str(xm) + "," + str(ym) + ".png"
-	# 		rasterName20 = rasterPath20 + str(x5) + "," + str(y5) + ".png"
-	# 		rasterName4 = rasterPath4 + str(x25) + "," + str(y25) + ".png"
-
-	# 		try:
-	# 			# raster100 = Image(filename=rasterName100)  		# Wand version
-	# 			raster100 = Image.open(rasterName100)				# Pillow version
-	# 		except IOError:
-	# 			try:
-	# 				# raster100 = Image(width=1000, height=1000) 	# Wand version
-	# 				raster100 = Image.new("RGBA", (1000, 1000)) 	# Pillow version
-	# 			except:
-	# 				return { 'state': 'error', 'message': 'Failed to create the image.' }
-			
-	# 		try:
-	# 			raster20 = Image.open(rasterName20)
-	# 		except IOError:
-	# 			try:
-	# 				raster20 = Image.new("RGBA", (1000, 1000))
-	# 			except:
-	# 				return { 'state': 'error', 'message': 'Failed to create the image.' }
-			
-	# 		try:
-	# 			raster4 = Image.open(rasterName4)
-	# 		except IOError:
-	# 			try:
-	# 				raster4 = Image.new("RGBA", (1000, 1000))
-	# 			except:
-	# 				return { 'state': 'error', 'message': 'Failed to create the image.' }
-
-	# 		left = max(xi,x)
-	# 		right = min(xi+1000,x+width)
-	# 		top = max(yi,y)
-	# 		bottom = min(yi+1000,y+height)
-
-	# 		print '-----'
-	# 		print '-----'
-	# 		print '-----'
-	# 		print '-----'
-	# 		print '-----'
-	# 		print '-----'
-	# 		print 'raster pos:'
-	# 		print xi
-	# 		print yi
-			
-	# 		print 'rectangle:'
-	# 		print x
-	# 		print y
-	# 		print width
-	# 		print height
-
-	# 		print 'rectangle cutted:'
-	# 		print left
-	# 		print top
-	# 		print right
-	# 		print bottom
-	# 		print 'width, height:'
-	# 		print right-left
-	# 		print bottom-top
-
-	# 		subImageLeft = left-x
-	# 		subImageTop = top-y
-	# 		subImageRight = right-x
-	# 		subImageBottom = bottom-y
-	# 		subImageWidth = subImageRight-subImageLeft
-	# 		subImageHeight = subImageBottom-subImageTop
-
-	# 		print 'sub image rect:'
-	# 		print subImageLeft
-	# 		print subImageTop
-	# 		print subImageRight
-	# 		print subImageBottom
-	# 		print 'width, height:'
-	# 		print subImageWidth
-	# 		print subImageHeight
-			
-	# 		print 'image size:'
-	# 		print image.size[0]
-	# 		print image.size[1]
-
-	# 		print 'raster size:'
-	# 		print raster100.size[0]
-	# 		print raster100.size[1]
-
-	# 		# import pdb; pdb.set_trace()
-	# 		subImage = image.crop((subImageLeft, subImageTop, subImageWidth, subImageHeight))
-
-	# 		# subImage = image.clone().crop(left=subImageLeft,top=subImageTop,width=subImageWidth,height=subImageHeight) # unefficient: clone the whole image instead of the sub image
-	# 		posInRasterX = left-xi
-	# 		posInRasterY = top-yi
-
-	# 		print 'posInRaster:'
-	# 		print posInRasterX
-	# 		print posInRasterY
-
-	# 		# import pdb; pdb.set_trace()
-
-	# 		# raster.composite(image=subImage, left=posInRasterX, top=posInRasterY) 	# problem: we want to totally replace current raster with new one
-	# 		# raster100.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY) 		# Wand version
-	# 		raster100.paste(subImage, (posInRasterX, posInRasterY))
-	# 		raster100.save(rasterName100)
-			
-	# 		raster100cropX = roundToLowerMultiple(posInRasterX, 5)
-	# 		raster100cropY = roundToLowerMultiple(posInRasterY, 5)
-	# 		raster100cropWidth = roundToGreaterMultiple(posInRasterX+subImageWidth, 5)-raster100cropX
-	# 		raster100cropHeight = roundToGreaterMultiple(posInRasterY+subImageHeight, 5)-raster100cropY
-
-	# 		print 'raster100crop:'
-	# 		print raster100cropX
-	# 		print raster100cropY
-	# 		print raster100cropWidth
-	# 		print raster100cropHeight
-	# 		raster100crop = raster100.crop((raster100cropX, raster100cropY, raster100cropWidth, raster100cropHeight))
-	# 		raster100crop.resize((raster100cropWidth/5, raster100cropHeight/5), Image.LANCZOS)
-
-	# 		print 'raster100crop final size:'
-	# 		print raster100cropWidth/5
-	# 		print raster100cropHeight/5
-
-	# 		print 'xm & ym:'
-	# 		print xm
-	# 		print ym
-	# 		print 'x5 & y5:'
-	# 		print x5
-	# 		print y5
-	# 		print '(xm-x5)*1000:'
-	# 		print (xm-x5)*1000
-	# 		print (ym-y5)*1000
-
-	# 		posInRasterX = ((xm-x5)*1000+raster100cropX)/5
-	# 		posInRasterY = ((ym-y5)*1000+raster100cropY)/5
-	# 		print 'posInRaster:'
-	# 		print posInRasterX
-	# 		print posInRasterY
-	# 		raster20.paste(raster100crop, (posInRasterX, posInRasterY))
-	# 		raster20.save(rasterName20)
-
-	# 		raster20cropX = roundToLowerMultiple(posInRasterX,5)
-	# 		raster20cropY = roundToLowerMultiple(posInRasterY,5)
-	# 		raster20cropWidth = roundToGreaterMultiple(posInRasterX+raster100cropWidth/5, 5)-raster20cropX
-	# 		raster20cropHeight = roundToGreaterMultiple(posInRasterY+raster100cropHeight/5, 5)-raster20cropY
-
-	# 		print 'x25 & y25:'
-	# 		print x25
-	# 		print y25
-	# 		print 'raster20crop:'
-	# 		print raster20cropX
-	# 		print raster20cropY
-	# 		print raster20cropWidth
-	# 		print raster20cropHeight
-	# 		raster20crop = raster20.crop((raster20cropX, raster20cropY, raster20cropWidth, raster20cropHeight))
-	# 		raster20crop.resize((raster20cropWidth/5, raster20cropHeight/5), Image.LANCZOS)
-
-	# 		posInRasterX = ((x5-x25)*1000/5+raster20cropX)/5
-	# 		posInRasterY = ((y5-y25)*1000/5+raster20cropY)/5
-	# 		print 'posInRaster:'
-	# 		print posInRasterX
-	# 		print posInRasterY
-	# 		raster4.paste(raster20crop, (posInRasterX, posInRasterY))
-	# 		raster20.save(rasterName4)
-			
-	# 		# Wand version
-	# 		# with image[subImageLeft:subImageRight, subImageTop:subImageBottom] as subImage: 		
-
-	# 		# subImage.resize(filter='triangle', width=subImage.width/5, height=subImage.height/5)
-	# 		# raster20.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY)
-	# 		# raster20.save(filename=rasterName)
-
-	# 		# posInRasterX = int((left-x25*1000)/25)
-	# 		# posInRasterY = int((top-y25*1000)/25)
-	# 		# subImage.resize(filter='triangle', width=subImage.width/5, height=subImage.height/5)
-	# 		# raster4.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY)
-	# 		# raster4.save(filename=rasterName)
-
-
-	# 		raster100.close()
-	# 		raster20.close()
-	# 		raster4.close()
-
-	image.close()
-
-	end = time.time()
-
-	print "Time elapsed: " + str(end - start)
-	# isUpdatingRasters = False
-
-	return { 'state': 'success', 'areasToUpdate': areasToUpdate, 'areasDeleted': areasDeleted }
-
-@dajaxice_register
-def loadRasters(request, areasToLoad):
-
-	images = []
-	start = time.time()
-	for area in areasToLoad:
-
-		x = area['x']
-		y = area['y']
-
-		rasterPath = 'media/rasters/' + str(floor(x/10)*10) + ',' + str(floor(y/10)*10) + '/'
-		rasterName = rasterPath + str(x) + "," + str(y) + ".png"
-
-		with open(rasterName, 'rb') as inputFile:
-			imageData = inputfile.read().encode('base64')
-			inputfile.close()
-			images.append(imageData)
-
-	end = time.time()
-	print "Time elapsed: " + str(end - start)
-
-	return json.dumps( { 'images': images } )
+# 	return json.dumps( { 'images': images } )
 
 @dajaxice_register
 def getAreasToUpdate(request):
 	areas = AreaToUpdate.objects()
 	return areas.to_json()
+
+@dajaxice_register
+def deleteAreaToUpdate(request, pk):
+	try:
+		area = AreaToUpdate.objects.get(pk=pk)
+	except AreaToUpdate.DoesNotExist:
+		return json.dumps( { 'state': 'error', 'message': 'area does not exist.' } )
+	area.delete()
+	return
 
 # @dajaxice_register
 # def updateAreasToUpdate(request, pk, newAreas):

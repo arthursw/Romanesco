@@ -125,15 +125,20 @@ class MoveCommand extends Command
 		super("Move item")
 		@previousPosition = @item.rectangle.center
 		@items = g.selectedItems.slice()
+		g.rasterizer.rasterize(@items, true)
 		return
 
 	do: ()->
+		g.rasterizer.rasterize(@items, false)
 		item.moveBy(@newPosition.subtract(@previousPosition), true) for item in @items
+		g.rasterizer.rasterize(@items)
 		super()
 		return
 
 	undo: ()->
+		g.rasterizer.rasterize(@items, false)
 		item.moveBy(@previousPosition.subtract(@newPosition), true) for item in @items
+		g.rasterizer.rasterize(@items)
 		super()
 		return
 
@@ -152,11 +157,12 @@ class MoveCommand extends Command
 				item.update('position')
 			else
 				args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments('position') )
-		Dajaxice.draw.multipleCalls( @update_callback, functionsAndArguments: args)
+		Dajaxice.draw.multipleCalls( @updateCallback, functionsAndArguments: args)
+		g.rasterizer.rasterize(@items)
 		super()
 		return true
 
-	update_callback: (results)->
+	updateCallback: (results)->
 		for result in results
 			g.checkError(result)
 		return

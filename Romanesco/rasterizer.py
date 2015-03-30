@@ -22,7 +22,6 @@ class AreaToUpdate(Document):
     box = PolygonField()
 
     rType = StringField(default='AreaToUpdate')
-    # areas = ListField(ReferenceField('Area'))
 
     meta = {
         'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
@@ -32,6 +31,7 @@ class AreaToUpdate(Document):
 
 state = 'page not loaded' # 'image saved' 'image loaded'
 area = None
+
 
 # -- save image -- #
 
@@ -61,41 +61,6 @@ def saveImage(image, xf, yf):
     imageOnGrid25width = roundToGreaterMultiple(x+width, 25)-imageOnGrid25x
     imageOnGrid25height = roundToGreaterMultiple(y+height, 25)-imageOnGrid25y
 
-    # debug
-
-    # image.save('media/rasters/image.png')
-
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print 'original rect'
-    # print x
-    # print y
-    # print width
-    # print height
-    # print 'rounded rect'
-    # print l
-    # print t
-    # print r
-    # print b
-
-    # print 'image size:'
-    # print image.size[0]
-    # print image.size[1]
-
-    # print 'big image:'
-    # print imageOnGrid25x
-    # print imageOnGrid25y
-    # print imageOnGrid25width
-    # print imageOnGrid25height
-
-    # try:
-    # imageOnGrid25 = Image.new("RGBA", (1000, 1000))
     imageOnGrid25 = Image.new("RGBA", (imageOnGrid25width, imageOnGrid25height))
 
     for xi in range(l,r,1000):
@@ -132,37 +97,7 @@ def saveImage(image, xf, yf):
             top = max(yi,y)
             bottom = min(yi+1000,y+height)
 
-            # print '-----'
-            # print '-----'
-            # print 'raster pos:'
-            # print xi
-            # print yi
-            
-            # print 'rectangle cutted:'
-            # print left
-            # print top
-            # print right
-            # print bottom
-
-            # print 'width, height:'
-            # print right-left
-            # print bottom-top
-
-            # print 'sub image rect:'
-            # print left-x
-            # print top-y
-            # print right-x
-            # print bottom-y
-            
             subImage = image.crop((left-x, top-y, right-x, bottom-y))
-
-            # print 'posInRaster:'
-            # print left-xi
-            # print top-yi
-            
-            # print 'sub image size:'
-            # print subImage.size[0]
-            # print subImage.size[1]
 
             raster.paste(subImage, (left-xi, top-yi))
             raster.save(rasterName)
@@ -172,27 +107,8 @@ def saveImage(image, xf, yf):
             top = max(yi,imageOnGrid25y)
             bottom = min(yi+1000,imageOnGrid25y+imageOnGrid25height)
 
-            # subImage.save('media/rasters/subimage_' + str(x1) + ',' + str(y1) + '.png')
-            # print 'sub imageOnGrid25 in global coordinates:'
-            # print left
-            # print top
-            # print right
-            # print bottom
-            # print 'in raster100 coordinates:'
-            # print left-xi
-            # print top-yi
-            # print 'in imageOnGrid25 coordinates:'
-            # print left-imageOnGrid25x
-            # print top-imageOnGrid25y
-
             subRaster = raster.crop((left-xi, top-yi, right-xi, bottom-yi))
             imageOnGrid25.paste(subRaster, (left-imageOnGrid25x, top-imageOnGrid25y))
-    
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print 'raster20:'
 
     l = roundToLowerMultiple(x, 5000)
     t = roundToLowerMultiple(y, 5000)
@@ -231,33 +147,10 @@ def saveImage(image, xf, yf):
             top = max(yi,imageOnGrid25y)
             bottom = min(yi+5000,imageOnGrid25y+imageOnGrid25height)
 
-            # print '-----'
-            # print '-----'
-            # print 'raster pos:'
-            # print xi
-            # print yi
-            # print 'sub imageOnGrid25 in global coordinates:'
-            # print left
-            # print top
-            # print right
-            # print bottom
-            # print 'in raster20 coordinates:'
-            # print (left-xi)/5
-            # print (top-yi)/5
-            # print 'in imageOnGrid25 coordinates:'
-            # print left-imageOnGrid25x
-            # print top-imageOnGrid25y
-
             subImage = imageOnGrid25.crop((left-imageOnGrid25x, top-imageOnGrid25y, right-imageOnGrid25x, bottom-imageOnGrid25y))
             subImageSmall = subImage.resize((subImage.size[0]/5, subImage.size[1]/5), Image.LANCZOS)
             raster.paste(subImageSmall, ((left-xi)/5, (top-yi)/5))
             raster.save(rasterName)
-    
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print '-----'
-    # print 'raster4:'
 
     l = roundToLowerMultiple(x, 25000)
     t = roundToLowerMultiple(y, 25000)
@@ -293,23 +186,6 @@ def saveImage(image, xf, yf):
             top = max(yi,imageOnGrid25y)
             bottom = min(yi+25000,imageOnGrid25y+imageOnGrid25height)
 
-            # print '-----'
-            # print '-----'
-            # print 'raster pos:'
-            # print xi
-            # print yi
-            # print 'sub imageOnGrid25 in global coordinates:'
-            # print left
-            # print top
-            # print right
-            # print bottom
-            # print 'in raster4 coordinates:'
-            # print (left-xi)/25
-            # print (top-yi)/25
-            # print 'in imageOnGrid25 coordinates:'
-            # print left-imageOnGrid25x
-            # print top-imageOnGrid25y
-
             subImage = imageOnGrid25.crop((left-imageOnGrid25x, top-imageOnGrid25y, right-imageOnGrid25x, bottom-imageOnGrid25y))
             subImageSmall = subImage.resize((subImage.size[0]/25, subImage.size[1]/25), Image.LANCZOS)
             raster.paste(subImageSmall, ((left-xi)/25, (top-yi)/25))
@@ -335,11 +211,7 @@ def loadArea():
 def loopRasterize():
     browser.GetMainFrame().ExecuteFunction("loopRasterize")
 
-def saveOnServer(imageDataURL, x, y, finished):
-    print "saveOnServer: " + str(len(imageDataURL))
-    
-    if len(imageDataURL)==6:
-        import pdb; pdb.set_trace()
+def saveOnServer(imageDataURL, x, y, finished):  
     
     imageData = re.search(r'base64,(.*)', imageDataURL).group(1)
 
@@ -355,7 +227,7 @@ def saveOnServer(imageDataURL, x, y, finished):
     else:
         global state
         state = 'image saved'
-    # browser.NotifyScreenInfoChanged()
+
     return
 
 # Get the position in project coordinate system of *point* on *planet*
@@ -398,16 +270,6 @@ def checkAreasToUpdates():
 startTime = time.time()
 
 def main_loop():
-    # # cefpython.MessageLoopWork()
-    # # time.sleep(0.01)
-    # # global isPageLoaded, isSaved, nUpdates
-    # global nUpdates
-    # nUpdates = nUpdates + 1
-    # if nUpdates > 100:
-    #     nUpdates = 0
-    #     print "check area: " + str(isPageLoaded) + ", " + str(isSaved)
-    #     checkAreasToUpdates()
-    # threading.Timer(0.01, main_loop).start()
     print time.time() - startTime
     checkAreasToUpdates()
     threading.Timer(1, main_loop).start()
@@ -511,16 +373,10 @@ browser.SetJavascriptBindings(bindings)
 browser.WasResized()
 
 main_loop()
+
 cefpython.MessageLoop()
 
-
-
 '''    IMPORTANT: there is a bug in CEF 3 that causes js bindings to be removed when LoadUrl() is called (see http://www.magpcss.org/ceforum/viewtopic.php?f=6&t=11009). A temporary fix to this bug is to do the navigation through javascript by calling: GetMainFrame().ExecuteJavascript('window.location="http://google.com/"'). '''
-#browser.GetMainFrame().ExecuteJavascript('window.location="http://www.panda3d.org"')
-#browser.GetMainFrame().LoadUrl("http://wwww.panda3d.org")
-#base.accept("window-event", setBrowserSize)
-# taskMgr.add(messageLoop, "CefMessageLoop")
 
-# run()
-# cefpython.Shutdown()
+cefpython.Shutdown()
 

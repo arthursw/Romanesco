@@ -53,7 +53,7 @@
       this.update = __bind(this.update, this);
       this.endSelect = __bind(this.endSelect, this);
       this.beginSelect = __bind(this.beginSelect, this);
-      this.save_callback = __bind(this.save_callback, this);
+      this.saveCallback = __bind(this.saveCallback, this);
       this.rectangle = ((_ref = this.data) != null ? _ref.rectangle : void 0) != null ? new Rectangle(this.data.rectangle) : bounds;
       this.controller = this;
       this.object_type = this.constructor.object_type;
@@ -105,7 +105,7 @@
         romanesco_alert("Error: your div is not valid.", "error");
         return;
       }
-      Dajaxice.draw.saveDiv(this.save_callback, {
+      Dajaxice.draw.saveDiv(this.saveCallback, {
         'box': g.boxFromRectangle(this.getBounds()),
         'object_type': this.object_type,
         'date': Date.now(),
@@ -113,7 +113,7 @@
       });
     };
 
-    RDiv.prototype.save_callback = function(result) {
+    RDiv.prototype.saveCallback = function(result) {
       g.checkError(result);
       if (result.pk == null) {
         this.remove();
@@ -279,10 +279,10 @@
       if (g.rectangleOverlapsTwoPlanets(bounds)) {
         return;
       }
-      Dajaxice.draw.updateDiv(this.update_callback, this.getUpdateArguments(type));
+      Dajaxice.draw.updateDiv(this.updateCallback, this.getUpdateArguments(type));
     };
 
-    RDiv.prototype.update_callback = function(result) {
+    RDiv.prototype.updateCallback = function(result) {
       g.checkError(result);
     };
 
@@ -369,12 +369,12 @@
       if (this.pk == null) {
         return;
       }
-      Dajaxice.draw.deleteDiv(this.deleteDiv_callback, {
+      Dajaxice.draw.deleteDiv(this.deleteDivCallback, {
         'pk': this.pk
       });
     };
 
-    RDiv.prototype.deleteDiv_callback = function(result) {
+    RDiv.prototype.deleteDivCallback = function(result) {
       if (g.checkError(result)) {
         g.chatSocket.emit("delete div", result.pk);
       }

@@ -94,7 +94,7 @@
       }
       this.lock = lock != null ? lock : null;
       this.update = __bind(this.update, this);
-      this.save_callback = __bind(this.save_callback, this);
+      this.saveCallback = __bind(this.saveCallback, this);
       if (!this.lock) {
         RPath.__super__.constructor.call(this, this.data, this.pk, this.date, g.pathList, g.sortedPaths);
       } else {
@@ -212,25 +212,22 @@
       if (!RPath.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
         return false;
       }
-      this.rasterize();
       return true;
     };
 
     RPath.prototype.beginAction = function(command) {
       RPath.__super__.beginAction.call(this, command);
-      if (!((this.selectionState.move != null) || (this.selectionState.rotation != null))) {
-        g.rasterizeProject(this);
+      if (this.selectionState.move == null) {
+        g.rasterizer.rasterize(this, true);
       }
     };
 
     RPath.prototype.endAction = function() {
       RPath.__super__.endAction.call(this);
-      if (!((this.selectionState.move != null) || (this.selectionState.rotation != null))) {
-        g.restoreProject(this);
+      if (this.selectionState.move == null) {
+        g.rasterizer.drawItem(this);
       }
     };
-
-    RPath.prototype.rasterize = function() {};
 
     RPath.prototype.updateSelect = function(event) {
       if (!this.drawing) {
@@ -413,23 +410,22 @@
     };
 
     RPath.prototype.save = function(addCreateCommand) {
+      var args;
       this.addCreateCommand = addCreateCommand;
       if (this.controlPath == null) {
         return;
       }
-      Dajaxice.draw.savePath(this.save_callback, {
-        'points': this.pathOnPlanet(),
-        'pID': this.id,
-        'planet': this.planet(),
-        'object_type': this.constructor.rname,
-        'date': this.date,
-        'data': this.getStringifiedData(),
-        'bounds': g.boxFromRectangle(this.getDrawingBounds())
-      });
+      args = {
+        box: g.boxFromRectangle(this.getDrawingBounds()),
+        points: this.pathOnPlanet(),
+        data: this.getStringifiedData(),
+        date: this.date,
+        object_type: this.constructor.rname
+      };
+      Dajaxice.draw.savePath(this.saveCallback, args);
     };
 
-    RPath.prototype.save_callback = function(result) {
-      var _ref;
+    RPath.prototype.saveCallback = function(result) {
       g.checkError(result);
       if (result.pk == null) {
         return;
@@ -438,9 +434,6 @@
       if (this.addCreateCommand) {
         g.commandManager.add(new CreatePathCommand(this));
         delete this.addCreateCommand;
-      }
-      if (!((_ref = this.data) != null ? _ref.animate : void 0)) {
-        g.rasterizeArea(this.getDrawingBounds());
       }
       if (this.updateAfterSave != null) {
         this.update(this.updateAfterSave);
@@ -464,57 +457,23 @@
           args = {
             pk: this.pk,
             points: this.pathOnPlanet(),
-            planet: this.planet(),
             data: this.getStringifiedData(),
-            bounds: g.boxFromRectangle(this.getDrawingBounds())
+            box: g.boxFromRectangle(this.getDrawingBounds())
           };
       }
       return args;
     };
 
     RPath.prototype.update = function(type) {
-      var rectangle, selectionHighlightVisible, speedGroupVisible, union, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
       if (this.pk == null) {
         this.updateAfterSave = type;
         return;
       }
       delete this.updateAfterSave;
-      Dajaxice.draw.updatePath(this.updatePath_callback, this.getUpdateArguments(type));
-      if (!((_ref = this.data) != null ? _ref.animate : void 0)) {
-        if (this.drawing == null) {
-          this.draw();
-        }
-        selectionHighlightVisible = (_ref1 = this.selectionHighlight) != null ? _ref1.visible : void 0;
-        if ((_ref2 = this.selectionHighlight) != null) {
-          _ref2.visible = false;
-        }
-        speedGroupVisible = (_ref3 = this.speedGroup) != null ? _ref3.visible : void 0;
-        if ((_ref4 = this.speedGroup) != null) {
-          _ref4.visible = false;
-        }
-        rectangle = this.getDrawingBounds();
-        if (this.previousBoundingBox != null) {
-          union = rectangle.unite(this.previousBoundingBox);
-          if (rectangle.intersects(this.previousBoundingBox) && union.area < this.previousBoundingBox.area * 2) {
-            g.rasterizeArea(union);
-          } else {
-            g.rasterizeArea(rectangle);
-            g.rasterizeArea(this.previousBoundingBox);
-          }
-          this.previousBoundingBox = null;
-        } else {
-          g.rasterizeArea(rectangle);
-        }
-        if ((_ref5 = this.selectionHighlight) != null) {
-          _ref5.visible = selectionHighlightVisible;
-        }
-        if ((_ref6 = this.speedGroup) != null) {
-          _ref6.visible = speedGroupVisible;
-        }
-      }
+      Dajaxice.draw.updatePath(this.updatePathCallback, this.getUpdateArguments(type));
     };
 
-    RPath.prototype.updatePath_callback = function(result) {
+    RPath.prototype.updatePathCallback = function(result) {
       g.checkError(result);
     };
 
@@ -554,22 +513,19 @@
     };
 
     RPath.prototype["delete"] = function() {
-      var bounds;
       this.group.visible = false;
-      bounds = g.boxFromRectangle(this.getDrawingBounds());
       this.remove();
       if (this.pk == null) {
         return;
       }
       console.log(this.pk);
-      Dajaxice.draw.deletePath(this.deletePath_callback, {
-        pk: this.pk,
-        bounds: bounds
+      Dajaxice.draw.deletePath(this.deletePathCallback, {
+        pk: this.pk
       });
       this.pk = null;
     };
 
-    RPath.prototype.deletePath_callback = function(result) {
+    RPath.prototype.deletePathCallback = function(result) {
       if (g.checkError(result)) {
         g.chatSocket.emit("delete path", result.pk);
       }
@@ -821,12 +777,10 @@
     PrecisePath.prototype.beginCreate = function(point, event) {
       PrecisePath.__super__.beginCreate.call(this);
       if (!this.data.polygonMode) {
-        g.rasterizeProject(this);
         this.initializeControlPath(point);
         this.beginDraw(false);
       } else {
         if (this.controlPath == null) {
-          g.rasterizeProject(this);
           this.initializeControlPath(point);
           this.controlPath.add(point);
           this.beginDraw(false);
@@ -905,12 +859,10 @@
       if (!loading) {
         this.endDraw(loading);
         this.drawingOffset = 0;
-        g.restoreProject(this);
       }
       this.rectangle = this.controlPath.bounds;
       this.initialize();
       this.draw(false, loading);
-      this.rasterize();
     };
 
     PrecisePath.prototype.simplifiedModeOn = function() {
@@ -994,8 +946,6 @@
       }
       if (simplified) {
         this.simplifiedModeOff();
-      } else {
-        this.rasterize();
       }
     };
 
@@ -2980,15 +2930,17 @@
     };
 
     RShape.prototype.loadPath = function(points) {
-      var distanceMax, i, point, _i, _len;
+      var distanceMax, i, point, _i, _len, _ref;
       if (this.data.rectangle == null) {
         console.log('Error loading shape ' + this.pk + ': invalid rectangle.');
       }
       this.rectangle = this.data.rectangle != null ? new Rectangle(this.data.rectangle) : new Rectangle();
       this.initializeControlPath(this.rectangle.topLeft, this.rectangle.bottomRight, false, false, true);
-      this.draw(false, true);
       this.controlPath.rotation = this.rotation;
       this.initialize();
+      if ((_ref = this.data) != null ? _ref.animate : void 0) {
+        this.draw();
+      }
       distanceMax = this.constructor.secureDistance * this.constructor.secureDistance;
       for (i = _i = 0, _len = points.length; _i < _len; i = ++_i) {
         point = points[i];
@@ -3016,7 +2968,6 @@
           _this.initializeDrawing();
           _this.createShape();
           _this.drawing.rotation = _this.rotation;
-          _this.rasterize();
         };
       })(this);
       if (!g.catchErrors) {
@@ -3223,7 +3174,7 @@
         label: 'Internal radius',
         min: -200,
         max: 100,
-        "default": 37
+        "default": 38
       };
       parameters['Style'].rsmooth = {
         type: 'checkbox',

@@ -9,11 +9,11 @@ this.areaIsLoaded = (pos,planet) ->
 				return true
 	return false
 
-this.areaIsQuickLoaded = (area) ->
-	for a in g.loadedAreas
-		if a.x == area.x && a.y == area.y
-			return true
-	return false
+# this.areaIsQuickLoaded = (area) ->
+# 	for a in g.loadedAreas
+# 		if a.x == area.x && a.y == area.y
+# 			return true
+# 	return false
 
 # load an area from the server
 # the project coordinate system is divided into square cells of size *g.scale*
@@ -36,14 +36,18 @@ this.load = (area=null) ->
 
 	# g.startLoadingBar()
 
-	debug = true
+	debug = false
 
-	scale = if not debug then g.scale else 200
+	scale = g.scale
 
 	g.previousLoadPosition = view.center
 
 	if not area?
-		bounds = if not debug then view.bounds else view.bounds.scale(0.3,0.3)
+		if view.bounds.width <= window.innerWidth and view.bounds.height <= window.innerHeight
+			bounds = view.bounds
+		else
+			halfSize = new Point(window.innerWidth*0.5, window.innerHeight*0.5)
+			bounds = new Rectangle(view.center.subtract(halfSize), view.center.add(halfSize))
 	else
 		bounds = area
 
@@ -54,8 +58,8 @@ this.load = (area=null) ->
 
 	# unload:
 	# define unload limit rectangle
-	unloadDist = if debug then 50 else Math.round(scale) #/g.project.view.zoom)
-	
+	unloadDist = Math.round(scale / view.zoom)
+
 	if not g.entireArea
 		limit = bounds.expand(unloadDist)
 	else
@@ -84,12 +88,13 @@ this.load = (area=null) ->
 			return
 	
 	# remove rasters which are outside the limit
-	for x, rasterColumn of g.rasters
-		for y, raster of rasterColumn
-			if not raster.rRectangle.intersects(limit)
-				raster.remove()
-				delete g.rasters[x][y]
-				if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
+	g.rasterizer.unload(limit)
+	# for x, rasterColumn of g.rasters
+	# 	for y, raster of rasterColumn
+	# 		if not raster.bounds.intersects(limit)
+	# 			raster.remove()
+	# 			delete g.rasters[x][y]
+	# 			if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
 
 	# remove loaded areas which must be unloaded
 	i = g.loadedAreas.length
@@ -154,7 +159,7 @@ this.load = (area=null) ->
 			planet = projectToPlanet(new Point(x,y))
 			pos = projectToPosOnPlanet(new Point(x,y))
 
-			if not areaIsLoaded(pos, planet)
+			if g.rasterizerMode or not areaIsLoaded(pos, planet)
 
 				if debug
 					areaRectangle = new Path.Rectangle(x, y, scale, scale)
@@ -163,11 +168,13 @@ this.load = (area=null) ->
 					areaRectangle.strokeColor = 'green'
 					g.debugLayer.addChild(areaRectangle)
 
-				area = { pos: pos, planet: planet, x: x/1000, y: y/1000 }
+				area = { pos: pos, planet: planet }
 
 				areasToLoad.push(area)
 				if debug then area.rectangle = areaRectangle
-				g.loadedAreas.push(area)
+				
+				if not g.rasterizerMode or not areaIsLoaded(pos, planet)
+					g.loadedAreas.push(area)
 
 	if not g.rasterizerMode and areasToLoad.length<=0 	# return if there is nothing to load
 		return false
@@ -179,19 +186,21 @@ this.load = (area=null) ->
 			return
 		g.loadingBarTimeout = setTimeout(showLoadingBar , 0)
 
-	rectangle = { left: l/1000, top: t/1000, right: r/1000, bottom: b/1000 }
+	rectangle = { left: l, top: t, right: r, bottom: b }
 
 	console.log 'request loading'
 	console.log rectangle
-
-	itemsDates = if g.rasterizerMode then g.createItemsDates() else null
 	
-	Dajaxice.draw.load(load_callback, { rectangle: rectangle, areasToLoad: areasToLoad, zoom: view.zoom, loadRasters: not g.rasterizerMode, itemsDates: itemsDates })
-	# ajaxPost '/load', args, load_callback
+	if not g.rasterizerMode
+		Dajaxice.draw.load(loadCallback, { rectangle: rectangle, areasToLoad: areasToLoad, zoom: 1.0 / view.zoom })
+	else
+		itemsDates = g.createItemsDates(bounds)
+		Dajaxice.draw.loadRasterizer(loadCallback, { areasToLoad: areasToLoad, itemsDates: itemsDates })
+	# ajaxPost '/load', args, loadCallback
 	return true
 
 # load callback: add loaded RItems
-this.load_callback = (results)->
+this.loadCallback = (results)->
 	console.log "load callback"
 
 	dispatchLoadFinished = ()->
@@ -208,48 +217,43 @@ this.load_callback = (results)->
 		return
 
 	# set g.me (the server sends the username at each load)
-	if not g.me?
+	if not g.me? and results.user?
 		g.me = results.user
 		if g.chatJ? and g.chatJ.find("#chatUserNameInput").length==0
 			g.startChatting( g.me )
 
-	# helper to check it the item is already loaded
-	itemIsLoaded = (pk)->
-		return g.items[pk]?
+	if results.rasters?
+		g.rasterizer.load(results.rasters, results.zoom)
+		# # add rasters
+		# # todo: ask only required rasters (currently, all rasters of all areas are requested, and then ignored if already added :/ )
+		# for raster in results.rasters
+		# 	position = new Point(raster.position).multiply(1000)
+		# 	if g.rasters[position.x]?[position.y]?.rZoom == results.zoom then continue
+		# 	raster = new Raster(g.romanescoURL + raster.url)		# Paper rasters are positionned from centers, thus we must add 500 to the top left corner position
+		# 	if results.zoom > 0.2
+		# 		raster.position = position.add(1000/2)
+		# 	else if results.zoom > 0.04
+		# 		raster.scale(5)
+		# 		raster.position = position.add(5000/2)
+		# 	else
+		# 		raster.scale(25)
+		# 		raster.position = position.add(25000/2)
+		# 	console.log "raster.position: " + raster.position.toString() + ", raster.scaling" + raster.scaling.toString()
+		# 	raster.name = 'raster: ' + raster.position.toString() + ', zoom: ' + results.zoom
+		# 	raster.rZoom = results.zoom
+		# 	g.rasters[position.x] ?= {}
+		# 	g.rasters[position.x][position.y] = raster
 
-	# add rasters
-	# todo: ask only required rasters (currently, all rasters of all areas are requested, and then ignored if already added :/ )
-	for raster in results.rasters
-		position = new Point(raster.position).multiply(1000)
-		if g.rasters[position.x]?[position.y]?.rZoom == results.zoom then continue
-		raster = new Raster(g.romanescoURL + raster.url)		# Paper rasters are positionned from centers, thus we must add 500 to the top left corner position
-		if results.zoom > 0.2
-			raster.position = position.add(1000/2)
-			raster.rRectangle = new Rectangle(position, new Size(1000,1000))
-		else if results.zoom > 0.04
-			raster.scale(5)
-			raster.position = position.add(5000/2)
-			raster.rRectangle = new Rectangle(position, new Size(5000,5000))
-		else
-			raster.scale(25)
-			raster.position = position.add(25000/2)
-			raster.rRectangle = new Rectangle(position, new Size(25000,25000))
-		console.log "raster.position: " + raster.position.toString() + ", raster.scaling" + raster.scaling.toString()
-		raster.name = 'raster: ' + raster.position.toString() + ', zoom: ' + results.zoom
-		raster.rZoom = results.zoom
-		g.rasters[position.x] ?= {}
-		g.rasters[position.x][position.y] = raster
+	# if g.rasterizerMode then g.removeItemsToUpdate(results.itemsToUpdate)
 
-	if g.rasterizerMode then g.removeItemsToUpdate(results.itemsToUpdate)
-
-	newAreasToUpdate = []
+	# newAreasToUpdate = []
 
 	itemsToLoad = []
 
 	for i in results.items
 		item = JSON.parse(i)
-		if g.items[item._id.$oid]? 	# if item is loaded: continue
-			continue
+
+		g.items[item._id.$oid]?.remove() 	# if item is loaded: remove it (it must be updated)
 
 		if item.rType == 'Box'	# add RLocks: RLock, RLink, RWebsite and RVideoGame
 			box = item
@@ -322,32 +326,30 @@ this.load_callback = (results)->
 						console.log rpath
 				else
 					console.log "Unknown path type: " + path.object_type
-			when 'AreaToUpdate'
-				newAreasToUpdate.push(item)
+			# when 'AreaToUpdate'
+			# 	newAreasToUpdate.push(item)
 			else
 				continue
 
 	RDiv.updateZIndex(g.sortedDivs)
 
 	if not g.rasterizerMode
+
 		# update areas to update (draw items which lie on those areas)
-		g.addAreasToUpdate(newAreasToUpdate)
-		for pk, rectangle of g.areasToUpdate
-			if rectangle.intersects(view.bounds)
-				g.updateView()
-				break
+		# for pk, rectangle of g.areasToUpdate
+		# 	if rectangle.intersects(view.bounds)
+		# 		g.updateView()
+		# 		break
 
 		# loadFonts()
-		view.draw()
-		updateView()
+		# view.draw()
+		# updateView()
 		
 		clearTimeout(g.loadingBarTimeout)
 		g.loadingBarTimeout = null
 		$("#loadingBar").hide()
 
 		dispatchLoadFinished()
-
-	console.log typeof window.saveOnServer == "function"
 	
 	if typeof window.saveOnServer == "function"
 		g.rasterizeAndSaveOnServer()
@@ -355,113 +357,28 @@ this.load_callback = (results)->
 	# g.stopLoadingBar()
 	return
 
-this.createItemsDates = ()->
-	itemsDates = []
-	for pk, item of g.items
-		type = ''
-		if RLock.prototype.isPrototypeOf(item)
-			type = 'Box'
-		else if RDiv.prototype.isPrototypeOf(item)
-			type = 'Div'
-		else if RPath.prototype.isPrototypeOf(item)
-			type = 'Path'
-		itemsDates.push( pk: pk, lastUpdate: item.lastUpdateDate, type: type )
-	return itemsDates
+# this.benchmark_load = ()->
+# 	bounds = view.bounds
+# 	scale = g.scale
+# 	t = g.roundToLowerMultiple(bounds.top, scale)
+# 	l = g.roundToLowerMultiple(bounds.left, scale)
+# 	b = g.roundToLowerMultiple(bounds.bottom, scale)
+# 	r = g.roundToLowerMultiple(bounds.right, scale)
 
-this.removeItemsToUpdate = (itemsToUpdate)->
-	for pk in itemsToUpdate
-		g.items[pk].remove()
-	return
+# 	# add areas to load
+# 	areasToLoad = []
 
+# 	for x in [l .. r] by scale
+# 		for y in [t .. b] by scale
+# 			planet = projectToPlanet(new Point(x,y))
+# 			pos = projectToPosOnPlanet(new Point(x,y))
 
-this.loopRasterize = ()->
+# 			area = { pos: pos, planet: planet, x: x/1000, y: y/1000 }
 
-	rectangle = g.areaToRasterize
+# 			areasToLoad.push(area)
 
-	width = Math.min(Math.min(view.size.width, 1000), rectangle.right - view.bounds.left)
-	height = Math.min(Math.min(view.size.height, 1000), rectangle.bottom - view.bounds.top)
-	
-	center = view.center.clone()
-	view.viewSize = new Size(width, height)
-	view.center = center
+# 	console.log "areasToLoad: "
+# 	console.log areasToLoad
 
-	imagePosition = view.bounds.topLeft.clone()
-
-	dataURL = areaToImageDataUrl(new Rectangle(0, 0, width, height), false)
-
-	view.center = view.center.add(Math.min(view.size.width, 1000), 0)
-	if view.bounds.left > rectangle.right
-		view.center = new Point(rectangle.left+view.size.width*0.5, view.center.y+Math.min(view.size.height, 1000))
-	
-	finished = view.bounds.top > rectangle.bottom
-	
-	window.saveOnServer(dataURL, imagePosition.x, imagePosition.y, finished)
-	return
-
-this.rasterizeAndSaveOnServer = ()->
-	console.log "area rasterized"
-	g.debugIsLoading = false
-	position = view.bounds.topLeft
-
-	rectangle = g.areaToRasterize
-	if view.bounds.contains(rectangle)
-		view.draw()
-		console.log 'dimensions'
-		console.log view.bounds.toString()
-		console.log window.innerWidth
-		console.log window.innerHeight
-		window.saveOnServer(g.canvas.toDataURL(), rectangle.x, rectangle.y, true)
-	else
-		view.center = rectangle.topLeft.add(view.size.multiply(0.5))
-		g.loopRasterize()
-
-	return
-
-this.loadArea = (args)->
-	console.log "load_area"
-
-	if g.areaToRasterize?
-		console.log "error: load_area while loading !!"
-		debugger
-	
-	area = g.rectangleFromBox(JSON.parse(args))
-	g.areaToRasterize = area
-	view.viewSize = Size.min(area.size, new Size(1000, 1000))
-
-	# move the view
-	delta = area.center.subtract(view.center)
-	project.view.scrollBy(delta)
-	for div in g.divs
-		div.updateTransform()
-
-	console.log "call load"
-
-	g.load(area)
-	
-	return
-
-this.benchmark_load = ()->
-	bounds = view.bounds
-	scale = g.scale
-	t = g.roundToLowerMultiple(bounds.top, scale)
-	l = g.roundToLowerMultiple(bounds.left, scale)
-	b = g.roundToLowerMultiple(bounds.bottom, scale)
-	r = g.roundToLowerMultiple(bounds.right, scale)
-
-	# add areas to load
-	areasToLoad = []
-
-	for x in [l .. r] by scale
-		for y in [t .. b] by scale
-			planet = projectToPlanet(new Point(x,y))
-			pos = projectToPosOnPlanet(new Point(x,y))
-
-			area = { pos: pos, planet: planet, x: x/1000, y: y/1000 }
-
-			areasToLoad.push(area)
-
-	console.log "areasToLoad: "
-	console.log areasToLoad
-
-	Dajaxice.draw.benchmark_load(g.checkError, { areasToLoad: areasToLoad })
-	return
+# 	Dajaxice.draw.benchmark_load(g.checkError, { areasToLoad: areasToLoad })
+# 	return

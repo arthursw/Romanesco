@@ -62,8 +62,6 @@
     g.divs = [];
     g.sortedPaths = [];
     g.sortedDivs = [];
-    g.fastMode = false;
-    g.fastModeOn = false;
     g.scale = 1000.0;
     g.rasters = {};
     g.catchErrors = false;
@@ -94,6 +92,7 @@
     g.grid = new Group();
     g.grid.name = 'grid group';
     view.zoom = 1;
+    view.pause();
     $.ajax({
       url: g.romanescoURL + "static/coffee/path.coffee"
     }).done(function(data) {
@@ -134,6 +133,142 @@
   this.romanesco_alert = this.fakeFunction;
 
   jQuery.fn.mCustomScrollbar = this.fakeFunction;
+
+  this.createItemsDates = function(bounds) {
+    var item, itemsDates, pk, type, _ref;
+    itemsDates = {};
+    _ref = g.items;
+    for (pk in _ref) {
+      item = _ref[pk];
+      if (bounds.contains(item.getBounds())) {
+        type = '';
+        if (RLock.prototype.isPrototypeOf(item)) {
+          type = 'Box';
+        } else if (RDiv.prototype.isPrototypeOf(item)) {
+          type = 'Div';
+        } else if (RPath.prototype.isPrototypeOf(item)) {
+          type = 'Path';
+        }
+        itemsDates[pk] = item.lastUpdateDate;
+      }
+    }
+    return itemsDates;
+  };
+
+  this.loopRasterize = function() {
+    var dataURL, finished, height, imagePosition, newSize, rectangle, topLeft, width;
+    rectangle = g.areaToRasterize;
+    width = Math.min(1000, rectangle.right - view.bounds.left);
+    height = Math.min(1000, rectangle.bottom - view.bounds.top);
+    newSize = new Size(width, height);
+    if (!view.viewSize.equals(newSize)) {
+      topLeft = view.bounds.topLeft;
+      view.viewSize = newSize;
+      view.center = topLeft.add(newSize.multiply(0.5));
+    }
+    imagePosition = view.bounds.topLeft.clone();
+    debugger;
+    dataURL = g.canvas.toDataURL();
+    finished = view.bounds.bottom >= rectangle.bottom && view.bounds.right >= rectangle.right;
+    if (!finished) {
+      if (view.bounds.right < rectangle.right) {
+        view.center = view.center.add(1000, 0);
+      } else {
+        view.center = new Point(rectangle.left + view.viewSize.width * 0.5, view.bounds.bottom + view.viewSize.height * 0.5);
+      }
+    } else {
+      g.areaToRasterize = null;
+    }
+    window.saveOnServer(dataURL, imagePosition.x, imagePosition.y, finished);
+  };
+
+  this.rasterizeAndSaveOnServer = function() {
+    console.log("area rasterized");
+    view.viewSize = Size.min(new Size(1000, 1000), g.areaToRasterize.size);
+    view.center = g.areaToRasterize.topLeft.add(view.size.multiply(0.5));
+    g.loopRasterize();
+  };
+
+  this.loadArea = function(args) {
+    var area, delta, div, _i, _len, _ref;
+    console.log("load_area");
+    if (g.areaToRasterize != null) {
+      console.log("error: load_area while loading !!");
+      debugger;
+    }
+    area = g.expandRectangleToInteger(g.rectangleFromBox(JSON.parse(args)));
+    g.areaToRasterize = area;
+    delta = area.center.subtract(view.center);
+    project.view.scrollBy(delta);
+    _ref = g.divs;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      div = _ref[_i];
+      div.updateTransform();
+    }
+    console.log("call load");
+    g.load(area);
+  };
+
+  this.getAreasToUpdate = function() {
+    if (g.areasToRasterize.length === 0 && g.imageSaved) {
+      Dajaxice.draw.getAreasToUpdate(g.getAreasToUpdateCallback);
+    }
+  };
+
+  this.loadNextArea = function() {
+    var area;
+    if (g.areasToRasterize.length > 0) {
+      area = g.areasToRasterize.pop();
+      g.areaToRasterizePk = area._id.$oid;
+      g.imageSaved = false;
+      g.loadArea(JSON.stringify(area));
+    }
+  };
+
+  this.getAreasToUpdateCallback = function(areas) {
+    g.areasToRasterize = areas;
+    loadNextArea();
+  };
+
+  this.testSaveOnServer = function(imageDataURL, x, y, finished) {
+    if (!imageDataURL) {
+      debugger;
+    }
+    g.rasterizedAreasJ.append($('<img src="' + imageDataURL + '" data-position="' + x + ', ' + y + '" finished="' + finished + '">').css({
+      border: '1px solid black'
+    }));
+    console.log('position: ' + x + ', ' + y);
+    console.log('finished: ' + finished);
+    if (finished) {
+      Dajaxice.draw.deleteAreaToUpdate(g.deleteAreaToUpdateCallback, {
+        pk: g.areaToRasterizePk
+      });
+    } else {
+      g.loopRasterize();
+    }
+  };
+
+  this.deleteAreaToUpdateCallback = function(result) {
+    g.checkError(result);
+    g.imageSaved = true;
+    loadNextArea();
+  };
+
+  this.testRasterizer = function() {
+    g.rasterizedAreasJ = $('<div class="rasterized-areas">');
+    g.rasterizedAreasJ.css({
+      position: 'absolute',
+      top: 1000,
+      left: 0
+    });
+    $('body').css({
+      overflow: 'auto'
+    }).prepend(g.rasterizedAreasJ);
+    window.saveOnServer = g.testSaveOnServer;
+    g.areasToRasterize = [];
+    g.imageSaved = true;
+    setInterval(getAreasToUpdate, 1000);
+  };
 
 }).call(this);
 
