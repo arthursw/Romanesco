@@ -133,3 +133,12 @@ this.rectangleFromBox = (box)->
 	br = posOnPlanetToProject(box.box.coordinates[0][2], planet)
 
 	return new Rectangle(tl, br)
+
+this.quantizeZoom = (zoom)->
+	if zoom < 5
+		zoom = 1
+	else if zoom < 25
+		zoom = 5
+	else
+		zoom = 25
+	return zoom

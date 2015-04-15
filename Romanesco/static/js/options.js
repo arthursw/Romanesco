@@ -23,6 +23,7 @@
         var div, _i, _len, _ref;
         g.project.view.zoom = value / 100.0;
         g.updateGrid();
+        g.rasterizer.move();
         _ref = g.divs;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           div = _ref[_i];
@@ -30,7 +31,7 @@
         }
       },
       onFinishChange: function(value) {
-        return g.load();
+        g.load();
       }
     };
     g.parameters.displayGrid = {
@@ -41,6 +42,14 @@
       onChange: function(value) {
         g.displayGrid = !g.displayGrid;
         g.updateGrid();
+      }
+    };
+    g.parameters.ignoreSockets = {
+      type: 'checkbox',
+      label: 'Ignore sockets',
+      "default": false,
+      onChange: function(value) {
+        g.ignoreSockets = value;
       }
     };
     g.parameters.strokeWidth = {
@@ -412,7 +421,10 @@
     g.generalFolder.add({
       displayGrid: g.parameters.displayGrid["default"]
     }, 'displayGrid', true).name("Display grid").onChange(g.parameters.displayGrid.onChange);
-    g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max).name(g.parameters.snap.label).onChange(g.parameters.snap.onChange);
+    g.generalFolder.add({
+      ignoreSockets: g.parameters.ignoreSockets["default"]
+    }, 'ignoreSockets', false).name(g.parameters.ignoreSockets.name).onChange(g.parameters.ignoreSockets.onChange);
+    g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max).name(g.parameters.snap.label).step(g.parameters.snap.step).onChange(g.parameters.snap.onChange);
     g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement);
     toggleGuiButtonJ = $(g.gui.domElement).find("button.dat-gui-toggle");
     toggleGuiButtonJ.click(function() {
@@ -468,7 +480,7 @@
         effects.push(effect);
       }
       if (!fontFamilyURL || fontFamilyURL === '') {
-        debugger;
+        console.log('ERROR: font family URL is null or empty');
       }
       g.usedFonts.push({
         family: fontFamilyURL,
@@ -494,7 +506,8 @@
           }
           newFont = newFont.slice(0, -1);
         }
-        fontLink = $('<link class="fonts" data-font-family="' + font.family + '" rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=' + newFont + '">');
+        fontLink = $('<link class="fonts" data-font-family="' + font.family + '" rel="stylesheet" type="text/css">');
+        fontLink.attr('href', "http://fonts.googleapis.com/css?family=" + newFont);
         $('head').append(fontLink);
       }
     }
@@ -612,10 +625,7 @@
       for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
         item = _ref1[_j];
         if (typeof ((_ref2 = item.data) != null ? _ref2[name] : void 0) !== 'undefined') {
-          item.changeParameterCommand(name, value);
-          if ((g.me != null) && datFolder.name !== 'General') {
-            g.chatSocket.emit("parameter change", g.me, item.pk, name, value);
-          }
+          item.setParameterCommand(name, value);
         }
       }
     };
@@ -800,6 +810,22 @@
         });
       }, 500);
     }
+  };
+
+  this.updateParametersForSelectedItems = function() {
+    g.callNextFrame(g.updateParametersForSelectedItemsCallback, 'updateParametersForSelectedItems');
+  };
+
+  this.updateParametersForSelectedItemsCallback = function() {
+    var items;
+    console.log('updateParametersForSelectedItemsCallback');
+    items = g.selectedItems.map(function(item) {
+      return {
+        tool: item.constructor,
+        item: item
+      };
+    });
+    g.updateParameters(items, true);
   };
 
 }).call(this);

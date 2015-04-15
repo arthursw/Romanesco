@@ -38,6 +38,16 @@ logger = logging.getLogger(__name__)
 # import pdb; pdb.set_trace()
 # import pudb; pu.db
 
+import datetime
+
+def unix_time(dt):
+    epoch = datetime.datetime.utcfromtimestamp(0)
+    delta = dt - epoch
+    return delta.total_seconds()
+
+def unix_time_millis(dt):
+    return unix_time(dt) * 1000.0
+
 def makeBox(tlX, tlY, brX, brY):
 	return { "type": "Polygon", "coordinates": [ [ [tlX, tlY], [brX, tlY], [brX, brY], [tlX, brY], [tlX, tlY] ] ] }
 
@@ -68,7 +78,7 @@ def benchmarkLoad(request, areasToLoad):
 			continue
 
 		for item in area.items:
-			if hasattr(item, 'pk') and not items.has_key(item.pk):
+			if hasattr(item, 'pk') and not item.pk in items:
 				items[item.pk] = item.to_json()
 
 	end = time.time()
@@ -80,7 +90,7 @@ def benchmarkLoad(request, areasToLoad):
 	items = {}
 	n = 0
 	for area in areasToLoad:
-				
+
 		tlX = area['pos']['x']
 		tlY = area['pos']['y']
 
@@ -93,7 +103,7 @@ def benchmarkLoad(request, areasToLoad):
 		paths = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry)
 
 		for item in paths:
-			if hasattr(item, 'pk') and not items.has_key(item.pk):
+			if hasattr(item, 'pk') and not item.pk in items:
 				items[item.pk] = item.to_json()
 			n = n + 1
 
@@ -148,11 +158,11 @@ def benchmarkLoad(request, areasToLoad):
 # 	for x1 in range(left,right+step,step):
 # 		for y1 in range(top,bottom+step,step):
 
-# 			x5 = roundToLowerMultiple(x1, 5)
-# 			y5 = roundToLowerMultiple(y1, 5)
+# 			x5 = floorToMultiple(x1, 5)
+# 			y5 = floorToMultiple(y1, 5)
 
-# 			x25 = roundToLowerMultiple(x1, 25)
-# 			y25 = roundToLowerMultiple(y1, 25)
+# 			x25 = floorToMultiple(x1, 25)
+# 			y25 = floorToMultiple(y1, 25)
 
 # 			if zoom > 0.2:
 # 				position = { 'x': x1, 'y': y1 }
@@ -165,7 +175,7 @@ def benchmarkLoad(request, areasToLoad):
 # 				rasterPath = 'media/rasters/zoom4/'
 
 # 			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
-			
+
 # 			if os.path.isfile(os.getcwd() + '/' + rasterName):
 # 				rasters.append( { 'url': rasterName, 'position': position } )
 
@@ -186,38 +196,37 @@ def benchmarkLoad(request, areasToLoad):
 # 	return json.dumps( { 'items': items.values(), 'rasters': rasters, 'zoom': zoom, 'user': user } )
 
 @dajaxice_register
-def load(request, rectangle, areasToLoad, zoom):
+def load(request, rectangle, areasToLoad, qZoom):
 
 	items = {}
 
 	start = time.time()
 
-	models = ['Path', 'Div', 'Box'] # , 'AreaToUpdate']
+	models = ['Path', 'Div', 'Box', 'AreaToUpdate']
 
 	for area in areasToLoad:
-				
+
 		tlX = area['pos']['x']
 		tlY = area['pos']['y']
 
 		planetX = area['planet']['x']
 		planetY = area['planet']['y']
 
-		geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
-		# geometry = makeBox(tlX, tlY, tlX+0.2, tlY+0.2)
+		geometry = makeBox(tlX, tlY, tlX+qZoom, tlY+qZoom)
 
 		for model in models:
 			itemsQuerySet = globals()[model].objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
 
 			for item in itemsQuerySet:
-				if not items.has_key(item.pk):
+				if not item.pk in items:
 					items[item.pk] = item.to_json()
-		
+
 		# # load items
 		# p = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry)
 		# d = Div.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
 		# b = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
 		# a = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
-		
+
 		# for path in p:
 		# 	if not items.has_key(path.pk):
 		# 		items[path.pk] = path.to_json()
@@ -234,33 +243,26 @@ def load(request, rectangle, areasToLoad, zoom):
 	# load rasters
 	rasters = []
 
-	step = 1
+	step = qZoom
 
-	if zoom < 5:
-		step = 1
-	elif zoom < 25:
-		step = 5
-	else:
-		step = 25
-
-	left = int(rectangle['left'] / 1000.0)
-	top = int(rectangle['top'] / 1000.0)
-	right = int(rectangle['right'] / 1000.0)
-	bottom = int(rectangle['bottom'] / 1000.0)
+	left = int(rectangle['left'])
+	top = int(rectangle['top'])
+	right = int(rectangle['right'])
+	bottom = int(rectangle['bottom'])
 
 	for x1 in range(left,right+step,step):
 		for y1 in range(top,bottom+step,step):
 
-			x5 = roundToLowerMultiple(x1, 5)
-			y5 = roundToLowerMultiple(y1, 5)
+			x5 = floorToMultiple(x1, 5)
+			y5 = floorToMultiple(y1, 5)
 
-			x25 = roundToLowerMultiple(x1, 25)
-			y25 = roundToLowerMultiple(y1, 25)
+			x25 = floorToMultiple(x1, 25)
+			y25 = floorToMultiple(y1, 25)
 
-			if zoom < 5:
+			if qZoom < 5:
 				position = { 'x': x1, 'y': y1 }
 				rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
-			elif zoom < 25:
+			elif qZoom < 25:
 				position = { 'x': x5, 'y': y5 }
 				rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
 			else:
@@ -268,7 +270,7 @@ def load(request, rectangle, areasToLoad, zoom):
 				rasterPath = 'media/rasters/zoom4/'
 
 			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
-			
+
 			if os.path.isfile(os.getcwd() + '/' + rasterName):
 				rasters.append( { 'url': rasterName, 'position': position } )
 
@@ -282,7 +284,7 @@ def load(request, rectangle, areasToLoad, zoom):
 	userID += 1
 
 	# return json.dumps( { 'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user, 'rasters': rasters, 'areasToUpdate': areas, 'zoom': zoom } )
-	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'zoom': zoom } )
+	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'qZoom': qZoom } )
 
 
 @dajaxice_register
@@ -291,11 +293,11 @@ def loadRasterizer(request, areasToLoad, itemsDates):
 	items = {}
 
 	start = time.time()
-	
+
 	models = ['Path', 'Box']
 
 	for area in areasToLoad:
-				
+
 		tlX = area['pos']['x']
 		tlY = area['pos']['y']
 
@@ -309,14 +311,28 @@ def loadRasterizer(request, areasToLoad, itemsDates):
 			itemsQuerySet = globals()[model].objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
 
 			for item in itemsQuerySet:
-				pk = item.pk
-				if not items.has_key(pk) and (not itemsDates.has_key(pk) or itemsDates[pk]<item.lastUpdate):
+				pk = str(item.pk)
+				itemLastUpdate = unix_time_millis(item.lastUpdate)
+				if not pk in items and (not pk in itemsDates or itemsDates[pk]<itemLastUpdate):
 					items[pk] = item.to_json()
+					if pk in itemsDates:
+						del itemsDates[pk]
+
+	# add items to update which are not on the loading area (to update items which have been moved out of the area to load)
+	for model in models:
+		itemsQuerySet = globals()[model].objects(pk__in=itemsDates.keys())
+		for item in itemsQuerySet:
+			pk = str(item.pk)
+			itemLastUpdate = unix_time_millis(item.lastUpdate)
+			if not pk in items and itemsDates[pk]<itemLastUpdate:
+				items[pk] = item.to_json()
+			del itemsDates[pk]
+
 
 	end = time.time()
 	print "Time elapsed: " + str(end - start)
 
-	return json.dumps( { 'items': items.values() } )
+	return json.dumps( { 'items': items.values(), 'deletedItems': itemsDates } )
 
 # @return [Array<{x: x, y: y}>] the list of areas on which the bounds lie
 def getAreas(bounds):
@@ -330,7 +346,7 @@ def getAreas(bounds):
 	areas = {}
 	for x in range(l, r+1):
 		for y in range(t, b+1):
-			if not areas.has_key(x):
+			if not x in areas:
 				areas[x] = {}
 			areas[x][y] = True
 	return areas
@@ -350,7 +366,7 @@ def getAreas(bounds):
 # 			# Area.objects(x=a['x'], y=a['y']).update_one(push__paths=p, upsert=True) # good but how to get id?
 # 			# try:
 # 			# 	area = Area.objects.get(x=x, y=y)
-# 			# except Area.DoesNotExist:		
+# 			# except Area.DoesNotExist:
 # 			# 	area = Area(x=x, y=y)
 # 			# area.items.append(item)
 # 			# area.save()
@@ -404,7 +420,7 @@ def getAreas(bounds):
 # 	areas = getAreas(bounds)
 
 # 	document = type(item)
-	
+
 # 	areasToRemove = []
 # 	areasToRemovePks = []
 
@@ -434,7 +450,7 @@ def getAreas(bounds):
 # 			# 	area.save()
 # 			# 	print 'saved'
 # 			# Area.objects(pk=area.pk).update_one(pull__items=item)
-	
+
 # 	Area.objects(pk__in=areasToRemovePks).update(pull__items=item)
 # 	Area.objects(pk__in=areasToRemovePks, items__size=0).delete()
 
@@ -443,7 +459,7 @@ def getAreas(bounds):
 # 	print "...removed old areas from item.areas"
 
 # 	areasToAdd = []
-# 	# for all areas which now intersect with item: create or update them, and 
+# 	# for all areas which now intersect with item: create or update them, and
 # 	for x, column in areas.iteritems():
 # 		for y in column:
 # 			area = Area.objects(x=x, y=y).modify(upsert=True, new=True, push__items=item)
@@ -451,7 +467,7 @@ def getAreas(bounds):
 # 			areasToAdd.append(area)
 # 			# try:
 # 			# 	area = Area.objects.get(x=x, y=y)
-# 			# except Area.DoesNotExist:		
+# 			# except Area.DoesNotExist:
 # 			# 	area = Area(x=x, y=y)
 # 			# area.items.append(item)
 # 			# area.save()
@@ -546,7 +562,7 @@ def getAreas(bounds):
 
 # 	# check that DB is ok
 # 	document = type(item)
-	
+
 # 	try:
 # 		i = document.objects.get(pk=item.pk)
 # 	except document.DoesNotExist:
@@ -615,7 +631,7 @@ def updatePath(request, pk, points=None, box=None, data=None, date=None):
 
 	if box and not points or points and not box:
 		return json.dumps( { 'state': 'error', 'message': 'Modifying points without box or box without points' } )
-	
+
 	if points and box:
 		boxPoints = box['points']
 		planetX = box['planet']['x']
@@ -638,7 +654,7 @@ def updatePath(request, pk, points=None, box=None, data=None, date=None):
 		p.planetX = planetX
 		p.planetY = planetY
 		p.points = points
-		
+
 		addAreaToUpdate( boxPoints, planetX, planetY )
 	if data:
 		p.data = data
@@ -690,7 +706,7 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 		data = json.dumps( { 'loadEntireArea': loadEntireArea } )
 		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data) # , website=website
 		b.save()
-		addAreaToUpdate( point, planetX, planetY )
+		addAreaToUpdate( points, planetX, planetY )
 	except ValidationError:
 		return json.dumps({'state': 'error', 'message': 'invalid_url'})
 
@@ -714,7 +730,7 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
-	
+
 	if box:
 		points = box['points']
 		planetX = box['planet']['x']
@@ -739,7 +755,7 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 
 	# 	planetX = b.planetX
 	# 	planetY = b.planetY
-		
+
 	# 	geometry = makeBox(oldPoints[0][0], oldPoints[0][1], oldPoints[2][0], oldPoints[2][1])
 
 	# 	paths = Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry)
@@ -751,7 +767,7 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 
 	# 	deltaX = newCenterX - oldCenterX
 	# 	deltaY = newCenterY - oldCenterY
-		
+
 	# 	for path in paths:
 	# 		for point in path.points['coordinates']:
 	# 			point[0] = point[0] + deltaX
@@ -780,7 +796,7 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 	if data:
 		b.data = data
 	b.lastUpdate = datetime.datetime.now()
-	
+
 	try:
 		b.save()
 	except ValidationError:
@@ -795,7 +811,7 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 
 	# 	newPaths = Path.objects(planetX=b.planetX, planetY=b.planetY, points__geo_within=geometry)
 	# 	newDivs = Div.objects(planetX=b.planetX, planetY=b.planetY, box__geo_within=geometry)
-		
+
 	# 	# update old and new paths and divs
 	# 	newPaths.update(set__lock=str(b.pk), set__owner=request.user.username)
 	# 	newDivs.update(set__lock=str(b.pk), set__owner=request.user.username)
@@ -839,7 +855,7 @@ def deleteBox(request, pk):
 	# deleteAreas(b)
 	addAreaToUpdate( points, planetX, planetY )
 	b.delete()
-	
+
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
@@ -923,10 +939,10 @@ def deleteDiv(request, pk):
 		return json.dumps({'state': 'error', 'message': 'You are not the owner of this div.'})
 
 	# addAreaToUpdate( d.box['coordinates'][0], d.planetX, d.planetY )
-	
+
 	d.delete()
 
-	
+
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 # --- rasters --- #
@@ -943,25 +959,25 @@ def addAreaToUpdate(points, planetX, planetY):
 	top = yMin = points[0][1]
 	bottom = yMax = points[2][1]
 	for overlappingArea in overlappingAreas:
-		
+
 		cbox = overlappingArea.box['coordinates'][0]
 		cleft = cbox[0][0]
 		ctop = cbox[0][1]
 		cright = cbox[2][0]
 		cbottom = cbox[2][1]
-		
+
 		# if the areas just share an edge: continue
 		# check if intersection has a positive area
 		ileft = max(left, cleft)
 		itop = max(top, ctop)
 		iright = min(right, cright)
 		ibottom = min(bottom, cbottom)
-		
+
 		if (iright-ileft) <= 0 or (ibottom-itop) <= 0 or (iright-ileft) * (ibottom-itop) <= 0.001:
 			continue
 
 		print '!!! OVERLAPPING !!!'
-		
+
 		if not xMin or cleft < xMin:
 			xMin = cleft
 		if not xMax or cright > xMax:
@@ -984,7 +1000,7 @@ def addAreaToUpdate(points, planetX, planetY):
 			yMax = points[2][1]
 			break
 		print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
-	
+
 	areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[[ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]])
 	areaToUpdate.save()
 
@@ -1011,12 +1027,12 @@ def batchUpdateRasters(request, args):
 # def updateRasters(request, data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
 # 	result = updateRastersJson(data, position, areasNotRasterized, areaToDeletePk)
 # 	return json.dumps(result)
-	
-def roundToLowerMultiple(x, m):
+
+def floorToMultiple(x, m):
 	return int(floor(x/float(m))*m)
 
 # warning: difference between ceil(x/m)*m and floor(x/m)*(m+1)
-def roundToGreaterMultiple(x, m):
+def ceilToMultiple(x, m):
 	return int(ceil(x/float(m))*m)
 
 # # @dajaxice_register
@@ -1027,11 +1043,11 @@ def roundToGreaterMultiple(x, m):
 # 	# 	print line.strip()
 
 # 	# global isUpdatingRasters
-	
+
 # 	# if isUpdatingRasters:
 # 	# 	print 'Error: isUpdatingRasters!'
 # 	# 	import pdb; pdb.set_trace()
-	
+
 # 	# isUpdatingRasters = True
 
 # 	if areaToDeletePk:
@@ -1074,27 +1090,27 @@ def roundToGreaterMultiple(x, m):
 # 			top = yMin = points[0][1]
 # 			bottom = yMax = points[2][1]
 # 			for overlappingArea in overlappingAreas:
-				
+
 # 				cbox = overlappingArea.box['coordinates'][0]
 # 				cleft = cbox[0][0]
 # 				ctop = cbox[0][1]
 # 				cright = cbox[2][0]
 # 				cbottom = cbox[2][1]
-				
+
 # 				# if the areas just share an edge: continue
 # 				# check if intersection has a positive area
 # 				ileft = max(left, cleft)
 # 				itop = max(top, ctop)
 # 				iright = min(right, cright)
 # 				ibottom = min(bottom, cbottom)
-				
+
 # 				if (iright-ileft) <= 0 or (ibottom-itop) <= 0 or (iright-ileft) * (ibottom-itop) <= 0.001:
 # 					continue
 
 # 				print '!!! OVERLAPPING !!!'
 # 				print '!!! OVERLAPPING !!!'
 # 				print '!!! OVERLAPPING !!!'
-				
+
 # 				if not xMin or cleft < xMin:
 # 					xMin = cleft
 # 				if not xMax or cright > xMax:
@@ -1118,12 +1134,12 @@ def roundToGreaterMultiple(x, m):
 # 					yMax = points[2][1]
 # 					break
 # 				print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
-			
+
 # 			print 'creating new area to update...'
 # 			areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[[ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]])
 # 			areaToUpdate.save()
 # 			# print '...created new area to update'
-			
+
 # 			# topLeft = posOnPlanetToProject(xMin, yMin, planetX, planetY)
 # 			# bottomRight = posOnPlanetToProject(xMax, yMax, planetX, planetY)
 # 			# print "planet"
@@ -1138,11 +1154,11 @@ def roundToGreaterMultiple(x, m):
 # 			# print topLeft
 # 			# print bottomRight
 # 			# bounds = {'x': topLeft[0], 'y': topLeft[1], 'width': bottomRight[0]-topLeft[0], 'height': bottomRight[1]-topLeft[1]}
-			
+
 # 			# print 'adding new area to area to update...'
 # 			# addAreas(bounds, areaToUpdate)
 # 			# print '...added new area to area to update'
-			
+
 # 			areasToUpdate.append( areaToUpdate.to_json() )
 # 			print '>>>'
 
@@ -1167,15 +1183,15 @@ def roundToGreaterMultiple(x, m):
 # 	width = int(image.size[0])
 # 	height = int(image.size[1])
 
-# 	l = roundToLowerMultiple(x, 1000)
-# 	t = roundToLowerMultiple(y, 1000)
-# 	r = roundToLowerMultiple(x+width, 1000)+1000
-# 	b = roundToLowerMultiple(y+height, 1000)+1000
+# 	l = floorToMultiple(x, 1000)
+# 	t = floorToMultiple(y, 1000)
+# 	r = floorToMultiple(x+width, 1000)+1000
+# 	b = floorToMultiple(y+height, 1000)+1000
 
-# 	imageOnGrid25x = roundToLowerMultiple(x, 25)
-# 	imageOnGrid25y = roundToLowerMultiple(y, 25)
-# 	imageOnGrid25width = roundToGreaterMultiple(x+width, 25)-imageOnGrid25x
-# 	imageOnGrid25height = roundToGreaterMultiple(y+height, 25)-imageOnGrid25y
+# 	imageOnGrid25x = floorToMultiple(x, 25)
+# 	imageOnGrid25y = floorToMultiple(y, 25)
+# 	imageOnGrid25width = ceilToMultiple(x+width, 25)-imageOnGrid25x
+# 	imageOnGrid25height = ceilToMultiple(y+height, 25)-imageOnGrid25y
 
 # 	# debug
 
@@ -1219,11 +1235,11 @@ def roundToGreaterMultiple(x, m):
 # 			x1 = int(xi/1000)
 # 			y1 = int(yi/1000)
 
-# 			x5 = roundToLowerMultiple(x1, 5)
-# 			y5 = roundToLowerMultiple(y1, 5)
+# 			x5 = floorToMultiple(x1, 5)
+# 			y5 = floorToMultiple(y1, 5)
 
-# 			x25 = roundToLowerMultiple(x1, 25)
-# 			y25 = roundToLowerMultiple(y1, 25)
+# 			x25 = floorToMultiple(x1, 25)
+# 			y25 = floorToMultiple(y1, 25)
 
 # 			rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
 
@@ -1241,7 +1257,7 @@ def roundToGreaterMultiple(x, m):
 # 			except IOError:
 # 				# raster = Image(width=1000, height=1000) 	# Wand version
 # 				raster = Image.new("RGBA", (1000, 1000)) 	# Pillow version
-				
+
 # 			left = max(xi,x)
 # 			right = min(xi+1000,x+width)
 # 			top = max(yi,y)
@@ -1252,7 +1268,7 @@ def roundToGreaterMultiple(x, m):
 # 			# print 'raster pos:'
 # 			# print xi
 # 			# print yi
-			
+
 # 			# print 'rectangle cutted:'
 # 			# print left
 # 			# print top
@@ -1268,7 +1284,7 @@ def roundToGreaterMultiple(x, m):
 # 			# print top-y
 # 			# print right-x
 # 			# print bottom-y
-			
+
 # 			# import pdb; pdb.set_trace()
 # 			subImage = image.crop((left-x, top-y, right-x, bottom-y))
 
@@ -1277,7 +1293,7 @@ def roundToGreaterMultiple(x, m):
 # 			# print 'posInRaster:'
 # 			# print left-xi
 # 			# print top-yi
-			
+
 # 			# print 'sub image size:'
 # 			# print subImage.size[0]
 # 			# print subImage.size[1]
@@ -1309,17 +1325,17 @@ def roundToGreaterMultiple(x, m):
 
 # 			subRaster = raster.crop((left-xi, top-yi, right-xi, bottom-yi))
 # 			imageOnGrid25.paste(subRaster, (left-imageOnGrid25x, top-imageOnGrid25y))
-	
+
 # 	# print '-----'
 # 	# print '-----'
 # 	# print '-----'
 # 	# print '-----'
 # 	# print 'raster20:'
 
-# 	l = roundToLowerMultiple(x, 5000)
-# 	t = roundToLowerMultiple(y, 5000)
-# 	r = roundToLowerMultiple(x+width, 5000)+5000
-# 	b = roundToLowerMultiple(y+height, 5000)+5000
+# 	l = floorToMultiple(x, 5000)
+# 	t = floorToMultiple(y, 5000)
+# 	r = floorToMultiple(x+width, 5000)+5000
+# 	b = floorToMultiple(y+height, 5000)+5000
 
 # 	for xi in range(l,r,5000):
 # 		for yi in range(t,b,5000):
@@ -1327,11 +1343,11 @@ def roundToGreaterMultiple(x, m):
 # 			x1 = int(xi/1000)
 # 			y1 = int(yi/1000)
 
-# 			x5 = roundToLowerMultiple(x1, 5)
-# 			y5 = roundToLowerMultiple(y1, 5)
+# 			x5 = floorToMultiple(x1, 5)
+# 			y5 = floorToMultiple(y1, 5)
 
-# 			x25 = roundToLowerMultiple(x1, 25)
-# 			y25 = roundToLowerMultiple(y1, 25)
+# 			x25 = floorToMultiple(x1, 25)
+# 			y25 = floorToMultiple(y1, 25)
 
 # 			rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
 
@@ -1342,12 +1358,12 @@ def roundToGreaterMultiple(x, m):
 # 					raise
 
 # 			rasterName = rasterPath + str(x5) + "," + str(y5) + ".png"
-	
+
 # 			try:
 # 				raster = Image.open(rasterName)
 # 			except IOError:
 # 				raster = Image.new("RGBA", (1000, 1000))
-			
+
 # 			left = max(xi,imageOnGrid25x)
 # 			right = min(xi+5000,imageOnGrid25x+imageOnGrid25width)
 # 			top = max(yi,imageOnGrid25y)
@@ -1374,17 +1390,17 @@ def roundToGreaterMultiple(x, m):
 # 			subImageSmall = subImage.resize((subImage.size[0]/5, subImage.size[1]/5), Image.LANCZOS)
 # 			raster.paste(subImageSmall, ((left-xi)/5, (top-yi)/5))
 # 			raster.save(rasterName)
-	
+
 # 	# print '-----'
 # 	# print '-----'
 # 	# print '-----'
 # 	# print '-----'
 # 	# print 'raster4:'
 
-# 	l = roundToLowerMultiple(x, 25000)
-# 	t = roundToLowerMultiple(y, 25000)
-# 	r = roundToLowerMultiple(x+width, 25000)+25000
-# 	b = roundToLowerMultiple(y+height, 25000)+25000
+# 	l = floorToMultiple(x, 25000)
+# 	t = floorToMultiple(y, 25000)
+# 	r = floorToMultiple(x+width, 25000)+25000
+# 	b = floorToMultiple(y+height, 25000)+25000
 
 # 	for xi in range(l,r,25000):
 # 		for yi in range(t,b,25000):
@@ -1392,8 +1408,8 @@ def roundToGreaterMultiple(x, m):
 # 			x1 = int(xi/1000)
 # 			y1 = int(yi/1000)
 
-# 			x25 = roundToLowerMultiple(x1, 25)
-# 			y25 = roundToLowerMultiple(y1, 25)
+# 			x25 = floorToMultiple(x1, 25)
+# 			y25 = floorToMultiple(y1, 25)
 
 # 			rasterPath = 'media/rasters/zoom4/'
 
@@ -1409,7 +1425,7 @@ def roundToGreaterMultiple(x, m):
 # 				raster = Image.open(rasterName)
 # 			except IOError:
 # 				raster = Image.new("RGBA", (1000, 1000))
-				
+
 # 			left = max(xi,imageOnGrid25x)
 # 			right = min(xi+25000,imageOnGrid25x+imageOnGrid25width)
 # 			top = max(yi,imageOnGrid25y)
@@ -1449,11 +1465,11 @@ def roundToGreaterMultiple(x, m):
 # 	# 		xm = int(xi/1000)
 # 	# 		ym = int(yi/1000)
 
-# 	# 		x5 = roundToLowerMultiple(xm, 5)
-# 	# 		y5 = roundToLowerMultiple(ym, 5)
+# 	# 		x5 = floorToMultiple(xm, 5)
+# 	# 		y5 = floorToMultiple(ym, 5)
 
-# 	# 		x25 = roundToLowerMultiple(xm, 25)
-# 	# 		y25 = roundToLowerMultiple(ym, 25)
+# 	# 		x25 = floorToMultiple(xm, 25)
+# 	# 		y25 = floorToMultiple(ym, 25)
 
 # 	# 		rasterPath100 = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
 # 	# 		rasterPath20 = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
@@ -1490,7 +1506,7 @@ def roundToGreaterMultiple(x, m):
 # 	# 				raster100 = Image.new("RGBA", (1000, 1000)) 	# Pillow version
 # 	# 			except:
 # 	# 				return { 'state': 'error', 'message': 'Failed to create the image.' }
-			
+
 # 	# 		try:
 # 	# 			raster20 = Image.open(rasterName20)
 # 	# 		except IOError:
@@ -1498,7 +1514,7 @@ def roundToGreaterMultiple(x, m):
 # 	# 				raster20 = Image.new("RGBA", (1000, 1000))
 # 	# 			except:
 # 	# 				return { 'state': 'error', 'message': 'Failed to create the image.' }
-			
+
 # 	# 		try:
 # 	# 			raster4 = Image.open(rasterName4)
 # 	# 		except IOError:
@@ -1521,7 +1537,7 @@ def roundToGreaterMultiple(x, m):
 # 	# 		print 'raster pos:'
 # 	# 		print xi
 # 	# 		print yi
-			
+
 # 	# 		print 'rectangle:'
 # 	# 		print x
 # 	# 		print y
@@ -1552,7 +1568,7 @@ def roundToGreaterMultiple(x, m):
 # 	# 		print 'width, height:'
 # 	# 		print subImageWidth
 # 	# 		print subImageHeight
-			
+
 # 	# 		print 'image size:'
 # 	# 		print image.size[0]
 # 	# 		print image.size[1]
@@ -1578,11 +1594,11 @@ def roundToGreaterMultiple(x, m):
 # 	# 		# raster100.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY) 		# Wand version
 # 	# 		raster100.paste(subImage, (posInRasterX, posInRasterY))
 # 	# 		raster100.save(rasterName100)
-			
-# 	# 		raster100cropX = roundToLowerMultiple(posInRasterX, 5)
-# 	# 		raster100cropY = roundToLowerMultiple(posInRasterY, 5)
-# 	# 		raster100cropWidth = roundToGreaterMultiple(posInRasterX+subImageWidth, 5)-raster100cropX
-# 	# 		raster100cropHeight = roundToGreaterMultiple(posInRasterY+subImageHeight, 5)-raster100cropY
+
+# 	# 		raster100cropX = floorToMultiple(posInRasterX, 5)
+# 	# 		raster100cropY = floorToMultiple(posInRasterY, 5)
+# 	# 		raster100cropWidth = ceilToMultiple(posInRasterX+subImageWidth, 5)-raster100cropX
+# 	# 		raster100cropHeight = ceilToMultiple(posInRasterY+subImageHeight, 5)-raster100cropY
 
 # 	# 		print 'raster100crop:'
 # 	# 		print raster100cropX
@@ -1614,10 +1630,10 @@ def roundToGreaterMultiple(x, m):
 # 	# 		raster20.paste(raster100crop, (posInRasterX, posInRasterY))
 # 	# 		raster20.save(rasterName20)
 
-# 	# 		raster20cropX = roundToLowerMultiple(posInRasterX,5)
-# 	# 		raster20cropY = roundToLowerMultiple(posInRasterY,5)
-# 	# 		raster20cropWidth = roundToGreaterMultiple(posInRasterX+raster100cropWidth/5, 5)-raster20cropX
-# 	# 		raster20cropHeight = roundToGreaterMultiple(posInRasterY+raster100cropHeight/5, 5)-raster20cropY
+# 	# 		raster20cropX = floorToMultiple(posInRasterX,5)
+# 	# 		raster20cropY = floorToMultiple(posInRasterY,5)
+# 	# 		raster20cropWidth = ceilToMultiple(posInRasterX+raster100cropWidth/5, 5)-raster20cropX
+# 	# 		raster20cropHeight = ceilToMultiple(posInRasterY+raster100cropHeight/5, 5)-raster20cropY
 
 # 	# 		print 'x25 & y25:'
 # 	# 		print x25
@@ -1637,9 +1653,9 @@ def roundToGreaterMultiple(x, m):
 # 	# 		print posInRasterY
 # 	# 		raster4.paste(raster20crop, (posInRasterX, posInRasterY))
 # 	# 		raster20.save(rasterName4)
-			
+
 # 	# 		# Wand version
-# 	# 		# with image[subImageLeft:subImageRight, subImageTop:subImageBottom] as subImage: 		
+# 	# 		# with image[subImageLeft:subImageRight, subImageTop:subImageBottom] as subImage:
 
 # 	# 		# subImage.resize(filter='triangle', width=subImage.width/5, height=subImage.height/5)
 # 	# 		# raster20.composite_channel(channel='all_channels', image=subImage, operator='replace', left=posInRasterX, top=posInRasterY)
@@ -1731,9 +1747,9 @@ def deleteAreaToUpdate(request, pk):
 def saveImage(request, image):
 
 	imageData = re.search(r'base64,(.*)', image).group(1)
-	
+
 	imagePath = 'media/images/' + request.user.username + '/'
-	
+
 	try:
 		os.mkdir(imagePath)
 	except OSError as exception:
@@ -1752,7 +1768,7 @@ def saveImage(request, image):
 	# imageData = inputfile.read().encode('base64')
 	# inputfile.close()
 	# return json.dumps( { 'image': imageData, 'url': imageName } )
-	
+
 	return json.dumps( { 'url': imageName } )
 
 # --- tools --- #
@@ -1834,11 +1850,11 @@ def updateUserRomanescoins(sender, **kwargs):
 	ipn_obj = sender
 
 	print "updateUserRomanescoins"
-	
+
 	if ipn_obj.payment_status == "Completed":
 
 		data = json.loads(ipn_obj.custom)
-		
+
 		import pdb; pdb.set_trace()
 
 		# profile = User.objects.get(username=data['user']).profile
@@ -1847,7 +1863,7 @@ def updateUserRomanescoins(sender, **kwargs):
 		# Fails with: OperationalError: no such column: user_profile.romanescoins:
 		# UserProfile.objects.filter(user__username=data['user']).update(romanescoins=F('romanescoins')+1000*ipn_obj.num_cart_items)
 		# so instead:
-		
+
 		try:
 			userProfile = User.objects.get(username=data['user']).profile
 			userProfile.romanescoins += 1000*ipn_obj.num_cart_items

@@ -42,7 +42,10 @@
     g.editor.getSession().setValue("class TestPath extends PrecisePath\n  @rname = 'Test path'\n  @rdescription = \"Test path.\"\n\n  drawBegin: ()->\n\n    @initializeDrawing(false)\n\n    @path = @addPath()\n    return\n\n  drawUpdateStep: (length)->\n\n    point = @controlPath.getPointAt(length)\n    @path.add(point)\n    return\n\n  drawEnd: ()->\n    return\n", 1);
     saveChanges = function() {
       var className, firstLineRegExp, firstLineResult, romanescoCode;
-      romanescoCode = (localStorage.romanescoCode != null) && localStorage.romanescoCode.length > 0 ? JSON.parse(localStorage.romanescoCode) : {};
+      romanescoCode = {};
+      if ((localStorage.romanescoCode != null) && localStorage.romanescoCode.length > 0) {
+        romanescoCode = JSON.parse(localStorage.romanescoCode);
+      }
       source = g.editor.getValue();
       className = '';
       firstLineRegExp = /class {1}([A-Z]\w+) extends {1}(PrecisePath|SpeedPath|RShape){1}\n/;
@@ -65,36 +68,30 @@
       localStorage.romanescoCode = JSON.stringify(romanescoCode);
     };
     g.editor.getSession().on('change', function(e) {
-      g.deferredExecution(saveChanges, 1000);
+      g.deferredExecution(saveChanges, 'saveChanges', 1000);
     });
     runBtnJ = g.editorJ.find("button.submit.run");
     runBtnJ.click(function(event) {
       g.runScript();
     });
-    toolUpdateCallback = (function(_this) {
-      return function(result) {
-        g.checkError(result);
-      };
-    })(this);
+    toolUpdateCallback = function(result) {
+      g.checkError(result);
+    };
     g.pushRequestBtnJ.click(function(event) {
-      var tool;
+      var args, tool;
       tool = compileSource();
       if (tool != null) {
+        args = {
+          name: tool.name,
+          className: tool.className,
+          source: tool.source,
+          compiledSource: tool.compiledSource
+        };
         if (g.editorJ.rNewtool) {
-          Dajaxice.draw.addTool(toolUpdateCallback, {
-            'name': tool.name,
-            'className': tool.className,
-            'source': tool.source,
-            'compiledSource': tool.compiledSource,
-            'isTool': tool.isTool
-          });
+          args.isTool = tool.isTool;
+          Dajaxice.draw.addTool(toolUpdateCallback, args);
         } else {
-          Dajaxice.draw.updateTool(toolUpdateCallback, {
-            'name': tool.name,
-            'className': tool.className,
-            'source': tool.source,
-            'compiledSource': tool.compiledSource
-          });
+          Dajaxice.draw.updateTool(toolUpdateCallback, args);
         }
       }
     });
@@ -123,7 +120,9 @@
       g.messageBoxContentJ.append($("<p>").append(message).addClass("error"));
       g.messageBoxContentJ.scrollTop(g.messageBoxContentJ[0].scrollHeight);
       g.messageBoxJ.show();
-      romanesco_alert("An error occured, you can open the debug console (Command + Option + I) to have more information about the problem.", "info");
+      message = "An error occured, you can open the debug console (Command + Option + I)";
+      message += " to have more information about the problem.";
+      romanesco_alert(message, "info");
     };
     return g.log = console.log;
   };
@@ -147,9 +146,10 @@
         if ((rnameResult != null) && rnameResult.length >= 1) {
           rname = rnameResult[1];
         } else {
+          message = '@rname is not correctly set. There must be something like @rname = "your path name"';
           throw {
             location: 'NA',
-            message: '@rname is not correctly set. There must be something like @rname = "your path name"'
+            message: message
           };
         }
       } else {
@@ -205,7 +205,12 @@
             g.tools[script.rname].remove();
             delete this[script.className];
           }
-          className = (script.originalClassName != null) && script.originalClassName.length > 0 ? script.originalClassName : script.className;
+          className = null;
+          if ((script.originalClassName != null) && script.originalClassName.length > 0) {
+            className = script.originalClassName;
+          } else {
+            className = script.className;
+          }
           newTool = new PathTool(this[className], justCreated);
           newTool.RPath.source = script.source;
           if (justCreated) {

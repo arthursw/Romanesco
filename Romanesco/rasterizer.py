@@ -3,6 +3,7 @@ import re
 import os
 import sys
 from math import *
+import random
 import cStringIO
 import StringIO
 from PIL import Image
@@ -35,11 +36,11 @@ area = None
 
 # -- save image -- #
 
-def roundToLowerMultiple(x, m):
+def floorToMultiple(x, m):
     return int(floor(x/float(m))*m)
 
 # warning: difference between ceil(x/m)*m and floor(x/m)*(m+1)
-def roundToGreaterMultiple(x, m):
+def ceilToMultiple(x, m):
     return int(ceil(x/float(m))*m)
 
 def saveImage(image, xf, yf):
@@ -51,15 +52,15 @@ def saveImage(image, xf, yf):
     width = int(image.size[0])
     height = int(image.size[1])
 
-    l = roundToLowerMultiple(x, 1000)
-    t = roundToLowerMultiple(y, 1000)
-    r = roundToLowerMultiple(x+width, 1000)+1000
-    b = roundToLowerMultiple(y+height, 1000)+1000
+    l = floorToMultiple(x, 1000)
+    t = floorToMultiple(y, 1000)
+    r = floorToMultiple(x+width, 1000)+1000
+    b = floorToMultiple(y+height, 1000)+1000
 
-    imageOnGrid25x = roundToLowerMultiple(x, 25)
-    imageOnGrid25y = roundToLowerMultiple(y, 25)
-    imageOnGrid25width = roundToGreaterMultiple(x+width, 25)-imageOnGrid25x
-    imageOnGrid25height = roundToGreaterMultiple(y+height, 25)-imageOnGrid25y
+    imageOnGrid25x = floorToMultiple(x, 25)
+    imageOnGrid25y = floorToMultiple(y, 25)
+    imageOnGrid25width = ceilToMultiple(x+width, 25)-imageOnGrid25x
+    imageOnGrid25height = ceilToMultiple(y+height, 25)-imageOnGrid25y
 
     imageOnGrid25 = Image.new("RGBA", (imageOnGrid25width, imageOnGrid25height))
 
@@ -69,11 +70,11 @@ def saveImage(image, xf, yf):
             x1 = int(xi/1000)
             y1 = int(yi/1000)
 
-            x5 = roundToLowerMultiple(x1, 5)
-            y5 = roundToLowerMultiple(y1, 5)
+            x5 = floorToMultiple(x1, 5)
+            y5 = floorToMultiple(y1, 5)
 
-            x25 = roundToLowerMultiple(x1, 25)
-            y25 = roundToLowerMultiple(y1, 25)
+            x25 = floorToMultiple(x1, 25)
+            y25 = floorToMultiple(y1, 25)
 
             rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
 
@@ -91,7 +92,7 @@ def saveImage(image, xf, yf):
             except IOError:
                 # raster = Image(width=1000, height=1000)   # Wand version
                 raster = Image.new("RGBA", (1000, 1000))    # Pillow version
-                
+
             left = max(xi,x)
             right = min(xi+1000,x+width)
             top = max(yi,y)
@@ -110,10 +111,10 @@ def saveImage(image, xf, yf):
             subRaster = raster.crop((left-xi, top-yi, right-xi, bottom-yi))
             imageOnGrid25.paste(subRaster, (left-imageOnGrid25x, top-imageOnGrid25y))
 
-    l = roundToLowerMultiple(x, 5000)
-    t = roundToLowerMultiple(y, 5000)
-    r = roundToLowerMultiple(x+width, 5000)+5000
-    b = roundToLowerMultiple(y+height, 5000)+5000
+    l = floorToMultiple(x, 5000)
+    t = floorToMultiple(y, 5000)
+    r = floorToMultiple(x+width, 5000)+5000
+    b = floorToMultiple(y+height, 5000)+5000
 
     for xi in range(l,r,5000):
         for yi in range(t,b,5000):
@@ -121,11 +122,11 @@ def saveImage(image, xf, yf):
             x1 = int(xi/1000)
             y1 = int(yi/1000)
 
-            x5 = roundToLowerMultiple(x1, 5)
-            y5 = roundToLowerMultiple(y1, 5)
+            x5 = floorToMultiple(x1, 5)
+            y5 = floorToMultiple(y1, 5)
 
-            x25 = roundToLowerMultiple(x1, 25)
-            y25 = roundToLowerMultiple(y1, 25)
+            x25 = floorToMultiple(x1, 25)
+            y25 = floorToMultiple(y1, 25)
 
             rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
 
@@ -136,12 +137,12 @@ def saveImage(image, xf, yf):
                     raise
 
             rasterName = rasterPath + str(x5) + "," + str(y5) + ".png"
-    
+
             try:
                 raster = Image.open(rasterName)
             except IOError:
                 raster = Image.new("RGBA", (1000, 1000))
-            
+
             left = max(xi,imageOnGrid25x)
             right = min(xi+5000,imageOnGrid25x+imageOnGrid25width)
             top = max(yi,imageOnGrid25y)
@@ -152,10 +153,10 @@ def saveImage(image, xf, yf):
             raster.paste(subImageSmall, ((left-xi)/5, (top-yi)/5))
             raster.save(rasterName)
 
-    l = roundToLowerMultiple(x, 25000)
-    t = roundToLowerMultiple(y, 25000)
-    r = roundToLowerMultiple(x+width, 25000)+25000
-    b = roundToLowerMultiple(y+height, 25000)+25000
+    l = floorToMultiple(x, 25000)
+    t = floorToMultiple(y, 25000)
+    r = floorToMultiple(x+width, 25000)+25000
+    b = floorToMultiple(y+height, 25000)+25000
 
     for xi in range(l,r,25000):
         for yi in range(t,b,25000):
@@ -163,8 +164,8 @@ def saveImage(image, xf, yf):
             x1 = int(xi/1000)
             y1 = int(yi/1000)
 
-            x25 = roundToLowerMultiple(x1, 25)
-            y25 = roundToLowerMultiple(y1, 25)
+            x25 = floorToMultiple(x1, 25)
+            y25 = floorToMultiple(y1, 25)
 
             rasterPath = 'media/rasters/zoom4/'
 
@@ -180,7 +181,7 @@ def saveImage(image, xf, yf):
                 raster = Image.open(rasterName)
             except IOError:
                 raster = Image.new("RGBA", (1000, 1000))
-                
+
             left = max(xi,imageOnGrid25x)
             right = min(xi+25000,imageOnGrid25x+imageOnGrid25width)
             top = max(yi,imageOnGrid25y)
@@ -191,6 +192,8 @@ def saveImage(image, xf, yf):
             raster.paste(subImageSmall, ((left-xi)/25, (top-yi)/25))
             raster.save(rasterName)
 
+    # image.save('media/rasters/lastImageRendered_' + str(random.random()) + '.png')
+    image.save('media/rasters/lastImageRendered_.png')
     image.close()
 
     end = time.time()
@@ -209,10 +212,13 @@ def loadArea():
     browser.GetMainFrame().ExecuteFunction("loadArea", area.to_json())
 
 def loopRasterize():
+    print 'loopRasterize'
     browser.GetMainFrame().ExecuteFunction("loopRasterize")
 
-def saveOnServer(imageDataURL, x, y, finished):  
-    
+def saveOnServer(imageDataURL, x, y, finished):
+
+    print 'received image to save'
+
     imageData = re.search(r'base64,(.*)', imageDataURL).group(1)
 
     try:
@@ -221,8 +227,9 @@ def saveOnServer(imageDataURL, x, y, finished):
         return { 'state': 'error', 'message': 'impossible to read image.'}
 
     saveImage(image, x, y)
-    
+
     if not finished:
+        print 'post loopRasterize task'
         cefpython.PostTask(cefpython.TID_UI, loopRasterize)
     else:
         global state
@@ -242,18 +249,21 @@ def posOnPlanetToProject(xp, yp, planetX, planetY):
 
 def checkAreasToUpdates():
     global state, area
-    print "check area to update: " + state
-    sys.stdout.write('\n')
+    # print "check area to update: " + state
+    # sys.stdout.write('\n')
     if state == 'image saved' or state == 'page loaded':
         # global area
+        print 'begin check area'
         if area:
+            print 'delete area'
             area.delete()
             area = None
         area = AreaToUpdate.objects().first()
         if area:
+            # area = areas[len(areas)-1]          # AreaToUpdate.objects().first()
             # global isLoaded, x, y, width, height
             state = 'image loading'
-            print "checking areas to update: loading next area"
+            print "checking areas to update: post load area task"
             planetX = float(area.planetX)
             planetY = float(area.planetY)
             points = area.box['coordinates'][0]
@@ -270,7 +280,7 @@ def checkAreasToUpdates():
 startTime = time.time()
 
 def main_loop():
-    print time.time() - startTime
+    # print time.time() - startTime
     checkAreasToUpdates()
     threading.Timer(1, main_loop).start()
 
@@ -328,7 +338,7 @@ class ClientHandler:
         print "on load end"
         print httpStatusCode
         return
-    
+
     def OnLoadError(self, browser, frame, errorCode, errorText, failedURL):
         print("load error", browser, frame, errorCode, errorText, failedURL)
 
@@ -345,7 +355,7 @@ g_switches = {
 cefpython.Initialize(settings, g_switches)
 windowInfo = cefpython.WindowInfo()
 
-#You can pass 0 to parentWindowHandle, but then some things like context menus and plugins may not display correctly. 
+#You can pass 0 to parentWindowHandle, but then some things like context menus and plugins may not display correctly.
 windowInfo.SetAsOffscreen(0)
 
 # By default window rendering is 30 fps, let's change

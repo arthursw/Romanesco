@@ -117,13 +117,6 @@
       return locks;
     };
 
-    RLock.duplicate = function(rectangle, data) {
-      var copy;
-      copy = new this(rectangle, data);
-      copy.save();
-      return copy;
-    };
-
     RLock.parameters = function() {
       var fillColor, parameters, strokeColor, strokeWidth;
       parameters = RLock.__super__.constructor.parameters.call(this);
@@ -212,8 +205,8 @@
       return;
     }
 
-    RLock.prototype.changeParameter = function(name, value, updateGUI) {
-      RLock.__super__.changeParameter.call(this, name, value, updateGUI);
+    RLock.prototype.setParameter = function(name, value, updateGUI) {
+      RLock.__super__.setParameter.call(this, name, value, updateGUI);
       switch (name) {
         case 'strokeWidth':
         case 'strokeColor':
@@ -223,8 +216,10 @@
     };
 
     RLock.prototype.save = function(addCreateCommand) {
-      var data, siteData;
-      this.addCreateCommand = addCreateCommand;
+      var args, data, siteData;
+      if (addCreateCommand == null) {
+        addCreateCommand = true;
+      }
       if (g.rectangleOverlapsTwoPlanets(this.rectangle)) {
         return;
       }
@@ -239,13 +234,15 @@
         disableToolbar: data.disableToolbar,
         loadEntireArea: data.loadEntireArea
       };
-      Dajaxice.draw.saveBox(this.saveCallback, {
-        'box': g.boxFromRectangle(this.rectangle),
-        'object_type': this.constructor.object_type,
-        'data': JSON.stringify(data),
-        'siteData': JSON.stringify(siteData),
-        'name': data.name
-      });
+      args = {
+        box: g.boxFromRectangle(this.rectangle),
+        object_type: this.constructor.object_type,
+        data: JSON.stringify(data),
+        siteData: JSON.stringify(siteData),
+        name: data.name
+      };
+      Dajaxice.draw.saveBox(this.saveCallback, args);
+      RLock.__super__.save.apply(this, arguments);
     };
 
     RLock.prototype.saveCallback = function(result) {
@@ -254,15 +251,12 @@
         this.remove();
         return;
       }
-      if (this.addCreateCommand) {
-        g.commandManager.add(new CreateLockCommand(this));
-        delete this.addCreateCommand;
-      }
       this.owner = result.owner;
       this.setPK(result.pk);
       if (this.updateAfterSave != null) {
         this.update(this.updateAfterSave);
       }
+      RLock.__super__.saveCallback.apply(this, arguments);
     };
 
     RLock.prototype.update = function(type) {
@@ -321,33 +315,21 @@
       }
     };
 
-    RLock.prototype.duplicate = function(data) {
-      var copy;
-      if (data == null) {
-        data = this.getData();
-      }
-      copy = this.constructor.duplicate(this.rectangle, data);
-      return copy;
-    };
-
     RLock.prototype["delete"] = function() {
       this.remove();
       if (this.pk == null) {
         return;
       }
-      Dajaxice.draw.deleteBox(this.deleteBoxCallback, {
-        'pk': this.pk
-      });
+      if (!this.socketAction) {
+        Dajaxice.draw.deleteBox(g.checkError, {
+          'pk': this.pk
+        });
+      }
+      RLock.__super__["delete"].apply(this, arguments);
     };
 
     RLock.prototype.deleteCommand = function() {
       g.commandManager.add(new DeleteLockCommand(this), true);
-    };
-
-    RLock.prototype.deleteBoxCallback = function(result) {
-      if (g.checkError(result)) {
-        g.chatSocket.emit("delete box", result.pk);
-      }
     };
 
     RLock.prototype.setRectangle = function(rectangle, update) {
@@ -360,7 +342,7 @@
 
     RLock.prototype.moveTo = function(position, update) {
       var delta, item, _i, _len, _ref;
-      delta = position.subtract(this.group.position);
+      delta = position.subtract(this.rectangle.center);
       _ref = this.children();
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         item = _ref[_i];
@@ -383,6 +365,17 @@
         }
       }
       return true;
+    };
+
+    RLock.prototype.showChildren = function() {
+      var item, _i, _len, _ref, _ref1;
+      _ref = this.children();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        item = _ref[_i];
+        if ((_ref1 = item.group) != null) {
+          _ref1.visible = true;
+        }
+      }
     };
 
     RLock.prototype.select = function(updateOptions) {
@@ -412,7 +405,7 @@
       this.itemListsJ = null;
       g.locks.remove(this);
       this.background = null;
-      RLock.__super__.remove.call(this);
+      RLock.__super__.remove.apply(this, arguments);
     };
 
     RLock.prototype.children = function() {
@@ -429,7 +422,6 @@
 
     RLock.prototype.highlight = function(color) {
       RLock.__super__.highlight.call(this);
-      this.highlightRectangle.moveAbove(this.background);
       if (color) {
         this.highlightRectangle.fillColor = color;
         this.highlightRectangle.strokeColor = color;

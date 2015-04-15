@@ -29,19 +29,6 @@ class RDiv extends RContent
 
 		return parameters
 
-	# # common to all RItems
-	# # construct a new RDiv based on the parameters and save it
-	# @duplicate: (bounds, object_type, message, name, url, pk, data)->
-	# 	@clonedItemData = data
-	# 	# @save(bounds, object_type, message, name, url, pk)
-	# 	g.saveDiv(bounds, object_type, message, name, url, pk)
-	# 	return
-
-	@duplicate: (rectangle, data)->
-		copy = new @(rectangle, data)
-		copy.save()
-		return copy
-
 	@updateZIndex: (sortedDivs)->
 		for div, i in sortedDivs
 			div.divJ.css( 'z-index': i )
@@ -89,7 +76,7 @@ class RDiv extends RContent
 		g.divs.push(@)
 
 		if g.selectedTool.name == 'Move' then @disableInteraction()
-		
+
 		@divJ.click (event)=>
 			if not event.shiftKey
 				g.deselectAll()
@@ -102,17 +89,23 @@ class RDiv extends RContent
 
 		return
 
-	save: (@addCreateCommand) ->
+	save: (addCreateCommand=true) ->
 		if g.rectangleOverlapsTwoPlanets(@rectangle)
 			return
-		
+
 		if @rectangle.area == 0
 			@remove()
 			romanesco_alert "Error: your div is not valid.", "error"
 			return
 
-		Dajaxice.draw.saveDiv( @saveCallback, { 'box': g.boxFromRectangle(@getBounds()), 'object_type': @object_type, 'date': Date.now(), 'data': @getStringifiedData() } )
-		
+		args =
+			box: g.boxFromRectangle(@getBounds())
+			object_type: @object_type
+			date: Date.now()
+			data: @getStringifiedData()
+
+		Dajaxice.draw.saveDiv(@saveCallback, args)
+		super
 		return
 
 	# check if the save was successful and set @pk if it is
@@ -123,28 +116,16 @@ class RDiv extends RContent
 			return
 		@owner = result.owner
 		@setPK(result.pk)
-		if @addCreateCommand
-			g.commandManager.add(new CreateDivCommand(@))
-			delete @addCreateCommand
 		if @updateAfterSave?
 			@update(@updateAfterSave)
-
+		super
 		return
-	
-	duplicate: (data)->
-		data ?= @getData()
-		copy = @constructor.duplicate(@rectangle, data)
-		return copy
 
-	duplicateCommand: ()->
-		g.commandManager.add(new CreateDivCommand(@, "Duplicate div"))
-		return
-	
 	moveTo: (position, update)->
 		super(position, update)
 		@updateTransform()
 		return
-	
+
 	setRectangle: (rectangle, update)->
 		super(rectangle, update)
 		@updateTransform()
@@ -214,7 +195,7 @@ class RDiv extends RContent
 	disableInteraction: () ->
 		@maskJ.show()
 		return
-	
+
 	# see {RDiv#disableInteraction}
 	# enable user interaction on this div by hiding the mask (div)
 	enableInteraction: () ->
@@ -225,7 +206,7 @@ class RDiv extends RContent
 	# - from user action (parameter.onChange)
 	# @param name [String] the name of the value to change
 	# @param value [Anything] the new value
-	changeParameter: (name, value)->
+	setParameter: (name, value)->
 		super(name, value)
 		switch name
 			when 'strokeWidth', 'strokeColor', 'fillColor'
@@ -234,7 +215,7 @@ class RDiv extends RContent
 
 	getUpdateFunction: ()->
 		return 'updateDiv'
-	
+
 	getUpdateArguments: (type)->
 		switch type
 			when 'z-index'
@@ -258,7 +239,7 @@ class RDiv extends RContent
 		# check if position is valid
 		if g.rectangleOverlapsTwoPlanets(bounds)
 			return
-		
+
 		Dajaxice.draw.updateDiv( @updateCallback, @getUpdateArguments(type) )
 
 		return
@@ -281,8 +262,8 @@ class RDiv extends RContent
 
 	# common to all RItems
 	# deselect the div
-	deselect: (updatePreviouslySelectedItems) =>
-		if not super(updatePreviouslySelectedItems) then return false
+	deselect: () =>
+		if not super() then return false
 		if not @divJ.hasClass("selected") then return
 		@divJ?.removeClass("selected")
 		return true
@@ -298,12 +279,12 @@ class RDiv extends RContent
 	setFillColor: ()->
 		@contentJ?.css( 'background-color': @data.fillColor ? 'transparent')
 		return
-		
+
 	# update stroke color from @data.strokeColor
 	setStrokeColor: ()->
 		@contentJ?.css( 'border-color': @data.strokeColor ? 'transparent')
 		return
-		
+
 	# update stroke width from @data.strokeWidth
 	setStrokeWidth: ()->
 		@contentJ?.css( 'border-width': @data.strokeWidth ? '0')
@@ -322,28 +303,20 @@ class RDiv extends RContent
 		super()
 		return
 
-	deleteCommand: ()->
-		g.commandManager.add(new DeleteDivCommand(@), true)
-		return
-
 	# called when user deletes the item by pressing delete key or from the gui
 	# @delete() removes the path and delete it in the database
 	# @remove() just removes visually
 	delete: () ->
+		if @lock? and @lock.owner != g.me then return
 		@remove()
 		if not @pk? then return
-		Dajaxice.draw.deleteDiv( @deleteDivCallback, { 'pk': @pk } )
-		return
-
-	# check for any error during delete, transmit delete on websocket if no errors
-	deleteDivCallback: (result)->
-		if g.checkError(result)
-			g.chatSocket.emit( "delete div", result.pk )
+		if not @socketAction then Dajaxice.draw.deleteDiv( g.checkError, { 'pk': @pk } )
+		super
 		return
 
 @RDiv = RDiv
 
-# RText: a textarea to write some text. 
+# RText: a textarea to write some text.
 # The text can have any google font, any effect, but all the text has the same formating.
 class RText extends RDiv
 	@rname = 'Text'
@@ -366,9 +339,9 @@ class RText extends RDiv
 					typeaheadJ = $(controller.domElement)
 					input = typeaheadJ.find("input")
 					inputValue = null
-					
+
 					input.typeahead(
-						{ hint: true, highlight: true, minLength: 1 }, 
+						{ hint: true, highlight: true, minLength: 1 },
 						{ valueKey: 'value', displayKey: 'value', source: g.typeaheadFontEngine.ttAdapter() }
 					)
 
@@ -398,17 +371,20 @@ class RText extends RDiv
 					input.on 'typeahead:autocompleted', ()->
 						inputValue = input.val()
 						return
-					
+
 					if item?.data.fontFamily?
 						input.val(item.data.fontFamily)
-					
+
 					return
 			effect:
 				type: 'dropdown'
 				label: 'Effect'
-				values: ['none', 'anaglyph', 'brick-sign', 'canvas-print', 'crackle', 'decaying', 'destruction', 'distressed', 'distressed-wood', 'fire', 'fragile', 'grass', 'ice', 'mitosis', 'neon', 'outline', 'puttinggreen', 'scuffed-steel', 'shadow-multiple', 'static', 'stonewash', '3d', '3d-float', 'vintage', 'wallpaper']
+				values: ['none', 'anaglyph', 'brick-sign', 'canvas-print', 'crackle', 'decaying', 'destruction',
+				'distressed', 'distressed-wood', 'fire', 'fragile', 'grass', 'ice', 'mitosis', 'neon', 'outline',
+				'puttinggreen', 'scuffed-steel', 'shadow-multiple', 'static', 'stonewash', '3d', '3d-float',
+				'vintage', 'wallpaper']
 				default: 'none'
-			styles: 
+			styles:
 				type: 'button-group'
 				label: 'Styles'
 				value: ''
@@ -417,9 +393,12 @@ class RText extends RDiv
 					if item?.data.fontStyle?
 						if item.data.fontStyle.italic then fontStyleJ.find("[name='italic']").addClass("active")
 						if item.data.fontStyle.bold then fontStyleJ.find("[name='bold']").addClass("active")
-						if item.data.fontStyle.decoration?.indexOf('underline')>=0 then fontStyleJ.find("[name='underline']").addClass("active")
-						if item.data.fontStyle.decoration?.indexOf('overline')>=0 then fontStyleJ.find("[name='overline']").addClass("active")
-						if item.data.fontStyle.decoration?.indexOf('line-through')>=0 then fontStyleJ.find("[name='line-through']").addClass("active")
+						if item.data.fontStyle.decoration?.indexOf('underline')>=0
+							fontStyleJ.find("[name='underline']").addClass("active")
+						if item.data.fontStyle.decoration?.indexOf('overline')>=0
+							fontStyleJ.find("[name='overline']").addClass("active")
+						if item.data.fontStyle.decoration?.indexOf('line-through')>=0
+							fontStyleJ.find("[name='line-through']").addClass("active")
 				initializeController: (controller, item)->
 					$(controller.domElement).find('input').remove()
 
@@ -450,7 +429,7 @@ class RText extends RDiv
 						for item in g.selectedItems
 							item.changeFontStyle?(value)
 						return
-					
+
 					g.templatesJ.find("#textAlign").clone().appendTo(controller.domElement)
 					textAlignJ = $("#textAlign:first")
 					textAlignJ.find(".justify").click( (event)-> setStyles('justify') )
@@ -480,14 +459,14 @@ class RText extends RDiv
 		@contentJ = $("<textarea></textarea>")
 		@contentJ.insertBefore(@maskJ)
 		@contentJ.val(@data.message)
-		
+
 		lockedForMe = @owner != g.me and @lock?
 
 		if lockedForMe
 			# @contentJ.attr("readonly", "true")
 			message = @data.message
 			@contentJ[0].addEventListener("input", (()-> this.value = message), false)
-		
+
 		@setCss()
 
 		@contentJ.focus( () -> $(this).addClass("selected form-control") )
@@ -508,7 +487,7 @@ class RText extends RDiv
 	textChanged: (event) =>
 		@data.message = @contentJ.val()
 		return
-	
+
 	# set the font family for the text
 	# - check font validity
 	# - add font to the page header (in a script tag, this will load the font)
@@ -533,11 +512,11 @@ class RText extends RDiv
 		g.loadFonts()
 
 		@contentJ.css( "font-family": "'" + fontFamily + "', 'Helvetica Neue', Helvetica, Arial, sans-serif")
-		
+
 		if update
 			@update()
-			g.chatSocket.emit( "parameter change", g.me, @pk, "fontFamily", @data.fontFamily)
-		
+			# g.chatSocket.emit( "parameter change", g.me, @pk, "fontFamily", @data.fontFamily)
+
 		return
 
 	# only called when user modifies GUI
@@ -549,27 +528,27 @@ class RText extends RDiv
 	changeFontStyle: (value)=>
 
 		if not value? then return
-		
+
 		if typeof(value) != 'string'
 			return
-		
+
 		@data.fontStyle ?= {}
 		@data.fontStyle.decoration ?= ''
 
 		switch value
 			when 'underline'
-				if @data.fontStyle.decoration.indexOf(' underline')>=0 
-					@data.fontStyle.decoration = @data.fontStyle.decoration.replace(' underline', '') 
+				if @data.fontStyle.decoration.indexOf(' underline')>=0
+					@data.fontStyle.decoration = @data.fontStyle.decoration.replace(' underline', '')
 				else
 					@data.fontStyle.decoration += ' underline'
 			when 'overline'
-				if @data.fontStyle.decoration.indexOf(' overline')>=0 
-					@data.fontStyle.decoration = @data.fontStyle.decoration.replace(' overline', '') 
+				if @data.fontStyle.decoration.indexOf(' overline')>=0
+					@data.fontStyle.decoration = @data.fontStyle.decoration.replace(' overline', '')
 				else
 					@data.fontStyle.decoration += ' overline'
 			when 'line-through'
-				if @data.fontStyle.decoration.indexOf(' line-through')>=0 
-					@data.fontStyle.decoration = @data.fontStyle.decoration.replace(' line-through', '') 
+				if @data.fontStyle.decoration.indexOf(' line-through')>=0
+					@data.fontStyle.decoration = @data.fontStyle.decoration.replace(' line-through', '')
 				else
 					@data.fontStyle.decoration += ' line-through'
 			when 'italic'
@@ -581,7 +560,7 @@ class RText extends RDiv
 
 		# only called when user modifies GUI
 		@setFontStyle(true)
-		g.chatSocket.emit( "parameter change", g.me, @pk, "fontStyle", @data.fontStyle)
+		# g.chatSocket.emit( "parameter change", g.me, @pk, "fontStyle", @data.fontStyle)
 		return
 
 	# set the font style of the text (update the css)
@@ -627,7 +606,7 @@ class RText extends RDiv
 			i--
 
 		g.loadFonts()
-		
+
 		@contentJ.addClass( "font-effect-" + fontEffect)
 		if update
 			@update()
@@ -649,11 +628,11 @@ class RText extends RDiv
 		@setFontEffect(@data.effect, update)
 		@setFontColor(@data.fontColor, update)
 		return
-	
+
 	# update = false when called by parameter.onChange from websocket
-	# overload {RDiv#changeParameter}
+	# overload {RDiv#setParameter}
 	# update text content and font styles, effects and colors
-	changeParameter: (name, value)->
+	setParameter: (name, value)->
 		super(name, value)
 		switch name
 			when 'fontStyle', 'fontFamily', 'fontSize', 'effect', 'fontColor'
@@ -677,8 +656,8 @@ class RText extends RDiv
 
 # RMedia holds an image, video or any content inside an iframe (can be a [shadertoy](https://www.shadertoy.com/))
 # The first attempt is to load the media as an image:
-# - if it succeeds, the image is embedded as a simple image tag, 
-#   and can be either be fit (proportion are kept) or resized (dimensions will be the same as RMedia) in the RMedia 
+# - if it succeeds, the image is embedded as a simple image tag,
+#   and can be either be fit (proportion are kept) or resized (dimensions will be the same as RMedia) in the RMedia
 #   (the user can modify this in the gui with the 'fit image' button)
 # - if it fails, RMedia checks if the url start with 'iframe'
 #   if it does, the iframe is embedded as is (this enables to embed shadertoys for example)
@@ -693,7 +672,7 @@ class RMedia extends RDiv
 		submit = (data)->
 			div = new RMedia(rectangle, data)
 			div.addToParent()
-			div.save(true)
+			div.save()
 			div.select()
 			return
 		RModal.initialize('Add media', submit)
@@ -743,8 +722,8 @@ class RMedia extends RDiv
 		@contentJ?.css( 'pointer-events': 'auto' )
 		return true
 
-	deselect: (updatePreviouslySelectedItems)->
-		if not super(updatePreviouslySelectedItems) then return false
+	deselect: ()->
+		if not super() then return false
 		@contentJ?.css( 'pointer-events': 'none' )
 		return true
 
@@ -764,16 +743,16 @@ class RMedia extends RDiv
 		return
 
 	# called when user clicks in the "fit image" button in the gui
-	# toggle the 'fit-image' class to fit (proportion are kept) or resize (dimensions will be the same as RMedia) the image in the RMedia 
+	# toggle the 'fit-image' class to fit (proportion are kept) or resize (dimensions will be the same as RMedia) the image in the RMedia
 	toggleFitImage: ()->
 		if @isImage?
 			@contentJ.toggleClass("fit-image", @data.fitImage)
 		return
 
-	# overload {RDiv#changeParameter}
+	# overload {RDiv#setParameter}
 	# update = false when called by parameter.onChange from websocket
 	# toggle fit image if required
-	changeParameter: (name, value)->
+	setParameter: (name, value)->
 		super(name, value)
 		switch name
 			when 'fitImage'
@@ -782,7 +761,7 @@ class RMedia extends RDiv
 				@urlChanged(value, false)
 		return
 
-	# return [Boolean] true if the url ends with an image extension: "jpeg", "jpg", "gif" or "png" 
+	# return [Boolean] true if the url ends with an image extension: "jpeg", "jpg", "gif" or "png"
 	hasImageUrlExt: (url)->
 		exts = [ "jpeg", "jpg", "gif", "png" ]
 		ext = url.substring(url.lastIndexOf(".")+1)
@@ -831,21 +810,28 @@ class RMedia extends RDiv
 
 			oembbedContent = ()=>
 				@contentJ = $('<div class="content oembedall-container"></div>')
-				@contentJ.oembed(@url, { includeHandle: false, embedMethod: 'fill', maxWidth: @divJ.width(), maxHeight: @divJ.height(), afterEmbed: @afterEmbed })
+				args =
+					includeHandle: false
+					embedMethod: 'fill'
+					maxWidth: @divJ.width()
+					maxHeight: @divJ.height()
+					afterEmbed: @afterEmbed
+				@contentJ.oembed(@url, args)
 				return
 
 			if @url.indexOf("http://")!=0 and @url.indexOf("https://")!=0
 				@contentJ = $(@url)
-				if @contentJ.is('iframe') 	# if 'url' starts with 'iframe', the user wants to integrate an iframe, not embed using jquery oembed
+				# if 'url' starts with 'iframe', the user wants to integrate an iframe, not embed using jquery oembed
+				if @contentJ.is('iframe')
 					@contentJ.attr('width', @divJ.width())
 					@contentJ.attr('height', @divJ.height())
 				else
 					oembbedContent()
 			else
 				oembbedContent()
-		
+
 		@contentJ.insertBefore(@maskJ)
-		
+
 		@setCss()
 
 		if not @isSelected()
@@ -908,8 +894,8 @@ class RSelectionRectangle extends RDiv
 		return
 
 	# deselect the div: remove it
-	deselect: (updatePreviouslySelectedItems)->
-		if not super(updatePreviouslySelectedItems) then return false
+	deselect: ()->
+		if not super() then return false
 		if @deselected then return
 		@deselected = true
 		@remove()

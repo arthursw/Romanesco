@@ -2,11 +2,12 @@
 # --- load --- #
 
 # @return [Boolean] true if the area was already loaded, false otherwise
-this.areaIsLoaded = (pos,planet) ->
+this.areaIsLoaded = (pos, planet, qZoom) ->
 	for area in g.loadedAreas
 		if area.planet.x == planet.x && area.planet.y == planet.y
 			if area.pos.x == pos.x && area.pos.y == pos.y
-				return true
+				if not qZoom? or area.zoom == qZoom
+					return true
 	return false
 
 # this.areaIsQuickLoaded = (area) ->
@@ -28,8 +29,11 @@ this.areaIsLoaded = (pos,planet) ->
 # @param [Rectangle] (optional) the area to load, *area* equals the bounds of the view if not defined
 this.load = (area=null) ->
 
-	if not g.rasterizerMode and g.previousLoadPosition? and g.previousLoadPosition.subtract(view.center).length<50
-		return false
+
+	if not g.rasterizerMode and g.previousLoadPosition?
+		if g.previousLoadPosition.position.subtract(view.center).length<50
+			if Math.abs(1-g.previousLoadPosition.zoom/view.zoom)<0.2
+				return false
 
 	console.log "load"
 	if area? then console.log area.toString()
@@ -38,9 +42,8 @@ this.load = (area=null) ->
 
 	debug = false
 
-	scale = g.scale
 
-	g.previousLoadPosition = view.center
+	g.previousLoadPosition = position: view.center, zoom: view.zoom
 
 	if not area?
 		if view.bounds.width <= window.innerWidth and view.bounds.height <= window.innerHeight
@@ -58,7 +61,7 @@ this.load = (area=null) ->
 
 	# unload:
 	# define unload limit rectangle
-	unloadDist = Math.round(scale / view.zoom)
+	unloadDist = Math.round(g.scale / view.zoom)
 
 	if not g.entireArea
 		limit = bounds.expand(unloadDist)
@@ -73,6 +76,11 @@ this.load = (area=null) ->
 		if not item.getBounds().intersects(limit)
 			itemsOutsideLimit.push(item)
 
+	# remove all areaToUpdate which are outside limit
+	# for areaToUpdate in g.areasToUpdateLayer.children
+	# 	if not areaToUpdate.getBounds().intersects(limit)
+	# 		itemsOutsideLimit.push(areaToUpdate)
+
 	if debug
 		g.unloadRectangle = new Path.Rectangle(limit)
 		g.unloadRectangle.name = 'debug load unload rectangle'
@@ -86,7 +94,7 @@ this.load = (area=null) ->
 			removeRect = ()-> rectangle.remove()
 			setTimeout(removeRect, 1500)
 			return
-	
+
 	# remove rasters which are outside the limit
 	g.rasterizer.unload(limit)
 	# for x, rasterColumn of g.rasters
@@ -96,14 +104,16 @@ this.load = (area=null) ->
 	# 			delete g.rasters[x][y]
 	# 			if g.isEmpty(g.rasters[x]) then delete g.rasters[x]
 
+	qZoom = g.quantizeZoom(1.0 / view.zoom)
+
 	# remove loaded areas which must be unloaded
 	i = g.loadedAreas.length
 	while i--
 		area = g.loadedAreas[i]
 		pos = posOnPlanetToProject(area.pos, area.planet)
-		rectangle = new Rectangle(pos.x, pos.y, scale, scale)
-		
-		if not rectangle.intersects(limit)
+		rectangle = new Rectangle(pos.x, pos.y, g.scale * area.zoom, g.scale * area.zoom)
+
+		if not rectangle.intersects(limit) or area.zoom != qZoom
 
 			if debug
 				area.rectangle.strokeColor = 'red'
@@ -112,7 +122,7 @@ this.load = (area=null) ->
 			# # remove raster corresponding to the area
 			# x = area.x*1000 	# should be equal to pos.x
 			# y = area.y*1000		# should be equal to pos.y
-			
+
 			# if g.rasters[x]?[y]?
 			# 	g.rasters[x][y].remove()
 			# 	delete g.rasters[x][y]
@@ -129,14 +139,16 @@ this.load = (area=null) ->
 				if item.getBounds().intersects(rectangle)
 					item.remove()
 					itemsOutsideLimit.splice(j,1)
-	
+
 	itemsOutsideLimit = null
 
+	scale = g.scale * qZoom
+
 	# find top, left, bottom and right positions of the area in the quantized space
-	t = g.roundToLowerMultiple(bounds.top, scale)
-	l = g.roundToLowerMultiple(bounds.left, scale)
-	b = g.roundToLowerMultiple(bounds.bottom, scale)
-	r = g.roundToLowerMultiple(bounds.right, scale)
+	t = g.floorToMultiple(bounds.top, scale)
+	l = g.floorToMultiple(bounds.left, scale)
+	b = g.floorToMultiple(bounds.bottom, scale)
+	r = g.floorToMultiple(bounds.right, scale)
 
 	if debug
 		g.viewRectangle = new Path.Rectangle(bounds)
@@ -159,7 +171,9 @@ this.load = (area=null) ->
 			planet = projectToPlanet(new Point(x,y))
 			pos = projectToPosOnPlanet(new Point(x,y))
 
-			if g.rasterizerMode or not areaIsLoaded(pos, planet)
+			# rasterizer always add all areas since it must check if it is up-to-date
+			# (items which are loaded could need to be updated)
+			if g.rasterizerMode
 
 				if debug
 					areaRectangle = new Path.Rectangle(x, y, scale, scale)
@@ -171,9 +185,28 @@ this.load = (area=null) ->
 				area = { pos: pos, planet: planet }
 
 				areasToLoad.push(area)
+
 				if debug then area.rectangle = areaRectangle
-				
-				if not g.rasterizerMode or not areaIsLoaded(pos, planet)
+
+				if not areaIsLoaded(pos, planet)
+					g.loadedAreas.push(area)
+			else
+				if not areaIsLoaded(pos, planet, qZoom)
+					if debug
+						areaRectangle = new Path.Rectangle(x, y, scale, scale)
+						areaRectangle.name = 'debug load area rectangle'
+						areaRectangle.strokeWidth = 1
+						areaRectangle.strokeColor = 'green'
+						g.debugLayer.addChild(areaRectangle)
+
+					area = { pos: pos, planet: planet }
+
+					areasToLoad.push(area)
+
+					area.zoom = qZoom
+
+					if debug then area.rectangle = areaRectangle
+
 					g.loadedAreas.push(area)
 
 	if not g.rasterizerMode and areasToLoad.length<=0 	# return if there is nothing to load
@@ -186,15 +219,14 @@ this.load = (area=null) ->
 			return
 		g.loadingBarTimeout = setTimeout(showLoadingBar , 0)
 
-	rectangle = { left: l, top: t, right: r, bottom: b }
 
-	console.log 'request loading'
-	console.log rectangle
-	
 	if not g.rasterizerMode
-		Dajaxice.draw.load(loadCallback, { rectangle: rectangle, areasToLoad: areasToLoad, zoom: 1.0 / view.zoom })
+		rectangle = { left: l / 1000.0, top: t / 1000.0, right: r / 1000.0, bottom: b / 1000.0 }
+		Dajaxice.draw.load(loadCallback, { rectangle: rectangle, areasToLoad: areasToLoad, qZoom: qZoom })
 	else
 		itemsDates = g.createItemsDates(bounds)
+		console.log 'itemsDates'
+		console.log itemsDates
 		Dajaxice.draw.loadRasterizer(loadCallback, { areasToLoad: areasToLoad, itemsDates: itemsDates })
 	# ajaxPost '/load', args, loadCallback
 	return true
@@ -223,7 +255,7 @@ this.loadCallback = (results)->
 			g.startChatting( g.me )
 
 	if results.rasters?
-		g.rasterizer.load(results.rasters, results.zoom)
+		g.rasterizer.load(results.rasters, results.qZoom)
 		# # add rasters
 		# # todo: ask only required rasters (currently, all rasters of all areas are requested, and then ignored if already added :/ )
 		# for raster in results.rasters
@@ -247,19 +279,28 @@ this.loadCallback = (results)->
 	# if g.rasterizerMode then g.removeItemsToUpdate(results.itemsToUpdate)
 
 	# newAreasToUpdate = []
+	if results.deletedItems?
+		for pk, deletedItemLastUpdate of results.deletedItems
+			g.items[pk]?.remove()
 
 	itemsToLoad = []
 
 	for i in results.items
 		item = JSON.parse(i)
 
-		g.items[item._id.$oid]?.remove() 	# if item is loaded: remove it (it must be updated)
+		if not g.rasterizerMode and g.items[item._id.$oid]?
+			continue
+		else if g.rasterizerMode
+			itemToReplace = g.items[item._id.$oid]
+			if itemToReplace?
+				console.log "itemToReplace: " + itemToReplace.pk
+				itemToReplace.remove() 	# if item is loaded: remove it (it must be updated)
 
 		if item.rType == 'Box'	# add RLocks: RLock, RLink, RWebsite and RVideoGame
 			box = item
 			if box.box.coordinates[0].length<5
 				console.log "Error: box has less than 5 points"
-			
+
 			data = if box.data? and box.data.length>0 then JSON.parse(box.data) else null
 			date = box.date.$date
 
@@ -273,41 +314,41 @@ this.loadCallback = (results)->
 					lock = new RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
 				when 'video-game'
 					lock = new RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
-			
+
 			lock.lastUpdateDate = box.lastUpdate.$date
 		else
 			itemsToLoad.push(item)
 
 	for item in itemsToLoad
+
+		pk = item._id.$oid
+		date = item.date?.$date
+		data = if item.data? and item.data.length>0 then JSON.parse(item.data) else null
+		lock = if item.lock? then g.items[item.lock] else null
+
 		switch item.rType
-			
+
 			when 'Div'			# add RDivs (RText and RMedia)
 				div = item
 				if div.box.coordinates[0].length<5
 					console.log "Error: box has less than 5 points"
-								
-				data = if div.data? and div.data.length>0 then JSON.parse(div.data) else null
-				date = div.date.$date
+
+
 
 				# rdiv = new g[div.object_type](g.rectangleFromBox(box), data, div._id.$oid, date, div.lock)
 
 				switch div.object_type
 					when 'text'
-						rdiv = new RText(g.rectangleFromBox(div), data, div._id.$oid, date, if div.lock? then g.items[div.lock] else null)
+						rdiv = new RText(g.rectangleFromBox(div), data, pk, date, lock)
 					when 'media'
-						rdiv = new RMedia(g.rectangleFromBox(div), data, div._id.$oid, date, if div.lock? then g.items[div.lock] else null)
+						rdiv = new RMedia(g.rectangleFromBox(div), data, pk, date, lock)
 
 				rdiv.lastUpdateDate = div.lastUpdate.$date
 
 			when 'Path' 		# add RPaths
 				path = item
 				planet = new Point(path.planetX, path.planetY)
-
-				# parse data
-				date = path.date.$date
-				if path.data? and path.data.length>0
-					data = JSON.parse(path.data)
-					data.planet = planet
+				data?.planet = planet
 
 				points = []
 
@@ -318,18 +359,29 @@ this.loadCallback = (results)->
 				# create the RPath with the corresponding RTool
 				rpath = null
 				if g.tools[path.object_type]?
-					rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points, if path.lock? then g.items[path.lock] else null)
-					
+					rpath = new g.tools[path.object_type].RPath(date, data, pk, points, lock)
 					rpath.lastUpdateDate = path.lastUpdate.$date
 
 					if rpath.constructor.name == "Checkpoint"
 						console.log rpath
 				else
 					console.log "Unknown path type: " + path.object_type
-			# when 'AreaToUpdate'
-			# 	newAreasToUpdate.push(item)
+			when 'AreaToUpdate'
+				g.rasterizer.addAreaToUpdate(g.rectangleFromBox(item))
+
+				# areaToUpdate = new Path.Rectangle(g.rectangleFromBox(item))
+				# areaToUpdate.fillColor = 'rgba(255,50,50,0.25)'
+				# areaToUpdate.strokeColor = 'rgba(255,50,50,0.5)'
+				# areaToUpdate.strokeWidth = 3
+				# areaToUpdate.getBounds = ()-> return areaToUpdate.bounds
+				# g.areasToUpdateLayer.addChild(areaToUpdate)
 			else
 				continue
+
+	g.rasterizer.setQZoomToUpdate(results.qZoom)
+
+	if not results.rasters? or results.rasters.length==0
+		g.rasterizer.rasterizeAreasToUpdate()
 
 	RDiv.updateZIndex(g.sortedDivs)
 
@@ -344,14 +396,15 @@ this.loadCallback = (results)->
 		# loadFonts()
 		# view.draw()
 		# updateView()
-		
+
 		clearTimeout(g.loadingBarTimeout)
 		g.loadingBarTimeout = null
 		$("#loadingBar").hide()
 
 		dispatchLoadFinished()
-	
+
 	if typeof window.saveOnServer == "function"
+		console.log "rasterizeAndSaveOnServer"
 		g.rasterizeAndSaveOnServer()
 
 	# g.stopLoadingBar()
@@ -360,10 +413,10 @@ this.loadCallback = (results)->
 # this.benchmark_load = ()->
 # 	bounds = view.bounds
 # 	scale = g.scale
-# 	t = g.roundToLowerMultiple(bounds.top, scale)
-# 	l = g.roundToLowerMultiple(bounds.left, scale)
-# 	b = g.roundToLowerMultiple(bounds.bottom, scale)
-# 	r = g.roundToLowerMultiple(bounds.right, scale)
+# 	t = g.floorToMultiple(bounds.top, scale)
+# 	l = g.floorToMultiple(bounds.left, scale)
+# 	b = g.floorToMultiple(bounds.bottom, scale)
+# 	r = g.floorToMultiple(bounds.right, scale)
 
 # 	# add areas to load
 # 	areasToLoad = []

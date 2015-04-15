@@ -129,16 +129,44 @@
   };
 
   this.deferredExecution = function(callback, id, n) {
+    var callbackWrapper;
     if (n == null) {
       n = 500;
     }
     if (id == null) {
       id = callback;
     }
+    callbackWrapper = function() {
+      delete g.updateTimeout[id];
+      callback();
+    };
     if (g.updateTimeout[id] != null) {
       clearTimeout(g.updateTimeout[id]);
     }
-    return g.updateTimeout[id] = setTimeout(callback, n);
+    g.updateTimeout[id] = setTimeout(callbackWrapper, n);
+  };
+
+  this.callNextFrame = function(callback, id, args) {
+    var callbackWrapper, _base;
+    if (id == null) {
+      id = callback;
+    }
+    callbackWrapper = function() {
+      delete g.requestedCallbacks[id];
+      if (args == null) {
+        callback();
+      } else {
+        callback.apply(window, args);
+      }
+    };
+    if ((_base = g.requestedCallbacks)[id] == null) {
+      _base[id] = window.requestAnimationFrame(callbackWrapper);
+    }
+  };
+
+  this.cancelCallNextFrame = function(idToCancel) {
+    window.cancelAnimationFrame(g.requestedCallbacks[idToCancel]);
+    delete g.requestedCallbacks[idToCancel];
   };
 
   sqrtTwoPi = Math.sqrt(2 * Math.PI);

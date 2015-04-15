@@ -19,6 +19,18 @@ Here are all global functions (which do not belong to classes and are not event 
     g.alertsContainer.find(".alert-number").text(g.currentAlert + 1);
   };
 
+  this.breakOnVisible = function(group) {
+    Object.defineProperty(group, 'visible', {
+      set: function(newValue) {
+        var _ref;
+        console.log('set visible: ' + newValue + ' of ' + ((_ref = group.controller) != null ? _ref.pk : void 0));
+      },
+      get: function() {
+        return this.visible;
+      }
+    });
+  };
+
   this.romanesco_alert = function(message, type, delay) {
     var alertJ;
     if (type == null) {
@@ -144,6 +156,13 @@ Here are all global functions (which do not belong to classes and are not event 
     return paperEvent;
   };
 
+  this.updatePathRectangle = function(path, rectangle) {
+    path.segments[0].point = rectangle.bottomLeft;
+    path.segments[1].point = rectangle.topLeft;
+    path.segments[2].point = rectangle.topRight;
+    path.segments[3].point = rectangle.bottomRight;
+  };
+
   this.specialKey = function(event) {
     var specialKey;
     if ((event.pageX != null) && (event.pageY != null)) {
@@ -155,9 +174,7 @@ Here are all global functions (which do not belong to classes and are not event 
   };
 
   this.getSnap = function() {
-    var snap;
-    snap = g.parameters.snap.snap;
-    return snap - snap % g.parameters.snap.step;
+    return g.parameters.snap.snap;
   };
 
   this.snap1D = function(value, snap) {
@@ -165,7 +182,7 @@ Here are all global functions (which do not belong to classes and are not event 
       snap = g.getSnap();
     }
     if (snap !== 0) {
-      return Math.floor(value / snap) * snap;
+      return Math.round(value / snap) * snap;
     } else {
       return value;
     }
@@ -236,6 +253,8 @@ Here are all global functions (which do not belong to classes and are not event 
     if (limit.x >= view.bounds.left && limit.x <= view.bounds.right) {
       g.limitPathV = new Path();
       g.limitPathV.name = 'limitPathV';
+      g.limitPathV.strokeColor = 'green';
+      g.limitPathV.strokeWidth = 5;
       g.limitPathV.add(limit.x, view.bounds.top);
       g.limitPathV.add(limit.x, view.bounds.bottom);
       g.grid.addChild(g.limitPathV);
@@ -243,6 +262,8 @@ Here are all global functions (which do not belong to classes and are not event 
     if (limit.y >= view.bounds.top && limit.y <= view.bounds.bottom) {
       g.limitPathH = new Path();
       g.limitPathH.name = 'limitPathH';
+      g.limitPathH.strokeColor = 'green';
+      g.limitPathH.strokeWidth = 5;
       g.limitPathH.add(view.bounds.left, limit.y);
       g.limitPathH.add(view.bounds.right, limit.y);
       g.grid.addChild(g.limitPathH);
@@ -250,107 +271,54 @@ Here are all global functions (which do not belong to classes and are not event 
   };
 
   g.updateGrid = function() {
-    var b, bounds, debug, halfSize, i, ijOnPlanet, j, l, n, p, planet, planetText, pos, posOnPlanet, posText, px, py, r, snap, t, x, y;
+    var bounds, halfSize, left, px, py, snap, top;
     g.grid.removeChildren();
     g.updateLimitPaths();
-    if (g.limitPathV != null) {
-      g.limitPathV.strokeColor = 'green';
-      g.limitPathV.strokeWidth = 5;
-    }
-    if (g.limitPathH != null) {
-      g.limitPathH.strokeColor = 'green';
-      g.limitPathH.strokeWidth = 5;
-    }
     if (view.bounds.width > window.innerWidth || view.bounds.height > window.innerHeight) {
       halfSize = new Point(window.innerWidth * 0.5, window.innerHeight * 0.5);
       bounds = new Path.Rectangle(view.center.subtract(halfSize), view.center.add(halfSize));
-      bounds.strokeWidth = 1;
+      bounds.strokeScaling = false;
       bounds.strokeColor = 'black';
       g.grid.addChild(bounds);
     }
     if (!g.displayGrid) {
       return;
     }
-    t = Math.floor(view.bounds.top / g.scale);
-    l = Math.floor(view.bounds.left / g.scale);
-    b = Math.floor(view.bounds.bottom / g.scale);
-    r = Math.floor(view.bounds.right / g.scale);
-    pos = getTopLeftCorner();
-    planet = projectToPlanet(pos);
-    posOnPlanet = projectToPosOnPlanet(pos);
-    debug = false;
     snap = g.getSnap();
-    if (snap < 15) {
-      snap = 15;
-    }
-    if (debug) {
-      snap = 250;
-    }
-    n = 1;
-    i = l;
-    j = t;
-    while (i < r + 1 || j < b + 1) {
+    bounds = g.expandRectangleToMultiple(view.bounds, snap);
+    left = bounds.left;
+    top = bounds.top;
+    while (left < bounds.right || top < bounds.bottom) {
       px = new Path();
       px.name = "grid px";
       py = new Path();
       px.name = "grid py";
-      ijOnPlanet = projectToPosOnPlanet(new Point(i * g.scale, j * g.scale));
-      if (ijOnPlanet.x === -180) {
-        px.strokeColor = "#00FF00";
-        px.strokeWidth = 5;
-      } else if (n < 4) {
-        px.strokeColor = "#666666";
-      } else {
+      px.strokeColor = "#666666";
+      if ((left / snap) % 4 === 0) {
         px.strokeColor = "#000000";
         px.strokeWidth = 2;
       }
-      if (ijOnPlanet.y === -90) {
-        py.strokeColor = "#00FF00";
-        py.strokeWidth = 5;
-      } else if (n < 4) {
-        py.strokeColor = "#666666";
-      } else {
+      py.strokeColor = "#666666";
+      if ((top / snap) % 4 === 0) {
         py.strokeColor = "#000000";
         py.strokeWidth = 2;
       }
-      px.add(new Point(i * g.scale, view.bounds.top));
-      px.add(new Point(i * g.scale, view.bounds.bottom));
-      py.add(new Point(view.bounds.left, j * g.scale));
-      py.add(new Point(view.bounds.right, j * g.scale));
+      px.add(new Point(left, view.bounds.top));
+      px.add(new Point(left, view.bounds.bottom));
+      py.add(new Point(view.bounds.left, top));
+      py.add(new Point(view.bounds.right, top));
       g.grid.addChild(px);
       g.grid.addChild(py);
-      i += snap / g.scale;
-      j += snap / g.scale;
-      if (n === 4) {
-        n = 0;
-      }
-      n++;
+      left += snap;
+      top += snap;
     }
-    if (!debug) {
-      return;
-    }
-    i = l;
-    while (i < r + 1) {
-      j = t;
-      while (j < b + 1) {
-        x = i * g.scale;
-        y = j * g.scale;
-        planetText = new PointText(new Point(x - 10, y - 40));
-        planetText.justification = 'right';
-        planetText.fillColor = 'black';
-        p = projectToPlanet(new Point(i * g.scale, j * g.scale));
-        planetText.content = 'px: ' + Math.floor(p.x) + ', py: ' + Math.floor(p.y);
-        g.grid.addChild(planetText);
-        posText = new PointText(new Point(x - 10, y - 20));
-        posText.justification = 'right';
-        posText.fillColor = 'black';
-        p = projectToPosOnPlanet(new Point(i * g.scale, j * g.scale));
-        posText.content = 'x: ' + p.x.toFixed(2) + ', y: ' + p.y.toFixed(2);
-        g.grid.addChild(posText);
-        j += snap / g.scale;
-      }
-      i += snap / g.scale;
-    }
+  };
+
+  this.selectedToolNeedsDrawings = function() {
+    var lockToolSelected, pathToolSelected;
+    pathToolSelected = PathTool.prototype.isPrototypeOf(g.selectedTool);
+    lockToolSelected = LockTool.prototype.isPrototypeOf(g.selectedTool);
+    return g.selectedTool === g.tools['Select'] || g.selectedTool === g.tools['Screenshot'] || pathToolSelected || lockToolSelected;
   };
 
   this.gameAt = function(point) {
@@ -382,7 +350,7 @@ Here are all global functions (which do not belong to classes and are not event 
   };
 
   g.RMoveBy = function(delta, addCommand) {
-    var addMoveCommand, area, div, newEntireArea, newView, pk, rectangle, restrictedAreaShrinked, somethingToLoad, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+    var addMoveCommand, area, div, newEntireArea, newView, restrictedAreaShrinked, somethingToLoad, _i, _j, _len, _len1, _ref, _ref1;
     if (addCommand == null) {
       addCommand = true;
     }
@@ -416,6 +384,7 @@ Here are all global functions (which do not belong to classes and are not event 
       div = _ref[_i];
       div.updateTransform();
     }
+    g.rasterizer.move();
     updateGrid();
     newEntireArea = null;
     _ref1 = g.entireAreas;
@@ -440,14 +409,6 @@ Here are all global functions (which do not belong to classes and are not event 
         g.previousViewPosition = null;
       };
       g.deferredExecution(addMoveCommand, 'add move command');
-    }
-    _ref2 = g.areasToUpdate;
-    for (pk in _ref2) {
-      rectangle = _ref2[pk];
-      if (rectangle.intersects(view.bounds)) {
-        g.updateView();
-        break;
-      }
     }
     g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2));
     return somethingToLoad;
@@ -478,17 +439,10 @@ Here are all global functions (which do not belong to classes and are not event 
   };
 
   this.deselectAll = function() {
-    var item, _i, _len, _ref;
-    g.previouslySelectedItems = g.selectedItems.slice();
-    _ref = g.previouslySelectedItems;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      item = _ref[_i];
-      if (typeof item.deselect === "function") {
-        item.deselect(false);
-      }
+    if (g.selectedItems.length > 0) {
+      g.commandManager.add(new DeselectCommand(), true);
     }
     project.activeLayer.selected = false;
-    g.selectedItems = [];
   };
 
   this.toggleSidebar = function(show) {
@@ -540,6 +494,13 @@ Here are all global functions (which do not belong to classes and are not event 
     }
     if (highlight == null) {
       highlight = false;
+    }
+    if ((typeof item.getDrawingBounds === "function" ? item.getDrawingBounds() : void 0) > g.rasterizer.maxArea()) {
+      if (highlight) {
+        g.romanesco_alert('The path is too big.', 'Warning');
+      } else {
+        return false;
+      }
     }
     if (bounds == null) {
       bounds = item.getBounds();
@@ -618,27 +579,25 @@ Here are all global functions (which do not belong to classes and are not event 
     return true;
   };
 
-  this.zIndexSortStop = (function(_this) {
-    return function(event, ui) {
-      var item, nextItemJ, previousItemJ, rItem, _i, _len, _ref;
-      g.deselectAll();
-      rItem = g.items[ui.item.attr("data-pk")];
-      nextItemJ = ui.item.next();
-      if (nextItemJ.length > 0) {
-        rItem.insertAbove(g.items[nextItemJ.attr("data-pk")], null, true);
-      } else {
-        previousItemJ = ui.item.prev();
-        if (previousItemJ.length > 0) {
-          rItem.insertBelow(g.items[previousItemJ.attr("data-pk")], null, true);
-        }
+  this.zIndexSortStop = function(event, ui) {
+    var item, nextItemJ, previousItemJ, previouslySelectedItems, rItem, _i, _len;
+    previouslySelectedItems = g.selectedItems;
+    g.deselectAll();
+    rItem = g.items[ui.item.attr("data-pk")];
+    nextItemJ = ui.item.next();
+    if (nextItemJ.length > 0) {
+      rItem.insertAbove(g.items[nextItemJ.attr("data-pk")], null, true);
+    } else {
+      previousItemJ = ui.item.prev();
+      if (previousItemJ.length > 0) {
+        rItem.insertBelow(g.items[previousItemJ.attr("data-pk")], null, true);
       }
-      _ref = g.previouslySelectedItems;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        item = _ref[_i];
-        item.select();
-      }
-    };
-  })(this);
+    }
+    for (_i = 0, _len = previouslySelectedItems.length; _i < _len; _i++) {
+      item = previouslySelectedItems[_i];
+      item.select();
+    }
+  };
 
   this.addItemToStage = function(item) {
     g.addItemTo(item);
@@ -829,16 +788,36 @@ Here are all global functions (which do not belong to classes and are not event 
     return new Rectangle(rectangle.topLeft.floor(), rectangle.bottomRight.ceil());
   };
 
+  this.expandRectangleToMultiple = function(rectangle, multiple) {
+    return new Rectangle(g.floorPointToMultiple(rectangle.topLeft, multiple), g.ceilPointToMultiple(rectangle.bottomRight, multiple));
+  };
+
   this.roundRectangle = function(rectangle) {
     return new Rectangle(rectangle.topLeft.round(), rectangle.bottomRight.round());
   };
 
-  this.roundToLowerMultiple = function(x, m) {
+  this.floorToMultiple = function(x, m) {
     return Math.floor(x / m) * m;
   };
 
-  this.roundToGreaterMultiple = function(x, m) {
+  this.ceilToMultiple = function(x, m) {
     return Math.ceil(x / m) * m;
+  };
+
+  this.roundToMultiple = function(x, m) {
+    return Math.round(x / m) * m;
+  };
+
+  this.floorPointToMultiple = function(point, m) {
+    return new Point(g.floorToMultiple(point.x, m), g.floorToMultiple(point.y, m));
+  };
+
+  this.ceilPointToMultiple = function(point, m) {
+    return new Point(g.ceilToMultiple(point.x, m), g.ceilToMultiple(point.y, m));
+  };
+
+  this.roundPointToMultiple = function(point, m) {
+    return new Point(g.roundToMultiple(point.x, m), g.roundToMultiple(point.y, m));
   };
 
   this.highlightAreasToUpdate = function() {
@@ -946,6 +925,61 @@ Here are all global functions (which do not belong to classes and are not event 
         }
       }
     }
+  };
+
+  this.hideCanvas = function() {
+    g.canvasJ.css({
+      opacity: 0
+    });
+  };
+
+  this.showCanvas = function() {
+    g.canvasJ.css({
+      opacity: 1
+    });
+  };
+
+  this.hideRasters = function() {
+    $("#rasters").css({
+      opacity: 0
+    });
+  };
+
+  this.showRasters = function() {
+    $("#rasters").css({
+      opacity: 1
+    });
+  };
+
+  this.logStack = function() {
+    var caller;
+    caller = arguments.callee.caller;
+    while (caller != null) {
+      console.log(caller.prototype);
+      caller = caller.caller;
+    }
+  };
+
+  this.getCoffeeSources = function() {
+    $.ajax({
+      url: g.romanescoURL + "static/coffee/path.coffee"
+    }).done(function(data) {
+      var classMap, expression, expressions, lines, pathClass, _i, _j, _len, _len1, _ref, _ref1;
+      lines = data.split(/\n/);
+      expressions = CoffeeScript.nodes(data).expressions;
+      classMap = {};
+      _ref = g.pathClasses;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        pathClass = _ref[_i];
+        classMap[pathClass.name] = pathClass;
+      }
+      for (_j = 0, _len1 = expressions.length; _j < _len1; _j++) {
+        expression = expressions[_j];
+        if ((_ref1 = classMap[expression.variable.base.value]) != null) {
+          _ref1.source = lines.slice(expression.locationData.first_line, +expression.locationData.last_line + 1 || 9e9).join("\n");
+        }
+      }
+    });
   };
 
 }).call(this);

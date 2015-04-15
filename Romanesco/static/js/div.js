@@ -25,13 +25,6 @@
       return parameters;
     };
 
-    RDiv.duplicate = function(rectangle, data) {
-      var copy;
-      copy = new this(rectangle, data);
-      copy.save();
-      return copy;
-    };
-
     RDiv.updateZIndex = function(sortedDivs) {
       var div, i, _i, _len;
       for (i = _i = 0, _len = sortedDivs.length; _i < _len; i = ++_i) {
@@ -96,7 +89,10 @@
     }
 
     RDiv.prototype.save = function(addCreateCommand) {
-      this.addCreateCommand = addCreateCommand;
+      var args;
+      if (addCreateCommand == null) {
+        addCreateCommand = true;
+      }
       if (g.rectangleOverlapsTwoPlanets(this.rectangle)) {
         return;
       }
@@ -105,12 +101,14 @@
         romanesco_alert("Error: your div is not valid.", "error");
         return;
       }
-      Dajaxice.draw.saveDiv(this.saveCallback, {
-        'box': g.boxFromRectangle(this.getBounds()),
-        'object_type': this.object_type,
-        'date': Date.now(),
-        'data': this.getStringifiedData()
-      });
+      args = {
+        box: g.boxFromRectangle(this.getBounds()),
+        object_type: this.object_type,
+        date: Date.now(),
+        data: this.getStringifiedData()
+      };
+      Dajaxice.draw.saveDiv(this.saveCallback, args);
+      RDiv.__super__.save.apply(this, arguments);
     };
 
     RDiv.prototype.saveCallback = function(result) {
@@ -121,26 +119,10 @@
       }
       this.owner = result.owner;
       this.setPK(result.pk);
-      if (this.addCreateCommand) {
-        g.commandManager.add(new CreateDivCommand(this));
-        delete this.addCreateCommand;
-      }
       if (this.updateAfterSave != null) {
         this.update(this.updateAfterSave);
       }
-    };
-
-    RDiv.prototype.duplicate = function(data) {
-      var copy;
-      if (data == null) {
-        data = this.getData();
-      }
-      copy = this.constructor.duplicate(this.rectangle, data);
-      return copy;
-    };
-
-    RDiv.prototype.duplicateCommand = function() {
-      g.commandManager.add(new CreateDivCommand(this, "Duplicate div"));
+      RDiv.__super__.saveCallback.apply(this, arguments);
     };
 
     RDiv.prototype.moveTo = function(position, update) {
@@ -235,8 +217,8 @@
       this.maskJ.hide();
     };
 
-    RDiv.prototype.changeParameter = function(name, value) {
-      RDiv.__super__.changeParameter.call(this, name, value);
+    RDiv.prototype.setParameter = function(name, value) {
+      RDiv.__super__.setParameter.call(this, name, value);
       switch (name) {
         case 'strokeWidth':
         case 'strokeColor':
@@ -300,9 +282,9 @@
       return true;
     };
 
-    RDiv.prototype.deselect = function(updatePreviouslySelectedItems) {
+    RDiv.prototype.deselect = function() {
       var _ref;
-      if (!RDiv.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
+      if (!RDiv.__super__.deselect.call(this)) {
         return false;
       }
       if (!this.divJ.hasClass("selected")) {
@@ -360,24 +342,20 @@
       RDiv.__super__.remove.call(this);
     };
 
-    RDiv.prototype.deleteCommand = function() {
-      g.commandManager.add(new DeleteDivCommand(this), true);
-    };
-
     RDiv.prototype["delete"] = function() {
+      if ((this.lock != null) && this.lock.owner !== g.me) {
+        return;
+      }
       this.remove();
       if (this.pk == null) {
         return;
       }
-      Dajaxice.draw.deleteDiv(this.deleteDivCallback, {
-        'pk': this.pk
-      });
-    };
-
-    RDiv.prototype.deleteDivCallback = function(result) {
-      if (g.checkError(result)) {
-        g.chatSocket.emit("delete div", result.pk);
+      if (!this.socketAction) {
+        Dajaxice.draw.deleteDiv(g.checkError, {
+          'pk': this.pk
+        });
       }
+      RDiv.__super__["delete"].apply(this, arguments);
     };
 
     return RDiv;
@@ -644,7 +622,6 @@
       });
       if (update) {
         this.update();
-        g.chatSocket.emit("parameter change", g.me, this.pk, "fontFamily", this.data.fontFamily);
       }
     };
 
@@ -697,7 +674,6 @@
           this.data.fontStyle.align = value;
       }
       this.setFontStyle(true);
-      g.chatSocket.emit("parameter change", g.me, this.pk, "fontStyle", this.data.fontStyle);
     };
 
     RText.prototype.setFontStyle = function(update) {
@@ -790,8 +766,8 @@
       this.setFontColor(this.data.fontColor, update);
     };
 
-    RText.prototype.changeParameter = function(name, value) {
-      RText.__super__.changeParameter.call(this, name, value);
+    RText.prototype.setParameter = function(name, value) {
+      RText.__super__.setParameter.call(this, name, value);
       switch (name) {
         case 'fontStyle':
         case 'fontFamily':
@@ -835,7 +811,7 @@
         var div;
         div = new RMedia(rectangle, data);
         div.addToParent();
-        div.save(true);
+        div.save();
         div.select();
       };
       RModal.initialize('Add media', submit);
@@ -918,9 +894,9 @@
       return true;
     };
 
-    RMedia.prototype.deselect = function(updatePreviouslySelectedItems) {
+    RMedia.prototype.deselect = function() {
       var _ref;
-      if (!RMedia.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
+      if (!RMedia.__super__.deselect.call(this)) {
         return false;
       }
       if ((_ref = this.contentJ) != null) {
@@ -954,8 +930,8 @@
       }
     };
 
-    RMedia.prototype.changeParameter = function(name, value) {
-      RMedia.__super__.changeParameter.call(this, name, value);
+    RMedia.prototype.setParameter = function(name, value) {
+      RMedia.__super__.setParameter.call(this, name, value);
       switch (name) {
         case 'fitImage':
           this.toggleFitImage();
@@ -1021,14 +997,16 @@
       } else {
         oembbedContent = (function(_this) {
           return function() {
+            var args;
             _this.contentJ = $('<div class="content oembedall-container"></div>');
-            _this.contentJ.oembed(_this.url, {
+            args = {
               includeHandle: false,
               embedMethod: 'fill',
               maxWidth: _this.divJ.width(),
               maxHeight: _this.divJ.height(),
               afterEmbed: _this.afterEmbed
-            });
+            };
+            _this.contentJ.oembed(_this.url, args);
           };
         })(this);
         if (this.url.indexOf("http://") !== 0 && this.url.indexOf("https://") !== 0) {
@@ -1108,8 +1086,8 @@
       return;
     }
 
-    RSelectionRectangle.prototype.deselect = function(updatePreviouslySelectedItems) {
-      if (!RSelectionRectangle.__super__.deselect.call(this, updatePreviouslySelectedItems)) {
+    RSelectionRectangle.prototype.deselect = function() {
+      if (!RSelectionRectangle.__super__.deselect.call(this)) {
         return false;
       }
       if (this.deselected) {

@@ -24,7 +24,7 @@
 this.initializeGlobalParameters = ()->
 
 	g.parameters = {}
-	g.parameters.location = 
+	g.parameters.location =
 		type: 'string'
 		label: 'Location'
 		default: '0.0, 0.0'
@@ -33,7 +33,7 @@ this.initializeGlobalParameters = ()->
 			g.ignoreHashChange = false
 			location.hash = value
 			return
-	g.parameters.zoom = 
+	g.parameters.zoom =
 		type: 'slider'
 		label: 'Zoom'
 		min: 1
@@ -43,11 +43,14 @@ this.initializeGlobalParameters = ()->
 		onChange: (value)->
 			g.project.view.zoom = value/100.0
 			g.updateGrid()
+			g.rasterizer.move()
 			for div in g.divs
 				div.updateTransform()
 			return
-		onFinishChange: (value) -> return g.load()
-	g.parameters.displayGrid = 
+		onFinishChange: (value) ->
+			g.load()
+			return
+	g.parameters.displayGrid =
 		type: 'checkbox'
 		label: 'Display grid'
 		default: false
@@ -56,7 +59,14 @@ this.initializeGlobalParameters = ()->
 			g.displayGrid = !g.displayGrid
 			g.updateGrid()
 			return
-	# g.parameters.fastMode = 
+	g.parameters.ignoreSockets =
+		type: 'checkbox'
+		label: 'Ignore sockets'
+		default: false
+		onChange: (value)->
+			g.ignoreSockets = value
+			return
+	# g.parameters.fastMode =
 	# 	type: 'checkbox'
 	# 	label: 'Fast mode'
 	# 	default: g.fastMode
@@ -64,7 +74,7 @@ this.initializeGlobalParameters = ()->
 	# 	onChange: (value)->
 	# 		g.fastMode = value
 	# 		return
-	g.parameters.strokeWidth = 
+	g.parameters.strokeWidth =
 		type: 'slider'
 		label: 'Stroke width'
 		min: 1
@@ -108,7 +118,7 @@ this.initializeGlobalParameters = ()->
 
 			align = (type)->
 				items = g.selectedItems
-				switch type	
+				switch type
 					when 'h-top'
 						yMin = NaN
 						for item in items
@@ -183,7 +193,7 @@ this.initializeGlobalParameters = ()->
 
 			distribute = (type)->
 				items = g.selectedItems
-				switch type	
+				switch type
 					when 'h-top'
 						yMin = NaN
 						yMax = NaN
@@ -282,7 +292,7 @@ this.initParameters = () ->
 
 	g.optionsJ = $(".option-list")
 	colorName = g.defaultColors.random()
-	colorRGBstring = tinycolor(colorName).toRgbString() 
+	colorRGBstring = tinycolor(colorName).toRgbString()
 	g.strokeColor = colorRGBstring
 	g.fillColor = "rgb(255,255,255,255)"
 
@@ -298,13 +308,32 @@ this.initParameters = () ->
 	dat.GUI.autoPace = false
 	g.gui = new dat.GUI()
 	g.generalFolder = g.gui.addFolder('General')
-	controller = g.generalFolder.add({location: g.parameters.location.default}, 'location').name("Location").onFinishChange( g.parameters.location.onFinishChange )
+
+	controller = g.generalFolder.add({location: g.parameters.location.default}, 'location')
+	.name("Location")
+	.onFinishChange( g.parameters.location.onFinishChange )
+
 	g.parameters.location.controller = controller
-	g.generalFolder.add({zoom: 100}, 'zoom', g.parameters.zoom.min, g.parameters.zoom.max).name("Zoom").onChange( g.parameters.zoom.onChange ).onFinishChange( g.parameters.zoom.onFinishChange )
-	g.generalFolder.add({displayGrid: g.parameters.displayGrid.default}, 'displayGrid', true).name("Display grid").onChange(g.parameters.displayGrid.onChange)
+
+	g.generalFolder.add({zoom: 100}, 'zoom', g.parameters.zoom.min, g.parameters.zoom.max)
+	.name("Zoom")
+	.onChange( g.parameters.zoom.onChange )
+	.onFinishChange( g.parameters.zoom.onFinishChange )
+
+	g.generalFolder.add({displayGrid: g.parameters.displayGrid.default}, 'displayGrid', true)
+	.name("Display grid")
+	.onChange(g.parameters.displayGrid.onChange)
 	# g.generalFolder.add({fastMode: g.parameters.fastMode.default}, 'fastMode', true).name("Fast mode").onChange(g.parameters.fastMode.onChange)
-	g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max).name(g.parameters.snap.label).onChange(g.parameters.snap.onChange)
-	
+
+	g.generalFolder.add({ignoreSockets: g.parameters.ignoreSockets.default}, 'ignoreSockets', false)
+	.name(g.parameters.ignoreSockets.name)
+	.onChange(g.parameters.ignoreSockets.onChange)
+
+	g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max)
+	.name(g.parameters.snap.label)
+	.step(g.parameters.snap.step)
+	.onChange(g.parameters.snap.onChange)
+
 	g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement)
 	toggleGuiButtonJ = $(g.gui.domElement).find("button.dat-gui-toggle")
 
@@ -317,12 +346,12 @@ this.initParameters = () ->
 			$(".dat-gui.dg-sidebar").append(g.gui.domElement)
 			localStorage.optionsBarPosition = 'sidebar'
 		return
-	
+
 	if localStorage.optionsBarPosition? and localStorage.optionsBarPosition == 'sidebar'
 		$(".dat-gui.dg-sidebar").append(g.gui.domElement)
 	else
 		$(".dat-gui.dg-right").append(g.gui.domElement)
-	
+
 	g.generalFolder.open()
 	g.gui.constructor.prototype.removeFolder = (name)->
 		this.__folders[name].close()
@@ -342,7 +371,7 @@ this.initParameters = () ->
 	# g.effectPickerJ = g.textOptionsJ.find('#fontEffect')
 	# g.sizePickerJ = g.textOptionsJ.find('#fontSizeSlider')
 	# g.sizePickerJ.slider().on('slide', (event)-> g.fontSize = event.value )
-	
+
 	g.availableFonts = []
 	g.usedFonts = []
 	jQuery.support.cors = true
@@ -353,7 +382,7 @@ this.initParameters = () ->
 # add font to the page:
 # - check if the font is already loaded, and with which effect
 # - load web font from google font if needed
-this.addFont = (fontFamily, effect)->		
+this.addFont = (fontFamily, effect)->
 	if not fontFamily? then return
 
 	fontFamilyURL = fontFamily.split(" ").join("+")
@@ -378,7 +407,7 @@ this.addFont = (fontFamily, effect)->
 		if effect?
 			effects.push(effect)
 		if not fontFamilyURL or fontFamilyURL == ''
-			debugger
+			console.log 'ERROR: font family URL is null or empty'
 		g.usedFonts.push( family: fontFamilyURL, effects: effects )
 	return
 
@@ -407,10 +436,11 @@ this.loadFonts = ()->
 			if font.effects.length>0 and not (font.effects.length == 1 and font.effects.first() == 'none')
 				newFont += "&effect="
 				for effect, i in font.effects
-					newFont += effect + '|'					
+					newFont += effect + '|'
 				newFont = newFont.slice(0,-1)
 
-			fontLink = $('<link class="fonts" data-font-family="' + font.family + '" rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=' + newFont + '">')
+			fontLink = $('<link class="fonts" data-font-family="' + font.family + '" rel="stylesheet" type="text/css">')
+			fontLink.attr('href', "http://fonts.googleapis.com/css?family=" + newFont)
 			$('head').append(fontLink)
 	return
 
@@ -422,7 +452,7 @@ this.initTextOptions = (data, textStatus, jqXHR) ->
 	for item in data.items
 		fontFamilyNames.push({ value: item.family })
 
-	# initialize typeahead font engine 
+	# initialize typeahead font engine
 	g.typeaheadFontEngine = new Bloodhound({
 		name: 'Font families',
 		local: fontFamilyNames,
@@ -436,7 +466,7 @@ this.initTextOptions = (data, textStatus, jqXHR) ->
 	# test
 	# g.familyPickerJ = g.textOptionsJ.find('#fontFamily')
 	# g.familyPickerJ.typeahead(
-	# 	{ hint: true, highlight: true, minLength: 1 }, 
+	# 	{ hint: true, highlight: true, minLength: 1 },
 	# 	{ valueKey: 'value', displayKey: 'value', source: typeaheadFontEngine.ttAdapter() }
 	# )
 
@@ -483,9 +513,10 @@ this.setControllerValue = (controller, parameter, value, item, checked=false)->
 # @param datFolder [DatFolder] folder in which to add the controller
 # @param resetValues [Boolean] (optional) true if must reset value to default (create a new default if parameter has a defaultFunction)
 this.addItem = (name, parameter, item, datFolder, resetValues)->
-	
+
 	# intialize the default value
-	if item? and datFolder.name != 'General' and item.data? and (item.data[name]? or parameter.type=='color') 	# a color can be null, then it is disabled
+	# a color can be null, then it is disabled
+	if item? and datFolder.name != 'General' and item.data? and (item.data[name]? or parameter.type=='color')
 		value = item.data[name]
 	else if parameter.value?
 		value = parameter.value
@@ -519,18 +550,19 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 				updateItemControllers(parameter, name, item, controller)
 			g.unusedControllers.remove(controller)
 			return
-	
+
 	# - snap the value according to parameter.step
 	# - update item.data[name] if it is defined
 	# - call item.parameterChanged()
 	# - emit "parameter change" on websocket
-	onParameterChange = (value) -> 
+	onParameterChange = (value) ->
 		g.c = this
 		for item in g.selectedItems
-			if typeof item.data?[name] isnt 'undefined' 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
+			# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
+			if typeof item.data?[name] isnt 'undefined'
 				# if parameter.step? then value = value-value%parameter.step
-				item.changeParameterCommand(name, value)
-				if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
+				item.setParameterCommand(name, value)
+				# if g.me? and datFolder.name != 'General' then g.chatSocket.emit( "parameter change", g.me, item.pk, name, value )
 		return
 
 	# if parameter has no onChange function: create a default one which will update item.data[name]
@@ -551,7 +583,7 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 			checkboxJ = $('<input type="checkbox">')
 			checkboxJ.insertBefore(inputJ)
 			checkboxJ[0].checked = if item? and datFolder.name != 'General' then item.data[name]? else parameter.defaultCheck
-			
+
 			# colorGUI = new dat.GUI({ autoPlace: false })
 			# color = :
 			# 	hue: 0
@@ -613,15 +645,18 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 				return
 			checkboxJ.change ()-> if this.checked then parameter.onChange(colorPicker.val()) else parameter.onChange(null)
 			datFolder.__controllers[datFolder.__controllers.length-1].rValue = () -> return if checkboxJ[0].checked then colorPicker.val() else null
-			controller.rSetValue = (value, item, checked)-> 
+			controller.rSetValue = (value, item, checked)->
 				if checked
 					if value? then colorPicker.trigger("colorpickersliders.updateColor", value)
 				checkboxJ[0].checked = checked
 				return
-		when 'slider', 'checkbox', 'dropdown', 'button', 'button-group', 'radio-button-group', 'string', 'input-typeahead'		# create any other controller
+		when 'slider', 'checkbox', 'dropdown', 'button', 'button-group', 'radio-button-group', 'string', 'input-typeahead'
 			obj[name] = value
 			firstOptionalParameter = if parameter.min? then parameter.min else parameter.values
-			controllerBox = datFolder.add(obj, name, firstOptionalParameter, parameter.max).name(parameter.label).onChange(parameter.onChange).onFinishChange(parameter.onFinishChange)
+			controllerBox = datFolder.add(obj, name, firstOptionalParameter, parameter.max)
+			.name(parameter.label)
+			.onChange(parameter.onChange)
+			.onFinishChange(parameter.onFinishChange)
 			controller = datFolder.__controllers.last()
 			if parameter.step? then controller.step?(parameter.step)
 			controller.rValue = controller.getValue
@@ -629,7 +664,7 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 			controller.rSetValue = parameter.setValue
 			updateItemControllers(parameter, name, item, controller)
 			parameter.initializeController?(controller, item)
-			
+
 		else
 			console.log 'unknown parameter type'
 
@@ -638,8 +673,9 @@ this.addItem = (name, parameter, item, datFolder, resetValues)->
 # update parameters according to the selected tool or items
 # @param tools [{ tool: RTool constructor, item: RItem } or Array of { tool: RTool constructor, item: RItem }] list of tools from which controllers will be created or updated
 # @param resetValues [Boolean] true to reset controller values, false to let them untouched (values must be reset when selecting a new tool, but not when creating another similar shape... this must be improved)
+
 this.updateParameters = (tools, resetValues=false)->
-	
+
 	# add every controllers in g.unusedControllers (we will potentially remove them all)
 	g.unusedControllers = []
 	for folderName, folder of g.gui.__folders
@@ -660,7 +696,9 @@ this.updateParameters = (tools, resetValues=false)->
 			for name, parameter of folder  							# for all parameters of the folder
 				if name != 'folderIsClosedByDefault'
 					addItem(name, parameter, item, datFolder, resetValues)
-			if not folderExists and not folder.folderIsClosedByDefault				# open folder if it did not exist (and is opened by default)
+
+			# open folder if it did not exist (and is opened by default)
+			if not folderExists and not folder.folderIsClosedByDefault
 				datFolder.open()
 
 	# remove all controllers which are not used anymore
@@ -672,11 +710,22 @@ this.updateParameters = (tools, resetValues=false)->
 				if folder.__controllers.length==0
 					g.gui.removeFolder(folderName)
 
-	# if dat.gui is in sidebar refresh its size and visibility in 500 milliseconds, (to fix a bug: sometimes dat.gui is too small, with a scrollbar or is not visible)
+	# if dat.gui is in sidebar refresh its size and visibility in 500 milliseconds,
+	# (to fix a bug: sometimes dat.gui is too small, with a scrollbar or is not visible)
 	if $(g.gui.domElement).parent().hasClass('dg-sidebar')
 		setTimeout( ()->
 			$(g.gui.domElement).find("ul:first").css( 'height': 'initial' )
 			$(g.gui.domElement).css( 'opacity': 1, 'z-index': 'auto' )
 		,
 		500)
+	return
+
+this.updateParametersForSelectedItems = ()->
+	g.callNextFrame(g.updateParametersForSelectedItemsCallback, 'updateParametersForSelectedItems')
+	return
+
+this.updateParametersForSelectedItemsCallback = ()->
+	console.log 'updateParametersForSelectedItemsCallback'
+	items = g.selectedItems.map( (item)-> return { tool: item.constructor, item: item } )
+	g.updateParameters(items, true)
 	return

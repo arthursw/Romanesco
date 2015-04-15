@@ -33,7 +33,7 @@ this.initCodeEditor = ()->
 	# g.sourceSelectorJ.append($("<option>").append(FuzzyPath.name))
 
 	# add saved sources to source selector
-	if localStorage.romanescoCode? and localStorage.romanescoCode.length>0 
+	if localStorage.romanescoCode? and localStorage.romanescoCode.length>0
 		for name, source of JSON.parse(localStorage.romanescoCode)
 			g.sourceSelectorJ.append($("<option>").append("saved - " + name))
 
@@ -82,7 +82,9 @@ this.initCodeEditor = ()->
 	# This is a poor and dirty implementation which must be updated
 	saveChanges = ()->
 		# romanescoCode is a map of className -> source code, it is JSON stringified/parsed when read/written from/to localStorage
-		romanescoCode = if localStorage.romanescoCode? and localStorage.romanescoCode.length>0 then JSON.parse(localStorage.romanescoCode) else {}
+		romanescoCode = {}
+		if localStorage.romanescoCode? and localStorage.romanescoCode.length>0
+			romanescoCode = JSON.parse(localStorage.romanescoCode)
 
 		source = g.editor.getValue() 	# get source
 
@@ -102,17 +104,20 @@ this.initCodeEditor = ()->
 				className = firstLineResult[1]
 			else 	# if no className: return (we do not save)
 				return
-		
-		if not g[className]? or source == g[className].source then return 		# return if source did not change or if className is not known (do not save)
 
-		romanescoCode[className] = source 										# update romanescoCode
-		localStorage.romanescoCode = JSON.stringify(romanescoCode) 				# save stringified version to local storage
+		# return if source did not change or if className is not known (do not save)
+		if not g[className]? or source == g[className].source then return
+
+		# update romanescoCode
+		romanescoCode[className] = source
+		# save stringified version to local storage
+		localStorage.romanescoCode = JSON.stringify(romanescoCode)
 
 		return
 
 	# save the code in localStorage after 1 second
 	g.editor.getSession().on 'change', (e)->
-		g.deferredExecution(saveChanges, 1000)
+		g.deferredExecution(saveChanges, 'saveChanges', 1000)
 		return
 
 	# todo: try compile at each change, see if name is in DB to determine if it's a update or a new tool and make notice to user
@@ -135,7 +140,7 @@ this.initCodeEditor = ()->
 		return
 
 	# just check for an error message on tool update callback
-	toolUpdateCallback = (result)=>
+	toolUpdateCallback = (result)->
 		g.checkError(result)
 		return
 
@@ -143,17 +148,22 @@ this.initCodeEditor = ()->
 	g.pushRequestBtnJ.click (event)->
 		tool = compileSource()
 		if tool?
+			args =
+				name: tool.name
+				className: tool.className
+				source: tool.source
+				compiledSource: tool.compiledSource
 			if g.editorJ.rNewtool
-				# ajaxPost '/addTool', { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource }, toolUpdateCallback
-				Dajaxice.draw.addTool( toolUpdateCallback, { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource, 'isTool': tool.isTool } )
+				args.isTool = tool.isTool
+				Dajaxice.draw.addTool(toolUpdateCallback, args)
 			else
 				# ajaxPost '/updateTool', { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource }, toolUpdateCallback
-				Dajaxice.draw.updateTool( toolUpdateCallback, { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource } )
+				Dajaxice.draw.updateTool(toolUpdateCallback, args)
 		return
 
 	# close button handler: hide code editor and reset default console.log and console.error functions
 	closeBtnJ = g.editorJ.find("button.close-editor")
-	closeBtnJ.click (event)-> 
+	closeBtnJ.click (event)->
 		g.editorJ.hide()
 		console.log = console.olog
 		console.error = console.oerror
@@ -161,7 +171,7 @@ this.initCodeEditor = ()->
 
 	# close console button handler: hide message box
 	closeMessageBoxBtnJ = g.editorJ.find("button.close-message-box")
-	closeMessageBoxBtnJ.click (event)-> 
+	closeMessageBoxBtnJ.click (event)->
 		g.messageBoxJ.hide()
 		g.codeEditorContentJ.removeClass 'message'
 		return
@@ -185,7 +195,9 @@ this.initCodeEditor = ()->
 		g.messageBoxContentJ.append( $("<p>").append(message).addClass("error") )
 		g.messageBoxContentJ.scrollTop(g.messageBoxContentJ[0].scrollHeight)
 		g.messageBoxJ.show()
-		romanesco_alert "An error occured, you can open the debug console (Command + Option + I) to have more information about the problem.", "info"
+		message = "An error occured, you can open the debug console (Command + Option + I)"
+		message += " to have more information about the problem."
+		romanesco_alert message, "info"
 		return
 
 	# console.log and console.error will be set to the custom g.logMessage and g.logError when code editor will be shown, like so:
@@ -198,8 +210,9 @@ this.initCodeEditor = ()->
 # Compile source code:
 # - extract className and rname and determine whether it is a simple script or a path class
 # @return [{ name: String, className: String, source: String, compiledSource: String, isTool: Boolean }] the compiled script in an object with the source, compiled source, class name, etc.
+
 this.compileSource = ()->
-	
+
 	source = g.editor.getValue()
 	className = ''
 	compiledJS = ''
@@ -224,13 +237,15 @@ this.compileSource = ()->
 			superClass = firstLineResult[2]
 			source += "\n@" + className + " = " + className
 		# else
-		# 	throw { location: 1, message: 'The code must begin with "class YourToolName extends SuperClass".\nSuperClass can be "PrecisePath", "SpeedPath" or "RShape".\n"YourToolName" can be any word starting with a captial letter.' }
+			# throw { location: 1, message: 'The code must begin with "class YourToolName extends SuperClass".\nSuperClass can be
+			# "PrecisePath", "SpeedPath" or "RShape".\n"YourToolName" can be any word starting with a captial letter.' }
 
 			rnameResult = /@rname = {1}(\'.*)/.exec(source)
 			if rnameResult? and rnameResult.length>=1
 				rname = rnameResult[1]
 			else
-				throw { location: 'NA', message: '@rname is not correctly set. There must be something like @rname = "your path name"' }
+				message = '@rname is not correctly set. There must be something like @rname = "your path name"'
+				throw location: 'NA', message: message
 		else
 			firstLineRegExp = /scriptName = {1}(("|')\w+("|'))\n/
 			firstLineResult = firstLineRegExp.exec(source)
@@ -239,11 +254,12 @@ this.compileSource = ()->
 				className = rname
 			else
 				throw
-					location: 'NA', 
+					location: 'NA',
 					message: """scriptName or class name is not correctly set.
 					Your script can be either a general script or a path script.
 					A general script must begin with 'scriptName = "yourScriptName"'.
-					A path script must begin with "class YourPathName extends SuperClass".\nSuperClass can be "PrecisePath", "SpeedPath" or "RShape".
+					A path script must begin with "class YourPathName extends SuperClass".
+					SuperClass can be "PrecisePath", "SpeedPath" or "RShape".
 					There must not be any comment or white character at the end of the first line.
 					"""
 
@@ -264,7 +280,7 @@ this.compileSource = ()->
 				errorMessage += "\nThis error is generally due to indention problem or unbalanced parenthesis/brackets/braces."
 		console.error errorMessage
 		return null
-	
+
 	return  { name: rname, className: className, source: source, compiledSource: compiledJS, isTool: isTool }
 
 # this.addTool = (tool)->
@@ -281,7 +297,7 @@ this.compileSource = ()->
 # 			newTool = new PathTool(this[tool.className], justCreated)
 # 			newTool.constructor.source = tool.source
 # 			if justCreated then newTool.select()
-# 		catch error 
+# 		catch error
 # 			console.error error
 # 			return null
 # 	return tool
@@ -290,7 +306,8 @@ this.compileSource = ()->
 # if *script* is not provided, the content of the code editor is compiled and taken as the script
 # called by the run button in the code editor (then the content of the code editor is compiled and taken as the script)
 # and when loading tools from database (then the script is given with its compiled version)
-# @return [{ name: String, className: String, source: String, compiledSource: String, isTool: Boolean }] the compiled script in an object with the source, compiled source, class name, etc.
+# @return [{ name: String, className: String, source: String, compiledSource: String, isTool: Boolean }] the compiled
+#			script in an object with the source, compiled source, class name, etc.
 this.runScript = (script)->
 	justCreated = not script?
 	script ?= compileSource()
@@ -303,7 +320,11 @@ this.runScript = (script)->
 				if g.tools[script.rname]? 				# remove the tool with the same name if exists, create the new path tool and select it
 					g.tools[script.rname].remove()
 					delete this[script.className]
-				className = if script.originalClassName? and script.originalClassName.length>0 then script.originalClassName else script.className
+				className = null
+				if script.originalClassName? and script.originalClassName.length>0
+					className = script.originalClassName
+				else
+					className = script.className
 				newTool = new PathTool(this[className], justCreated)
 				newTool.RPath.source = script.source
 				# newTool.constructor.source = script.source

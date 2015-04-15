@@ -1,11 +1,11 @@
-# RLock are locked area which can only be modified by their author 
+# RLock are locked area which can only be modified by their author
 # all RItems on the area are also locked, and can be unlocked if the user drags them outside the div
 
 # There are different RLocks:
 # - RLock: a simple RLock which just locks the area and the items underneath, and displays a popover with a message when the user clicks on it
 # - RLink: extends RLock but works as a link: the one who clicks on it is redirected to the website
 # - RWebsite:
-#    - extends RLock and provide the author a special website adresse 
+#    - extends RLock and provide the author a special website adresse
 #    - the owner of the site can choose a few options: "restrict area" and "hide toolbar"
 #    - a user going to a site with the "restricted area" option can not go outside the area
 #    - the tool bar will be hidden to users navigating to site with the "hide toolbar" option
@@ -46,7 +46,7 @@ class RLock extends RItem
 			{ value: 'video-game', checked: false, label: 'Create  video game (® x2)', linked: ['message'] }
 		]
 
-		radioGroupJ = RModal.addRadioGroup('object_type', radioButtons)	
+		radioGroupJ = RModal.addRadioGroup('object_type', radioButtons)
 		RModal.addCheckbox('restrictArea', 'Restrict area', "Users visiting your website will not be able to go out of the site boundaries.")
 		RModal.addCheckbox('disableToolbar', 'Disable toolbar', "Users will not have access to the toolbar on your site.")
 		RModal.addTextInput('linkName', 'Site name', 'text', '', 'Site name')
@@ -65,7 +65,7 @@ class RLock extends RItem
 			return
 		RModal.addCustomContent('siteName', siteURLJ, siteUrlExtractor)
 		RModal.addTextInput('message', 'Enter the message you want others to see when they look at this link.', 'text', '', 'Message', true)
-		
+
 		radioGroupJ.click (event)->
 			lockType = radioGroupJ.find('input[type=radio][name=object_type]:checked')[0].value
 			for radioButton in radioButtons
@@ -111,12 +111,6 @@ class RLock extends RItem
 				locks.push(lock)
 		return locks
 
-
-	@duplicate: (rectangle, data)->
-		copy = new @(rectangle, data)
-		copy.save()
-		return copy
-
 	@parameters: ()->
 		parameters = super()
 
@@ -137,11 +131,11 @@ class RLock extends RItem
 
 	constructor: (@rectangle, @data=null, @pk=null, @owner=null, @date) ->
 		super(@data, @pk)
-		
+
 		g.locks.push(@)
 
 		@group.name = 'lock group'
-		
+
 		# create background
 
 		@background = new Path.Rectangle(@rectangle)
@@ -167,10 +161,10 @@ class RLock extends RItem
 		titleJ.click (event)->
 			$(this).parent().toggleClass('closed')
 			return
-		
+
 		@itemListsJ.find('.rDiv-list').sortable( stop: g.zIndexSortStop, delay: 250 )
 		@itemListsJ.find('.rPath-list').sortable( stop: g.zIndexSortStop, delay: 250 )
-		
+
 		@itemListsJ.mouseover (event)=>
 			@highlight()
 			return
@@ -180,49 +174,55 @@ class RLock extends RItem
 
 		g.itemListsJ.prepend(@itemListsJ)
 		@itemListsJ = g.itemListsJ.find(".layer:first")
-		
+
 		# check if items are under this lock
 		for pk, item in g.items
 			if RLock.prototype.isPrototypeOf(item)
 				continue
 			if item.getBounds().intersects(@rectangle)
 				@addItem(item)
-		
+
 		# check if the lock must be entirely loaded
 		if @data?.loadEntireArea
 			g.entireAreas.push(@)
 
 		return
-	
+
 	# @param name [String] the name of the value to change
 	# @param value [Anything] the new value
-	# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from ChangeParameterCommand
-	changeParameter: (name, value, updateGUI)->
+	# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from SetParameterCommand
+	setParameter: (name, value, updateGUI)->
 		super(name, value, updateGUI)
 		switch name
 			when 'strokeWidth', 'strokeColor', 'fillColor'
 				@background[name] = @data[name]
 		return
 
-	save: (@addCreateCommand) ->
-		
+	save: (addCreateCommand=true) ->
+
 		if g.rectangleOverlapsTwoPlanets(@rectangle)
 			return
-		
+
 		if @rectangle.area == 0
 			@remove()
 			romanesco_alert "Error: your box is not valid.", "error"
 			return
-		
+
 		data = @getData()
-		
-		siteData = 
+
+		siteData =
 			restrictArea: data.restrictArea
 			disableToolbar: data.disableToolbar
 			loadEntireArea: data.loadEntireArea
-		
-		Dajaxice.draw.saveBox( @saveCallback, { 'box': g.boxFromRectangle(@rectangle), 'object_type': @constructor.object_type, 'data': JSON.stringify(data), 'siteData': JSON.stringify(siteData), 'name': data.name } )
-		
+
+		args =
+			box: g.boxFromRectangle(@rectangle)
+			object_type: @constructor.object_type
+			data: JSON.stringify(data)
+			siteData: JSON.stringify(siteData)
+			name: data.name
+		Dajaxice.draw.saveBox( @saveCallback, args)
+		super
 		return
 
 	# check if the save was successful and set @pk if it is
@@ -231,15 +231,13 @@ class RLock extends RItem
 		if not result.pk?  		# if @pk is null, the path was not saved, do not set pk nor rasterize
 			@remove()
 			return
-		if @addCreateCommand
-			g.commandManager.add(new CreateLockCommand(@))
-			delete @addCreateCommand
+
 		@owner = result.owner
 		@setPK(result.pk)
-		
+
 		if @updateAfterSave?
 			@update(@updateAfterSave)
-
+		super
 		return
 
 	update: (type) =>
@@ -251,7 +249,7 @@ class RLock extends RItem
 		# check if position is valid
 		if g.rectangleOverlapsTwoPlanets(@rectangle)
 			return
-		
+
 		# initialize data to be saved
 		updateBoxArgs =
 			box: g.boxFromRectangle(@rectangle)
@@ -261,11 +259,11 @@ class RLock extends RItem
 			data: @getStringifiedData()
 			updateType: type
 			# message: @data.message
-	
+
 		# Dajaxice.draw.updateBox( @updateCallback, args )
 		args = []
 		args.push( function: 'updateBox', arguments: updateBoxArgs )
-		
+
 		if type == 'position' or type == 'rectangle'
 			itemsToUpdate = if type == 'position' then @children() else []
 
@@ -278,19 +276,14 @@ class RLock extends RItem
 
 			for item in itemsToUpdate
 				args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments() )
-		
+
 		Dajaxice.draw.multipleCalls( @updateCallback, functionsAndArguments: args)
 		return
-	
+
 	updateCallback: (results)->
 		for result in results
 			g.checkError(result)
 		return
-
-	duplicate: (data)->
-		data ?= @getData()
-		copy = @constructor.duplicate(@rectangle, data)
-		return copy
 
 	# called when user deletes the item by pressing delete key or from the gui
 	# @delete() removes the item and delete it in the database
@@ -298,17 +291,12 @@ class RLock extends RItem
 	delete: () ->
 		@remove()
 		if not @pk? then return
-		Dajaxice.draw.deleteBox( @deleteBoxCallback, { 'pk': @pk } )
-		return
-	
-	deleteCommand: ()->
-		g.commandManager.add(new DeleteLockCommand(@), true)
+		if not @socketAction then Dajaxice.draw.deleteBox( g.checkError, { 'pk': @pk } )
+		super
 		return
 
-	# check for any error during delete, transmit delete on websocket if no errors
-	deleteBoxCallback: (result)->
-		if g.checkError(result)
-			g.chatSocket.emit( "delete box", result.pk )
+	deleteCommand: ()->
+		g.commandManager.add(new DeleteLockCommand(@), true)
 		return
 
 	setRectangle: (rectangle, update)->
@@ -319,7 +307,7 @@ class RLock extends RItem
 		return
 
 	moveTo: (position, update)->
-		delta = position.subtract(@group.position)
+		delta = position.subtract(@rectangle.center)
 		for item in @children()
 			item.rectangle.center.x += delta.x
 			item.rectangle.center.y += delta.y
@@ -327,13 +315,18 @@ class RLock extends RItem
 				item.updateTransform()
 		super(position, update)
 		return
-	
+
 	# check if lock contains its children
 	containsChildren: ()->
 		for item in @children()
 			if not @rectangle.contains(item.getBounds())
 				return false
 		return true
+
+	showChildren: ()->
+		for item in @children()
+			item.group?.visible = true
+		return
 
 	# can not select a lock which the user does not own
 	select: (updateOptions=true) =>
@@ -343,15 +336,14 @@ class RLock extends RItem
 		return true
 
 	remove: () ->
-		
 		for path in @children()
 			@removeItem(path)
-		
+
 		@itemListsJ.remove()
 		@itemListsJ = null
 		g.locks.remove(@)
 		@background = null
-		super()
+		super
 		return
 
 	children: ()->
@@ -360,14 +352,13 @@ class RLock extends RItem
 	addItem: (item)->
 		g.addItemTo(item, @)
 		return
-	
+
 	removeItem: (item)->
 		g.addItemToStage(item)
 		return
 
 	highlight: (color)->
 		super()
-		@highlightRectangle.moveAbove(@background)
 		if color
 			@highlightRectangle.fillColor = color
 			@highlightRectangle.strokeColor = color
@@ -377,7 +368,7 @@ class RLock extends RItem
 @RLock = RLock
 
 # RWebsite:
-#  - extends RLock and provide the author a special website adresse 
+#  - extends RLock and provide the author a special website adresse
 #  - the owner of the site can choose a few options: "restrict area" and "hide toolbar"
 #  - a user going to a site with the "restricted area" option can not go outside the area
 #  - the tool bar will be hidden to users navigating to site with the "hide toolbar" option
@@ -413,7 +404,7 @@ class RVideoGame extends RLock
 		@currentCheckpoint = -1
 		@checkpoints = []
 		return
-	
+
 	# overload {RDiv#getData} + set data.loadEntireArea to true (we want videogames to load entirely)
 	getData: ()->
 		data = super()
@@ -430,7 +421,7 @@ class RVideoGame extends RLock
 		console.log "Gui init"
 		return
 
-	# update game machanics: 
+	# update game machanics:
 	# called at each frame (currently by the tool event, but should move to main.coffee in the onFrame event)
 	# @param tool [RTool] the car tool to get the car position
 	updateGame: (tool)->
@@ -441,7 +432,7 @@ class RVideoGame extends RLock
 					if @currentCheckpoint == 0
 						@startTime = Date.now()
 						romanesco_alert "Game started, go go go!", "success"
-					else	
+					else
 						romanesco_alert "Checkpoint " + @currentCheckpoint + " passed!", "success"
 				if @currentCheckpoint == @checkpoints.length-1
 					@finishGame()

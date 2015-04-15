@@ -8,7 +8,7 @@
   RTool = (function() {
 
     /*
-    	parameters = 
+    	parameters =
     		'First folder':
     			firstParameter:
     				type: 'slider' 									# type is only required when adding a color (then it must be 'color') or a string input (then it must be 'string')
@@ -118,6 +118,7 @@
       if (deselectItems) {
         g.deselectAll();
       }
+      g.cancelCallNextFrame('updateParametersForSelectedItems');
       g.updateParameters({
         tool: constructor,
         item: selectedItem
@@ -294,11 +295,9 @@
       this.car.position = view.center;
       this.speed = 0;
       this.direction = new Point(0, -1);
-      this.car.onLoad = (function(_this) {
-        return function() {
-          console.log('car loaded');
-        };
-      })(this);
+      this.car.onLoad = function() {
+        console.log('car loaded');
+      };
       this.previousSpeed = 0;
       g.sound.setVolume(0.1);
       g.sound.play(0);
@@ -396,30 +395,34 @@
 
     SelectTool.prototype.select = function() {
       var _ref;
+      g.rasterizer.drawItems();
       this.selectedItem = g.selectedItems.first();
       SelectTool.__super__.select.call(this, ((_ref = this.selectedItem) != null ? _ref.constructor : void 0) || this.constructor, this.selectedItem, false);
     };
 
     SelectTool.prototype.createSelectionRectangle = function(event) {
-      var bounds, item, itemsToHighlight, name, rectangle, rectanglePath, _ref, _ref1;
+      var bounds, item, itemsToHighlight, name, rectangle, rectanglePath, _ref;
       rectangle = new Rectangle(event.downPoint, event.point);
-      if ((_ref = g.currentPaths[g.me]) != null) {
-        _ref.remove();
+      if (g.currentPaths[g.me] != null) {
+        g.updatePathRectangle(g.currentPaths[g.me], rectangle);
+      } else {
+        rectanglePath = new Path.Rectangle(rectangle);
+        rectanglePath.name = 'select tool selection rectangle';
+        rectanglePath.strokeColor = g.selectionBlue;
+        rectanglePath.strokeScaling = false;
+        rectanglePath.dashArray = [10, 4];
+        g.selectionLayer.addChild(rectanglePath);
+        g.currentPaths[g.me] = rectanglePath;
       }
-      rectanglePath = new Path.Rectangle(rectangle);
-      rectanglePath.name = 'select tool selection rectangle';
-      rectanglePath.strokeColor = g.selectionBlue;
-      rectanglePath.dashArray = [10, 4];
-      g.selectionLayer.addChild(rectanglePath);
-      g.currentPaths[g.me] = rectanglePath;
       itemsToHighlight = [];
-      _ref1 = g.items;
-      for (name in _ref1) {
-        item = _ref1[name];
+      _ref = g.items;
+      for (name in _ref) {
+        item = _ref[name];
         item.unhighlight();
         bounds = item.getBounds();
         if (bounds.intersects(rectangle)) {
           item.highlight();
+          console.log(item.highlightRectangle.index);
         }
         if (rectangle.area === 0) {
           break;
@@ -448,7 +451,7 @@
         if (!event.modifiers.shift) {
           if (g.selectedItems.length > 0) {
             if (g.selectedItems.indexOf((_ref2 = hitResult.item) != null ? _ref2.controller : void 0) < 0) {
-              g.deselectAll();
+              g.commandManager.add(new DeselectCommand(), true);
             }
           }
         }
@@ -470,39 +473,67 @@
     };
 
     SelectTool.prototype.end = function(event) {
-      var i, item, itemsToSelect, name, rectangle, _ref, _ref1;
+      var child, i, item, itemsAreSiblings, itemsToSelect, lock, locksToSelect, name, parent, rectangle, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
       if (!g.currentPaths[g.me]) {
         this.selectedItem.endSelect(event);
         this.selectedItem = null;
       } else {
         rectangle = new Rectangle(event.downPoint, event.point);
         itemsToSelect = [];
+        locksToSelect = [];
         _ref = g.items;
         for (name in _ref) {
           item = _ref[name];
           if (item.getBounds().intersects(rectangle)) {
-            itemsToSelect.push(item);
-            if (rectangle.area === 0) {
-              break;
+            if (RLock.prototype.isPrototypeOf(item)) {
+              locksToSelect.push(item);
+            } else {
+              itemsToSelect.push(item);
             }
           }
         }
-        if (itemsToSelect.length > 0) {
-          g.commandManager.add(new SelectCommand(itemsToSelect), true);
+        if (itemsToSelect.length === 0) {
+          itemsToSelect = locksToSelect;
         }
-        i = itemsToSelect.length - 1;
-        while (i >= 0) {
-          item = itemsToSelect[i];
-          if (!item.isSelected()) {
-            itemsToSelect.remove(item);
+        if (itemsToSelect.length > 0) {
+          itemsAreSiblings = true;
+          parent = itemsToSelect.first().group.parent;
+          for (_i = 0, _len = itemsToSelect.length; _i < _len; _i++) {
+            item = itemsToSelect[_i];
+            if (item.group.parent !== parent) {
+              itemsAreSiblings = false;
+              break;
+            }
           }
-          i--;
+          if (!itemsAreSiblings) {
+            for (_j = 0, _len1 = locksToSelect.length; _j < _len1; _j++) {
+              lock = locksToSelect[_j];
+              _ref1 = lock.children();
+              for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
+                child = _ref1[_k];
+                itemsToSelect.remove(child);
+              }
+            }
+            itemsToSelect = itemsToSelect.concat(locksToSelect);
+          }
+          if (rectangle.area === 0) {
+            itemsToSelect = [itemsToSelect.first()];
+          }
+          g.commandManager.add(new SelectCommand(itemsToSelect), true);
+          i = itemsToSelect.length - 1;
+          while (i >= 0) {
+            item = itemsToSelect[i];
+            if (!item.isSelected()) {
+              itemsToSelect.remove(item);
+            }
+            i--;
+          }
         }
         g.currentPaths[g.me].remove();
         delete g.currentPaths[g.me];
-        _ref1 = g.items;
-        for (name in _ref1) {
-          item = _ref1[name];
+        _ref2 = g.items;
+        for (name in _ref2) {
+          item = _ref2[name];
           item.unhighlight();
         }
       }
@@ -587,6 +618,7 @@
     };
 
     PathTool.prototype.select = function() {
+      g.rasterizer.drawItems();
       PathTool.__super__.select.call(this, this.RPath);
       g.tool.onMouseMove = function(event) {
         event = g.snap(event);
@@ -596,7 +628,7 @@
 
     PathTool.prototype.deselect = function() {
       PathTool.__super__.deselect.call(this);
-      this.finishPath();
+      this.finish();
       g.tool.onMouseMove = null;
     };
 
@@ -611,14 +643,23 @@
       if (event.event.which === 2) {
         return;
       }
+      if (100 * view.zoom < 10) {
+        romanesco_alert("You can not draw path at a zoom smaller than 10.", "Info");
+        return;
+      }
       if (!((g.currentPaths[from] != null) && ((_ref = g.currentPaths[from].data) != null ? _ref.polygonMode : void 0))) {
         g.deselectAll();
         g.currentPaths[from] = new this.RPath(Date.now(), data);
-        g.currentPaths[from].select(false, false);
       }
       g.currentPaths[from].beginCreate(event.point, event, false);
       if ((g.me != null) && from === g.me) {
-        g.chatSocket.emit("begin", g.me, g.eventToObject(event), this.name, g.currentPaths[from].data);
+        data = g.currentPaths[from].data;
+        data.id = g.currentPaths[from].id;
+        g.chatSocket.emit("bounce", {
+          tool: this.name,
+          "function": "begin",
+          "arguments": [event, g.me, data]
+        });
       }
     };
 
@@ -628,7 +669,11 @@
       }
       g.currentPaths[from].updateCreate(event.point, event, false);
       if ((g.me != null) && from === g.me) {
-        g.chatSocket.emit("update", g.me, g.eventToObject(event), this.name);
+        g.chatSocket.emit("bounce", {
+          tool: this.name,
+          "function": "update",
+          "arguments": [event, g.me]
+        });
       }
     };
 
@@ -645,17 +690,43 @@
       var bounds, lock, locks, path, _i, _len;
       path = g.currentPaths[from];
       if ((g.me != null) && from === g.me) {
+        if (path.rectangle.area === 0) {
+          path.remove();
+          delete g.currentPaths[from];
+          return;
+        }
         bounds = path.getBounds();
         locks = RLock.getLocksWhichIntersect(bounds);
         for (_i = 0, _len = locks.length; _i < _len; _i++) {
           lock = locks[_i];
           if (lock.rectangle.contains(bounds)) {
-            lock.addItem(path);
+            if (lock.owner === g.me) {
+              lock.addItem(path);
+            } else {
+              g.romanesco_alert("The path intersects with a lock", "Warning");
+              path.remove();
+              delete g.currentPaths[from];
+              return;
+            }
           }
+        }
+        if (path.getDrawingBounds().area > g.rasterizer.maxArea()) {
+          g.romanesco_alert("The path is too big", "Warning");
+          path.remove();
+          delete g.currentPaths[from];
+          return;
+        }
+        if ((g.me != null) && from === g.me) {
+          g.chatSocket.emit("bounce", {
+            tool: this.name,
+            "function": "createPath",
+            "arguments": [event, g.me]
+          });
         }
         path.save(true);
         path.select(false);
-        g.chatSocket.emit("end", g.me, g.eventToObject(event), this.name);
+      } else {
+        path.endCreate(event.point, event);
       }
       delete g.currentPaths[from];
     };
@@ -667,11 +738,6 @@
       }
       path = g.currentPaths[from];
       if (!((_ref = path.data) != null ? _ref.polygonMode : void 0)) {
-        if (event.downPoint.equals(event.point)) {
-          path.remove();
-          delete g.currentPaths[from];
-          return;
-        }
         path.endCreate(event.point, event, false);
         this.createPath(event, from);
       } else {
@@ -679,7 +745,7 @@
       }
     };
 
-    PathTool.prototype.finishPath = function(from) {
+    PathTool.prototype.finish = function(from) {
       var _ref, _ref1;
       if (from == null) {
         from = g.me;
@@ -687,7 +753,7 @@
       if (!((_ref = g.currentPaths[g.me]) != null ? (_ref1 = _ref.data) != null ? _ref1.polygonMode : void 0 : void 0)) {
         return;
       }
-      g.currentPaths[from].finishPath();
+      g.currentPaths[from].finish();
       this.createPath(event, from);
     };
 
@@ -711,6 +777,7 @@
     }
 
     ItemTool.prototype.select = function() {
+      g.rasterizer.drawItems();
       ItemTool.__super__.select.call(this, this.RItem);
     };
 
@@ -727,7 +794,11 @@
       g.currentPaths[from].strokeColor = 'black';
       g.selectionLayer.addChild(g.currentPaths[from]);
       if ((g.me != null) && from === g.me) {
-        g.chatSocket.emit("begin", g.me, g.eventToObject(event), this.name, g.currentPaths[from].data);
+        g.chatSocket.emit("bounce", {
+          tool: this.name,
+          "function": "begin",
+          "arguments": [event, g.me, g.currentPaths[from].data]
+        });
       }
     };
 
@@ -753,7 +824,11 @@
         g.currentPaths[from].fillColor = 'red';
       }
       if ((g.me != null) && from === g.me) {
-        g.chatSocket.emit("update", g.me, point, this.name);
+        g.chatSocket.emit("bounce", {
+          tool: this.name,
+          "function": "update",
+          "arguments": [event, g.me]
+        });
       }
     };
 
@@ -787,7 +862,11 @@
         g.currentPaths[from].height = 10;
       }
       if ((g.me != null) && from === g.me) {
-        g.chatSocket.emit("end", g.me, point, this.name);
+        g.chatSocket.emit("bounce", {
+          tool: this.name,
+          "function": "end",
+          "arguments": [event, g.me]
+        });
       }
       return true;
     };
@@ -900,7 +979,6 @@
     __extends(ScreenshotTool, _super);
 
     function ScreenshotTool() {
-      this.copyURL = __bind(this.copyURL, this);
       this.downloadSVG = __bind(this.downloadSVG, this);
       this.downloadPNG = __bind(this.downloadPNG, this);
       this.publishOnPinterestCallback = __bind(this.publishOnPinterestCallback, this);
@@ -960,6 +1038,17 @@
       }
     };
 
+    ScreenshotTool.prototype.select = function() {
+      ScreenshotTool.__super__.select.call(this);
+      g.rasterizer.drawItems();
+      g.rasterizer.clearRasters();
+    };
+
+    ScreenshotTool.prototype.deselect = function() {
+      ScreenshotTool.__super__.deselect.call(this);
+      g.rasterizer.rasterizeView();
+    };
+
     ScreenshotTool.prototype.begin = function(event) {
       var from;
       from = g.me;
@@ -1011,22 +1100,20 @@
       twitterLinkJ = this.modalJ.find('a[name="publish-on-twitter"]');
       twitterLinkJ.empty().text("Publish on Twitter");
       twitterLinkJ.attr("data-url", this.locationURL);
-      twitterScriptJ = $('<script type="text/javascript">window.twttr=(function(d,s,id){var t,js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id)){return}js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);return window.twttr||(t={_e:[],ready:function(f){t._e.push(f)}})}(document,"script","twitter-wjs"));</script>');
+      twitterScriptJ = $("<script type=\"text/javascript\">\n	window.twttr=(function(d,s,id){var t,js,fjs=d.getElementsByTagName(s)[0];\n	if(d.getElementById(id)){return}js=d.createElement(s);\n	js.id=id;js.src=\"https://platform.twitter.com/widgets.js\";\n	fjs.parentNode.insertBefore(js,fjs);\n	return window.twttr||(t={_e:[],ready:function(f){t._e.push(f)}})}(document,\"script\",\"twitter-wjs\"));\n</script>");
       twitterLinkJ.append(twitterScriptJ);
       this.modalJ.modal('show');
-      this.modalJ.on('shown.bs.modal', (function(_this) {
-        return function(e) {
-          var client;
-          client = new ZeroClipboard(copyDataBtnJ);
-          client.on("ready", function(readyEvent) {
-            console.log("ZeroClipboard SWF is ready!");
-            client.on("aftercopy", function(event) {
-              romanesco_alert("Image data url was successfully copied into the clipboard!", "success");
-              this.destroy();
-            });
+      this.modalJ.on('shown.bs.modal', function(e) {
+        var client;
+        client = new ZeroClipboard(copyDataBtnJ);
+        client.on("ready", function(readyEvent) {
+          console.log("ZeroClipboard SWF is ready!");
+          client.on("aftercopy", function(event) {
+            romanesco_alert("Image data url was successfully copied into the clipboard!", "success");
+            this.destroy();
           });
-        };
-      })(this));
+        });
+      });
     };
 
     ScreenshotTool.prototype.saveImage = function(callback) {
@@ -1136,15 +1223,18 @@
     };
 
     ScreenshotTool.prototype.downloadSVG = function() {
-      var blob, bounds, canvasTemp, fileName, item, itemsToSave, link, position, rectanglePath, svg, svgGroup, tempProject, url, _i, _j, _k, _len, _len1, _len2, _ref, _ref1;
+      var blob, bounds, canvasTemp, controlPath, fileName, item, itemsToSave, link, position, rectanglePath, svg, svgGroup, tempProject, url, _i, _j, _k, _len, _len1, _len2, _ref;
       rectanglePath = new Path.Rectangle(this.rectangle);
       itemsToSave = [];
       _ref = project.activeLayer.children;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         item = _ref[_i];
         bounds = item.bounds;
-        if ((item.controller != null) && (this.rectangle.contains(bounds) || (this.rectangle.intersects(bounds) && ((_ref1 = item.controller.controlPath) != null ? _ref1.getIntersections(rectanglePath).length : void 0) > 0))) {
-          g.pushIfAbsent(itemsToSave, item.controller);
+        if (item.controller != null) {
+          controlPath = item.controller.controlPath;
+          if (this.rectangle.contains(bounds) || (this.rectangle.intersects(bounds) && (controlPath != null ? controlPath.getIntersections(rectanglePath).length : void 0) > 0)) {
+            g.pushIfAbsent(itemsToSave, item.controller);
+          }
         }
       }
       svgGroup = new Group();

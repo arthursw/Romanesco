@@ -22,7 +22,11 @@ Notations:
   var init, initPosition, initTools;
 
   initTools = function() {
-    var defaultFavoriteTools, error, initToolTypeahead, pathClass, sortStart, sortStop, _i, _len;
+    var defaultFavoriteTools, error, initToolTypeahead, pathClass, sortStart, sortStop, sortableArgs, _i, _len;
+    if (g.rasterizerMode != null) {
+      g.setTools();
+      return;
+    }
     g.toolsJ = $(".tool-list");
     g.favoriteToolsJ = $("#FavoriteTools .tool-list");
     g.allToolsContainerJ = $("#AllTools");
@@ -40,7 +44,7 @@ Notations:
     while (g.favoriteTools.length < 8) {
       g.pushIfAbsent(g.favoriteTools, defaultFavoriteTools.pop().rname);
     }
-    g.tools = new Object();
+    g.tools = {};
     new MoveTool();
     new CarTool();
     new SelectTool();
@@ -127,14 +131,15 @@ Notations:
       g.typeaheadToolEngine.clear();
       g.typeaheadToolEngine.add(toolValues);
     };
-    $("#sortable1, #sortable2").sortable({
+    sortableArgs = {
       connectWith: ".connectedSortable",
       appendTo: g.sidebarJ,
       helper: "clone",
       start: sortStart,
       stop: sortStop,
       delay: 250
-    }).disableSelection();
+    };
+    $("#sortable1, #sortable2").sortable(sortableArgs).disableSelection();
     g.tools['Move'].select();
     g.wacomPlugin = document.getElementById('wacomPlugin');
     if (g.wacomPlugin != null) {
@@ -151,6 +156,9 @@ Notations:
 
   initPosition = function() {
     var box, boxRectangle, boxString, br, controller, folder, folderName, loadEntireArea, planet, pos, site, siteString, tl, _i, _len, _ref, _ref1;
+    if (g.rasterizerMode) {
+      return;
+    }
     boxString = g.canvasJ.attr("data-box");
     if (!boxString || boxString.length === 0) {
       window.onhashchange();
@@ -197,394 +205,6 @@ Notations:
     }
   };
 
-  this.initializeGlobalParameters = function() {
-    g.parameters = {};
-    g.parameters.location = {
-      type: 'string',
-      label: 'Location',
-      "default": '0.0, 0.0',
-      permanent: true,
-      onFinishChange: function(value) {
-        g.ignoreHashChange = false;
-        location.hash = value;
-      }
-    };
-    g.parameters.zoom = {
-      type: 'slider',
-      label: 'Zoom',
-      min: 1,
-      max: 500,
-      "default": 100,
-      permanent: true,
-      onChange: function(value) {
-        var div, _i, _len, _ref;
-        g.project.view.zoom = value / 100.0;
-        g.updateGrid();
-        _ref = g.divs;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          div = _ref[_i];
-          div.updateTransform();
-        }
-      },
-      onFinishChange: function(value) {
-        return g.load();
-      }
-    };
-    g.parameters.displayGrid = {
-      type: 'checkbox',
-      label: 'Display grid',
-      "default": false,
-      permanent: true,
-      onChange: function(value) {
-        g.displayGrid = !g.displayGrid;
-        g.updateGrid();
-      }
-    };
-    g.parameters.strokeWidth = {
-      type: 'slider',
-      label: 'Stroke width',
-      min: 1,
-      max: 100,
-      "default": 1
-    };
-    g.parameters.strokeColor = {
-      type: 'color',
-      label: 'Stroke color',
-      "default": g.defaultColors.random(),
-      defaultFunction: function() {
-        return g.defaultColors.random();
-      },
-      defaultCheck: true
-    };
-    g.parameters.fillColor = {
-      type: 'color',
-      label: 'Fill color',
-      "default": g.defaultColors.random(),
-      defaultCheck: false
-    };
-    g.parameters["delete"] = {
-      type: 'button',
-      label: 'Delete items',
-      "default": function() {
-        var item, _i, _len, _ref, _results;
-        _ref = g.selectedItems;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          item = _ref[_i];
-          _results.push(item.deleteCommand());
-        }
-        return _results;
-      }
-    };
-    g.parameters.duplicate = {
-      type: 'button',
-      label: 'Duplicate items',
-      "default": function() {
-        var item, _i, _len, _ref, _results;
-        _ref = g.selectedItems;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          item = _ref[_i];
-          _results.push(item.duplicateCommand());
-        }
-        return _results;
-      }
-    };
-    g.parameters.snap = {
-      type: 'slider',
-      label: 'Snap',
-      min: 0,
-      max: 100,
-      step: 5,
-      "default": 0,
-      snap: 0,
-      permanent: true,
-      onChange: function() {
-        return g.updateGrid();
-      }
-    };
-    g.parameters.align = {
-      type: 'button-group',
-      label: 'Align',
-      value: '',
-      initializeController: function(controller) {
-        var align, alignJ;
-        $(controller.domElement).find('input').remove();
-        align = function(type) {
-          var avgX, avgY, bottom, bounds, item, items, left, right, top, xMax, xMin, yMax, yMin, _i, _j, _k, _l, _len, _len1, _len10, _len11, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s, _t;
-          items = g.selectedItems;
-          switch (type) {
-            case 'h-top':
-              yMin = NaN;
-              for (_i = 0, _len = items.length; _i < _len; _i++) {
-                item = items[_i];
-                top = item.getBounds().top;
-                if (isNaN(yMin) || top < yMin) {
-                  yMin = top;
-                }
-              }
-              items.sort(function(a, b) {
-                return a.getBounds().top - b.getBounds().top;
-              });
-              for (_j = 0, _len1 = items.length; _j < _len1; _j++) {
-                item = items[_j];
-                bounds = item.getBounds();
-                item.moveTo(new Point(bounds.centerX, top + bounds.height / 2));
-              }
-              break;
-            case 'h-center':
-              avgY = 0;
-              for (_k = 0, _len2 = items.length; _k < _len2; _k++) {
-                item = items[_k];
-                avgY += item.getBounds().centerY;
-              }
-              avgY /= items.length;
-              items.sort(function(a, b) {
-                return a.getBounds().centerY - b.getBounds().centerY;
-              });
-              for (_l = 0, _len3 = items.length; _l < _len3; _l++) {
-                item = items[_l];
-                bounds = item.getBounds();
-                item.moveTo(new Point(bounds.centerX, avgY));
-              }
-              break;
-            case 'h-bottom':
-              yMax = NaN;
-              for (_m = 0, _len4 = items.length; _m < _len4; _m++) {
-                item = items[_m];
-                bottom = item.getBounds().bottom;
-                if (isNaN(yMax) || bottom > yMax) {
-                  yMax = bottom;
-                }
-              }
-              items.sort(function(a, b) {
-                return a.getBounds().bottom - b.getBounds().bottom;
-              });
-              for (_n = 0, _len5 = items.length; _n < _len5; _n++) {
-                item = items[_n];
-                bounds = item.getBounds();
-                item.moveTo(new Point(bounds.centerX, bottom - bounds.height / 2));
-              }
-              break;
-            case 'v-left':
-              xMin = NaN;
-              for (_o = 0, _len6 = items.length; _o < _len6; _o++) {
-                item = items[_o];
-                left = item.getBounds().left;
-                if (isNaN(xMin) || left < xMin) {
-                  xMin = left;
-                }
-              }
-              items.sort(function(a, b) {
-                return a.getBounds().left - b.getBounds().left;
-              });
-              for (_p = 0, _len7 = items.length; _p < _len7; _p++) {
-                item = items[_p];
-                bounds = item.getBounds();
-                item.moveTo(new Point(xMin + bounds.width / 2, bounds.centerY));
-              }
-              break;
-            case 'v-center':
-              avgX = 0;
-              for (_q = 0, _len8 = items.length; _q < _len8; _q++) {
-                item = items[_q];
-                avgX += item.getBounds().centerX;
-              }
-              avgX /= items.length;
-              items.sort(function(a, b) {
-                return a.getBounds().centerY - b.getBounds().centerY;
-              });
-              for (_r = 0, _len9 = items.length; _r < _len9; _r++) {
-                item = items[_r];
-                bounds = item.getBounds();
-                item.moveTo(new Point(avgX, bounds.centerY));
-              }
-              break;
-            case 'v-right':
-              xMax = NaN;
-              for (_s = 0, _len10 = items.length; _s < _len10; _s++) {
-                item = items[_s];
-                right = item.getBounds().right;
-                if (isNaN(xMax) || right > xMax) {
-                  xMax = right;
-                }
-              }
-              items.sort(function(a, b) {
-                return a.getBounds().right - b.getBounds().right;
-              });
-              for (_t = 0, _len11 = items.length; _t < _len11; _t++) {
-                item = items[_t];
-                bounds = item.getBounds();
-                item.moveTo(new Point(xMax - bounds.width / 2, bounds.centerY));
-              }
-          }
-        };
-        g.templatesJ.find("#align").clone().appendTo(controller.domElement);
-        alignJ = $("#align:first");
-        alignJ.find("button").click(function() {
-          return align($(this).attr("data-type"));
-        });
-      }
-    };
-    g.parameters.distribute = {
-      type: 'button-group',
-      label: 'Distribute',
-      value: '',
-      initializeController: function(controller) {
-        var distribute, distributeJ;
-        $(controller.domElement).find('input').remove();
-        distribute = function(type) {
-          var bottom, bounds, center, i, item, items, left, right, step, top, xMax, xMin, yMax, yMin, _i, _j, _k, _l, _len, _len1, _len10, _len11, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s, _t;
-          items = g.selectedItems;
-          switch (type) {
-            case 'h-top':
-              yMin = NaN;
-              yMax = NaN;
-              for (_i = 0, _len = items.length; _i < _len; _i++) {
-                item = items[_i];
-                top = item.getBounds().top;
-                if (isNaN(yMin) || top < yMin) {
-                  yMin = top;
-                }
-                if (isNaN(yMax) || top > yMax) {
-                  yMax = top;
-                }
-              }
-              step = (yMax - yMin) / (items.length - 1);
-              items.sort(function(a, b) {
-                return a.getBounds().top - b.getBounds().top;
-              });
-              for (i = _j = 0, _len1 = items.length; _j < _len1; i = ++_j) {
-                item = items[i];
-                bounds = item.getBounds();
-                item.moveTo(new Point(bounds.centerX, yMin + i * step + bounds.height / 2));
-              }
-              break;
-            case 'h-center':
-              yMin = NaN;
-              yMax = NaN;
-              for (_k = 0, _len2 = items.length; _k < _len2; _k++) {
-                item = items[_k];
-                center = item.getBounds().centerY;
-                if (isNaN(yMin) || center < yMin) {
-                  yMin = center;
-                }
-                if (isNaN(yMax) || center > yMax) {
-                  yMax = center;
-                }
-              }
-              step = (yMax - yMin) / (items.length - 1);
-              items.sort(function(a, b) {
-                return a.getBounds().centerY - b.getBounds().centerY;
-              });
-              for (i = _l = 0, _len3 = items.length; _l < _len3; i = ++_l) {
-                item = items[i];
-                bounds = item.getBounds();
-                item.moveTo(new Point(bounds.centerX, yMin + i * step));
-              }
-              break;
-            case 'h-bottom':
-              yMin = NaN;
-              yMax = NaN;
-              for (_m = 0, _len4 = items.length; _m < _len4; _m++) {
-                item = items[_m];
-                bottom = item.getBounds().bottom;
-                if (isNaN(yMin) || bottom < yMin) {
-                  yMin = bottom;
-                }
-                if (isNaN(yMax) || bottom > yMax) {
-                  yMax = bottom;
-                }
-              }
-              step = (yMax - yMin) / (items.length - 1);
-              items.sort(function(a, b) {
-                return a.getBounds().bottom - b.getBounds().bottom;
-              });
-              for (i = _n = 0, _len5 = items.length; _n < _len5; i = ++_n) {
-                item = items[i];
-                bounds = item.getBounds();
-                item.moveTo(new Point(bounds.centerX, yMin + i * step - bounds.height / 2));
-              }
-              break;
-            case 'v-left':
-              xMin = NaN;
-              xMax = NaN;
-              for (_o = 0, _len6 = items.length; _o < _len6; _o++) {
-                item = items[_o];
-                left = item.getBounds().left;
-                if (isNaN(xMin) || left < xMin) {
-                  xMin = left;
-                }
-                if (isNaN(xMax) || left > xMax) {
-                  xMax = left;
-                }
-              }
-              step = (xMax - xMin) / (items.length - 1);
-              items.sort(function(a, b) {
-                return a.getBounds().left - b.getBounds().left;
-              });
-              for (i = _p = 0, _len7 = items.length; _p < _len7; i = ++_p) {
-                item = items[i];
-                bounds = item.getBounds();
-                item.moveTo(new Point(xMin + i * step + bounds.width / 2, bounds.centerY));
-              }
-              break;
-            case 'v-center':
-              xMin = NaN;
-              xMax = NaN;
-              for (_q = 0, _len8 = items.length; _q < _len8; _q++) {
-                item = items[_q];
-                center = item.getBounds().centerX;
-                if (isNaN(xMin) || center < xMin) {
-                  xMin = center;
-                }
-                if (isNaN(xMax) || center > xMax) {
-                  xMax = center;
-                }
-              }
-              step = (xMax - xMin) / (items.length - 1);
-              items.sort(function(a, b) {
-                return a.getBounds().centerX - b.getBounds().centerX;
-              });
-              for (i = _r = 0, _len9 = items.length; _r < _len9; i = ++_r) {
-                item = items[i];
-                bounds = item.getBounds();
-                item.moveTo(new Point(xMin + i * step, bounds.centerY));
-              }
-              break;
-            case 'v-right':
-              xMin = NaN;
-              xMax = NaN;
-              for (_s = 0, _len10 = items.length; _s < _len10; _s++) {
-                item = items[_s];
-                right = item.getBounds().right;
-                if (isNaN(xMin) || right < xMin) {
-                  xMin = right;
-                }
-                if (isNaN(xMax) || right > xMax) {
-                  xMax = right;
-                }
-              }
-              step = (xMax - xMin) / (items.length - 1);
-              items.sort(function(a, b) {
-                return a.getBounds().right - b.getBounds().right;
-              });
-              for (i = _t = 0, _len11 = items.length; _t < _len11; i = ++_t) {
-                item = items[i];
-                bounds = item.getBounds();
-                item.moveTo(new Point(xMin + i * step - bounds.width / 2, bounds.centerY));
-              }
-          }
-        };
-        g.templatesJ.find("#distribute").clone().appendTo(controller.domElement);
-        distributeJ = $("#distribute:first");
-        distributeJ.find("button").click(function() {
-          return distribute($(this).attr("data-type"));
-        });
-      }
-    };
-  };
-
   paper.install(window);
 
   init = function() {
@@ -602,6 +222,7 @@ Notations:
     g.polygonMode = false;
     g.selectionBlue = '#2fa1d6';
     g.updateTimeout = {};
+    g.requestedCallbacks = {};
     g.restrictedArea = null;
     g.OSName = "Unknown OS";
     g.currentPaths = {};
@@ -626,7 +247,6 @@ Notations:
     g.areasToRasterize = [];
     g.isUpdatingRasters = false;
     g.viewUpdated = false;
-    g.previouslySelectedItems = [];
     g.currentDiv = null;
     g.areasToUpdateRectangles = {};
     g.catchErrors = false;
@@ -637,6 +257,7 @@ Notations:
     g.limitPathV = null;
     g.limitPathH = null;
     g.selectedItems = [];
+    g.ignoreSockets = false;
     g.itemListsJ = $("#RItems .layers");
     g.pathList = g.itemListsJ.find(".rPath-list");
     g.pathList.sortable({
@@ -675,16 +296,24 @@ Notations:
     paper.setup(canvas);
     g.mainLayer = project.activeLayer;
     g.debugLayer = new Layer();
+    g.debugLayer.name = 'debug layer';
     g.carLayer = new Layer();
+    g.carLayer.name = 'car layer';
     g.lockLayer = new Layer();
+    g.lockLayer.name = 'lock layer';
     g.selectionLayer = new Layer();
+    g.selectionLayer.name = 'selection layer';
+    g.areasToUpdateLayer = new Layer();
+    g.areasToUpdateLayer.name = 'areasToUpdateLayer';
     g.mainLayer.activate();
     paper.settings.hitTolerance = 5;
     g.grid = new Group();
     g.grid.name = 'grid group';
     view.zoom = 1;
     g.previousViewPosition = view.center;
-    g.rasterizer = new Rasterizer();
+    if (g.rasterizer == null) {
+      g.rasterizer = new Rasterizer();
+    }
     Point.prototype.toJSON = function() {
       return {
         x: this.x,
@@ -704,6 +333,78 @@ Notations:
     };
     Rectangle.prototype.exportJSON = function() {
       return JSON.stringify(this.toJSON());
+    };
+    Rectangle.prototype.translate = function(point) {
+      return new Rectangle(this.x + point.x, this.y + point.y, this.width, this.height);
+    };
+    Rectangle.prototype.moveSide = function(sideName, destination) {
+      switch (sideName) {
+        case 'left':
+          this.x = destination;
+          break;
+        case 'right':
+          this.x = destination - this.width;
+          break;
+        case 'top':
+          this.y = destination;
+          break;
+        case 'bottom':
+          this.y = destination - this.height;
+      }
+    };
+    Rectangle.prototype.moveCorner = function(cornerName, destination) {
+      switch (cornerName) {
+        case 'topLeft':
+          this.x = destination.x;
+          this.y = destination.y;
+          break;
+        case 'topRight':
+          this.x = destination.x - this.width;
+          this.y = destination.y;
+          break;
+        case 'bottomRight':
+          this.x = destination.x - this.width;
+          this.y = destination.y - this.height;
+          break;
+        case 'bottomLeft':
+          this.x = destination.x;
+          this.y = destination.y - this.height;
+      }
+    };
+    Rectangle.prototype.moveCenter = function(destination) {
+      this.x = destination.x - this.width * 0.5;
+      this.y = destination.y - this.height * 0.5;
+    };
+    Event.prototype.toJSON = function() {
+      var event;
+      event = {
+        modifiers: this.modifiers,
+        event: {
+          which: this.event.which
+        },
+        point: this.point,
+        downPoint: this.downPoint,
+        delta: this.delta,
+        middlePoint: this.middlePoint,
+        type: this.type,
+        count: this.count
+      };
+      return event;
+    };
+    Event.prototype.fromJSON = function(event) {
+      if (event.point != null) {
+        event.point = new Point(event.point);
+      }
+      if (event.downPoint != null) {
+        event.downPoint = new Point(event.downPoint);
+      }
+      if (event.delta != null) {
+        event.delta = new Point(event.delta);
+      }
+      if (event.middlePoint != null) {
+        event.middlePoint = new Point(event.middlePoint);
+      }
+      return event;
     };
     g.defaultColors = [];
     hueRange = g.random(10, 180);
@@ -733,7 +434,7 @@ Notations:
     $.ajax({
       url: g.romanescoURL + "static/coffee/path.coffee"
     }).done(function(data) {
-      var classMap, expression, expressions, lines, pathClass, _j, _k, _len, _len1, _ref, _ref1;
+      var classMap, expression, expressions, lines, pathClass, source, _j, _k, _len, _len1, _ref, _ref1;
       lines = data.split(/\n/);
       expressions = CoffeeScript.nodes(data).expressions;
       classMap = {};
@@ -744,8 +445,9 @@ Notations:
       }
       for (_k = 0, _len1 = expressions.length; _k < _len1; _k++) {
         expression = expressions[_k];
+        source = lines.slice(expression.locationData.first_line, +expression.locationData.last_line + 1 || 9e9).join("\n");
         if ((_ref1 = classMap[expression.variable.base.value]) != null) {
-          _ref1.source = lines.slice(expression.locationData.first_line, +expression.locationData.last_line + 1 || 9e9).join("\n");
+          _ref1.source = source;
         }
       }
     });
@@ -759,7 +461,11 @@ Notations:
   };
 
   $(document).ready(function() {
+    var focusIsOnCanvas;
     init();
+    if (g.rasterizerMode) {
+      return;
+    }
     g.canvasJ.mousedown(g.mousedown);
     g.stageJ.mousedown(g.mousedown);
     $(window).mousemove(g.mousemove);
@@ -778,6 +484,13 @@ Notations:
       }
     });
     g.tool = new Tool();
+    focusIsOnCanvas = function() {
+      var activeElementIsOnParameterBar, activeElementIsOnSidebar, activeElementIsTextarea;
+      activeElementIsOnSidebar = $(document.activeElement).parents(".sidebar").length > 0;
+      activeElementIsTextarea = $(document.activeElement).is("textarea");
+      activeElementIsOnParameterBar = $(document.activeElement).parents(".dat-gui").length;
+      return !activeElementIsOnSidebar && !activeElementIsTextarea && !activeElementIsOnParameterBar;
+    };
     g.tool.onMouseDown = function(event) {
       var _ref;
       if ((_ref = g.wacomPenAPI) != null ? _ref.isEraser : void 0) {
@@ -797,7 +510,6 @@ Notations:
       if (g.currentDiv != null) {
         return;
       }
-      event = g.snap(event);
       return g.selectedTool.update(event);
     };
     g.tool.onMouseUp = function(event) {
@@ -808,11 +520,10 @@ Notations:
       if (g.currentDiv != null) {
         return;
       }
-      event = g.snap(event);
       return g.selectedTool.end(event);
     };
     g.tool.onKeyDown = function(event) {
-      if ($(document.activeElement).parents(".sidebar").length || $(document.activeElement).is("textarea") || $(document.activeElement).parents(".dat-gui").length) {
+      if (!focusIsOnCanvas()) {
         return;
       }
       if (event.key === 'delete') {
@@ -825,7 +536,7 @@ Notations:
     };
     g.tool.onKeyUp = function(event) {
       var delta, item, selectedItems, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
-      if ($(document.activeElement).parents(".sidebar").length || $(document.activeElement).is("textarea") || $(document.activeElement).parents(".dat-gui").length) {
+      if (!focusIsOnCanvas()) {
         return;
       }
       if ((_ref = event.key) === 'left' || _ref === 'right' || _ref === 'up' || _ref === 'down') {
@@ -862,8 +573,8 @@ Notations:
           break;
         case 'enter':
         case 'escape':
-          if (typeof (_base = g.selectedTool).finishPath === "function") {
-            _base.finishPath();
+          if (typeof (_base = g.selectedTool).finish === "function") {
+            _base.finish();
           }
           break;
         case 'space':
@@ -925,8 +636,8 @@ Notations:
         g.tools['Move'].select();
         break;
       case 3:
-        if (typeof (_base = g.selectedTool).finishPath === "function") {
-          _base.finishPath();
+        if (typeof (_base = g.selectedTool).finish === "function") {
+          _base.finish();
         }
     }
     if (g.selectedTool.name === 'Move') {

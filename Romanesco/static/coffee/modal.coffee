@@ -1,11 +1,13 @@
 class RModal
 
 	@extractors = [] 				# an array of function used to extract data on the added forms
-	
-	@modalJ = $('#customModal')																				# initialize the modal jQuery element
+
+	# initialize the modal jQuery element
+	@modalJ = $('#customModal')
 	@modalBodyJ = @modalJ.find('.modal-body')
-	@modalJ.on('shown.bs.modal', (event)=> @modalJ.find('input.form-control:visible:first').focus() ) 		# focus on the first visible element when the modal shows up
-	@modalJ.find('.btn-primary').click( (event)=> @modalSubmit() ) 	
+	# focus on the first visible element when the modal shows up
+	@modalJ.on('shown.bs.modal', (event)=> @modalJ.find('input.form-control:visible:first').focus() )
+	@modalJ.find('.btn-primary').click( (event)=> @modalSubmit() )
 
 	@initialize: (title, @submitCallback)->
 		@modalBodyJ.empty()
@@ -14,7 +16,7 @@ class RModal
 		return
 
 	@addTextInput: (name, placeholder=null, type=null, className=null, label=null, submitShortcut=false, id=null)->
-		
+
 		submitShortcut = if submitShortcut then 'submit-shortcut' else ''
 		inputJ = $("<input type='#{type}' class='#{className} form-control #{submitShortcut}' placeholder='#{placeholder}'>")
 		args = inputJ
@@ -51,7 +53,7 @@ class RModal
 			return
 
 		@addCustomContent(name, divJ, extractor, checkboxJ)
-                
+
 		return divJ
 
 	@addRadioGroup: (name, radioButtons)->
@@ -84,7 +86,7 @@ class RModal
 		return
 
 	@show: ()->
-		@modalJ.find('.submit-shortcut').keypress (event) => 													# submit modal when enter is pressed
+		@modalJ.find('.submit-shortcut').keypress (event) => 		# submit modal when enter is pressed
 			if event.which == 13 	# enter key
 				event.preventDefault()
 				@modalSubmit()

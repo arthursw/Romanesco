@@ -1,3 +1,14 @@
+# define (require) ->
+#   # Load any app-specific modules
+#   # with a relative require call,
+#   # like:
+#   messages = require('./messages')
+#   # Load library/vendor modules using
+#   # full IDs, like:
+#   print = require('print')
+#   print messages.getHello()
+#   return
+
 # TODO: manage items and path in the same way (g.paths and g.items)? make an interface on top of path and div, and use events to update them
 # todo: add else case in switches
 # todo: bug when creating a small div (happened with text)
@@ -32,6 +43,10 @@ Notations:
 # - get custom tools from the database, and initialize them
 # - make the tools draggable between the 'favorite tools' and 'other tools' panels, and update g.typeaheadToolEngine and g.favoriteTools accordingly
 initTools = () ->
+	if g.rasterizerMode?
+		g.setTools()
+		return
+
 	# init jQuery elements related to the tools
 	g.toolsJ = $(".tool-list")
 	g.favoriteToolsJ = $("#FavoriteTools .tool-list")
@@ -45,14 +60,14 @@ initTools = () ->
 			g.favoriteTools = JSON.parse(localStorage.favorites)
 		catch error
 			console.log error
-	
+
 	defaultFavoriteTools = [PrecisePath, ThicknessPath, Meander, GeometricLines, RectangleShape, EllipseShape, StarShape, SpiralShape]
-	
+
 	while g.favoriteTools.length < 8
 		g.pushIfAbsent(g.favoriteTools, defaultFavoriteTools.pop().rname)
 
 	# create all tools
-	g.tools = new Object()
+	g.tools = {}
 	new MoveTool()
 	new CarTool()
 	new SelectTool()
@@ -62,7 +77,7 @@ initTools = () ->
 	new TextTool(RText)
 	new MediaTool(RMedia)
 	new ScreenshotTool()
-	
+
 	# path tools
 	for pathClass in pathClasses
 		new PathTool(pathClass)
@@ -139,7 +154,14 @@ initTools = () ->
 
 		return
 
-	$( "#sortable1, #sortable2" ).sortable( connectWith: ".connectedSortable", appendTo: g.sidebarJ, helper: "clone", start: sortStart, stop: sortStop, delay: 250 ).disableSelection()
+	sortableArgs =
+		connectWith: ".connectedSortable"
+		appendTo: g.sidebarJ
+		helper: "clone"
+		start: sortStart
+		stop: sortStop
+		delay: 250
+	$( "#sortable1, #sortable2" ).sortable( sortableArgs ).disableSelection()
 
 	g.tools['Move'].select() 		# select the move tool
 
@@ -177,7 +199,7 @@ initTools = () ->
 	# touchAPI.addEventListener("TouchDataEvent", touchDataEventHandler)
 	# touchAPI.addEventListener("TouchDeviceAttachEvent", touchDeviceAttachHandler)
 	# touchAPI.addEventListener("TouchDeviceDetachEvent", touchDeviceDetachHandler)
-	
+
 	# # Open / close touch device connection
 
 	# touchAPI.Close(touchDeviceID)
@@ -210,7 +232,7 @@ initTools = () ->
 	# 	return
 
 	# touchRawFingerData.NumFingers
-	
+
 	# for finger in touchRawFingerData.FingerList
 	# 	finger.FingerID
 	# 	finger.PosX
@@ -229,9 +251,11 @@ initTools = () ->
 # update g.entireArea and g.restrictedArea according to site settings
 # update sidebar according to site settings
 initPosition = ()->
+	if g.rasterizerMode then return
+
 	# check if canvas has an attribute 'data-box'
 	boxString = g.canvasJ.attr("data-box")
-	
+
 	if not boxString or boxString.length==0
 		window.onhashchange()
 		return
@@ -240,7 +264,7 @@ initPosition = ()->
 	box = JSON.parse( boxString )
 
 	planet = new Point(box.planetX, box.planetY)
-	
+
 	tl = posOnPlanetToProject(box.box.coordinates[0][0], planet)
 	br = posOnPlanetToProject(box.box.coordinates[0][2], planet)
 
@@ -264,9 +288,9 @@ initPosition = ()->
 	site = JSON.parse( siteString )
 	if site.restrictedArea
 		g.restrictedArea = boxRectangle
-	
+
 	g.tools['Select'].select() 		# select 'Select' tool by default when loading a website
-									# since a click on an RLock will activate the drag (temporarily select the 'Move' tool) 
+									# since a click on an RLock will activate the drag (temporarily select the 'Move' tool)
 									# and the user must be able to select text
 
 	# update sidebar according to site settings
@@ -290,262 +314,6 @@ initPosition = ()->
 
 	return
 
-this.initializeGlobalParameters = ()->
-
-	g.parameters = {}
-	g.parameters.location = 
-		type: 'string'
-		label: 'Location'
-		default: '0.0, 0.0'
-		permanent: true
-		onFinishChange: (value)->
-			g.ignoreHashChange = false
-			location.hash = value
-			return
-	g.parameters.zoom = 
-		type: 'slider'
-		label: 'Zoom'
-		min: 1
-		max: 500
-		default: 100
-		permanent: true
-		onChange: (value)->
-			g.project.view.zoom = value/100.0
-			g.updateGrid()
-			for div in g.divs
-				div.updateTransform()
-			return
-		onFinishChange: (value) -> return g.load()
-	g.parameters.displayGrid = 
-		type: 'checkbox'
-		label: 'Display grid'
-		default: false
-		permanent: true
-		onChange: (value)->
-			g.displayGrid = !g.displayGrid
-			g.updateGrid()
-			return
-	# g.parameters.fastMode = 
-	# 	type: 'checkbox'
-	# 	label: 'Fast mode'
-	# 	default: g.fastMode
-	# 	permanent: true
-	# 	onChange: (value)->
-	# 		g.fastMode = value
-	# 		return
-	g.parameters.strokeWidth = 
-		type: 'slider'
-		label: 'Stroke width'
-		min: 1
-		max: 100
-		default: 1
-	g.parameters.strokeColor =
-		type: 'color'
-		label: 'Stroke color'
-		default: g.defaultColors.random()
-		defaultFunction: () -> return g.defaultColors.random()
-		defaultCheck: true 						# checked/activated by default or not
-	g.parameters.fillColor =
-		type: 'color'
-		label: 'Fill color'
-		default: g.defaultColors.random()
-		defaultCheck: false 					# checked/activated by default or not
-	g.parameters.delete =
-		type: 'button'
-		label: 'Delete items'
-		default: ()-> item.deleteCommand() for item in g.selectedItems
-	g.parameters.duplicate =
-		type: 'button'
-		label: 'Duplicate items'
-		default: ()-> item.duplicateCommand() for item in g.selectedItems
-	g.parameters.snap =
-		type: 'slider'
-		label: 'Snap'
-		min: 0
-		max: 100
-		step: 5
-		default: 0
-		snap: 0
-		permanent: true
-		onChange: ()-> g.updateGrid()
-	g.parameters.align =
-		type: 'button-group'
-		label: 'Align'
-		value: ''
-		initializeController: (controller)->
-			$(controller.domElement).find('input').remove()
-
-			align = (type)->
-				items = g.selectedItems
-				switch type	
-					when 'h-top'
-						yMin = NaN
-						for item in items
-							top = item.getBounds().top
-							if isNaN(yMin) or top < yMin
-								yMin = top
-						items.sort((a, b)-> return a.getBounds().top - b.getBounds().top)
-						for item in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(bounds.centerX, top+bounds.height/2))
-					when 'h-center'
-						avgY = 0
-						for item in items
-							avgY += item.getBounds().centerY
-						avgY /= items.length
-						items.sort((a, b)-> return a.getBounds().centerY - b.getBounds().centerY)
-						for item in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(bounds.centerX, avgY))
-					when 'h-bottom'
-						yMax = NaN
-						for item in items
-							bottom = item.getBounds().bottom
-							if isNaN(yMax) or bottom > yMax
-								yMax = bottom
-						items.sort((a, b)-> return a.getBounds().bottom - b.getBounds().bottom)
-						for item in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(bounds.centerX, bottom-bounds.height/2))
-					when 'v-left'
-						xMin = NaN
-						for item in items
-							left = item.getBounds().left
-							if isNaN(xMin) or left < xMin
-								xMin = left
-						items.sort((a, b)-> return a.getBounds().left - b.getBounds().left)
-						for item in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(xMin+bounds.width/2, bounds.centerY))
-					when 'v-center'
-						avgX = 0
-						for item in items
-							avgX += item.getBounds().centerX
-						avgX /= items.length
-						items.sort((a, b)-> return a.getBounds().centerY - b.getBounds().centerY)
-						for item in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(avgX, bounds.centerY))
-					when 'v-right'
-						xMax = NaN
-						for item in items
-							right = item.getBounds().right
-							if isNaN(xMax) or right > xMax
-								xMax = right
-						items.sort((a, b)-> return a.getBounds().right - b.getBounds().right)
-						for item in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(xMax-bounds.width/2, bounds.centerY))
-				return
-
-			# todo: change fontStyle id to class
-			g.templatesJ.find("#align").clone().appendTo(controller.domElement)
-			alignJ = $("#align:first")
-			alignJ.find("button").click ()-> align($(this).attr("data-type"))
-			return
-	g.parameters.distribute =
-		type: 'button-group'
-		label: 'Distribute'
-		value: ''
-		initializeController: (controller)->
-			$(controller.domElement).find('input').remove()
-
-			distribute = (type)->
-				items = g.selectedItems
-				switch type	
-					when 'h-top'
-						yMin = NaN
-						yMax = NaN
-						for item in items
-							top = item.getBounds().top
-							if isNaN(yMin) or top < yMin
-								yMin = top
-							if isNaN(yMax) or top > yMax
-								yMax = top
-						step = (yMax-yMin)/(items.length-1)
-						items.sort((a, b)-> return a.getBounds().top - b.getBounds().top)
-						for item, i in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(bounds.centerX, yMin+i*step+bounds.height/2))
-					when 'h-center'
-						yMin = NaN
-						yMax = NaN
-						for item in items
-							center = item.getBounds().centerY
-							if isNaN(yMin) or center < yMin
-								yMin = center
-							if isNaN(yMax) or center > yMax
-								yMax = center
-						step = (yMax-yMin)/(items.length-1)
-						items.sort((a, b)-> return a.getBounds().centerY - b.getBounds().centerY)
-						for item, i in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(bounds.centerX, yMin+i*step))
-					when 'h-bottom'
-						yMin = NaN
-						yMax = NaN
-						for item in items
-							bottom = item.getBounds().bottom
-							if isNaN(yMin) or bottom < yMin
-								yMin = bottom
-							if isNaN(yMax) or bottom > yMax
-								yMax = bottom
-						step = (yMax-yMin)/(items.length-1)
-						items.sort((a, b)-> return a.getBounds().bottom - b.getBounds().bottom)
-						for item, i in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(bounds.centerX, yMin+i*step-bounds.height/2))
-					when 'v-left'
-						xMin = NaN
-						xMax = NaN
-						for item in items
-							left = item.getBounds().left
-							if isNaN(xMin) or left < xMin
-								xMin = left
-							if isNaN(xMax) or left > xMax
-								xMax = left
-						step = (xMax-xMin)/(items.length-1)
-						items.sort((a, b)-> return a.getBounds().left - b.getBounds().left)
-						for item, i in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(xMin+i*step+bounds.width/2, bounds.centerY))
-					when 'v-center'
-						xMin = NaN
-						xMax = NaN
-						for item in items
-							center = item.getBounds().centerX
-							if isNaN(xMin) or center < xMin
-								xMin = center
-							if isNaN(xMax) or center > xMax
-								xMax = center
-						step = (xMax-xMin)/(items.length-1)
-						items.sort((a, b)-> return a.getBounds().centerX - b.getBounds().centerX)
-						for item, i in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(xMin+i*step, bounds.centerY))
-					when 'v-right'
-						xMin = NaN
-						xMax = NaN
-						for item in items
-							right = item.getBounds().right
-							if isNaN(xMin) or right < xMin
-								xMin = right
-							if isNaN(xMax) or right > xMax
-								xMax = right
-						step = (xMax-xMin)/(items.length-1)
-						items.sort((a, b)-> return a.getBounds().right - b.getBounds().right)
-						for item, i in items
-							bounds = item.getBounds()
-							item.moveTo(new Point(xMin+i*step-bounds.width/2, bounds.centerY))
-				return
-
-			# todo: change fontStyle id to class
-			g.templatesJ.find("#distribute").clone().appendTo(controller.domElement)
-			distributeJ = $("#distribute:first")
-			distributeJ.find("button").click ()-> distribute($(this).attr("data-type"))
-			return
-	return
-	
 paper.install(window)
 
 # initialize Romanesco
@@ -570,18 +338,23 @@ init = ()->
 	g.templatesJ = $("#templates")
 	g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
 	g.selectionLayer = null					# paper layer containing all selected paper items
-	g.polygonMode = false					# whether to draw in polygon mode or not (in polygon mode: each time the user clicks a point will be created, in default mode: each time the user moves the mouse a point will be created)
+	g.polygonMode = false					# whether to draw in polygon mode or not (in polygon mode: each time the user clicks a point
+											# will be created, in default mode: each time the user moves the mouse a point will be created)
 	g.selectionBlue = '#2fa1d6'
 	g.updateTimeout = {} 					# map of id -> timeout id to clear the timeouts
+	g.requestedCallbacks = {} 				# map of id -> request id to clear the requestAnimationFrame
 	g.restrictedArea = null 				# area in which the user position will be constrained (in a website with restrictedArea == true)
 	g.OSName = "Unknown OS" 				# user's operating system
 	g.currentPaths = {} 					# map of username -> path id corresponding to the paths currently being created
 	g.loadingBarTimeout = null 				# timeout id of the loading bar
 	g.entireArea = null 					# entire area to be kept loaded, it is a paper Rectangle
 	g.entireAreas = [] 						# array of RDivs which have data.loadEntireArea==true
-	g.loadedAreas = [] 						# array of areas { pos: pos, planet: planet } which are loaded (to test if areas have to be loaded or unloaded)
-	g.paths = new Object() 					# a map of RPath.pk (or RPath.id) -> RPath. RPath are first added with their id, and then with their pk (as soon as server saved it and responds)
-	g.items = new Object() 					# map RItem.id or RItem.pk -> RItem, all loaded RItems. The key is RItem.id before RItem is savied in the database, and RItem.pk after
+	g.loadedAreas = [] 						# array of areas { pos: pos, planet: planet } which are loaded
+											# (to test if areas have to be loaded or unloaded)
+	g.paths = new Object() 					# a map of RPath.pk (or RPath.id) -> RPath. RPath are first added with their id, and then with their pk
+											# (as soon as server saved it and responds)
+	g.items = new Object() 					# map RItem.id or RItem.pk -> RItem, all loaded RItems. The key is RItem.id before RItem is saved
+											# in the database, and RItem.pk after
 	g.locks = [] 							# array of loaded RLocks
 	g.divs = [] 							# array of loaded RDivs
 	g.sortedPaths = []						# an array where paths are sorted by index (z-index)
@@ -590,17 +363,19 @@ init = ()->
 	g.cars = {} 							# a map of username -> cars which will be updated each frame
 	# g.fastMode = false 						# fastMode will hide all items except the one being edited (when user edits an item)
 	# g.fastModeOn = false					# fastModeOn is true when the user is edditing an item
-	g.alerts = null 						# An array of alerts ({ type: type, message: message }) containing all alerts info. It is append to the alert box in showAlert()
+	g.alerts = null 						# An array of alerts ({ type: type, message: message }) containing all alerts info.
+											# It is append to the alert box in showAlert().
 	g.scale = 1000.0 						# the scale to go from project coordinates to planet coordinates
 	g.previousPoint = null 					# the previous mouse event point
 	g.draggingEditor = false 				# boolean, true when user is dragging the code editor
 	# g.rasters = {}							# map to store rasters (tiles, rasterized version of the view)
-	g.areasToUpdate = {} 					# map of areas to update { pk->rectangle } (areas which are not rasterize on the server, that we must send if we can rasterize them)
-	g.rastersToUpload = [] 					# an array of { data: dataURL, position: position } containing the rasters to upload on the server 
+	g.areasToUpdate = {} 					# map of areas to update { pk->rectangle }
+											# (areas which are not rasterize on the server, that we must send if we can rasterize them)
+	g.rastersToUpload = [] 					# an array of { data: dataURL, position: position } containing the rasters to upload on the server
 	g.areasToRasterize = [] 				# an array of Rectangle to rasterize
 	g.isUpdatingRasters = false 			# true if we are updating rasters (in loopUpdateRasters)
-	g.viewUpdated = false 					# true if the view was updated ( rasters removed and items drawn in g.updateView() ) and we don't need to update anymore (until new rasters are added in load_callback)
-	g.previouslySelectedItems = [] 			# the previously selected items
+	g.viewUpdated = false 					# true if the view was updated ( rasters removed and items drawn in g.updateView() )
+											# and we don't need to update anymore (until new rasters are added in load_callback)
 	g.currentDiv = null 					# the div currently being edited (dragged, moved or resized) used to also send jQuery mouse event to divs
 	g.areasToUpdateRectangles = {} 			# debug map: area to update pk -> rectangle path
 	g.catchErrors = false 					# the error will not be caught when drawing an RPath (let chrome catch them at the right time)
@@ -611,6 +386,7 @@ init = ()->
 	g.limitPathV = null 					# the vertical limit path (line between two planets)
 	g.limitPathH = null 					# the horizontal limit path (line between two planets)
 	g.selectedItems = [] 					# the selectedItems
+	g.ignoreSockets = false 				# whether sockets messages are ignored
 	# initialize sort
 
 	g.itemListsJ = $("#RItems .layers")
@@ -626,9 +402,9 @@ init = ()->
 	g.commandManager = new CommandManager()
 	# g.globalMaskJ = $("#globalMask")
 	# g.globalMaskJ.hide()
-	
+
 	# Display a romanesco_alert message when a dajaxice error happens (problem on the server)
-	Dajaxice.setup( 'default_exception_callback': (error)-> 
+	Dajaxice.setup( 'default_exception_callback': (error)->
 		console.log 'Dajaxice error!'
 		romanesco_alert "Connection error", "error"
 		return
@@ -644,9 +420,15 @@ init = ()->
 	paper.setup(canvas)
 	g.mainLayer = project.activeLayer
 	g.debugLayer = new Layer()				# Paper layer to append debug items
+	g.debugLayer.name = 'debug layer'
 	g.carLayer = new Layer() 				# Paper layer to append all cars
+	g.carLayer.name = 'car layer'
 	g.lockLayer = new Layer()	 			# Paper layer to keep all locked items
+	g.lockLayer.name = 'lock layer'
 	g.selectionLayer = new Layer() 			# Paper layer to keep all selected items
+	g.selectionLayer.name = 'selection layer'
+	g.areasToUpdateLayer = new Layer() 		# Paper layer to show areas to update
+	g.areasToUpdateLayer.name = 'areasToUpdateLayer'
 	g.mainLayer.activate()
 	paper.settings.hitTolerance = 5
 	g.grid = new Group() 					# Paper Group to append all grid items
@@ -654,7 +436,7 @@ init = ()->
 	view.zoom = 1 # 0.01
 	g.previousViewPosition = view.center
 
-	g.rasterizer = new Rasterizer()
+	g.rasterizer ?= new Rasterizer()
 
 	# add custom methods to export Paper Point and Rectangle to JSON
 	Point.prototype.toJSON = ()->
@@ -665,6 +447,56 @@ init = ()->
 		return { x: this.x, y: this.y, width: this.width, height: this.height }
 	Rectangle.prototype.exportJSON = ()->
 		return JSON.stringify(this.toJSON())
+	Rectangle.prototype.translate = (point)->
+		return new Rectangle(this.x + point.x, this.y + point.y, this.width, this.height)
+	Rectangle.prototype.moveSide = (sideName, destination)->
+		switch sideName
+			when 'left'
+				this.x = destination
+			when 'right'
+				this.x = destination - this.width
+			when 'top'
+				this.y = destination
+			when 'bottom'
+				this.y = destination - this.height
+		return
+	Rectangle.prototype.moveCorner = (cornerName, destination)->
+		switch cornerName
+			when 'topLeft'
+				this.x = destination.x
+				this.y = destination.y
+			when 'topRight'
+				this.x = destination.x - this.width
+				this.y = destination.y
+			when 'bottomRight'
+				this.x = destination.x - this.width
+				this.y = destination.y - this.height
+			when 'bottomLeft'
+				this.x = destination.x
+				this.y = destination.y - this.height
+		return
+	Rectangle.prototype.moveCenter = (destination)->
+		this.x = destination.x - this.width * 0.5
+		this.y = destination.y - this.height * 0.5
+		return
+
+	Event.prototype.toJSON = ()->
+		event =
+			modifiers: this.modifiers
+			event: which: this.event.which
+			point: this.point
+			downPoint: this.downPoint
+			delta: this.delta
+			middlePoint: this.middlePoint
+			type: this.type
+			count: this.count
+		return event
+	Event.prototype.fromJSON = (event)->
+		if event.point? then event.point = new Point(event.point)
+		if event.downPoint? then event.downPoint = new Point(event.downPoint)
+		if event.delta? then event.delta = new Point(event.delta)
+		if event.middlePoint? then event.middlePoint = new Point(event.middlePoint)
+		return event
 
 	# g.defaultColors = ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5' ]
 	# g.defaultColors = ['#d7dddb', '#4f8a83', '#e76278', '#fac699', '#712164']
@@ -675,7 +507,7 @@ init = ()->
 	hueRange = g.random(10, 180)
 	minHue = g.random(0, 360-hueRange)
 	step = hueRange/10
-	
+
 	for i in [0 .. 10]
 		g.defaultColors.push(Color.HSL( minHue + i * step, g.random(0.3, 0.9), g.random(0.5, 0.7) ).toCSS())
 		# g.defaultColors.push(Color.random().toCSS())
@@ -699,7 +531,7 @@ init = ()->
 	# g.sound = new RSound(['/static/sounds/space_ship_engine.mp3', '/static/sounds/space_ship_engine.ogg'])
 	g.sound = new RSound(['/static/sounds/viper.ogg']) 			# load car sound
 
-	# g.sound = new Howl( 
+	# g.sound = new Howl(
 	# 	urls: ['/static/sounds/viper.ogg']
 	# 	onload: ()->
 	# 		console.log("sound loaded")
@@ -732,16 +564,16 @@ init = ()->
 	# 	g.sound.rTimeout = setTimeout(callback, duration-time*duration)
 	# 	return false
 
-	# g.sidebarJ.find("#buyRomanescoins").click ()-> 
+	# g.sidebarJ.find("#buyRomanescoins").click ()->
 	# 	g.templatesJ.find('#romanescoinModal').modal('show')
 	# 	paypalFormJ = g.templatesJ.find("#paypalForm")
-	# 	paypalFormJ.find("input[name='submit']").click( ()-> 
-	# 		data = 
+	# 	paypalFormJ.find("input[name='submit']").click( ()->
+	# 		data =
 	# 			user: g.me
 	# 			location: { x: view.center.x, y: view.center.y }
 	# 		paypalFormJ.find("input[name='custom']").attr("value", JSON.stringify(data) )
 	# 	)
-	
+
 	# load path source code
 	$.ajax( url: g.romanescoURL + "static/coffee/path.coffee" ).done (data)->
 
@@ -753,7 +585,8 @@ init = ()->
 			classMap[pathClass.name] = pathClass
 
 		for expression in expressions
-			classMap[expression.variable.base.value]?.source = lines[expression.locationData.first_line .. expression.locationData.last_line].join("\n")
+			source = lines[expression.locationData.first_line .. expression.locationData.last_line].join("\n")
+			classMap[expression.variable.base.value]?.source = source
 
 		return
 
@@ -763,7 +596,7 @@ init = ()->
 	initTools()
 	initSocket()
 	initPosition()
-	
+
 	# initLoadingBar()
 
 	updateGrid()
@@ -774,6 +607,7 @@ init = ()->
 $(document).ready () ->
 
 	init()
+	if g.rasterizerMode then return
 
 	## mouse and key listeners
 
@@ -787,9 +621,16 @@ $(document).ready () ->
 		return
 
 	canvasJ.dblclick( (event) -> g.selectedTool.doubleClick?(event) )
-	canvasJ.keydown( (event) -> if event.key == 46 then event.preventDefault(); return false ) # cancel default delete key behaviour (not really working)
+	# cancel default delete key behaviour (not really working)
+	canvasJ.keydown( (event) -> if event.key == 46 then event.preventDefault(); return false )
 
 	g.tool = new Tool()
+
+	focusIsOnCanvas = ()->
+		activeElementIsOnSidebar = $(document.activeElement).parents(".sidebar").length>0
+		activeElementIsTextarea = $(document.activeElement).is("textarea")
+		activeElementIsOnParameterBar = $(document.activeElement).parents(".dat-gui").length
+		return not activeElementIsOnSidebar and not activeElementIsTextarea and not activeElementIsOnParameterBar
 
 	# Paper listeners
 	g.tool.onMouseDown = (event) ->
@@ -803,32 +644,31 @@ $(document).ready () ->
 	g.tool.onMouseDrag = (event) ->
 		if g.wacomPenAPI?.isEraser then return
 		if g.currentDiv? then return
-		event = g.snap(event)
+		# event = g.snap(event)
 		g.selectedTool.update(event)
 
 	g.tool.onMouseUp = (event) ->
 		if g.wacomPenAPI?.isEraser then return
 		if g.currentDiv? then return
-		event = g.snap(event)
+		# event = g.snap(event)
 		g.selectedTool.end(event)
 
 	g.tool.onKeyDown = (event) ->
-	
+
 		# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the event
-		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea") or $(document.activeElement).parents(".dat-gui").length
-			return
+		if not focusIsOnCanvas() then return
 
 		if event.key == 'delete' 									# prevent default delete behaviour (not working)
 			event.preventDefault()
 			return false
 
-		if event.key == 'space' and g.selectedTool.name != 'Move' 	# select 'Move' tool when user press space key (and reselect previous tool after)
+		# select 'Move' tool when user press space key (and reselect previous tool after)
+		if event.key == 'space' and g.selectedTool.name != 'Move'
 			g.tools['Move'].select()
 
 	g.tool.onKeyUp = (event) ->
 		# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the event
-		if $(document.activeElement).parents(".sidebar").length or $(document.activeElement).is("textarea") or $(document.activeElement).parents(".dat-gui").length
-			return
+		if not focusIsOnCanvas() then return
 
 		# - move selected RItem by delta if an arrow key was pressed (delta is function of special keys press)
 		# - finish current path (if in polygon mode) if 'enter' or 'escape' was pressed
@@ -847,7 +687,7 @@ $(document).ready () ->
 			when 'down'
 				item.moveBy(new Point(0,delta), true) for item in g.selectedItems
 			when 'enter', 'escape'
-				g.selectedTool.finishPath?()
+				g.selectedTool.finish?()
 			when 'space'
 				g.previousTool?.select()
 			when 'v'
@@ -859,9 +699,9 @@ $(document).ready () ->
 						item.deletePointCommand()
 					else
 						item.deleteCommand()
-		
+
 		event.preventDefault()
-	
+
 	# on frame event:
 	# - update animatedItems
 	# - update cars positions
@@ -897,12 +737,12 @@ $(document).ready () ->
 
 # mousedown event listener
 this.mousedown = (event) ->
-	
+
 	switch event.which						# switch on mouse button number (left, middle or right click)
 		when 2
 			g.tools['Move'].select()		# select move tool if middle mouse button
 		when 3
-			g.selectedTool.finishPath?() 	# finish current path (in polygon mode) if right click
+			g.selectedTool.finish?() 	# finish current path (in polygon mode) if right click
 
 	if g.selectedTool.name == 'Move' 		# update 'Move' tool if it is the one selected, and return
 		# g.initialMousePosition = new Point(event.pageX, event.pageY)
@@ -910,7 +750,7 @@ this.mousedown = (event) ->
 		# g.selectedTool.begin()
 		g.selectedTool.beginNative(event)
 		return
-	
+
 	g.initialMousePosition = g.jEventToPoint(event)
 	g.previousMousePosition = g.initialMousePosition.clone()
 
@@ -935,11 +775,11 @@ this.mousemove = (event) ->
 
 	# 	for item in g.selectedItems
 	# 		item.updateSelect?(event)
-	
+
 	# update code editor width
 	if g.draggingEditor
 		g.editorJ.css( right: g.windowJ.width()-event.pageX)
-	
+
 	if g.currentDiv?
 		paperEvent = g.jEventToPaperEvent(event, g.previousMousePosition, g.initialMousePosition, 'mousemove')
 		g.currentDiv.updateSelect?(paperEvent)
@@ -964,7 +804,7 @@ this.mouseup = (event) ->
 		g.currentDiv.endSelect?(paperEvent)
 		g.previousMousePosition = paperEvent.point
 
-	# drag handles	
+	# drag handles
 	# g.mousemove(event)
 	# selectedDiv.endSelect(event) for selectedDiv in g.selectedDivs
 
@@ -976,5 +816,5 @@ this.mouseup = (event) ->
 	# 		item.endSelect?(event)
 
 	g.draggingEditor = false
-	
+
 	return

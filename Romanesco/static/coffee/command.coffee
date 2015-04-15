@@ -62,7 +62,7 @@ class Command
 
 class ResizeCommand extends Command
 	constructor: (@item, @newRectangle)->
-		super("Resize item", item)
+		super("Resize item", @item)
 		@previousRectangle = @item.rectangle
 		return
 
@@ -125,25 +125,30 @@ class MoveCommand extends Command
 		super("Move item")
 		@previousPosition = @item.rectangle.center
 		@items = g.selectedItems.slice()
-		g.rasterizer.rasterize(@items, true)
 		return
 
 	do: ()->
-		g.rasterizer.rasterize(@items, false)
-		item.moveBy(@newPosition.subtract(@previousPosition), true) for item in @items
-		g.rasterizer.rasterize(@items)
+		# areas = []
+		for item in @items
+			# area = item.getDrawingBounds()
+			# if area.area < g.rasterizer.maxArea() then areas.push(area)
+			item.moveBy(@newPosition.subtract(@previousPosition), true)
+		# g.rasterizer.rasterize(@items, false, areas)
 		super()
 		return
 
 	undo: ()->
-		g.rasterizer.rasterize(@items, false)
-		item.moveBy(@previousPosition.subtract(@newPosition), true) for item in @items
-		g.rasterizer.rasterize(@items)
+		# areas = []
+		for item in @items
+			# area = item.getDrawingBounds()
+			# if area.area < g.rasterizer.maxArea() then areas.push(area)
+			item.moveBy(@previousPosition.subtract(@newPosition), true)
+		# g.rasterizer.rasterize(@items, false, areas)
 		super()
 		return
 
 	update: (event)->
-		item.updateMoveBy(event) for item in @items
+		item.updateMove(event) for item in @items
 		return
 
 	end: (valid)->
@@ -151,14 +156,18 @@ class MoveCommand extends Command
 		if @newPosition.equals(@previousPosition) then return false
 		if not valid then return false
 		# item.endMoveBy() for item in @items
-		args = []
-		for item in @items
-			if RLock.prototype.isPrototypeOf(item)
-				item.update('position')
-			else
-				args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments('position') )
-		Dajaxice.draw.multipleCalls( @updateCallback, functionsAndArguments: args)
-		g.rasterizer.rasterize(@items)
+		if @items.length==1
+			@items[0].endMove(true)
+		else
+			args = []
+			for item in @items
+				item.endMove(false)
+				if RLock.prototype.isPrototypeOf(item)
+					item.update('position')
+				else
+					args.push( function: item.getUpdateFunction(), arguments: item.getUpdateArguments('position') )
+			Dajaxice.draw.multipleCalls( @updateCallback, functionsAndArguments: args)
+		# g.rasterizer.rasterize(@items)
 		super()
 		return true
 
@@ -170,7 +179,7 @@ class MoveCommand extends Command
 @MoveCommand = MoveCommand
 
 class ModifyPointCommand extends Command
-	
+
 	constructor: (@item)->
 		@segment = @item.selectionState.segment
 		@previousPosition = new Point(@segment.point)
@@ -180,26 +189,29 @@ class ModifyPointCommand extends Command
 		return
 
 	do: ()->
-		@item.modifySegment(@segment, @position, @handleIn, @handleOut)
+		@item.modifyPoint(@segment, @position, @handleIn, @handleOut)
 		super()
 		return
 
 	undo: ()->
-		@item.modifySegment(@segment, @previousPosition, @previousHandleIn, @previousHandleOut)
+		@item.modifyPoint(@segment, @previousPosition, @previousHandleIn, @previousHandleOut)
 		super()
 		return
 
 	update: (event)->
-		@item.updateModifySegment(event)
+		@item.updateModifyPoint(event)
 		return
 
 	end: (valid)->
-		@position = new Point(@segment.point)
-		@handleIn = new Point(@segment.handleIn)
-		@handleOut = new Point(@segment.handleOut)
+		@position = @segment.point.clone()
+		@handleIn = @segment.handleIn.clone()
+		@handleOut = @segment.handleOut.clone()
 		if not valid then return
-		if @position.equals(@previousPosition) and @previousHandleIn.equals(@handleIn) and @previousHandleOut.equals(@handleOut) then return false
-		@item.endModifySegment()
+		positionNotChanged = @position.equals(@previousPosition)
+		handleInNotChanged = @previousHandleIn.equals(@handleIn)
+		handleOutNotChanged = @previousHandleOut.equals(@handleOut)
+		if positionNotChanged and handleInNotChanged and handleOutNotChanged then return false
+		@item.endModifyPoint()
 		super()
 		return true
 
@@ -213,17 +225,13 @@ class ModifySpeedCommand extends Command
 		return
 
 	do: ()->
-		@item.speeds = @speeds
-		@item.updateSpeed()
-		@item.draw()
+		@item.modifySpeed(@speeds, true)
 		super()
 		return
-	
+
 	undo: ()->
 		@speeds = @item.speeds.slice()
-		@item.speeds = @previousSpeeds
-		@item.updateSpeed()
-		@item.draw()
+		@item.modifySpeed(@previousSpeeds, true)
 		super()
 		return
 
@@ -240,7 +248,7 @@ class ModifySpeedCommand extends Command
 
 @ModifySpeedCommand = ModifySpeedCommand
 
-class ChangeParameterCommand extends Command
+class SetParameterCommand extends Command
 	constructor: (@item, args)->
 		@parameterName = args[0]
 		@previousValue = @item.data[@parameterName]
@@ -248,17 +256,17 @@ class ChangeParameterCommand extends Command
 		return
 
 	do: ()->
-		@item.changeParameter(@parameterName, @value, true, true)
+		@item.setParameter(@parameterName, @value, true, true)
 		super()
 		return
 
 	undo: ()->
-		@item.changeParameter(@parameterName, @previousValue, true, true)
+		@item.setParameter(@parameterName, @previousValue, true, true)
 		super()
 		return
 
 	update: (name, value)->
-		@item.changeParameter(name, value)
+		@item.setParameter(name, value)
 		return
 
 	end: (valid)->
@@ -269,12 +277,80 @@ class ChangeParameterCommand extends Command
 		super()
 		return true
 
-@ChangeParameterCommand = ChangeParameterCommand
+@SetParameterCommand = SetParameterCommand
 
 # ---- # # ---- # # ---- # # ---- #
 # ---- # # ---- # # ---- # # ---- #
 # ---- # # ---- # # ---- # # ---- #
 # ---- # # ---- # # ---- # # ---- #
+
+class AddPointCommand extends Command
+	constructor: (@item, @location, name=null)->
+		super(if not name? then 'Add point on item' else name)
+		return
+
+	addPoint: (update=true)->
+		@segment = @item.addPointAt(@location, update)
+		return
+
+	deletePoint: ()->
+		@location = @item.deletePoint(@segment)
+		return
+
+	do: ()->
+		@addPoint()
+		super()
+		return
+
+	undo: ()->
+		@deletePoint()
+		super()
+		return
+
+@AddPointCommand = AddPointCommand
+
+class DeletePointCommand extends AddPointCommand
+	constructor: (@item, @segment)-> super(@item, @segment, 'Delete point on item')
+
+	do: ()->
+		@previousPosition = new Point(@segment.point)
+		@previousHandleIn = new Point(@segment.handleIn)
+		@previousHandleOut = new Point(@segment.handleOut)
+		@deletePoint()
+		@superDo()
+		return
+
+	undo: ()->
+		@addPoint(false)
+		@item.modifyPoint(@segment, @previousPosition, @previousHandleIn, @previousHandleOut)
+		@superUndo()
+		return
+
+@DeletePointCommand = DeletePointCommand
+
+class ModifyPointTypeCommand extends Command
+
+	constructor: (@item, @segment, @rtype)->
+		@previousRType = @segment.rtype
+		@previousPosition = new Point(@segment.point)
+		@previousHandleIn = new Point(@segment.handleIn)
+		@previousHandleOut = new Point(@segment.handleOut)
+		super('Change point type on item')
+		return
+
+	do: ()->
+		@item.modifyPointType(@segment, @rtype)
+		super()
+		return
+
+	undo: ()->
+		@item.modifyPointType(@segment, @previousRType, true, false)
+		@item.changeSegment(@segment, @previousPosition, @previousHandleIn, @previousHandleOut)
+		super()
+		return
+
+@ModifyPointTypeCommand = ModifyPointTypeCommand
+
 
 class MoveViewCommand extends Command
 	constructor: (@previousPosition, @newPosition)->
@@ -288,7 +364,7 @@ class MoveViewCommand extends Command
 		console.log "updateCommandItems"
 		document.removeEventListener('command executed', @updateCommandItems)
 		for command in g.commandManager.history
-			if command.item? 
+			if command.item?
 				if not command.item.group? and g.items[command.item.pk or command.item.id]
 					command.item = g.items[command.item.pk or command.item.id]
 			if command.items?
@@ -334,57 +410,111 @@ class MoveViewCommand extends Command
 # @MoveCommand = MoveCommand
 
 class SelectCommand extends Command
-	constructor: (@items, @updateParameters)->
-		super("Select item")
-		@previouslySelectedItems = g.previouslySelectedItems.slice()
-		# console.log 'INIT:'
-		# console.log 'previous items'
-		# for item in @previouslySelectedItems
-		# 	console.log item.constructor.rname + ', ' + item.pk
-		# console.log 'items'
-		# for item in @items
-		# 	console.log item.constructor.rname + ', ' + item.pk
+	constructor: (@items, name)->
+		super(name or "Select items")
+		return
+
+	selectItems: ()->
+		for item in @items
+			item.select()
+		g.updateParametersForSelectedItems()
+		return
+
+	deselectItems: ()->
+		for item in @items
+			item.deselect()
+		g.updateParametersForSelectedItems()
 		return
 
 	do: ()->
-		# console.log 'DO:'
-		# console.log 'deselect previous items'
-		# for item in @previouslySelectedItems
-		# 	console.log item.constructor.rname + ', ' + item.pk
-		# console.log 'select items'
-		# for item in @items
-		# 	console.log item.constructor.rname + ', ' + item.pk
-		g.previouslySelectedItems = @previouslySelectedItems
-		for item in @previouslySelectedItems
-			item.deselect(false)
-		for item in @items
-			item.select(false)
-		
-		items = @items.map( (item)-> return { tool: item.constructor, item: item } )
-		g.updateParameters(items, true)
+		@selectItems()
 		super()
 		return
 
 	undo: ()->
-		# console.log 'UNDO:'
-		# console.log 'deselect items'
-		# for item in @items
-		# 	console.log item.constructor.rname + ', ' + item.pk
-		# console.log 'select previous items'
-		# for item in @previouslySelectedItems
-		# 	console.log item.constructor.rname + ', ' + item.pk
-		g.previouslySelectedItems = g.selectedItems.slice()
-		for item in @items
-			item.deselect(false)
-		for item in @previouslySelectedItems
-			item.select(false)
-
-		items = @items.map( (item)-> return { tool: item.constructor, item: item } )
-		g.updateParameters(items, true)
+		@deselectItems()
 		super()
 		return
 
 @SelectCommand = SelectCommand
+
+class DeselectCommand extends SelectCommand
+
+	constructor: (items)->
+		super(items or g.selectedItems.slice(), 'Deselect items')
+		return
+
+	do: ()->
+		@deselectItems()
+		@superDo()
+		return
+
+	undo: ()->
+		@selectItems()
+		@superUndo()
+		return
+
+@DeselectCommand = DeselectCommand
+
+# class SelectCommand extends Command
+# 	constructor: (@items, @updateParameters, name)->
+# 		super(name or "Select item")
+# 		@previouslySelectedItems = g.previouslySelectedItems.slice()
+# 		return
+
+# 	deselectSelect: (itemsToDeselect=[], itemsToSelect=[], dontRasterizeItems=false)->
+# 		for item in itemsToDeselect
+# 			item.deselect(false)
+
+# 		for item in itemsToSelect
+# 			item.select(false)
+
+# 		g.rasterizer.rasterize(itemsToSelect, dontRasterizeItems)
+
+# 		items = itemsToSelect.map( (item)-> return { tool: item.constructor, item: item } )
+# 		g.updateParameters(items, true)
+# 		g.selectedItems = itemsToSelect.slice()
+# 		return
+
+# 	selectItems: ()->
+# 		g.previouslySelectedItems = @previouslySelectedItems
+# 		@deselectSelect(@previouslySelectedItems, @items, true)
+# 		return
+
+# 	deselectItems: ()->
+# 		g.previouslySelectedItems = g.selectedItems.slice()
+# 		@deselectSelect(@items, @previouslySelectedItems)
+# 		return
+
+# 	do: ()->
+# 		@selectedItems()
+# 		super()
+# 		return
+
+# 	undo: ()->
+# 		@deselectItems()
+# 		super()
+# 		return
+
+# @SelectCommand = SelectCommand
+
+# class DeselectCommand extends SelectCommand
+
+# 	constructor: (items, updateParameters)->
+# 		super(items, updateParameters, 'Deselect items')
+# 		return
+
+# 	do: ()->
+# 		@deselectSelect(@items)
+# 		@superDo()
+# 		return
+
+# 	undo: ()->
+# 		@selectedItems()
+# 		@superUndo()
+# 		return
+
+# @DeselectCommand = DeselectCommand
 
 class CreateItemCommand extends Command
 	constructor: (@item, name=null)->
@@ -393,18 +523,16 @@ class CreateItemCommand extends Command
 		@superDo()
 		return
 
-	duplicateItem: ()->
+	setDuplicatedItemToCommands: ()->
 		for command in g.commandManager.history
 			if command == @ then continue
 			if command.item? and command.item == @itemPk then command.item = @item
 			if command.items?
 				for item, i in command.items
 					if item == @itemPk then command.items[i] = @item
-		@item.select()
 		return
 
-	deleteItem: ()->
-		@data = @item.getData()
+	removeDeleteItemFromCommands: ()->
 		for command in g.commandManager.history
 			if command == @ then continue
 			if command.item? and command.item == @item then command.item = @item.pk or @item.id
@@ -412,7 +540,20 @@ class CreateItemCommand extends Command
 				for item, i in command.items
 					if item == @item then command.items[i] = @item.pk or @item.id
 		@itemPk = @item.pk or @item.id
+		return
+
+	duplicateItem: ()->
+		@item = @itemConstructor.create(@duplicateData)
+		@setDuplicatedItemToCommands()
+		@item.select()
+		return
+
+	deleteItem: ()->
+		@removeDeleteItemFromCommands()
+
+		@duplicateData = @item.getDuplicateData()
 		@item.delete()
+
 		@item = null
 		return
 
@@ -428,28 +569,8 @@ class CreateItemCommand extends Command
 
 @CreateItemCommand = CreateItemCommand
 
-class CreatePathCommand extends CreateItemCommand
-	constructor: (item, name=null)->
-		name ?= "Create path" 	# if name is not define: it is a create path command
-		super(item, name)
-		return
-
-	duplicateItem: ()->
-		@item = @itemConstructor.duplicate(@data, @controlPathSegments)
-		super()
-		return
-
-	deleteItem: ()->
-		clone = @item.controlPath.clone()
-		@controlPathSegments = clone.segments
-		clone.remove()
-		super()
-		return
-
-@CreatePathCommand = CreatePathCommand
-
-class DeletePathCommand extends CreatePathCommand
-	constructor: (item)-> super(item, 'Delete path', true)
+class DeleteItemCommand extends CreateItemCommand
+	constructor: (item)-> super(item, 'Delete item')
 
 	do: ()->
 		@deleteItem()
@@ -461,137 +582,105 @@ class DeletePathCommand extends CreatePathCommand
 		@superUndo()
 		return
 
-@DeletePathCommand = DeletePathCommand
+@DeleteItemCommand = DeleteItemCommand
 
-class CreateDivCommand extends CreateItemCommand
-	constructor: (item, name=null)->
-		name ?= "Create div" 	# if name is not define: it is a create path command
-		super(item, name)
-		return
-	
-	duplicateItem: ()->
-		@item = @itemConstructor.duplicate(@rectangle, @data)
-		super()
-		return
-
-	deleteItem: ()->
-		@rectangle = @item.rectangle
-		@data = @item.getData()
-		super()
-		return
-
-	do: ()->
-		super()
-		return RMedia.prototype.isPrototypeOf(@item) 	# deferred if item is an RMedia
-
-@CreateDivCommand = CreateDivCommand
-
-class DeleteDivCommand extends CreateDivCommand
-	constructor: (item, name=null)-> 
-		super(item, name or 'Delete div', true)
-		return
-	
-	do: ()->
-		@deleteItem()
-		@superDo()
-		return
-
-	undo: ()->
-		@duplicateItem()
-		@superUndo()
-		return RMedia.prototype.isPrototypeOf(@item) 	# deferred if item is an RMedia
-
-@DeleteDivCommand = DeleteDivCommand
-
-class CreateLockCommand extends CreateDivCommand
-	constructor: (item, name)->
-		super(item, name or 'Create lock')
-
-@CreateLockCommand = CreateLockCommand
-
-class DeleteLockCommand extends DeleteDivCommand
+class DuplicateItemCommand extends CreateItemCommand
 	constructor: (item)->
-		super(item, 'Delete lock')
-		return
+		@duplicateData = item.getDuplicateData()
+		super(item, 'Duplicate item')
 
-@DeleteLockCommand = DeleteLockCommand
+@DuplicateItemCommand = DuplicateItemCommand
 
-class AddPointCommand extends Command
-	constructor: (@item, @location, name=null)->
-		super(if not name? then 'Add point on item' else name)
-		return
+# class CreatePathCommand extends CreateItemCommand
+# 	constructor: (item, name=null)->
+# 		name ?= "Create path" 	# if name is not define: it is a create path command
+# 		super(item, name)
+# 		return
 
-	addPoint: (update=true)->
-		@segment = @item.addPoint(@location, true, update)
-		return
+# 	duplicateItem: ()->
+# 		@item = @itemConstructor.duplicate(@data, @controlPathSegments)
+# 		super()
+# 		return
 
-	deletePoint: ()->
-		@location = @item.deletePoint(@segment)
-		return
+# 	deleteItem: ()->
+# 		clone = @item.controlPath.clone()
+# 		@controlPathSegments = clone.segments
+# 		clone.remove()
+# 		super()
+# 		return
 
-	do: ()->
-		@addPoint()
-		super()
-		return
+# @CreatePathCommand = CreatePathCommand
 
-	undo: ()->
-		@deletePoint()
-		super()
-		return
+# class DeletePathCommand extends CreatePathCommand
+# 	constructor: (item)-> super(item, 'Delete path', true)
 
-@AddPointCommand = AddPointCommand
+# 	do: ()->
+# 		@deleteItem()
+# 		@superDo()
+# 		return
 
-class DeletePointCommand extends AddPointCommand
-	constructor: (@item, @segment)-> super(@item, @segment, 'Delete point on item')
-	
-	do: ()->
-		@selectionState = {}
-		@selectionState.segment = @item.selectionState.segment
-		@previousPosition = new Point(@selectionState.segment.point)
-		@previousHandleIn = new Point(@selectionState.segment.handleIn)
-		@previousHandleOut = new Point(@selectionState.segment.handleOut)
-		@deletePoint()
-		@superDo()
-		return
+# 	undo: ()->
+# 		@duplicateItem()
+# 		@superUndo()
+# 		return
 
-	undo: ()->
-		@addPoint(false)
-		@item.selectionState.segment = @segment
-		@item.changeSelectedSegment(@previousPosition, @previousHandleIn, @previousHandleOut)
-		@superUndo()
-		return
+# @DeletePathCommand = DeletePathCommand
 
-@DeletePointCommand = DeletePointCommand
+# class CreateDivCommand extends CreateItemCommand
+# 	constructor: (item, name=null)->
+# 		name ?= "Create div" 	# if name is not define: it is a create path command
+# 		super(item, name)
+# 		return
 
-class ChangeSelectedPointTypeCommand extends Command
-	
-	constructor: (@item, @rtype)->
-		@selectionState = {}
-		@selectionState.segment = @item.selectionState.segment
-		@previousRType = @selectionState.segment.rtype
-		@previousPosition = new Point(@selectionState.segment.point)
-		@previousHandleIn = new Point(@selectionState.segment.handleIn)
-		@previousHandleOut = new Point(@selectionState.segment.handleOut)
-		super('Change point type on item')
-		return
+# 	duplicateItem: ()->
+# 		@item = @itemConstructor.duplicate(@rectangle, @data)
+# 		super()
+# 		return
 
-	do: ()->
-		@item.selectionState.segment = @selectionState.segment
-		@item.changeSelectedPointType(@rtype)
-		super()
-		return
+# 	deleteItem: ()->
+# 		@rectangle = @item.rectangle
+# 		@data = @item.getData()
+# 		super()
+# 		return
 
-	undo: ()->
-		@item.selectionState.segment = @selectionState.segment
-		@item.changeSelectedPointType(@previousRType, true, false)
-		@item.changeSelectedSegment(@previousPosition, @previousHandleIn, @previousHandleOut)
-		super()
-		return
+# 	do: ()->
+# 		super()
+# 		return RMedia.prototype.isPrototypeOf(@item) 	# deferred if item is an RMedia
 
-@ChangeSelectedPointTypeCommand = ChangeSelectedPointTypeCommand
+# @CreateDivCommand = CreateDivCommand
+
+# class DeleteDivCommand extends CreateDivCommand
+# 	constructor: (item, name=null)->
+# 		super(item, name or 'Delete div', true)
+# 		return
+
+# 	do: ()->
+# 		@deleteItem()
+# 		@superDo()
+# 		return
+
+# 	undo: ()->
+# 		@duplicateItem()
+# 		@superUndo()
+# 		return RMedia.prototype.isPrototypeOf(@item) 	# deferred if item is an RMedia
+
+# @DeleteDivCommand = DeleteDivCommand
+
+# class CreateLockCommand extends CreateDivCommand
+# 	constructor: (item, name)->
+# 		super(item, name or 'Create lock')
+
+# @CreateLockCommand = CreateLockCommand
+
+# class DeleteLockCommand extends DeleteDivCommand
+# 	constructor: (item)->
+# 		super(item, 'Delete lock')
+# 		return
+
+# @DeleteLockCommand = DeleteLockCommand
 
 # class RotationCommand extends Command
-	
+
 # 	constructor: (@item)->
 # 		@previousRotation = @item.rotation
 # 		super('Rotate item', false)
@@ -617,7 +706,7 @@ class ChangeSelectedPointTypeCommand extends Command
 # @RotationCommand = RotationCommand
 
 # class ResizeCommand extends Command
-	
+
 # 	constructor: (@item)->
 # 		@previousRectangle = @item.rectangle
 # 		super('Resize item', false)
@@ -644,7 +733,7 @@ class ChangeSelectedPointTypeCommand extends Command
 
 class CommandManager
 	@maxCommandNumber = 20
-	
+
 	constructor: ()->
 		@history = []
 		@currentCommand = -1
@@ -672,7 +761,7 @@ class CommandManager
 		document.removeEventListener('command executed', @toggleCurrentCommand)
 
 		if @currentCommand == @commandIndex then return
-		
+
 		deferred = @history[@currentCommand+@offset].toggle()
 		@currentCommand += @direction
 

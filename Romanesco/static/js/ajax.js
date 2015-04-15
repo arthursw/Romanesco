@@ -2,14 +2,16 @@
 (function() {
   var __hasProp = {}.hasOwnProperty;
 
-  this.areaIsLoaded = function(pos, planet) {
+  this.areaIsLoaded = function(pos, planet, qZoom) {
     var area, _i, _len, _ref;
     _ref = g.loadedAreas;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       area = _ref[_i];
       if (area.planet.x === planet.x && area.planet.y === planet.y) {
         if (area.pos.x === pos.x && area.pos.y === pos.y) {
-          return true;
+          if ((qZoom == null) || area.zoom === qZoom) {
+            return true;
+          }
         }
       }
     }
@@ -17,20 +19,26 @@
   };
 
   this.load = function(area) {
-    var areaRectangle, areasToLoad, b, bounds, debug, halfSize, i, item, itemsDates, itemsOutsideLimit, j, l, limit, pk, planet, pos, r, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3;
+    var areaRectangle, areasToLoad, b, bounds, debug, halfSize, i, item, itemsDates, itemsOutsideLimit, j, l, limit, pk, planet, pos, qZoom, r, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3;
     if (area == null) {
       area = null;
     }
-    if (!g.rasterizerMode && (g.previousLoadPosition != null) && g.previousLoadPosition.subtract(view.center).length < 50) {
-      return false;
+    if (!g.rasterizerMode && (g.previousLoadPosition != null)) {
+      if (g.previousLoadPosition.position.subtract(view.center).length < 50) {
+        if (Math.abs(1 - g.previousLoadPosition.zoom / view.zoom) < 0.2) {
+          return false;
+        }
+      }
     }
     console.log("load");
     if (area != null) {
       console.log(area.toString());
     }
     debug = false;
-    scale = g.scale;
-    g.previousLoadPosition = view.center;
+    g.previousLoadPosition = {
+      position: view.center,
+      zoom: view.zoom
+    };
     if (area == null) {
       if (view.bounds.width <= window.innerWidth && view.bounds.height <= window.innerHeight) {
         bounds = view.bounds;
@@ -52,7 +60,7 @@
         _ref2.remove();
       }
     }
-    unloadDist = Math.round(scale / view.zoom);
+    unloadDist = Math.round(g.scale / view.zoom);
     if (!g.entireArea) {
       limit = bounds.expand(unloadDist);
     } else {
@@ -85,12 +93,13 @@
       };
     }
     g.rasterizer.unload(limit);
+    qZoom = g.quantizeZoom(1.0 / view.zoom);
     i = g.loadedAreas.length;
     while (i--) {
       area = g.loadedAreas[i];
       pos = posOnPlanetToProject(area.pos, area.planet);
-      rectangle = new Rectangle(pos.x, pos.y, scale, scale);
-      if (!rectangle.intersects(limit)) {
+      rectangle = new Rectangle(pos.x, pos.y, g.scale * area.zoom, g.scale * area.zoom);
+      if (!rectangle.intersects(limit) || area.zoom !== qZoom) {
         if (debug) {
           area.rectangle.strokeColor = 'red';
           removeRectangle(area.rectangle);
@@ -107,10 +116,11 @@
       }
     }
     itemsOutsideLimit = null;
-    t = g.roundToLowerMultiple(bounds.top, scale);
-    l = g.roundToLowerMultiple(bounds.left, scale);
-    b = g.roundToLowerMultiple(bounds.bottom, scale);
-    r = g.roundToLowerMultiple(bounds.right, scale);
+    scale = g.scale * qZoom;
+    t = g.floorToMultiple(bounds.top, scale);
+    l = g.floorToMultiple(bounds.left, scale);
+    b = g.floorToMultiple(bounds.bottom, scale);
+    r = g.floorToMultiple(bounds.right, scale);
     if (debug) {
       g.viewRectangle = new Path.Rectangle(bounds);
       g.viewRectangle.name = 'debug load view rectangle';
@@ -129,7 +139,7 @@
       for (y = _j = t; scale > 0 ? _j <= b : _j >= b; y = _j += scale) {
         planet = projectToPlanet(new Point(x, y));
         pos = projectToPosOnPlanet(new Point(x, y));
-        if (g.rasterizerMode || !areaIsLoaded(pos, planet)) {
+        if (g.rasterizerMode) {
           if (debug) {
             areaRectangle = new Path.Rectangle(x, y, scale, scale);
             areaRectangle.name = 'debug load area rectangle';
@@ -145,7 +155,27 @@
           if (debug) {
             area.rectangle = areaRectangle;
           }
-          if (!g.rasterizerMode || !areaIsLoaded(pos, planet)) {
+          if (!areaIsLoaded(pos, planet)) {
+            g.loadedAreas.push(area);
+          }
+        } else {
+          if (!areaIsLoaded(pos, planet, qZoom)) {
+            if (debug) {
+              areaRectangle = new Path.Rectangle(x, y, scale, scale);
+              areaRectangle.name = 'debug load area rectangle';
+              areaRectangle.strokeWidth = 1;
+              areaRectangle.strokeColor = 'green';
+              g.debugLayer.addChild(areaRectangle);
+            }
+            area = {
+              pos: pos,
+              planet: planet
+            };
+            areasToLoad.push(area);
+            area.zoom = qZoom;
+            if (debug) {
+              area.rectangle = areaRectangle;
+            }
             g.loadedAreas.push(area);
           }
         }
@@ -160,22 +190,22 @@
       };
       g.loadingBarTimeout = setTimeout(showLoadingBar, 0);
     }
-    rectangle = {
-      left: l,
-      top: t,
-      right: r,
-      bottom: b
-    };
-    console.log('request loading');
-    console.log(rectangle);
     if (!g.rasterizerMode) {
+      rectangle = {
+        left: l / 1000.0,
+        top: t / 1000.0,
+        right: r / 1000.0,
+        bottom: b / 1000.0
+      };
       Dajaxice.draw.load(loadCallback, {
         rectangle: rectangle,
         areasToLoad: areasToLoad,
-        zoom: 1.0 / view.zoom
+        qZoom: qZoom
       });
     } else {
       itemsDates = g.createItemsDates(bounds);
+      console.log('itemsDates');
+      console.log(itemsDates);
       Dajaxice.draw.loadRasterizer(loadCallback, {
         areasToLoad: areasToLoad,
         itemsDates: itemsDates
@@ -185,7 +215,7 @@
   };
 
   this.loadCallback = function(results) {
-    var box, data, date, dispatchLoadFinished, div, i, item, itemsToLoad, lock, path, planet, point, points, rdiv, rpath, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
+    var box, data, date, deletedItemLastUpdate, dispatchLoadFinished, div, i, item, itemToReplace, itemsToLoad, lock, path, pk, planet, point, points, rdiv, rpath, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4;
     console.log("load callback");
     dispatchLoadFinished = function() {
       var commandEvent;
@@ -206,15 +236,30 @@
       }
     }
     if (results.rasters != null) {
-      g.rasterizer.load(results.rasters, results.zoom);
+      g.rasterizer.load(results.rasters, results.qZoom);
+    }
+    if (results.deletedItems != null) {
+      _ref = results.deletedItems;
+      for (pk in _ref) {
+        deletedItemLastUpdate = _ref[pk];
+        if ((_ref1 = g.items[pk]) != null) {
+          _ref1.remove();
+        }
+      }
     }
     itemsToLoad = [];
-    _ref = results.items;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      i = _ref[_i];
+    _ref2 = results.items;
+    for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+      i = _ref2[_i];
       item = JSON.parse(i);
-      if ((_ref1 = g.items[item._id.$oid]) != null) {
-        _ref1.remove();
+      if (!g.rasterizerMode && (g.items[item._id.$oid] != null)) {
+        continue;
+      } else if (g.rasterizerMode) {
+        itemToReplace = g.items[item._id.$oid];
+        if (itemToReplace != null) {
+          console.log("itemToReplace: " + itemToReplace.pk);
+          itemToReplace.remove();
+        }
       }
       if (item.rType === 'Box') {
         box = item;
@@ -244,40 +289,40 @@
     }
     for (_j = 0, _len1 = itemsToLoad.length; _j < _len1; _j++) {
       item = itemsToLoad[_j];
+      pk = item._id.$oid;
+      date = (_ref3 = item.date) != null ? _ref3.$date : void 0;
+      data = (item.data != null) && item.data.length > 0 ? JSON.parse(item.data) : null;
+      lock = item.lock != null ? g.items[item.lock] : null;
       switch (item.rType) {
         case 'Div':
           div = item;
           if (div.box.coordinates[0].length < 5) {
             console.log("Error: box has less than 5 points");
           }
-          data = (div.data != null) && div.data.length > 0 ? JSON.parse(div.data) : null;
-          date = div.date.$date;
           switch (div.object_type) {
             case 'text':
-              rdiv = new RText(g.rectangleFromBox(div), data, div._id.$oid, date, div.lock != null ? g.items[div.lock] : null);
+              rdiv = new RText(g.rectangleFromBox(div), data, pk, date, lock);
               break;
             case 'media':
-              rdiv = new RMedia(g.rectangleFromBox(div), data, div._id.$oid, date, div.lock != null ? g.items[div.lock] : null);
+              rdiv = new RMedia(g.rectangleFromBox(div), data, pk, date, lock);
           }
           rdiv.lastUpdateDate = div.lastUpdate.$date;
           break;
         case 'Path':
           path = item;
           planet = new Point(path.planetX, path.planetY);
-          date = path.date.$date;
-          if ((path.data != null) && path.data.length > 0) {
-            data = JSON.parse(path.data);
+          if (data != null) {
             data.planet = planet;
           }
           points = [];
-          _ref2 = path.points.coordinates;
-          for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-            point = _ref2[_k];
+          _ref4 = path.points.coordinates;
+          for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
+            point = _ref4[_k];
             points.push(posOnPlanetToProject(point, planet));
           }
           rpath = null;
           if (g.tools[path.object_type] != null) {
-            rpath = new g.tools[path.object_type].RPath(date, data, path._id.$oid, points, path.lock != null ? g.items[path.lock] : null);
+            rpath = new g.tools[path.object_type].RPath(date, data, pk, points, lock);
             rpath.lastUpdateDate = path.lastUpdate.$date;
             if (rpath.constructor.name === "Checkpoint") {
               console.log(rpath);
@@ -286,9 +331,16 @@
             console.log("Unknown path type: " + path.object_type);
           }
           break;
+        case 'AreaToUpdate':
+          g.rasterizer.addAreaToUpdate(g.rectangleFromBox(item));
+          break;
         default:
           continue;
       }
+    }
+    g.rasterizer.setQZoomToUpdate(results.qZoom);
+    if ((results.rasters == null) || results.rasters.length === 0) {
+      g.rasterizer.rasterizeAreasToUpdate();
     }
     RDiv.updateZIndex(g.sortedDivs);
     if (!g.rasterizerMode) {
@@ -298,6 +350,7 @@
       dispatchLoadFinished();
     }
     if (typeof window.saveOnServer === "function") {
+      console.log("rasterizeAndSaveOnServer");
       g.rasterizeAndSaveOnServer();
     }
   };

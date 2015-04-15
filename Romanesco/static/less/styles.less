@@ -75,7 +75,7 @@ body {
 
 	.alert {
 		position: absolute;
-		
+
 		top: 50%;
 		.vendor(transform, translateY(-50%));
 
@@ -102,7 +102,7 @@ body {
 
 		border-radius: 0;
 		border: 0;
-		
+
 		opacity: 0.5;
 
 		color: white;
@@ -111,7 +111,7 @@ body {
 		.vendor(transition, opacity 0.25s linear);
 	}
 
-	&.activated {	
+	&.activated {
 		&.show, &:hover {
 			top: 0px;
 
@@ -136,23 +136,42 @@ body {
 #stage.main {
 	padding: 0;
 	width: 100%;
+	height: 100%;
 	overflow: hidden;
 	position: absolute;
 	top: 0;
 	left: 0;
-	
-	#background-canvas {
+	bottom: 0;
+	right: 0;
+
+	// #background-canvas {
+	// 	position: absolute;
+	// 	top: 0;
+	// 	right: 0;
+	// 	bottom: 0;
+	// 	left: 0;
+	// 	width: 100%;
+	// 	height: 100%;
+	// 	z-index: -1;
+	// }
+	#canvas {
+		position: relative;
+		top: 0;
+		left: 0;
+		z-index: 0;
+	}
+	#rasters {
 		position: absolute;
 		top: 0;
-		right: 0;
-		bottom: 0;
 		left: 0;
+		bottom: 0;
+		right: 0;
 		width: 100%;
 		height: 100%;
 		z-index: -1;
-	}
-	#canvas {
-		z-index: 0;
+		canvas {
+			position: absolute;
+		}
 	}
 
 	&.moveTool {
@@ -236,7 +255,7 @@ body {
 				border-left: 5px solid rgba(111, 84, 153, 0.5);
 				border-top-left-radius: 5px;
 			}
-			&.tr { 
+			&.tr {
 				top: 0;
 				right: 0;
 				border-top: 5px solid rgba(111, 84, 153, 0.5);
@@ -323,9 +342,9 @@ body {
 			border-style: solid;
 			border-width: 0px;
 			margin: 0;
-			
+
 			.vendor(background-clip, padding-box);
-			
+
 			position: relative;
 
 			float: left;
@@ -363,7 +382,7 @@ body {
 
 			}
 		}
-		
+
 		.mask {
 			position: absolute;
 			top: 0;
@@ -461,7 +480,7 @@ body {
 	padding-right: 5px;
 	list-style: none;
 
-	-webkit-touch-callout: none;
+	// -webkit-touch-callout: none;
 	.vendor(user-select, none);
 
 	.vendor(transition, left 0.5s ease-out);
@@ -498,7 +517,7 @@ body {
 
 		.vendor(transition, right 0.5s ease-out);
 	}
-	
+
 	#mCSB_1_container {
 		margin-left: 4px;
 		margin-right: 10px;
@@ -610,7 +629,7 @@ body {
 				margin-bottom: 3px;
 				cursor: pointer;
 				background-color: @sidebar-dark-background-color;
-				
+
 				background-repeat: no-repeat;
 				background-position: 5px 10px;
 				background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==);
@@ -719,7 +738,7 @@ body {
 		font-family: 'Bitter', serif;
 		width: 245px;
 		padding: 10px;
-		img {			
+		img {
 			top: -2px;
 			position: relative;
 			margin-right: 5px;
@@ -763,7 +782,7 @@ body {
 		}
 
 		display: block;
-		
+
 		.slider {
 			display: block;
 		}
@@ -787,7 +806,7 @@ body {
 
 			.twitter-typeahead {
 				display: block !important;
-				
+
 				.tt-dropdown-menu {
 					position: relative !important;
 				}
@@ -875,7 +894,7 @@ body {
 			}
 		}
 
-		// #chatSendMessage, #chatUserName 
+		// #chatSendMessage, #chatUserName
 	}
 /*
 	.nano-content {
@@ -973,7 +992,7 @@ body {
 				padding-left: 5px;
 				a {
 					padding-left: 10px;
-					
+
 					background-repeat: no-repeat;
 					background-position: 0px 3px;
 					background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==);
@@ -1029,7 +1048,7 @@ body {
 			padding-left: 15px;
 			background-repeat: no-repeat;
 			background-position: 4px 13px;
-			background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlGIWqMCbWAEAOw==);	
+			background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlGIWqMCbWAEAOw==);
 		}
 		.dropdown-menu {
 			background-color: @sidebar-dark-background-color;
@@ -1047,7 +1066,7 @@ body {
 				}
 			}
 		}
-	} 
+	}
 }
 
 // the colorpicker popover must have a left transition
@@ -1074,7 +1093,7 @@ body {
 		right: 5px;
 		z-index: 1001; 			// one above the sidebar
 	}
-	
+
 	.dat-gui-toggle {
 		position: absolute;
 		top: 3px;
@@ -1120,7 +1139,7 @@ body {
 		input[type=text] {
 			.vendor(user-select, text);
 		}
-		
+
 		.dg .c input.color-input {
 			width: 87%;
 			text-shadow: none;
@@ -1258,7 +1277,7 @@ body {
 		top: 30px;
 		bottom: 45px;
 		z-index: 1;
-		
+
 		&.message {
 			bottom: 230px;
 		}
@@ -1340,10 +1359,10 @@ body {
 
 	@media (min-width: 768px) {
 		div.modal-dialog {
-			width: 700px;	
+			width: 700px;
 		}
 	}
-	
+
 	.image {
 		text-align: center;
 		img {
@@ -1353,7 +1372,7 @@ body {
 			border-color: bisque;
 			max-height: 450px;
 		}
-	}	
+	}
 	.twitter-share-button {
 		padding: 0;
 	}
@@ -1490,7 +1509,7 @@ body.allauth {
 			button[type="submit"] {
 				margin-top: 10px;
 			}
-			
+
 			.form-control {
 				position: relative;
 				height: auto;

@@ -13,7 +13,7 @@
 <html lang="en">
   <head>
 
-  
+
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +21,7 @@
     <meta name="author" content="">
 
     <title>Romanesco</title>
-  
+
     <!-- Nanoscroller CSS -->
     <!-- <link href="{% static 'libs/nanoscroller.css' %}" rel="stylesheet"> -->
     <!-- <link href="{% static 'libs/pace/themes/pace-theme-center-circle.css' %}" rel="stylesheet" /> -->
@@ -42,30 +42,30 @@
     <![endif]-->
     <script>window.RXMLHttpRequest = XMLHttpRequest; // dajaxice modifies the XMLHttpRequest object and some of its default functionnalities do not work afterwards (no onload event sent), so we store the default version in RXMLHttpRequest</script>
   	{% dajaxice_js_import %}
-  
+
   </head>
 
   <body>
 
     <div class="container-fluid">
       <div class="row">
-        
+
         <div id="stage" class="main">
-        
+
           <div class="hidden media-separator"></div>
           <div class="hidden text-separator"></div>
 
-          <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message=" {{ message }}" data-load-entire-area=" {{ loadEntireArea }} "></canvas>        
+          <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message=" {{ message }}" data-load-entire-area=" {{ loadEntireArea }} "></canvas>
 
         </div>
 
       </div>
     </div>
-    
+
     <div id="templates">
 
       <div class="hidden">
-        
+
         <div class="custom-div">
           <!-- <div class="handle tl"></div>
           <div class="handle tr"></div>
@@ -73,10 +73,10 @@
           <div class="handle bl"></div> -->
           <div class="mask"></div>
         </div>
-        
+
         <div class="lock-content content" data-container="body"></div>
-        
-        
+
+
       </div> <!-- /hidden -->
 
     </div>
@@ -100,7 +100,7 @@
     <script src="{% static 'libs/paper/paper-full.js' %}"></script>
     <script src="{% static 'libs/jquery.oembed.js' %}"></script>
     <script src="{% static 'libs/coffee-script.js' %}"></script>
-  
+
     <!-- app scripts -->
     <!-- <script id="pathSources" src="{% static 'coffee/path.coffee' %}"></script> -->
 
@@ -121,12 +121,13 @@
     <script src="{% static 'js/options.js' %}"></script>
     <!-- <script src="{% static 'js/tools.js' %}"></script> -->
     <script src="{% static 'js/mainRasterizer.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
 
     <!-- <script src="{% static 'libs/live.js#js' %}"></script> -->
-    
+
   </body>
 </html>
 
     <!--
-    <div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>BeeZee</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>bel</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>bril F<strong>a</strong>tf<strong>a</strong>ce</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>clonic<strong>a</strong></p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>cme</p></div> 
+    <div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>BeeZee</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>bel</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>bril F<strong>a</strong>tf<strong>a</strong>ce</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>clonic<strong>a</strong></p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>cme</p></div>
 -->

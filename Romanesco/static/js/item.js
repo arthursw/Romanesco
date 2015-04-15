@@ -30,7 +30,9 @@
       'bottomLeft': 'topRight'
     };
 
-    RItem.cornerNames = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'];
+    RItem.cornersNames = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'];
+
+    RItem.sidesNames = ['left', 'right', 'top', 'bottom'];
 
     RItem.valueFromName = function(point, name) {
       switch (name) {
@@ -68,6 +70,20 @@
         }
       };
       return parameters;
+    };
+
+    RItem.create = function(duplicateData) {
+      var copy;
+      copy = new this(duplicateData.rectangle, duplicateData.data);
+      if (!this.socketAction) {
+        copy.save(false);
+        g.chatSocket.emit("bounce", {
+          itemClass: this.name,
+          "function": "create",
+          "arguments": [duplicateData]
+        });
+      }
+      return copy;
     };
 
     function RItem(data, pk) {
@@ -109,30 +125,45 @@
       return;
     }
 
-    RItem.prototype.changeParameterCommand = function(name, value) {
-      this.deferredAction(ChangeParameterCommand, name, value);
+    RItem.prototype.setParameterCommand = function(name, value) {
+      this.deferredAction(SetParameterCommand, name, value);
     };
 
-    RItem.prototype.changeParameter = function(name, value, updateGUI, update) {
+    RItem.prototype.setParameter = function(name, value, updateGUI, update) {
       this.data[name] = value;
       this.changed = name;
-      if (update) {
-        this.update(name);
-      }
-      if (updateGUI) {
-        g.setControllerValueByName(name, value, this);
+      if (!this.socketAction) {
+        if (update) {
+          this.update(name);
+        }
+        if (updateGUI) {
+          g.setControllerValueByName(name, value, this);
+        }
+        g.chatSocket.emit("bounce", {
+          itemPk: this.pk,
+          "function": "setParameter",
+          "arguments": [name, value, false, false]
+        });
       }
     };
 
     RItem.prototype.prepareHitTest = function(fullySelected, strokeWidth) {
+      var _ref;
       if (fullySelected == null) {
         fullySelected = true;
+      }
+      if ((_ref = this.selectionRectangle) != null) {
+        _ref.strokeColor = g.selectionBlue;
       }
     };
 
     RItem.prototype.finishHitTest = function(fullySelected) {
+      var _ref;
       if (fullySelected == null) {
         fullySelected = true;
+      }
+      if ((_ref = this.selectionRectangle) != null) {
+        _ref.strokeColor = null;
       }
     };
 
@@ -152,8 +183,24 @@
     };
 
     RItem.prototype.initializeSelection = function(event, hitResult) {
-      if ((hitResult != null ? hitResult.type : void 0) === 'segment') {
-        if (hitResult.item === this.selectionRectangle) {
+      var cornerName, distance, minDistance, selectionBounds, _i, _len, _ref;
+      if (hitResult.item === this.selectionRectangle) {
+        this.selectionState = {
+          move: true
+        };
+        if ((hitResult != null ? hitResult.type : void 0) === 'stroke') {
+          selectionBounds = this.rectangle.clone().expand(10);
+          minDistance = Infinity;
+          _ref = this.constructor.cornersNames;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            cornerName = _ref[_i];
+            distance = selectionBounds[cornerName].getDistance(hitResult.point, true);
+            if (distance < minDistance) {
+              this.selectionState.move = cornerName;
+              minDistance = distance;
+            }
+          }
+        } else if ((hitResult != null ? hitResult.type : void 0) === 'segment') {
           this.selectionState = {
             resize: {
               index: hitResult.segment.index
@@ -259,15 +306,28 @@
       if (update == null) {
         update = false;
       }
+      if (!Rectangle.prototype.isPrototypeOf(rectangle)) {
+        rectangle = new Rectangle(rectangle);
+      }
       this.rectangle = rectangle;
-      this.updateSelectionRectangle();
-      if (update) {
-        this.update('rectangle');
+      if (this.selectionRectangle) {
+        this.updateSelectionRectangle();
+      }
+      if (!this.socketAction) {
+        if (update) {
+          this.update('rectangle');
+        }
+        g.chatSocket.emit("bounce", {
+          itemPk: this.pk,
+          "function": "setRectangle",
+          "arguments": [this.rectangle, false]
+        });
       }
     };
 
     RItem.prototype.updateSetRectangle = function(event) {
       var center, delta, dx, dy, index, name, rectangle, rotation, x, y;
+      event.point = g.snap2D(event.point);
       rotation = this.rotation || 0;
       rectangle = this.rectangle.clone();
       delta = event.point.subtract(this.rectangle.center);
@@ -279,7 +339,7 @@
       dy = y.dot(delta);
       index = this.selectionState.resize.index;
       name = this.constructor.indexToName[index];
-      if (!event.modifiers.shift && __indexOf.call(this.constructor.cornerNames, name) >= 0 && rectangle.width > 0 && rectangle.height > 0) {
+      if (!event.modifiers.shift && __indexOf.call(this.constructor.cornersNames, name) >= 0 && rectangle.width > 0 && rectangle.height > 0) {
         if (Math.abs(dx / rectangle.width) > Math.abs(dy / rectangle.height)) {
           dx = g.sign(dx) * Math.abs(rectangle.width * dy / rectangle.height);
         } else {
@@ -311,11 +371,21 @@
 
     RItem.prototype.moveTo = function(position, update) {
       var delta;
+      if (!Point.prototype.isPrototypeOf(position)) {
+        position = new Point(position);
+      }
       delta = position.subtract(this.rectangle.center);
       this.rectangle.center = position;
       this.group.translate(delta);
-      if (update) {
-        this.update('position');
+      if (!this.socketAction) {
+        if (update) {
+          this.update('position');
+        }
+        g.chatSocket.emit("bounce", {
+          itemPk: this.pk,
+          "function": "moveTo",
+          "arguments": [position, false]
+        });
       }
     };
 
@@ -323,13 +393,36 @@
       this.moveTo(this.rectangle.center.add(delta), update);
     };
 
-    RItem.prototype.updateMoveBy = function(event) {
-      this.moveBy(event.delta);
+    RItem.prototype.updateMove = function(event) {
+      var cornerName, destination, rectangle;
+      if (g.getSnap() > 1) {
+        if (this.selectionState.move !== true) {
+          cornerName = this.selectionState.move;
+          rectangle = this.rectangle.clone();
+          if (this.dragOffset == null) {
+            this.dragOffset = rectangle[cornerName].subtract(event.downPoint);
+          }
+          destination = g.snap2D(event.point.add(this.dragOffset));
+          rectangle.moveCorner(cornerName, destination);
+          this.moveTo(rectangle.center);
+        } else {
+          if (this.dragOffset == null) {
+            this.dragOffset = this.rectangle.center.subtract(event.downPoint);
+          }
+          destination = g.snap2D(event.point.add(this.dragOffset));
+          this.moveTo(destination);
+        }
+      } else {
+        this.moveBy(event.delta);
+      }
       g.highlightValidity(this);
     };
 
-    RItem.prototype.endMoveBy = function() {
-      this.update('position');
+    RItem.prototype.endMove = function(update) {
+      this.dragOffset = null;
+      if (update) {
+        this.update('position');
+      }
     };
 
     RItem.prototype.moveToCommand = function(position) {
@@ -356,15 +449,20 @@
       return this.rectangle;
     };
 
+    RItem.prototype.getDrawingBounds = function() {
+      return this.rectangle.expand(this.data.strokeWidth);
+    };
+
     RItem.prototype.highlight = function() {
-      var _ref;
+      if (this.highlightRectangle != null) {
+        g.updatePathRectangle(this.highlightRectangle, this.getBounds());
+        return;
+      }
       this.highlightRectangle = new Path.Rectangle(this.getBounds());
       this.highlightRectangle.strokeColor = g.selectionBlue;
+      this.highlightRectangle.strokeScaling = false;
       this.highlightRectangle.dashArray = [4, 10];
-      if ((_ref = this.group) != null) {
-        _ref.addChild(this.highlightRectangle);
-      }
-      this.highlightRectangle.bringToFront();
+      g.selectionLayer.addChild(this.highlightRectangle);
     };
 
     RItem.prototype.unhighlight = function() {
@@ -377,70 +475,69 @@
 
     RItem.prototype.setPK = function(pk) {
       this.pk = pk;
-      g.items[pk] = this;
+      g.items[this.pk] = this;
       delete g.items[this.id];
+      if (!this.socketAction) {
+        g.chatSocket.emit("bounce", {
+          itemPk: this.id,
+          "function": "setPK",
+          "arguments": [this.pk]
+        });
+      }
     };
 
     RItem.prototype.isSelected = function() {
       return this.selectionRectangle != null;
     };
 
-    RItem.prototype.select = function(updateOptions, updateSelectionRectangle) {
+    RItem.prototype.select = function() {
       var _ref;
-      if (updateOptions == null) {
-        updateOptions = true;
-      }
-      if (updateSelectionRectangle == null) {
-        updateSelectionRectangle = true;
-      }
       if (this.selectionRectangle != null) {
         return false;
       }
-      g.previouslySelectedItems = g.selectedItems.slice();
       if ((_ref = this.lock) != null) {
         _ref.deselect();
       }
       this.selectionState = {
         move: true
       };
-      if (updateOptions) {
-        g.updateParameters({
-          tool: this.constructor,
-          item: this
-        }, true);
-      }
       g.s = this;
-      if (updateSelectionRectangle) {
-        this.updateSelectionRectangle(true);
-        g.selectedItems.push(this);
-      }
+      this.updateSelectionRectangle(true);
+      g.selectedItems.push(this);
+      g.updateParametersForSelectedItems();
+      g.rasterizer.rasterize(this, true);
+      this.zindex = this.group.index;
+      g.selectionLayer.addChild(this.group);
       return true;
     };
 
-    RItem.prototype.deselect = function(updatePreviouslySelectedItems) {
+    RItem.prototype.deselect = function() {
       var _ref;
-      if (updatePreviouslySelectedItems == null) {
-        updatePreviouslySelectedItems = true;
-      }
       if (this.selectionRectangle == null) {
         return false;
-      }
-      if (updatePreviouslySelectedItems) {
-        g.previouslySelectedItems = g.selectedItems.slice();
       }
       if ((_ref = this.selectionRectangle) != null) {
         _ref.remove();
       }
       this.selectionRectangle = null;
       g.selectedItems.remove(this);
+      g.updateParametersForSelectedItems();
+      if (this.group != null) {
+        g.rasterizer.rasterize(this);
+        if (!this.lock) {
+          g.mainLayer.insertChild(this.zindex, this.group);
+        } else {
+          this.lock.group.insertChild(this.zindex, this.group);
+        }
+      }
       return true;
     };
 
     RItem.prototype.remove = function() {
       var _ref;
-      this.deselect();
       this.group.remove();
       this.group = null;
+      this.deselect();
       if ((_ref = this.highlightRectangle) != null) {
         _ref.remove();
       }
@@ -451,8 +548,41 @@
       }
     };
 
+    RItem.prototype.save = function(addCreateCommand) {
+      this.addCreateCommand = addCreateCommand;
+    };
+
+    RItem.prototype.saveCallback = function() {
+      if (this.addCreateCommand) {
+        g.commandManager.add(new CreateItemCommand(this));
+        delete this.addCreateCommand;
+      }
+    };
+
+    RItem.prototype["delete"] = function() {
+      if (!this.socketAction) {
+        g.chatSocket.emit("bounce", {
+          itemPk: this.pk,
+          "function": "delete",
+          "arguments": []
+        });
+      }
+      this.pk = null;
+    };
+
     RItem.prototype.deleteCommand = function() {
-      g.commandManager.add(new DeleteCommand(this), true);
+      g.commandManager.add(new DeleteItemCommand(this), true);
+    };
+
+    RItem.prototype.getDuplicateData = function() {
+      return {
+        data: this.getData(),
+        rectangle: this.rectangle
+      };
+    };
+
+    RItem.prototype.duplicateCommand = function() {
+      g.commandManager.add(new DuplicateItemCommand(this), true);
     };
 
     return RItem;
@@ -584,14 +714,24 @@
       this.group.pivot = this.rectangle.center;
       this.rotation = rotation;
       this.group.rotate(rotation - previousRotation);
-      if (update) {
-        this.update('rotation');
+      if (!this.socketAction) {
+        if (update) {
+          this.update('rotation');
+        }
+        g.chatSocket.emit("bounce", {
+          itemPk: this.pk,
+          "function": "setRotation",
+          "arguments": [this.rotation, false]
+        });
       }
     };
 
     RContent.prototype.updateSetRotation = function(event) {
       var rotation;
       rotation = event.point.subtract(this.rectangle.center).angle + 90;
+      if (event.modifiers.shift || g.specialKey(event) || g.getSnap() > 1) {
+        rotation = g.roundToMultiple(rotation, event.modifiers.shift ? 10 : 5);
+      }
       this.setRotation(rotation);
       g.highlightValidity(this);
     };
@@ -612,24 +752,6 @@
         return this.rectangle;
       }
       return g.getRotatedBounds(this.rectangle, this.rotation);
-    };
-
-    RContent.prototype.highlight = function() {
-      var _ref;
-      this.highlightRectangle = new Path.Rectangle(this.getBounds());
-      this.highlightRectangle.strokeColor = g.selectionBlue;
-      this.highlightRectangle.dashArray = [4, 10];
-      if ((_ref = this.group) != null) {
-        _ref.addChild(this.highlightRectangle);
-      }
-    };
-
-    RContent.prototype.unhighlight = function() {
-      if (this.highlightRectangle == null) {
-        return;
-      }
-      this.highlightRectangle.remove();
-      this.highlightRectangle = null;
     };
 
     RContent.prototype.updateZIndex = function() {
@@ -714,27 +836,17 @@
 
     RContent.prototype.setPK = function(pk) {
       var _ref;
-      RContent.__super__.setPK.call(this, pk);
+      RContent.__super__.setPK.apply(this, arguments);
       if ((_ref = this.liJ) != null) {
         _ref.attr("data-pk", this.pk);
       }
     };
 
-    RContent.prototype.select = function(updateOptions, updateSelectionRectangle) {
-      if (updateOptions == null) {
-        updateOptions = true;
-      }
-      if (updateSelectionRectangle == null) {
-        updateSelectionRectangle = true;
-      }
-      if (!RContent.__super__.select.call(this, updateOptions, updateSelectionRectangle)) {
+    RContent.prototype.select = function() {
+      if (!RContent.__super__.select.call(this)) {
         return false;
       }
       this.liJ.addClass('selected');
-      if (this.group.parent !== g.selectionLayer) {
-        this.zindex = this.group.index;
-      }
-      g.selectionLayer.addChild(this.group);
       return true;
     };
 
@@ -743,11 +855,6 @@
         return false;
       }
       this.liJ.removeClass('selected');
-      if (!this.lock) {
-        g.mainLayer.insertChild(this.zindex, this.group);
-      } else {
-        this.lock.group.insertChild(this.zindex, this.group);
-      }
       return true;
     };
 

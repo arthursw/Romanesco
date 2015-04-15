@@ -17,7 +17,7 @@ this.clamp = (min, value, max)->
 this.random = (min, max)->
 	return min + Math.random()*(max-min)
 
-# removes *itemToRemove* from array 
+# removes *itemToRemove* from array
 # problem with array.splice(array.indexOf(item),1) :
 # removes the last element if item is not in array
 Array.prototype.remove = (itemToRemove) ->
@@ -74,7 +74,7 @@ Array.isArray ?= (array)->
 this.isArray = (array)->
 	return array.constructor == Array
 
-# previously Array.prototype.pushIfAbsent, but there seem to be a colision with jQuery... 
+# previously Array.prototype.pushIfAbsent, but there seem to be a colision with jQuery...
 # push if array does not contain item
 this.pushIfAbsent = (array, item) ->
 	if array.indexOf(item)<0 then array.push(item)
@@ -86,9 +86,31 @@ this.pushIfAbsent = (array, item) ->
 # @param [Number] delay before *callback* is called
 this.deferredExecution = (callback, id, n=500) ->
 	id ?= callback
+	callbackWrapper = ()->
+		delete g.updateTimeout[id]
+		callback()
+		return
 	# console.log "deferredExecution: " + id + ", updateTimeout[id]: " + g.updateTimeout[id]
 	if g.updateTimeout[id]? then clearTimeout(g.updateTimeout[id])
-	g.updateTimeout[id] = setTimeout(callback, n)
+	g.updateTimeout[id] = setTimeout(callbackWrapper, n)
+	return
+
+# Execute *callback* at next animation frame
+# @param [function] callback function
+# @param [Anything] a unique id (usually the id or pk of RItems) to avoid collisions between deferred executions
+this.callNextFrame = (callback, id, args) ->
+	id ?= callback
+	callbackWrapper = ()->
+		delete g.requestedCallbacks[id]
+		if not args? then callback() else callback.apply(window, args)
+		return
+	g.requestedCallbacks[id] ?= window.requestAnimationFrame(callbackWrapper)
+	return
+
+this.cancelCallNextFrame = (idToCancel)->
+	window.cancelAnimationFrame(g.requestedCallbacks[idToCancel])
+	delete g.requestedCallbacks[idToCancel]
+	return
 
 sqrtTwoPi = Math.sqrt(2*Math.PI)
 

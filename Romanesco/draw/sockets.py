@@ -36,17 +36,17 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     def initialize(self):
         self.logger = logging.getLogger("socketio.chat")
         self.log("Socketio chat session started")
-        
+
     def log(self, message):
         self.logger.info(u"[{0}] {1}".format(self.socket.sessid, message))
-    
+
     def on_join(self, room):
         if hasattr(self, 'room'):
             self.leave(self.room)
         self.room = room
         self.log(u'Join room: {0}'.format(room))
         self.join(room)
-        
+
     def on_nickname(self, nickname):
         nickname = escape(nickname)
         self.log(u'Nickname: {0}'.format(nickname))
@@ -88,48 +88,48 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     # each time self.room is used
     # --- Tools --- #
 
-    def on_begin(self, user, event, tool, data):
-        self.emit_to_room(self.room, 'begin', user, event, tool, data)
+    # def on_begin(self, user, event, tool, data):
+    #     self.emit_to_room(self.room, 'begin', user, event, tool, data)
 
-    def on_update(self, user, event, tool):
-        self.emit_to_room(self.room, 'update', user, event, tool)
+    # def on_update(self, user, event, tool):
+    #     self.emit_to_room(self.room, 'update', user, event, tool)
 
-    def on_end(self, user, event, tool):
-        self.emit_to_room(self.room, 'end', user, event, tool)
+    # def on_end(self, user, event, tool):
+    #     self.emit_to_room(self.room, 'end', user, event, tool)
 
-    # --- update --- #
+    # # --- update --- #
 
-    def on_select_begin(self, user, pk, event):
-        self.emit_to_room(self.room, 'beginSelect', user, pk, event)
+    # def on_select_begin(self, user, pk, event):
+    #     self.emit_to_room(self.room, 'beginSelect', user, pk, event)
 
-    def on_select_update(self, user, pk, event):
-        self.emit_to_room(self.room, 'updateSelect', user, pk, event)
+    # def on_select_update(self, user, pk, event):
+    #     self.emit_to_room(self.room, 'updateSelect', user, pk, event)
 
-    def on_select_end(self, user, pk, event):
-        self.emit_to_room(self.room, 'endSelect', user, pk, event)
+    # def on_select_end(self, user, pk, event):
+    #     self.emit_to_room(self.room, 'endSelect', user, pk, event)
 
-    def  on_double_click(self, user, pk, event):
-        self.emit_to_room(self.room, 'doubleClick', user, pk, event)
+    # def  on_double_click(self, user, pk, event):
+    #     self.emit_to_room(self.room, 'doubleClick', user, pk, event)
 
-    def on_parameter_change(self, user, pk, name, value, type=None):
-        print "parameter change"
-        self.emit_to_room(self.room, 'parameterChange', user, pk, name, value, type)
+    # def on_parameter_change(self, user, pk, name, value, type=None):
+    #     print "parameter change"
+    #     self.emit_to_room(self.room, 'parameterChange', user, pk, name, value, type)
 
     # --- Save and load --- #
     # todo: change user to something like socket.sessionid
 
-    def on_setPathPK(self, user, pid, pk):
-        self.emit_to_room(self.room, 'setPathPK', user, pid, pk)
+    # def on_setPathPK(self, user, pid, pk):
+    #     self.emit_to_room(self.room, 'setPathPK', user, pid, pk)
 
-    def on_delete_path(self, pk):
-        self.emit_to_room(self.room, 'deletePath', pk)
+    # def on_delete_path(self, pk):
+    #     self.emit_to_room(self.room, 'deletePath', pk)
 
-    def on_createDiv(self, data):
-        self.log(u'{0} create div')
-        self.emit_to_room(self.room, 'createDiv', data)
+    # def on_createDiv(self, data):
+    #     self.log(u'{0} create div')
+    #     self.emit_to_room(self.room, 'createDiv', data)
 
-    def on_delete_div(self, pk):
-        self.emit_to_room(self.room, 'deleteDiv', pk)
+    # def on_delete_div(self, pk):
+    #     self.emit_to_room(self.room, 'deleteDiv', pk)
 
     def on_car_move(self, user, position, rotation, speed):
         if not hasattr(self, 'room'):
@@ -140,6 +140,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     # --- Bounce --- #
 
     def on_bounce(self, data):
+        print "bounce: " + str(data)
         self.emit_to_room(self.room, 'bounce', data)
 
     # def on_beginDiv(self, user, p):
@@ -194,7 +195,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #     boxes = []
 
     #     for area in areasToLoad:
-                    
+
     #         tlX = area['pos']['x']
     #         tlY = area['pos']['y']
 
@@ -208,7 +209,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #         paths.append(p.to_json())
     #         boxes.append(b.to_json())
     #         divs.append(d.to_json())
-        
+
     #     user = user
     #     if not user:
     #         user = self.socket.sessid
@@ -219,7 +220,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #     planetY = planet['y']
 
     #     lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points } )
-        
+
     #     if lockedAreas.count()>0:
     #         return {'state': 'error', 'message': 'Your drawing intersects with a locked area'}
 
@@ -261,7 +262,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #         return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
     #     p.delete()
-        
+
     #     return { 'state': 'success', 'pk': pk }
 
     # def on_save_box(request, box, object_type, message, name="", url=""):
@@ -284,7 +285,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
 
     #     b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, url=url, message=message, name=name)
     #     b.save()
-        
+
     #     # pathsToLock = Path.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry)
     #     # for path in pathsToLock:
     #     #   path.locked = True

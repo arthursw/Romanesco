@@ -113,6 +113,17 @@
     return new Rectangle(tl, br);
   };
 
+  this.quantizeZoom = function(zoom) {
+    if (zoom < 5) {
+      zoom = 1;
+    } else if (zoom < 25) {
+      zoom = 5;
+    } else {
+      zoom = 25;
+    }
+    return zoom;
+  };
+
 }).call(this);
 
 //# sourceMappingURL=coordinateSystems.map

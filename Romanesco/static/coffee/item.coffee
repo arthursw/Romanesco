@@ -9,8 +9,8 @@ class RItem
 		5: 'right'
 		6: 'bottomRight'
 		7: 'bottom'
-	
-	@oppositeName = 
+
+	@oppositeName =
 		'top': 'bottom'
 		'bottom': 'top'
 		'left': 'right'
@@ -20,7 +20,8 @@ class RItem
 		'bottomRight':  'topLeft'
 		'bottomLeft':  'topRight'
 
-	@cornerNames = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft']
+	@cornersNames = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft']
+	@sidesNames = ['left', 'right', 'top', 'bottom']
 
 	@valueFromName = (point, name)->
 		switch name
@@ -53,8 +54,15 @@ class RItem
 
 		return parameters
 
+	@create: (duplicateData)->
+		copy = new @(duplicateData.rectangle, duplicateData.data)
+		if not @socketAction
+			copy.save(false)
+			g.chatSocket.emit "bounce", itemClass: @name, function: "create", arguments: [duplicateData]
+		return copy
+
 	constructor: (@data, @pk)->
-		
+
 		# if the RPath is being loaded: directly set pk and load path
 		if @pk?
 			@setPK(@pk, false)
@@ -68,7 +76,7 @@ class RItem
 			if name=='General' then continue
 			for controller in folder.__controllers
 				@data[controller.property] ?= controller.rValue()
-		
+
 		@rectangle ?= null
 
 		@selectionState = null
@@ -80,22 +88,24 @@ class RItem
 
 		return
 
-	changeParameterCommand: (name, value)->
-		@deferredAction(ChangeParameterCommand, name, value)
+	setParameterCommand: (name, value)->
+		@deferredAction(SetParameterCommand, name, value)
 		# if @data[name] == value then return
-		# @setCurrentCommand(new ChangeParameterCommand(@, name))
-		# @changeParameter(name, value)
+		# @setCurrentCommand(new SetParameterCommand(@, name))
+		# @setParameter(name, value)
 		# g.deferredExecution(@addCurrentCommand, 'addCurrentCommand-' + (@id or @pk) )
 		return
 
 	# @param name [String] the name of the value to change
 	# @param value [Anything] the new value
-	# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from ChangeParameterCommand
-	changeParameter: (name, value, updateGUI, update)->
+	# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from SetParameterCommand
+	setParameter: (name, value, updateGUI, update)->
 		@data[name] = value
 		@changed = name
-		if update then @update(name)
-		if updateGUI then g.setControllerValueByName(name, value, @)
+		if not @socketAction
+			if update then @update(name)
+			if updateGUI then g.setControllerValueByName(name, value, @)
+			g.chatSocket.emit "bounce", itemPk: @pk, function: "setParameter", arguments: [name, value, false, false]
 		return
 
 	# set path items (control path, drawing, etc.) to the right state before performing hitTest
@@ -103,14 +113,16 @@ class RItem
 	# @param fullySelected [Boolean] (optional) whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles)
 	# @param strokeWidth [Number] (optional) contorl path width will be set to *strokeWidth* if it is provided
 	prepareHitTest: (fullySelected=true, strokeWidth)->
+		@selectionRectangle?.strokeColor = g.selectionBlue
 		return
 
 	# restore path items orginial states (same as before @prepareHitTest())
 	# @param fullySelected [Boolean] (optional) whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles)
 	finishHitTest: (fullySelected=true)->
+		@selectionRectangle?.strokeColor = null
 		return
 
-	# perform hit test to check if the point hits the selection rectangle  
+	# perform hit test to check if the point hits the selection rectangle
 	# @param point [Point] the point to test
 	# @param hitOptions [Object] the [paper hit test options](http://paperjs.org/reference/item/#hittest-point)
 	hitTest: (point, hitOptions)->
@@ -130,14 +142,26 @@ class RItem
 		@finishHitTest(fullySelected)
 		return hitResult
 
-	# intialize the selection: 
+	# intialize the selection:
 	# determine which action to perform depending on the the *hitResult* (move by default, edit point if segment from contorl path, etc.)
 	# set @selectionState which will be used during the selection process (select begin, update, end)
 	# @param event [Paper event] the mouse event
 	# @param hitResult [Paper HitResult] [paper hit result](http://paperjs.org/reference/hitresult/) form the hit test
 	initializeSelection: (event, hitResult) ->
-		if hitResult?.type == 'segment'
-			if hitResult.item == @selectionRectangle 			# if the segment belongs to the selection rectangle: initialize rotation or scaling
+		if hitResult.item == @selectionRectangle
+			@selectionState = move: true
+			if hitResult?.type == 'stroke'
+				selectionBounds = @rectangle.clone().expand(10)
+				# for sideName in @constructor.sidesNames
+				# 	if Math.abs( selectionBounds[sideName] - @constructor.valueFromName(hitResult.point, sideName) ) < @constructor.hitOptions.tolerance
+				# 		@selectionState.move = sideName
+				minDistance = Infinity
+				for cornerName in @constructor.cornersNames
+					distance = selectionBounds[cornerName].getDistance(hitResult.point, true)
+					if distance < minDistance
+						@selectionState.move = cornerName
+						minDistance = distance
+			else if hitResult?.type == 'segment'
 				@selectionState = resize: { index: hitResult.segment.index }
 		return
 
@@ -147,14 +171,14 @@ class RItem
 	# - hit test and initialize selection
 	# @param event [Paper event] the mouse event
 	beginSelect: (event) ->
-		
+
 		@selectionState = move: true
 		if not @isSelected()
 			g.commandManager.add(new SelectCommand([@]), true)
 		else
 			hitResult = @performHitTest(event.point, @constructor.hitOptions)
 			if hitResult? then @initializeSelection(event, hitResult)
-		
+
 		if @selectionState.move?
 			@beginAction(new MoveCommand(@))
 		else if @selectionState.resize?
@@ -233,7 +257,7 @@ class RItem
 		@group.addChild(@selectionRectangle)
 		@selectionRectangle.name = "selection rectangle"
 		@selectionRectangle.pivot = bounds.center
-		
+
 		@createSelectionRectangle(bounds)
 
 		@selectionRectangle.selected = true
@@ -242,12 +266,18 @@ class RItem
 		return
 
 	setRectangle: (rectangle, update=false)->
+		if not Rectangle.prototype.isPrototypeOf(rectangle) then rectangle = new Rectangle(rectangle)
 		@rectangle = rectangle
-		@updateSelectionRectangle()
-		if update then @update('rectangle')
+		if @selectionRectangle then @updateSelectionRectangle()
+		if not @socketAction
+			if update then @update('rectangle')
+			g.chatSocket.emit "bounce", itemPk: @pk, function: "setRectangle", arguments: [@rectangle, false]
 		return
-	
+
 	updateSetRectangle: (event)->
+
+		event.point = g.snap2D(event.point)
+
 		rotation = @rotation or 0
 		rectangle = @rectangle.clone()
 		delta = event.point.subtract(@rectangle.center)
@@ -262,7 +292,7 @@ class RItem
 		name = @constructor.indexToName[index]
 
 		# if shift is not pressed and a corner is selected: keep aspect ratio (rectangle must have width and height greater than 0 to keep aspect ratio)
-		if not event.modifiers.shift and name in @constructor.cornerNames and rectangle.width > 0 and rectangle.height > 0
+		if not event.modifiers.shift and name in @constructor.cornersNames and rectangle.width > 0 and rectangle.height > 0
 			if Math.abs(dx / rectangle.width) > Math.abs(dy / rectangle.height)
 				dx = g.sign(dx) * Math.abs(rectangle.width * dy / rectangle.height)
 			else
@@ -271,7 +301,7 @@ class RItem
 		center = rectangle.center.clone()
 		rectangle[name] = @constructor.valueFromName(center.add(dx, dy), name)
 
-		if not g.specialKey(event) 
+		if not g.specialKey(event)
 			rectangle[@constructor.oppositeName[name]] = @constructor.valueFromName(center.subtract(dx, dy), name)
 		else
 			# the center of the rectangle changes when moving only one side
@@ -284,7 +314,7 @@ class RItem
 		if rectangle.height < 0
 			rectangle.height = Math.abs(rectangle.height)
 			rectangle.center.y = center.y
-		
+
 		@setRectangle(rectangle)
 		g.highlightValidity(@)
 		return
@@ -294,23 +324,40 @@ class RItem
 		return
 
 	moveTo: (position, update)->
+		if not Point.prototype.isPrototypeOf(position) then position = new Point(position)
 		delta = position.subtract(@rectangle.center)
 		@rectangle.center = position
 		@group.translate(delta)
-		if update then @update('position')
+		if not @socketAction
+			if update then @update('position')
+			g.chatSocket.emit "bounce", itemPk: @pk, function: "moveTo", arguments: [position, false]
 		return
 
 	moveBy: (delta, update)->
 		@moveTo(@rectangle.center.add(delta), update)
 		return
 
-	updateMoveBy: (event)->
-		@moveBy(event.delta)
+	updateMove: (event)->
+		if g.getSnap() > 1
+			if @selectionState.move != true
+				cornerName = @selectionState.move
+				rectangle = @rectangle.clone()
+				@dragOffset ?= rectangle[cornerName].subtract(event.downPoint)
+				destination = g.snap2D(event.point.add(@dragOffset))
+				rectangle.moveCorner(cornerName, destination)
+				@moveTo(rectangle.center)
+			else
+				@dragOffset ?= @rectangle.center.subtract(event.downPoint)
+				destination = g.snap2D(event.point.add(@dragOffset))
+				@moveTo(destination)
+		else
+			@moveBy(event.delta)
 		g.highlightValidity(@)
 		return
 
-	endMoveBy: ()->
-		@update('position')
+	endMove: (update)->
+		@dragOffset = null
+		if update then @update('position')
 		return
 
 	moveToCommand: (position)->
@@ -335,13 +382,19 @@ class RItem
 	getBounds: ()->
 		return @rectangle
 
+	getDrawingBounds: ()->
+		return @rectangle.expand(@data.strokeWidth)
+
 	# highlight this RItem by drawing a blue rectangle around it
 	highlight: ()->
+		if @highlightRectangle?
+			g.updatePathRectangle(@highlightRectangle, @getBounds())
+			return
 		@highlightRectangle = new Path.Rectangle(@getBounds())
 		@highlightRectangle.strokeColor = g.selectionBlue
+		@highlightRectangle.strokeScaling = false
 		@highlightRectangle.dashArray = [4, 10]
-		@group?.addChild(@highlightRectangle)
-		@highlightRectangle.bringToFront()
+		g.selectionLayer.addChild(@highlightRectangle)
 		return
 
 	# common to all RItems
@@ -353,56 +406,62 @@ class RItem
 		return
 
 	setPK: (@pk)->
-		g.items[pk] = @
+		g.items[@pk] = @
 		delete g.items[@id]
+		if not @socketAction then g.chatSocket.emit "bounce", itemPk: @id, function: "setPK", arguments: [@pk]
 		return
 
 	# @return true if RItem is selected
 	isSelected: ()->
 		return @selectionRectangle?
-	
+
 	# select the RItem: (only if it has no selection rectangle i.e. not already selected)
-	# - update the selection rectangle, 
+	# - update the selection rectangle,
 	# - (optionally) update controller in the gui accordingly
-	# @param updateOptions [Boolean] whether to update controllers in gui or not
-	# @param updateSelectionRectangle [Boolean] whether to the selection rectangle (always true except when creating a path)
 	# @return whether the ritem was selected or not
-	select: (updateOptions=true, updateSelectionRectangle=true)->
+	select: ()->
 		if @selectionRectangle? then return false
 
-		g.previouslySelectedItems = g.selectedItems.slice()
-		
 		@lock?.deselect()
-		
+
 		# create or update the selection rectangle
 		@selectionState = move: true
-		
-		# create or update the global selection group
-		if updateOptions then g.updateParameters( { tool: @constructor, item: @ } , true)
 
 		g.s = @
-	
-		if updateSelectionRectangle 
-			@updateSelectionRectangle(true)
-			g.selectedItems.push(@)
-		
+
+		@updateSelectionRectangle(true)
+		g.selectedItems.push(@)
+		g.updateParametersForSelectedItems()
+		g.rasterizer.rasterize(@, true)
+
+		@zindex = @group.index
+		g.selectionLayer.addChild(@group)
+
 		return true
 
-	deselect: (updatePreviouslySelectedItems=true)->
+	deselect: ()->
 		if not @selectionRectangle? then return false
-		
-		if updatePreviouslySelectedItems then g.previouslySelectedItems = g.selectedItems.slice()
 
 		@selectionRectangle?.remove()
 		@selectionRectangle = null
 		g.selectedItems.remove(@)
-	
+		g.updateParametersForSelectedItems()
+
+		if @group? 	# @group is null when item is removed (called from @remove())
+
+			g.rasterizer.rasterize(@)
+
+			if not @lock
+				g.mainLayer.insertChild(@zindex, @group)
+			else
+				@lock.group.insertChild(@zindex, @group)
+
 		return true
 
 	remove: ()->
-		@deselect()
 		@group.remove()
 		@group = null
+		@deselect()
 		@highlightRectangle?.remove()
 		if @pk?
 			delete g.items[@pk]
@@ -410,8 +469,29 @@ class RItem
 			delete g.items[@id]
 		return
 
+	save: (@addCreateCommand)->
+		return
+
+	saveCallback: ()->
+		if @addCreateCommand
+			g.commandManager.add(new CreateItemCommand(@))
+			delete @addCreateCommand
+		return
+
+	delete: ()->
+		if not @socketAction then g.chatSocket.emit "bounce", itemPk: @pk, function: "delete", arguments: []
+		@pk = null
+		return
+
 	deleteCommand: ()->
-		g.commandManager.add(new DeleteCommand(@), true)
+		g.commandManager.add(new DeleteItemCommand(@), true)
+		return
+
+	getDuplicateData: ()->
+		return data: @getData(), rectangle: @rectangle
+
+	duplicateCommand: ()->
+		g.commandManager.add(new DuplicateItemCommand(@), true)
 		return
 
 @RItem = RItem
@@ -440,7 +520,7 @@ class RContent extends RItem
 		@date ?= Date.now()
 
 		@rotation = @data.rotation or 0
-		
+
 		@liJ = $("<li>")
 		@setZindexLabel()
 		@liJ.attr("data-pk", @pk)
@@ -522,11 +602,15 @@ class RContent extends RItem
 		@group.rotate(rotation-previousRotation)
 		# @rotation = rotation
 		# @selectionRectangle.rotation = rotation
-		if update then @update('rotation')
+		if not @socketAction
+			if update then @update('rotation')
+			g.chatSocket.emit "bounce", itemPk: @pk, function: "setRotation", arguments: [@rotation, false]
 		return
 
 	updateSetRotation: (event)->
 		rotation = event.point.subtract(@rectangle.center).angle + 90
+		if event.modifiers.shift or g.specialKey(event) or g.getSnap() > 1
+			rotation = g.roundToMultiple(rotation, if event.modifiers.shift then 10 else 5)
 		@setRotation(rotation)
 		g.highlightValidity(@)
 		return
@@ -545,29 +629,13 @@ class RContent extends RItem
 		if @rotation == 0 then return @rectangle
 		return g.getRotatedBounds(@rectangle, @rotation)
 
-	# highlight this RItem by drawing a blue rectangle around it
-	highlight: ()->
-		@highlightRectangle = new Path.Rectangle(@getBounds())
-		@highlightRectangle.strokeColor = g.selectionBlue
-		@highlightRectangle.dashArray = [4, 10]
-		@group?.addChild(@highlightRectangle)
-		return
-
-	# common to all RItems
-	# hide highlight rectangle
-	unhighlight: ()->
-		if not @highlightRectangle? then return
-		@highlightRectangle.remove()
-		@highlightRectangle = null
-		return
-
 	# update the z index (i.e. move the item to the right position)
 	# - RItems are kept sorted by z-index in *g.sortedPaths* and *g.sortedDivs*
 	# - z-index are initialized to the current date (this is a way to provide a global z index even with RItems which are not loaded)
 	updateZIndex: ()->
 		if not @date? then return
 
-		if @sortedItems.length==0 
+		if @sortedItems.length==0
 			@sortedItems.push(@)
 			return
 
@@ -626,35 +694,33 @@ class RContent extends RItem
 		return
 
 	setPK: (pk)->
-		super(pk)
+		super
 		@liJ?.attr("data-pk", @pk)
 		return
 
 	# select the RItem: (only if it has no selection rectangle i.e. not already selected)
-	# - update the selection rectangle, 
-	# - (optionally) update controller in the gui accordingly
-	# @param updateOptions [Boolean] whether to update controllers in gui or not
 	# @return whether the ritem was selected or not
-	select: (updateOptions=true, updateSelectionRectangle=true)->
-		if not super(updateOptions, updateSelectionRectangle) then return false
+	select: ()->
+		if not super() then return false
 
 		@liJ.addClass('selected')
 
 		# update the global selection group (i.e. add this RPath to the group)
-		if @group.parent != g.selectionLayer then @zindex = @group.index
-		g.selectionLayer.addChild(@group)
+		# if @group.parent != g.selectionLayer then @zindex = @group.index
+		# g.selectionLayer.addChild(@group)
 
 		return true
 
 	deselect: ()->
 		if not super() then return false
-		
+
 		@liJ.removeClass('selected')
 
-		if not @lock
-			g.mainLayer.insertChild(@zindex, @group)
-		else
-			@lock.group.insertChild(@zindex, @group)
+		# if @group?
+		# 	if not @lock
+		# 		g.mainLayer.insertChild(@zindex, @group)
+		# 	else
+		# 		@lock.group.insertChild(@zindex, @group)
 
 		return true
 
@@ -663,7 +729,7 @@ class RContent extends RItem
 		@sortedItems?.remove(@)
 		@liJ?.remove()
 		return
-	
+
 	update: ()->
 		return
 

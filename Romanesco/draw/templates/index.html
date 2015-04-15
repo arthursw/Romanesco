@@ -13,7 +13,7 @@
 <html lang="en">
   <head>
 
-  
+
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,7 +22,7 @@
     <link rel="shortcut icon" href="{% static 'images/icons/logo32.png' %}">
 
     <title>Romanesco</title>
-  
+
     <!-- Nanoscroller CSS -->
     <!-- <link href="{% static 'libs/nanoscroller.css' %}" rel="stylesheet"> -->
     <!-- <link href="{% static 'libs/pace/themes/pace-theme-center-circle.css' %}" rel="stylesheet" /> -->
@@ -39,7 +39,7 @@
     <link href="{% static 'libs/bootstrap-colorpickersliders/bootstrap.colorpickersliders.css' %}" rel="stylesheet">
     <!-- <link href="{% static 'libs/slider.css' %}" rel="stylesheet"> -->
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
-    
+
     <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -49,7 +49,7 @@
     <![endif]-->
     <script>window.RXMLHttpRequest = XMLHttpRequest; // dajaxice modifies the XMLHttpRequest object and some of its default functionnalities do not work afterwards (no onload event sent), so we store the default version in RXMLHttpRequest</script>
   	{% dajaxice_js_import %}
-  
+
   </head>
 
   <body>
@@ -70,7 +70,7 @@
       <div class="alert fade in">
         <p></p>
       </div>
-    
+
       <button type="button" class="btn btn-default btn-xs btn-down show">
         <span class="glyphicon glyphicon-chevron-up"></span>
       </button>
@@ -123,7 +123,7 @@
         <div id="fb-root"></div>
         <!-- Sidebar -->
         <div id="sidebar" class="sidebar">
-          
+
           <button type="button" class="sidebar-handle btn btn-default">
             <span class="glyphicon glyphicon-chevron-left"></span>
           </button>
@@ -168,8 +168,8 @@
                               </ul>
                             </div>
                           </div>
-                          
-                          <!-- 
+
+                          <!--
                           <div class="romanescoin">
                             <div class="credit">
                               <strong>Credit:{% if request.user.profile.romanescoins %} {{ request.user.profile.romanescoins }} {% else %} 0 {% endif %} ®</strong>
@@ -235,7 +235,7 @@
 
                     </div>
                   </div>
-                  
+
                 </div>
 
                 <div class="panel panel-default in">
@@ -259,7 +259,7 @@
 
                     </div>
                   </div>
-                  
+
                 </div>
 
                 <div class="panel panel-default">
@@ -284,7 +284,7 @@
 
                     </div>
                   </div>
-                  
+
                 </div>
 
                 <div class="panel panel-default">
@@ -304,7 +304,7 @@
                       </div>
                     </div>
                   </div>
-                  
+
                 </div>
 
                 <div class="panel panel-default">
@@ -332,7 +332,7 @@
                       </div>
                     </div>
                   </div>
-                  
+
                 </div>
 
                 <div class="dat-gui dg-sidebar"></div>
@@ -349,10 +349,10 @@
                     <div id="chatContent" class="panel-body">
 
                       {% if not request.user.is_authenticated %}
-                        
+
                         <div id="chatLogin">
-                            
-                            <!--                        
+
+                            <!--
                             <div class="btn-group">
                               <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
                                 Sign in / up <span class="caret"></span>
@@ -414,12 +414,13 @@
         <div class="dat-gui dg-right"></div>
 
         <div id="stage" class="main">
-        
-          <div id="background-canvases"></div>
-          <!-- <canvas id="background-canvas" resize hidpi="off"></canvas> -->
-          <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message=" {{ message }}" data-load-entire-area=" {{ loadEntireArea }} "></canvas>
+
           <div class="hidden media-separator"></div>
           <div class="hidden text-separator"></div>
+
+          <!-- <canvas id="background-canvas" resize hidpi="off"></canvas> -->
+          <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message=" {{ message }}" data-load-entire-area=" {{ loadEntireArea }} "></canvas>
+          <div id="rasters"></div>
 
         </div>
 
@@ -439,7 +440,7 @@
             <button class="btn btn-success request" type="button"><span class="glyphicon glyphicon-plus"></span>Push request</button>
           </div>
         </div>
-<!-- 
+<!--
         <ul id="dragTest" style="
     position: absolute;
     left: 300px;
@@ -454,7 +455,7 @@
 
       </div>
     </div>
-    
+
     <!-- <div id="loadingBar"><img src="static/images/loader.GIF"></div> -->
     <div id="loadingBar">Drawing...</div>
     <div id="loadingMask">Loading...</div>
@@ -543,7 +544,7 @@
                     <span class="input-group-addon">.romanesco.co</span>
                   </div>
                 </div>
-                
+
                 <div class="form-group message-group">
                   <label for="divModalMessage">Message</label>
                   <input id="divModalMessage" type="text" class="message form-control submit-shortcut" placeholder="Enter the message you want others to see when they look at this link.">
@@ -583,7 +584,7 @@
                     <img alt="" border="0" src="https://www.sandbox.paypal.com/fr_FR/i/scr/pixel.gif" width="1" height="1">
                   </form>
 
-<!-- 
+<!--
                   <form id="paypalForm" action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
                     <input type="hidden" name="cmd" value="_s-xclick">
                     <input type="hidden" name="hosted_button_id" value="F9P9CXF5B6JSA">
@@ -672,7 +673,7 @@
 
 
       <div class="hidden">
-        
+
         <div class="custom-div">
           <!-- <div class="handle tl"></div>
           <div class="handle tr"></div>
@@ -680,7 +681,7 @@
           <div class="handle bl"></div> -->
           <div class="mask"></div>
         </div>
-        
+
         <li class="layer">
           <h6 class="title"></h6>
           <ul class="romanesco-ui rDiv-list">
@@ -691,9 +692,9 @@
         </li>
 
         <div class="lock-content content" data-container="body"></div>
-        
+
         <button class="dat-gui-toggle" type="button"> <span class="glyphicon glyphicon-transfer" aria-hidden="true"></span></button>
-<!-- 
+<!--
         <div class="slider-group">
           <label for="" class="slider"></label>
           <input id="" type="text" class="bootstrap-slider" value="" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="0">
@@ -709,13 +710,13 @@
             <input type="checkbox"><span class="glyphicon glyphicon-bold"></span>
           </label>
           <label class="btn btn-default btn-xs" name="underline">
-            <input type="checkbox"><img class="glyphicon" src="{% static 'images/icons/inverted/underline.png' %}"/> 
+            <input type="checkbox"><img class="glyphicon" src="{% static 'images/icons/inverted/underline.png' %}"/>
           </label>
           <label class="btn btn-default btn-xs" name="overline">
-            <input type="checkbox"><img class="glyphicon" src="{% static 'images/icons/inverted/overline.png' %}"/> 
+            <input type="checkbox"><img class="glyphicon" src="{% static 'images/icons/inverted/overline.png' %}"/>
           </label>
           <label class="btn btn-default btn-xs" name="line-through">
-            <input type="checkbox"><img class="glyphicon" src="{% static 'images/icons/inverted/line-through.png' %}"/> 
+            <input type="checkbox"><img class="glyphicon" src="{% static 'images/icons/inverted/line-through.png' %}"/>
           </label>
         </div>
 
@@ -750,21 +751,18 @@
 
     </div>
 
-
     <object id="wacomPlugin" type="application/x-wacomtabletplugin" width="0" height="0" style="position:absolute; left:0px; top:0px">
       <param name="onload" value="pluginLoaded" />
     </object>
 
-    <!-- Bootstrap core JavaScript
-    ================================================== -->
+    <!-- Bootstrap core JavaScript ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-
-    <!-- online for fast caching
-    <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
-    <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
-    -->
-
+    <!-- online for fast caching-->
+    <!-- <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>-->
+    <!-- <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>-->
     <!-- static for offine -->
+
+    <!-- <script data-main="{% static 'js/main' %}" src="{% static 'libs/require.js' %}"></script> -->
 
     <script src="{% static 'libs/jquery-1.10.2.js' %}"></script>
 
@@ -797,8 +795,8 @@
     <!-- <script src="{% static 'libs/howler.js' %}"></script> -->
 
     <script type="text/javascript" async defer src="//assets.pinterest.com/js/pinit.js"></script>
-    
-    <!--    
+
+    <!--
     <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/1.15.0/plugins/CSSPlugin.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/1.15.0/easing/EasePack.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/1.15.0/TweenLite.min.js"></script>
@@ -806,19 +804,17 @@
 
     <script src="{% static 'libs/RequestAnimationFrame.js' %}"></script>
     <script src="{% static 'libs/tween.min.js' %}"></script>
-    
+
 
     <!-- <script src="{% static 'libs/soundjs-0.5.2.min.js' %}"></script> -->
 
     <!-- <script src="{% static 'libs/pace/pace.js' %}" data-pace-options='{ "ajax": false, "document": false, "eventLag": false, "elements": false, "restartOnPushState": false, "restartOnRequestAfter": false }'></script> -->
 
     <!-- <script src="{% static 'libs/ace/src-min-noconflict/ace.js' %}"></script> -->
-    
+
     <!--  <script src="{% static 'libs/fabric/all.js' %}"> -->
 
-  </script>
 
-    
     <!-- app scripts -->
     <!-- <script id="pathSources" src="{% static 'coffee/path.coffee' %}"></script> -->
 
@@ -842,10 +838,10 @@
     <script src="{% static 'js/main.js' %}"></script>
 
     <!-- <script src="{% static 'libs/live.js#js' %}"></script> -->
-    
+
   </body>
 </html>
 
     <!--
-    <div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>BeeZee</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>bel</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>bril F<strong>a</strong>tf<strong>a</strong>ce</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>clonic<strong>a</strong></p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>cme</p></div> 
+    <div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>BeeZee</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>bel</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>bril F<strong>a</strong>tf<strong>a</strong>ce</p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>clonic<strong>a</strong></p></div><div class="tt-suggestion"><p style="white-space: normal;"><strong>A</strong>cme</p></div>
 -->
