@@ -19,10 +19,12 @@ class AreaToUpdate(Document):
 class Path(Document):
     planetX = DecimalField()
     planetY = DecimalField()
+    box = PolygonField()
     points = LineStringField()
     rType = StringField(default='Path')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
+    lastUpdate = DateTimeField(default=datetime.datetime.now)
     object_type = StringField(default='brush')
     lock = StringField(default=None)
     # areas = ListField(ReferenceField('Area'))
@@ -49,7 +51,7 @@ class Box(Document):
     # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
-    
+
     meta = {
         'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
     }
@@ -79,7 +81,7 @@ class Div(Document):
     # deprecated: put in data
     url = StringField(required=False)
     message = StringField()
-    
+
     # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
@@ -113,9 +115,9 @@ class Site(Document):
     restrictedArea = BooleanField(default=False)
     disableToolbar = BooleanField(default=False)
     loadEntireArea = BooleanField(default=False)
-    
+
     data = StringField(default='')
-    
+
     meta = {
         'indexes': [[ ("name", 1) ]]
     }

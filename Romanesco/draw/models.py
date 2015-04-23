@@ -14,7 +14,7 @@ from django.dispatch import receiver
 # import pdb; pdb.set_trace()
 # object.__dict___
 
-# to update the database after modifying model, use south: 
+# to update the database after modifying model, use south:
 # http://south.readthedocs.org/en/latest/tutorial/part1.html
 # python manage.py schemamigration draw --auto
 # python manage.py migrate draw
@@ -22,13 +22,13 @@ from django.dispatch import receiver
 class UserProfile(models.Model):
     user = models.OneToOneField(User, related_name='profile')
     romanescoins = models.IntegerField(default=0)
- 
+
     def __unicode__(self):
         return "{}'s profile".format(self.user.userType)
- 
+
     class Meta:
         db_table = 'user_profile'
- 
+
     def account_verified(self):
         if self.user.is_authenticated:
             result = EmailAddress.objects.filter(email=self.user.email)
@@ -102,7 +102,7 @@ class Box(Document):
     # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
-    
+
     meta = {
         'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
     }
@@ -133,7 +133,7 @@ class Div(Document):
     # deprecated: put in data
     url = StringField(required=False)
     message = StringField()
-    
+
     # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
@@ -159,6 +159,24 @@ class Tool(Document):
         'indexes': [[ ("accepted", 1), ("name", 1) ]]
     }
 
+class Module(Document):
+    name = StringField(unique=True)
+    className = StringField(unique=True)
+    githubURL = URLField()
+    iconURL = StringField()
+    owner = StringField()
+    source = StringField()
+    compiledSource = StringField()
+
+    lastUpdate = DateTimeField(default=datetime.datetime.now)
+
+    isTool = BooleanField()
+    accepted = BooleanField(default=False)
+
+    meta = {
+        'indexes': [[ ("accepted", 1), ("name", 1) ]]
+    }
+
 class Site(Document):
     name = StringField(unique=True, required=True)
     box = ReferenceField(Box, required=True, reverse_delete_rule=CASCADE)
@@ -167,9 +185,9 @@ class Site(Document):
     restrictedArea = BooleanField(default=False)
     disableToolbar = BooleanField(default=False)
     loadEntireArea = BooleanField(default=False)
-    
+
     data = StringField(default='')
-    
+
     meta = {
         'indexes': [[ ("name", 1) ]]
     }

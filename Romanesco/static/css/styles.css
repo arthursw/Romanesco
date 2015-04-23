@@ -2,6 +2,47 @@ body {
   background-color: white;
   overflow: hidden;
 }
+.romanesco-ui input,
+.romanesco-ui button,
+.romanesco-ui .dropdown-menu {
+  background: transparent;
+  border-radius: 0;
+  color: #eeeeee;
+  border-color: rgba(255, 255, 255, 0.2);
+  font-family: 'Lucida Grande', sans-serif;
+  font-size: 11px;
+  border-width: 1px;
+  border-style: solid;
+  padding: 6px;
+}
+.romanesco-ui input .btn .caret,
+.romanesco-ui button .btn .caret,
+.romanesco-ui .dropdown-menu .btn .caret {
+  margin-left: 3px;
+}
+.romanesco-ui input:focus,
+.romanesco-ui button:focus,
+.romanesco-ui .dropdown-menu:focus {
+  outline: none;
+}
+.romanesco-ui input:hover,
+.romanesco-ui button:hover,
+.romanesco-ui .dropdown-menu:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.romanesco-ui .dropdown-menu a {
+  color: #eeeeee;
+}
+.romanesco-ui .dropdown-menu a:hover {
+  background-color: #2fa1d6;
+}
+.romanesco-ui input {
+  height: 29px;
+}
+.search-add .form-control {
+  width: auto;
+  display: inline;
+}
 #Romanesco_alerts {
   position: absolute;
   top: -75px;
@@ -1138,80 +1179,217 @@ body {
   color: white;
   display: none;
   padding: 5px;
+  padding-right: 0;
+  z-index: 999;
+  min-width: 150px;
   -webkit-transition: left 0.5s ease-out;
   -khtml-transition: left 0.5s ease-out;
   -moz-transition: left 0.5s ease-out;
   -ms-transition: left 0.5s ease-out;
   -o-transition: left 0.5s ease-out;
   transition: left 0.5s ease-out;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
 }
-#codeEditor .source-selector {
+#codeEditor .editor-handle {
+  float: right;
+  width: 10px;
+  height: 100%;
+  cursor: ew-resize;
+}
+#codeEditor .container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: auto;
+  margin-right: 0;
+  padding-right: 0;
+}
+#codeEditor .container .header {
+  display: flex;
+  flex-direction: row;
+  margin-left: 10px;
+  margin-right: -5px;
+}
+#codeEditor .container .header .search {
+  flex: 1;
+  margin: 2px;
+}
+#codeEditor .container .header .search .twitter-typeahead {
+  width: 100%;
+}
+#codeEditor .container .header button {
+  width: 29px;
+  margin: 2px;
+}
+#codeEditor .container .code {
+  flex: 1;
+  display: flex;
+  min-height: 20px;
+  margin-top: 5px;
+}
+#codeEditor .container .code .content {
+  overflow: auto;
+  width: 100%;
+}
+#codeEditor .container .console {
+  display: flex;
+  flex-direction: column;
+  min-height: 20px;
+  max-height: 400px;
+  height: 0;
+}
+#codeEditor .container .console .handle {
+  width: 100%;
+  height: 20px;
+  cursor: ns-resize;
+}
+#codeEditor .container .console .handle .btn.show {
+  float: right;
+  width: 20px;
+  height: 100%;
+  font-size: 9px;
+  line-height: 10px;
+  border-radius: 0;
+  border: 0;
+  color: white;
+  background-color: #33383e;
+  outline: none;
+}
+#codeEditor .container .console .content {
+  overflow: auto;
+  width: 100%;
+  flex: 1;
+}
+#codeEditor .container .console .content p.error {
+  color: lightcoral;
+}
+#codeEditor .container .console.closed .content {
+  overflow: hidden;
+}
+#codeEditor .container .footer button {
+  float: right;
+  margin: 1px;
+}
+#codeEditor.r-hidden {
+  left: 5px;
+}
+#codeEditorBckp {
+  right: 50%;
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 270px;
+  background-color: rgba(38, 42, 47, 0.97);
+  color: white;
+  display: none;
+  padding: 5px;
+  z-index: 999;
+  -webkit-transition: left 0.5s ease-out;
+  -khtml-transition: left 0.5s ease-out;
+  -moz-transition: left 0.5s ease-out;
+  -ms-transition: left 0.5s ease-out;
+  -o-transition: left 0.5s ease-out;
+  transition: left 0.5s ease-out;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
+#codeEditorBckp .source-selector {
   margin-right: 10px;
   width: inherit;
   max-width: 100%;
 }
-#codeEditor .handle {
+#codeEditorBckp .handle {
   position: absolute;
   top: 0;
   bottom: 0;
   right: 0;
   width: 10px;
-  cursor: e-resize;
+  cursor: ew-resize;
 }
-#codeEditor #codeEditorContent {
-  position: absolute;
-  left: 0;
-  right: 10px;
-  top: 30px;
-  bottom: 45px;
-  z-index: 1;
+#codeEditorBckp #codeEditorContent {
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  -o-user-select: text;
+  user-select: text;
+  width: 100%;
+  height: 65%;
 }
-#codeEditor #codeEditorContent.message {
+#codeEditorBckp #codeEditorContent.message {
   bottom: 230px;
 }
-#codeEditor .message-box {
-  position: absolute;
-  bottom: 35px;
-  left: 0;
+#codeEditorBckp .message-box {
   height: 200px;
   width: 100%;
-  display: none;
-  z-index: 2;
-  padding-top: 10px;
-  padding-bottom: 10px;
   padding-left: 5px;
   padding-right: 5px;
 }
-#codeEditor .message-box .content {
+#codeEditorBckp .message-box .console-handle {
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  width: 100%;
+  height: 20px;
+  cursor: ns-resize;
+}
+#codeEditorBckp .message-box .console-handle button {
+  padding: 0px;
+  float: right;
+}
+#codeEditorBckp .message-box .content {
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  -o-user-select: text;
+  user-select: text;
   background-color: #fafafa;
   height: 100%;
-  padding: 15px;
-  overflow: auto;
+  padding-left: 15px;
+  padding-right: 15px;
+  overflow: scroll;
   color: black;
   font-family: monospace;
   font-size: small;
 }
-#codeEditor .message-box .content p {
+#codeEditorBckp .message-box .content p {
   margin: 0;
 }
-#codeEditor .message-box .content p.error {
+#codeEditorBckp .message-box .content p.error {
   color: #D73434;
 }
-#codeEditor .footer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+#codeEditorBckp .footer {
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
   width: 100%;
   padding: 5px;
-  z-index: 3;
+  padding-top: 0px;
+  margin-top: 10px;
   overflow: hidden;
 }
-#codeEditor .footer button {
+#codeEditorBckp .footer button {
   float: right;
   margin-left: 5px;
   margin-top: 5px;
 }
-#codeEditor button.close {
+#codeEditorBckp button.close {
   float: right;
   position: relative;
   top: -3px;
@@ -1224,12 +1402,12 @@ body {
   height: 25px;
   z-index: 4;
 }
-#codeEditor button.close span {
+#codeEditorBckp button.close span {
   position: absolute;
   top: 0px;
   left: 6px;
 }
-#codeEditor.r-hidden {
+#codeEditorBckp.r-hidden {
   left: 5px;
 }
 #screenshotModal,

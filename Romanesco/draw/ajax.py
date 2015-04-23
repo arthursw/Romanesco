@@ -10,7 +10,7 @@ from django.core import serializers
 from dajaxice.core import dajaxice_functions
 from django.contrib.auth.models import User
 from django.db.models import F
-from models import Path, Box, Div, UserProfile, Tool, Site, AreaToUpdate
+from models import Path, Box, Div, UserProfile, Tool, Module, Site, AreaToUpdate
 import ast
 from pprint import pprint
 from django.contrib.auth import authenticate, login, logout
@@ -30,9 +30,21 @@ import cStringIO
 import StringIO
 import traceback
 
+import base64
+
+from github import Github
+from git import Repo
+
 # from wand.image import Image
 
+
 logger = logging.getLogger(__name__)
+
+with open('/data/secret_github.txt') as f:
+    PASSWORD = base64.b64decode(f.read().strip())
+
+github = Github("arthurpub.sw@gmail.com", PASSWORD)
+romanescoOrg = github.get_organization('RomanescoModules')
 
 # pprint(vars(object))
 # import pdb; pdb.set_trace()
@@ -1771,10 +1783,173 @@ def saveImage(request, image):
 
 	return json.dumps( { 'url': imageName } )
 
+# --- modules --- #
+
+def addModule(name, source, compiledSource, description, iconURL=None):
+
+	githubRepository = romanescoOrg.create_repo(name, description=description, auto_init=True, gitignore_template='None')
+
+	localRepository = Repo.clone_from(path_to='modules/' + name, url=githubRepository.clone_url)
+	origin = localRepository.remote(name='origin')
+
+	moduleName = name + '.coffee'
+	sourcePath = 'modules/' + moduleName
+	moduleFile = open(sourcePath, 'wb')
+	moduleFile.write(source)
+	moduleFile.close()
+
+	localRepository.index.add([moduleName])
+	localRepository.index.commit("initial commit")
+	origin.fetch()
+	origin.push()
+
+	module.githubURL = githubRepository.clone_url
+	module.save()
+
+	return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.', 'cloneURL': githubRepository.clone_url } )
+
+def updateModule(name, source, compiledSource, description, iconURL=None):
+	sourcePath = name + '.coffee'
+	output = open(sourcePath, 'wb')
+	output.write(source)
+	output.close()
+
+	localRepository = Repo.init('modules/' + name)
+	origin = localRepository.remote(name='origin')
+	localRepository.index.add([sourcePath])
+	localRepository.index.commit(commitDescription)
+	origin.fetch()
+	origin.push()
+
+	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
+
+@dajaxice_register
+def addOrUpdateModule(name, source, compiledSource, description, iconURL=None):
+	try:
+		module = Module.objects.get(name=name)
+		result = updateModule(name, source, compiledSource, description, iconURL)
+	except Module.DoesNotExist:
+		try:
+			module = Module(owner=request.user.username, name=name, source=source, compiledSource=compiledSource, iconURL=iconURL)
+		except OperationError:
+			return json.dumps( { 'state': 'error', 'message': 'An error occured while creating the module.'})
+
+		result = addModule(name, source, compiledSource, description, iconURL)
+
+	return result
+
+# @dajaxice_register
+# def addModule(request, name, className, source, compiledSource, isTool, description, iconURL=None):
+
+# 	try:
+# 		module = Module(owner=request.user.username, name=name, className=className, source=source, compiledSource=compiledSource, iconURL=iconURL, isTool=isTool)
+# 	except OperationError:
+# 		return json.dumps( { 'state': 'error', 'message': 'A module with the name ' + name + ' or the className ' + className + ' already exists.' } )
+
+# 	githubRepository = romanescoOrg.create_repo(name, description=description, auto_init=True, gitignore_template='None')
+
+# 	localRepository = Repo.clone_from(path_to='modules/' + name, url=githubRepository.clone_url)
+# 	origin = localRepository.remote(name='origin')
+
+# 	moduleName = name + '.coffee'
+# 	sourcePath = 'modules/' + moduleName
+# 	moduleFile = open(sourcePath, 'wb')
+# 	moduleFile.write(source)
+# 	moduleFile.close()
+
+# 	localRepository.index.add([moduleName])
+# 	localRepository.index.commit("initial commit")
+# 	origin.fetch()
+# 	origin.push()
+
+# 	module.githubURL = githubRepository.clone_url
+# 	module.save()
+
+# 	return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.', 'cloneURL': githubRepository.clone_url } )
+
+# @dajaxice_register
+# def updateModule(request, name, source):
+# 	try:
+# 		module = Module.objects.get(name=name)
+# 	except Module.DoesNotExist:
+# 		return json.dumps( { 'state': 'error', 'message': 'The module with the name ' + name + ' does not exist.' } )
+
+# 	sourcePath = name + '.coffee'
+# 	output = open(sourcePath, 'wb')
+# 	output.write(source)
+# 	output.close()
+
+# 	localRepository = Repo.init('modules/' + name)
+# 	origin = localRepository.remote(name='origin')
+# 	localRepository.index.add([sourcePath])
+# 	localRepository.index.commit(commitDescription)
+# 	origin.fetch()
+# 	origin.push()
+
+# 	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
+
+@dajaxice_register
+def getModules(request):
+	modules = Module.objects(accepted=True).only('name', 'iconURL')
+	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
+
+@dajaxice_register
+def getModuleSource(request, name):
+	module = Module.objects(accepted=True, name=name).only('source')
+	return json.dumps( { 'state': 'success', 'module': module.to_json() } )
+
+@dajaxice_register
+def getWaitingModule(request):
+	if request.user.username != 'arthur.sw':
+		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting modules.' } )
+
+	modules = Module.objects(accepted=False)
+
+	for module in modules:
+		githubRepository = romanescoOrg.get_repo(module.name)
+
+		if githubRepository.updated_at > module.lastUpdate:
+
+			modulePath = 'modules/' + module.name
+			localRepository = Repo.init(modulePath)
+
+			origin = localRepository.remote(name='origin')
+			origin.fetch()
+			origin.pull()
+
+			moduleFile = open(modulePath + '/' + module.name, 'rb')
+			module.source = moduleFile.read()
+			inputfile.close()
+
+			# module.source = compileModule(modulePath)
+
+	# search on github for repositories with 'romanesco module' in the description
+	repos = github.legacy_search_repos('romanesco module')
+	for repo in repos:
+		print "repose toi bien."
+
+	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
+
+@dajaxice_register
+def acceptModule(request, name, source, compiledSource):
+	if request.user.username != 'arthur.sw':
+		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to accept modules.' } )
+	try:
+		module = Module.objects.get(name=name)
+	except Module.DoesNotExist:
+		return json.dumps( { 'state': 'success', 'message': 'New module does not exist.' } )
+
+	module.source = source
+	module.compiledSource = compiledSource
+	module.save()
+
+	return json.dumps( { 'state': 'success' } )
+
 # --- tools --- #
 
 @dajaxice_register
 def addTool(request, name, className, source, compiledSource, isTool):
+
 	try:
 		tool = Tool(owner=request.user.username, name=name, className=className, source=source, compiledSource=compiledSource, isTool=isTool)
 	except OperationError:
@@ -1784,10 +1959,11 @@ def addTool(request, name, className, source, compiledSource, isTool):
 
 @dajaxice_register
 def updateTool(request, name, className, source, compiledSource):
+
 	try:
 		tool = Tool.objects.get(name=name)
 	except Tool.DoesNotExist:
-		return json.dumps( { 'state': 'error', 'message': 'The tool with the name ' + name + ' or the className ' + className + ' does not exist.' } )
+		return json.dumps( { 'state': 'error', 'message': 'The tool with the name ' + name + ' does not exist.' } )
 
 	tool.nRequests += 1
 	tool.save()
