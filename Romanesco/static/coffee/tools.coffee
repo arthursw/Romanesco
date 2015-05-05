@@ -68,14 +68,14 @@ define [
 			return {}
 
 		# RTool constructor:
-		# - find the corresponding button in the sidebar: look for a <li> tag with an attribute 'data-type' equal to @name
+		# - find the corresponding button in the sidebar: look for a <li> tag with an attribute 'data-name' equal to @name
 		# - add a click handler to select the tool and extract the cursor name from the attribute 'data-cursor'
 		# - initialize the popover (help tooltip)
 		constructor: (@name, @cursorPosition = { x: 0, y: 0 }, @cursorDefault="default") ->
 			g.tools[@name] = @
 
 			# find or create the corresponding button in the sidebar
-			@btnJ ?= g.toolsJ.find('li[data-type="'+@name+'"]')
+			@btnJ ?= g.toolsJ.find('li[data-name="'+@name+'"]')
 
 			@cursorName = @btnJ.attr("data-cursor")
 			@btnJ.click( () => @select() )
@@ -170,7 +170,7 @@ define [
 		# show code editor on select
 		select: ()->
 			super()
-			g.toolEditor()
+			g.showEditor()
 			return
 
 	g.CodeTool = CodeTool
@@ -615,51 +615,29 @@ define [
 		constructor: (@RPath, justCreated=false) ->
 			@name = @RPath.rname
 
-			# find a button for the tool in the sidebar
-			@btnJ = g.toolsJ.find('li[data-type="'+@name+'"]')
+			# delete tool if it already exists (when user creates a tool)
+			if justCreated and g.tools[@name]?
+				g[@RPath.constructor.name] = @RPath
+				g.tools[@name].remove()
+				delete g.tools[@name]
+				g.lastPathCreated = @RPath
 
-			# example tool button <li> in index.html
-			# <li data-type="Spiral" data-cursor="spiral"><img src="{% static 'icons/inverted/spiral.png' %}" alt="spiral"></li>
+			# check if a button already exists (when created fom a module)
+			@btnJ = g.allToolsJ.find('li[data-name="'+@name+'"]')
 
-			if @btnJ.length==0 		# or create a button for the tool in the sidebar (if no button found)
+			if @btnJ.length==0
+				favorite = justCreated or g.favoriteTools?.indexOf(@name)>=0
+				@btnJ = g.createToolButton(@name, @RPath.iconURL, favorite, @RPath.category)
+			else
+				@btnJ.off("click")
 
-				# initialize button
-				@btnJ = $("<li>")
-				@btnJ.attr("data-type", @name)
-				# @btnJ.attr("data-cursor", @cursorDefault)
-				@btnJ.attr("alt", @name)
-
-				if @RPath.iconUrl? 																		# set icon if url is provided
-					@btnJ.append('<img src="' + @RPath.iconUrl + '" alt="' + @RPath.iconAlt + '">')
-				else 																					# create icon if url is not provided
-					@btnJ.addClass("text-btn")
-					name = ""
-					words = @name.split(" ")
-																	# the icon will be made with
-					if words.length>1 								# the first letter of each words of the name
-						name += word.substring(0,1) for word in words
-					else 											# or the first two letters of the name (if it has only one word)
-						name += @name.substring(0,2)
-					shortNameJ = $('<span class="short-name">').text(name + ".")
-					@btnJ.append(shortNameJ)
-
-				# must remove the icon of precise path otherwise all children class will inherit the same icon
-				if @name == 'Precise path' then @RPath.iconUrl = null
-
-				# if the tool is just created (in editor) add in favorite.
-				# Otherwise check is it was saved as a favorite tool in the localStorage (g.favoriteTools).
-				favorite = justCreated | g.favoriteTools?.indexOf(@name)>=0
-
-				if favorite
-					g.favoriteToolsJ.append(@btnJ)
-				else
-					g.allToolsJ.append(@btnJ)
-
-			toolNameJ = $('<span class="tool-name">').text(@name)
-			@btnJ.append(toolNameJ)
-			@btnJ.addClass("tool-btn")
+			# must remove the icon of precise path otherwise all children class will inherit the same icon
+			if @name == 'Precise path' then @RPath.iconURL = null
 
 			super(@RPath.rname, @RPath.cursorPosition, @RPath.cursorDefault, @RPath.options)
+
+			if justCreated
+				@select()
 
 			return
 
@@ -729,6 +707,7 @@ define [
 		# @param [String] author (username) of the event
 		update: (event, from=g.me) ->
 			g.currentPaths[from].updateCreate(event.point, event, false)
+			# g.currentPaths[from].group.visible = true
 			# if g.me? and from==g.me then g.chatSocket.emit( "update", g.me, g.eventToObject(event), @name)
 			if g.me? and from==g.me then g.chatSocket.emit "bounce", tool: @name, function: "update", arguments: [event, g.me]
 			return

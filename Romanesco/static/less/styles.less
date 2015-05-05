@@ -508,6 +508,178 @@ body {
 	}
 }
 
+.romanesco-ui, .romanesco-ui.open {
+	background-color: @sidebar-background-color;
+	font-family: 'Lucida Grande', sans-serif;
+	font-size: 11px;
+	color: rgb(238, 238, 238);
+	input, button, .dropdown-menu {
+		background: transparent; //@sidebar-background-color;
+		border-radius: 0;
+		border-color: rgba(255, 255, 255, 0.2);
+		border-width: 1px;
+		border-style: solid;
+		padding: 6px;
+
+		.btn .caret {
+			margin-left: 3px;
+		}
+
+		&:focus {
+			outline: none;
+		}
+
+		&:hover {
+			border-color: rgba(255, 255, 255, 0.6);
+		}
+	}
+	.dropdown-menu {
+		a {
+			color: rgb(238, 238, 238);
+			&:hover {
+				background-color: @hover-blue;
+			}
+		}
+	}
+	input {
+		height: 29px;
+	}
+}
+.romanesco-ui .open {
+	button.btn.btn-default.dropdown-toggle {
+		background: transparent;
+		color: rgb(238, 238, 238);
+	}
+}
+
+.all-tools {
+	.search {
+		width: 100%;
+		display: flex;
+		flex-direction: row;
+		input {
+			flex: 1;
+		}
+		button {
+			margin-left: -1px;
+			width: 29px;
+		}
+	}
+	.mCustomScrollbar {
+		max-height: 200px;
+		border: 1px solid rgba(128, 128, 128, 0.61);
+		border-top: 0;
+		padding: 3px;
+		padding-right: 0;
+
+		ul.all-tool-list {
+			list-style: none;
+			padding: 0;
+			min-height: 30px;
+			&.drag-over {
+				border: 1px solid @hover-blue;
+			}
+		}
+	}
+}
+
+li.tool-btn {
+	cursor: pointer;
+	padding: 6px;
+	&:hover {
+		background-color: @hover-purple;
+	}
+
+	img {
+		width: 25px;
+		height: 25px;
+		margin-right: 5px;
+	}
+	span.short-name {
+		vertical-align: middle;
+		width: 25px;
+		height: 25px;
+		margin-right: 5px;
+		font-size: 20px;
+	}
+	span.tool-name {
+		vertical-align: middle;
+	}
+	.favorite-btn {
+		float: right;
+		border: none;
+		opacity: 0.5;
+		&:hover {
+			opacity: 1;
+		}
+		&:active, &:focus, &:hover {
+			box-shadow: none;
+			background-color: rgba(0,0,0,0);
+			color: rgb(238, 238, 238);
+		}
+	}
+	&.selected {
+		.favorite-btn {
+			opacity: 0.9;
+		}
+	}
+}
+
+.mCustomScrollbar.tree {
+	.folder {
+		list-style: none;
+		padding: 0;
+		margin-bottom: 0;
+		margin-left: 10px;
+	}
+	.mCSB_inside > .mCSB_container {
+		margin-right: 20px;
+		&.mCS_y_hidden {
+			margin-right: 0px;
+		}
+	}
+
+	li {
+		// padding-top: 5px;
+		// padding-bottom: 5px;
+		.title {
+			// font-weight: bold;
+			padding: 5px;
+			padding-left: 15px;
+			margin-top: 3px;
+			margin-bottom: 3px;
+			cursor: pointer;
+			background-color: @sidebar-dark-background-color;
+
+			background-repeat: no-repeat;
+			background-position: 5px 10px;
+			background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==);
+
+			&:hover {
+				background-color: @hover-purple;
+			}
+		}
+		ul {
+			padding-left: 5px;
+			&.rDiv-list {
+				li:last-child  {
+					border-bottom: solid 1px white;
+				}
+			}
+		}
+		&.closed {
+			.title {
+				background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlGIWqMCbWAEAOw==);
+			}
+			ul, hr {
+				visibility: hidden;
+				height: 0px;
+				.vendor(transition, height 0.5s ease-out);
+			}
+		}
+	}
+}
+
 .sidebar {
 	width: 265px;
 	position: fixed;
@@ -568,51 +740,6 @@ body {
 		width: 5px;
 	}
 
-	.all-tools {
-		input {
-			width: 100%;
-		}
-		.mCustomScrollbar {
-			max-height: 200px;
-			border: 1px solid rgba(128, 128, 128, 0.61);
-			border-top: 0;
-			padding: 3px;
-			padding-right: 0;
-
-			ul.all-tool-list {
-				list-style: none;
-				padding: 0;
-				min-height: 30px;
-				&.drag-over {
-					border: 1px solid @hover-blue;
-				}
-			}
-		}
-	}
-
-	li.tool-btn {
-		cursor: pointer;
-		padding: 6px;
-		&:hover {
-			background-color: @hover-purple;
-		}
-
-		img {
-			width: 25px;
-			height: 25px;
-			margin-right: 5px;
-		}
-		span.short-name {
-			vertical-align: middle;
-			width: 25px;
-			height: 25px;
-			margin-right: 5px;
-			font-size: 20px;
-		}
-		span.tool-name {
-			vertical-align: middle;
-		}
-	}
 
 	.mCustomScrollbar.history, .mCustomScrollbar.rItems {
 		max-height: 200px;
@@ -645,59 +772,6 @@ body {
 			margin-bottom: 0px;
 			margin-left: 3px;
 			margin-right: 5px;
-		}
-	}
-	.mCustomScrollbar.rItems {
-		.layers {
-			list-style: none;
-			padding: 0;
-			margin-bottom: 0;
-		}
-		.mCSB_inside > .mCSB_container {
-			margin-right: 20px;
-			&.mCS_y_hidden {
-				margin-right: 0px;
-			}
-		}
-
-		li {
-			// padding-top: 5px;
-			// padding-bottom: 5px;
-			.title {
-				// font-weight: bold;
-				padding: 5px;
-				padding-left: 15px;
-				margin-top: 3px;
-				margin-bottom: 3px;
-				cursor: pointer;
-				background-color: @sidebar-dark-background-color;
-
-				background-repeat: no-repeat;
-				background-position: 5px 10px;
-				background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==);
-
-				&:hover {
-					background-color: @hover-purple;
-				}
-			}
-			ul {
-				padding-left: 5px;
-				&.rDiv-list {
-					li:last-child  {
-						border-bottom: solid 1px white;
-					}
-				}
-			}
-			&.closed {
-				.title {
-					background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlGIWqMCbWAEAOw==);
-				}
-				ul, hr {
-					visibility: hidden;
-					height: 0px;
-					.vendor(transition, height 0.5s ease-out);
-				}
-			}
 		}
 	}
 
@@ -765,6 +839,9 @@ body {
 				padding-right: 0px;
 			}
 			span.tool-name {
+				display: none;
+			}
+			.favorite-btn {
 				display: none;
 			}
 		}
@@ -954,52 +1031,10 @@ body {
 		}
 	}*/
 
-	.romanesco-ui, .romanesco-ui.open {
-		input, button, .dropdown-menu {
-			background: transparent; //@sidebar-background-color;
-			border-radius: 0;
-			color: rgb(238, 238, 238);
-			border-color: rgba(255, 255, 255, 0.2);
-			font-family: 'Lucida Grande', sans-serif;
-			font-size: 11px;
-			border-width: 1px;
-			border-style: solid;
-			padding: 6px;
-
-			.btn .caret {
-				margin-left: 3px;
-			}
-
-			&:focus {
-				outline: none;
-			}
-
-			&:hover {
-				border-color: rgba(255, 255, 255, 0.6);
-			}
-		}
-		.dropdown-menu {
-			a {
-				color: rgb(238, 238, 238);
-				&:hover {
-					background-color: @hover-blue;
-				}
-			}
-		}
-		input {
-			height: 29px;
-		}
-	}
-	.romanesco-ui .open {
-		button.btn.btn-default.dropdown-toggle {
-			background: transparent;
-			color: rgb(238, 238, 238);
-		}
-	}
-
 	color: rgb(238, 238, 238);
 	font-family: 'Lucida Grande', sans-serif;
 	font-size: 11px;
+
 	.panel {
 		border-radius: 0;
 		margin-top: 0 !important;
@@ -1256,7 +1291,7 @@ body {
 	top: 75px;
 	bottom: 0;
 	left: 0;
-	.mCustomScrollbar {
+	.sidebar-scrollbar.mCustomScrollbar {
 		height: 100%;
 		max-height: 100%;
 	}
@@ -1271,6 +1306,10 @@ body {
 .modal {
 	overflow: hidden;
     margin-top: 10%;
+    .error-message {
+    	color: red;
+    	font-style: italic;
+    }
 }
 
 #urlModal {
@@ -1328,6 +1367,24 @@ body {
 				margin: 2px;
 				.twitter-typeahead {
 					width: 100%;
+					.tt-dropdown-menu {
+						color: rgb(238, 238, 238);
+						background-color: @sidebar-dark-background-color;
+						font-size: 11px;
+						width: 100%;
+						border-left: 1px lightgray solid;
+						border-right: 1px lightgray solid;
+						.tt-suggestion {
+							border-bottom: 1px lightgray solid;
+							padding: 5px;
+							&.tt-cursor {
+								background-color: #1ed36f;
+							}
+							p {
+								margin: 0;
+							}
+						}
+					}
 				}
 			}
 			button {
@@ -1367,13 +1424,18 @@ body {
 
 					border-radius: 0;
 					border: 0;
+					opacity: 1;
 
 					color: white;
 					background-color: @sidebar-background-color;
 					outline: none;
 				}
 			}
-
+			&.highlight {
+				.handle {
+					background-color: darkred;
+				}
+			}
 			.content {
 				overflow: auto;
 				width: 100%;

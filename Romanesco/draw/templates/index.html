@@ -39,7 +39,6 @@
     <link href="{% static 'libs/bootstrap-colorpickersliders/bootstrap.colorpickersliders.css' %}" rel="stylesheet">
     <!-- <link href="{% static 'libs/slider.css' %}" rel="stylesheet"> -->
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
-    <link href="//cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.4.3/layout-default.min.css" rel="stylesheet">
 
     <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
 
@@ -219,18 +218,18 @@
 
                       <ul class="tool-list">
                         <ul class="edit-list">
-                          <li data-type="Move" data-cursor="hand"><img src="{% static 'images/icons/inverted/hand.png' %}" alt="hand"></li>
-                          <li data-type="Select"><img src="{% static 'images/icons/inverted/cursor.png' %}" alt="cursor"></li>
-                          <!-- <li data-type="editCurve"><img src="{% static 'images/icons/inverted/editCurve.png' %}" alt="editCurve"></li> -->
-                          <li data-type="Screenshot"><img src="{% static 'images/icons/inverted/screenshot.png' %}" alt="screenshot"></li>
-                          <li data-type="Script"><img src="{% static 'images/icons/inverted/coffeeMaker.png' %}" alt="plus"></li>
+                          <li data-name="Move" data-cursor="hand"><img src="{% static 'images/icons/inverted/hand.png' %}" alt="hand"></li>
+                          <li data-name="Select"><img src="{% static 'images/icons/inverted/cursor.png' %}" alt="cursor"></li>
+                          <!-- <li data-name="editCurve"><img src="{% static 'images/icons/inverted/editCurve.png' %}" alt="editCurve"></li> -->
+                          <li data-name="Screenshot"><img src="{% static 'images/icons/inverted/screenshot.png' %}" alt="screenshot"></li>
+                          <li data-name="Script"><img src="{% static 'images/icons/inverted/coffeeMaker.png' %}" alt="plus"></li>
                         </ul>
                         <ul class="special-list">
-                          <li data-type="Text"><img src="{% static 'images/icons/inverted/text.png' %}" alt="text"></li>
-                          <li data-type="Media"><img src="{% static 'images/icons/inverted/image.png' %}" alt="image"></li>
-                          <li data-type="Lock" data-cursor="key"><img src="{% static 'images/icons/inverted/lock.png' %}" alt="key"></li>
-                          <!-- <li data-type="Link" data-cursor="link"><img src="{% static 'images/icons/inverted/link.png' %}" alt="link"></li> -->
-                          <li data-type="Car"><img src="{% static 'images/icons/inverted/car.png' %}" alt="car"></li>
+                          <li data-name="Text"><img src="{% static 'images/icons/inverted/text.png' %}" alt="text"></li>
+                          <li data-name="Media"><img src="{% static 'images/icons/inverted/image.png' %}" alt="image"></li>
+                          <li data-name="Lock" data-cursor="key"><img src="{% static 'images/icons/inverted/lock.png' %}" alt="key"></li>
+                          <!-- <li data-name="Link" data-cursor="link"><img src="{% static 'images/icons/inverted/link.png' %}" alt="link"></li> -->
+                          <li data-name="Car"><img src="{% static 'images/icons/inverted/car.png' %}" alt="car"></li>
                         </ul>
                       </ul>
 
@@ -251,11 +250,11 @@
                   <div id="FavoriteTools" class="panel-collapse collapse in">
                     <div class="panel-body">
 
-                      <ul id="sortable2" class="favorite-tool-list tool-list connectedSortable">
-                        <!-- <li data-type="Precise path" class="tool-btn"><img src="{% static 'images/icons/inverted/editCurve.png' %}" alt="editCurve"></li>
-                        <li data-type="Rectangle" data-cursor="rectangle" class="tool-btn"><img src="{% static 'images/icons/inverted/rectangle.png' %}" alt="rectangle"></li>
-                        <li data-type="Spiral" data-cursor="spiral" class="tool-btn"><img src="{% static 'images/icons/inverted/spiral.png' %}" alt="spiral"></li> -->
-                        <!-- <li data-type="Checkpoint"><span class="short-name">Ch.</span><span class="tool-name">Checkpoint</span></li> -->
+                      <ul id="sortable2" class="favorite-tool-list tool-list connectedSortable module-list">
+                        <!-- <li data-name="Precise path" class="tool-btn"><img src="{% static 'images/icons/inverted/editCurve.png' %}" alt="editCurve"></li>
+                        <li data-name="Rectangle" data-cursor="rectangle" class="tool-btn"><img src="{% static 'images/icons/inverted/rectangle.png' %}" alt="rectangle"></li>
+                        <li data-name="Spiral" data-cursor="spiral" class="tool-btn"><img src="{% static 'images/icons/inverted/spiral.png' %}" alt="spiral"></li> -->
+                        <!-- <li data-name="Checkpoint"><span class="short-name">Ch.</span><span class="tool-name">Checkpoint</span></li> -->
                       </ul>
 
                     </div>
@@ -276,9 +275,12 @@
                     <div class="panel-body">
 
                       <div class="all-tools romanesco-ui">
-                        <input type="text" class="search-tool" placeholder="Tool name">
-                        <div class="mCustomScrollbar">
-                          <ul id="sortable1" class="all-tool-list connectedSortable" >
+                        <div class="search search-tools">
+                          <input type="text" class="search-tool" placeholder="Tool name">
+                          <button class="btn btn-default open-modal"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
+                        </div>
+                        <div class="mCustomScrollbar tree">
+                          <ul id="sortable1" class="all-tool-list connectedSortable module-list" >
                           </ul>
                         </div>
                       </div>
@@ -319,8 +321,8 @@
 
                   <div id="RItems" class="panel-collapse collapse">
                     <div class="panel-body">
-                      <div class="mCustomScrollbar rItems">
-                        <ul class="layers">
+                      <div class="mCustomScrollbar rItems tree">
+                        <ul class="layers folder">
                           <li class="main-layer">
                             <h6 class="title">Main layer</h6>
                             <ul class="romanesco-ui rDiv-list">
@@ -430,7 +432,7 @@
           <div class="container">
             <div class='header item'>
               <div class="search"><input type="text" class="form-control" placeholder="Search or create..."></div>
-              <button class="btn btn-default"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
+              <button class="btn btn-default open-modal"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
               <button class="btn btn-default hide"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>
               <button class="btn btn-default close-editor"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
               <!-- <button type="button" class="close close-editor"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button> -->
@@ -712,8 +714,8 @@
               <div class="modal-body">
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" data-dismiss="modal" name="submit">Ok</button>
+                <button type="button" class="btn btn-default" name="cancel" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" name="submit">Ok</button>
               </div>
             </div>
           </div>

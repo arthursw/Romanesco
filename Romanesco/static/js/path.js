@@ -5,7 +5,7 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   define(['utils', 'item', 'jquery', 'paper'], function(utils) {
-    var Checkpoint, DynamicBrush, EllipseShape, FaceShape, GeometricLines, GridPath, Meander, Medusa, PaintBrush, PaintGun, PrecisePath, RPath, RShape, RectangleShape, ShapePath, SpeedPath, SpiralShape, StarShape, StripeAnimation, ThicknessPath, g;
+    var Checkpoint, DynamicBrush, EllipseShape, GeometricLines, GridPath, Meander, Medusa, PaintBrush, PaintGun, PrecisePath, RPath, RShape, RectangleShape, ShapePath, SpeedPath, SpiralShape, StarShape, StripeAnimation, ThicknessPath, g;
     g = utils.g();
     RPath = (function(_super) {
       __extends(RPath, _super);
@@ -36,7 +36,7 @@
               label: 'Edit tool',
               "default": (function(_this) {
                 return function() {
-                  return g.toolEditor(_this);
+                  return g.showEditor(_this);
                 };
               })(this)
             }
@@ -520,7 +520,7 @@
 
       PrecisePath.rdescription = "This path offers precise controls, one can modify points along with their handles and their type.";
 
-      PrecisePath.iconUrl = 'static/images/icons/inverted/editCurve.png';
+      PrecisePath.iconURL = 'static/images/icons/inverted/editCurve.png';
 
       PrecisePath.iconAlt = 'edit curve';
 
@@ -1395,7 +1395,7 @@
 
       return PrecisePath;
 
-    })(RPath);
+    })(g.RPath);
     g.PrecisePath = PrecisePath;
     g.pathClasses = [];
     g.pathClasses.push(g.PrecisePath);
@@ -1410,7 +1410,7 @@
 
       SpeedPath.rdescription = "This path offers speed.";
 
-      SpeedPath.iconUrl = null;
+      SpeedPath.iconURL = null;
 
       SpeedPath.iconAlt = null;
 
@@ -1845,7 +1845,7 @@
 
       return SpeedPath;
 
-    })(PrecisePath);
+    })(g.PrecisePath);
     g.SpeedPath = SpeedPath;
     ThicknessPath = (function(_super) {
       __extends(ThicknessPath, _super);
@@ -1858,7 +1858,7 @@
 
       ThicknessPath.rdescription = "The stroke width is function of the drawing speed: the faster the wider.";
 
-      ThicknessPath.iconUrl = 'static/images/icons/inverted/rollerBrush.png';
+      ThicknessPath.iconURL = 'static/images/icons/inverted/rollerBrush.png';
 
       ThicknessPath.iconAlt = 'roller brush';
 
@@ -1933,7 +1933,7 @@
 
       return ThicknessPath;
 
-    })(SpeedPath);
+    })(g.SpeedPath);
     g.ThicknessPath = ThicknessPath;
     g.pathClasses.push(g.ThicknessPath);
     Meander = (function(_super) {
@@ -1947,7 +1947,7 @@
 
       Meander.rdescription = "As Karl Kerenyi pointed out, \"the meander is the figure of a labyrinth in linear form\".\nA meander or meandros (Greek: Μαίανδρος) is a decorative border constructed from a continuous line, shaped into a repeated motif.\nSuch a design is also called the Greek fret or Greek key design, although these are modern designations.\n(source: http://en.wikipedia.org/wiki/Meander_(art))";
 
-      Meander.iconUrl = 'static/images/icons/inverted/squareSpiral.png';
+      Meander.iconURL = 'static/images/icons/inverted/squareSpiral.png';
 
       Meander.iconAlt = 'square spiral';
 
@@ -2027,7 +2027,7 @@
 
       return Meander;
 
-    })(PrecisePath);
+    })(g.PrecisePath);
     g.Meander = Meander;
     g.pathClasses.push(g.Meander);
     GridPath = (function(_super) {
@@ -2215,7 +2215,7 @@
 
       return GridPath;
 
-    })(SpeedPath);
+    })(g.SpeedPath);
     g.GridPath = GridPath;
     g.pathClasses.push(g.GridPath);
     GeometricLines = (function(_super) {
@@ -2229,7 +2229,7 @@
 
       GeometricLines.rdescription = "Draws a line between pair of points which are close enough.";
 
-      GeometricLines.iconUrl = 'static/images/icons/inverted/links.png';
+      GeometricLines.iconURL = 'static/images/icons/inverted/links.png';
 
       GeometricLines.iconAlt = 'links';
 
@@ -2293,7 +2293,7 @@
 
       return GeometricLines;
 
-    })(PrecisePath);
+    })(g.PrecisePath);
     g.GeometricLines = GeometricLines;
     g.pathClasses.push(g.GeometricLines);
     PaintBrush = (function(_super) {
@@ -2307,7 +2307,7 @@
 
       PaintBrush.rdescription = "Paints a thick stroke with customable blur effects.";
 
-      PaintBrush.iconUrl = 'static/images/icons/inverted/brush.png';
+      PaintBrush.iconURL = 'static/images/icons/inverted/brush.png';
 
       PaintBrush.iconAlt = 'brush';
 
@@ -2382,7 +2382,7 @@
 
       return PaintBrush;
 
-    })(PrecisePath);
+    })(g.PrecisePath);
     g.PaintBrush = PaintBrush;
     g.pathClasses.push(g.PaintBrush);
     PaintGun = (function(_super) {
@@ -2516,7 +2516,7 @@
 
       return PaintGun;
 
-    })(SpeedPath);
+    })(g.SpeedPath);
     g.PaintGun = PaintGun;
     g.pathClasses.push(g.PaintGun);
     DynamicBrush = (function(_super) {
@@ -2802,7 +2802,7 @@
 
       return DynamicBrush;
 
-    })(SpeedPath);
+    })(g.SpeedPath);
     g.DynamicBrush = DynamicBrush;
     g.pathClasses.push(g.DynamicBrush);
     ShapePath = (function(_super) {
@@ -2915,7 +2915,7 @@
 
       return ShapePath;
 
-    })(SpeedPath);
+    })(g.SpeedPath);
     g.ShapePath = ShapePath;
     g.pathClasses.push(g.ShapePath);
     RShape = (function(_super) {
@@ -3084,7 +3084,7 @@
 
       return RShape;
 
-    })(RPath);
+    })(g.RPath);
     g.RShape = RShape;
     RectangleShape = (function(_super) {
       __extends(RectangleShape, _super);
@@ -3095,11 +3095,13 @@
 
       RectangleShape.Shape = paper.Path.Rectangle;
 
+      RectangleShape.category = 'Shape';
+
       RectangleShape.rname = 'Rectangle';
 
       RectangleShape.rdescription = "Simple rectangle, square by default (use shift key to draw a rectangle) which can have rounded corners.\nUse special key (command on a mac, control otherwise) to center the shape on the first point.";
 
-      RectangleShape.iconUrl = 'static/images/icons/inverted/rectangle.png';
+      RectangleShape.iconURL = 'static/images/icons/inverted/rectangle.png';
 
       RectangleShape.iconAlt = 'rectangle';
 
@@ -3125,7 +3127,7 @@
 
       return RectangleShape;
 
-    })(RShape);
+    })(g.RShape);
     g.RectangleShape = RectangleShape;
     g.pathClasses.push(g.RectangleShape);
     EllipseShape = (function(_super) {
@@ -3137,11 +3139,13 @@
 
       EllipseShape.Shape = paper.Path.Ellipse;
 
+      EllipseShape.category = 'Shape';
+
       EllipseShape.rname = 'Ellipse';
 
       EllipseShape.rdescription = "Simple ellipse, circle by default (use shift key to draw an ellipse).\nUse special key (command on a mac, control otherwise) to avoid the shape to be centered on the first point.";
 
-      EllipseShape.iconUrl = 'static/images/icons/inverted/circle.png';
+      EllipseShape.iconURL = 'static/images/icons/inverted/circle.png';
 
       EllipseShape.iconAlt = 'circle';
 
@@ -3151,7 +3155,7 @@
 
       return EllipseShape;
 
-    })(RShape);
+    })(g.RShape);
     g.EllipseShape = EllipseShape;
     g.pathClasses.push(g.EllipseShape);
     StarShape = (function(_super) {
@@ -3164,11 +3168,13 @@
 
       StarShape.Shape = paper.Path.Star;
 
+      StarShape.category = 'Shape/Animated';
+
       StarShape.rname = 'Star';
 
       StarShape.rdescription = "Draws a star which can be animated (the color changes and it rotates).";
 
-      StarShape.iconUrl = 'static/images/icons/inverted/star.png';
+      StarShape.iconURL = 'static/images/icons/inverted/star.png';
 
       StarShape.iconAlt = 'star';
 
@@ -3233,7 +3239,7 @@
 
       return StarShape;
 
-    })(RShape);
+    })(g.RShape);
     g.StarShape = StarShape;
     g.pathClasses.push(g.StarShape);
     SpiralShape = (function(_super) {
@@ -3246,11 +3252,13 @@
 
       SpiralShape.Shape = paper.Path.Ellipse;
 
+      SpiralShape.category = 'Shape/Animated/Spiral';
+
       SpiralShape.rname = 'Spiral';
 
       SpiralShape.rdescription = "The spiral shape can have an intern radius, and a custom number of sides.";
 
-      SpiralShape.iconUrl = 'static/images/icons/inverted/spiral.png';
+      SpiralShape.iconURL = 'static/images/icons/inverted/spiral.png';
 
       SpiralShape.iconAlt = 'spiral';
 
@@ -3332,121 +3340,9 @@
 
       return SpiralShape;
 
-    })(RShape);
+    })(g.RShape);
     g.SpiralShape = SpiralShape;
     g.pathClasses.push(g.SpiralShape);
-    FaceShape = (function(_super) {
-      __extends(FaceShape, _super);
-
-      function FaceShape() {
-        return FaceShape.__super__.constructor.apply(this, arguments);
-      }
-
-      FaceShape.Shape = paper.Path.Rectangle;
-
-      FaceShape.rname = 'Face generator';
-
-      FaceShape.rdescription = "Face generator, inspired by weird faces study by Matthias Dörfelt aka mokafolio.";
-
-      FaceShape.parameters = function() {
-        var parameters;
-        parameters = FaceShape.__super__.constructor.parameters.call(this);
-        if (parameters['Parameters'] == null) {
-          parameters['Parameters'] = {};
-        }
-        parameters['Parameters'].minRadius = {
-          type: 'slider',
-          label: 'Minimum radius',
-          min: 0,
-          max: 100,
-          "default": 0
-        };
-        parameters['Parameters'].nTurns = {
-          type: 'slider',
-          label: 'Number of turns',
-          min: 1,
-          max: 50,
-          "default": 10
-        };
-        parameters['Parameters'].nSides = {
-          type: 'slider',
-          label: 'Sides',
-          min: 3,
-          max: 100,
-          "default": 50
-        };
-        return parameters;
-      };
-
-      FaceShape.prototype.createShape = function() {
-        var center, deltaX, eyeLeft, eyeRight, height, i, noze, nozeLeft, nozeRight, nozeShape, position, rangeRandC, rangeRandMM, segment, size, width, x, y, _i, _j, _len, _ref, _ref1;
-        this.headShape = this.addPath(new Path.Ellipse(this.rectangle.expand(-20, -10)));
-        this.headShape.flatten(50);
-        _ref = this.headShape.segments;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          segment = _ref[_i];
-          segment.point.x += Math.random() * 20;
-          segment.point.y += Math.random() * 5;
-          segment.handleIn += Math.random() * 5;
-          segment.handleOut += Math.random() * 5;
-        }
-        this.headShape.smooth();
-        nozeShape = Math.random();
-        center = this.rectangle.center;
-        width = this.rectangle.width;
-        height = this.rectangle.height;
-        rangeRandMM = function(min, max) {
-          return min + (max - min) * Math.random();
-        };
-        rangeRandC = function(center, amplitude) {
-          return center + amplitude * (Math.random() - 0.5);
-        };
-        if (nozeShape < 0.333) {
-          deltaX = 0.1 * width + Math.random() * 10;
-          x = center.x - deltaX;
-          y = center.y + rangeRandC(0, 5);
-          position = center.add(x, y);
-          size = new Size(Math.random() * 5, Math.random() * 5);
-          nozeLeft = this.addPath(new Path.Ellipse(position, size));
-          position += 2 * deltaX;
-          size = new Size(Math.random() * 5, Math.random() * 5);
-          nozeRight = this.addPath(new Path.Ellipse(position, size));
-        } else if (nozeShape < 0.666) {
-          noze = this.addPath();
-          noze.add(center);
-          noze.add(center.add(Math.random() * 15, Math.random() * 5));
-          noze.add(center.add(0, rangeRandMM(5, 10)));
-          noze.smooth();
-        } else {
-          noze = this.addPath();
-          noze.add(center);
-          noze.add(center.add(-Math.random() * 15, Math.random() * 5));
-          noze.add(center.add(0, rangeRandMM(15, 20)));
-          noze.smooth();
-        }
-        deltaX = rangeRandC(0, 0.1 * width);
-        x = center.x - deltaX;
-        y = this.rectangle.top + width / 3 + rangeRandC(0, 10);
-        position = new Point(x, y);
-        size = new Size(Math.max(Math.random() * 30, deltaX), Math.random() * 30);
-        eyeLeft = this.addPath(new Path.Ellipse(position, size));
-        position.x += 2 * deltaX;
-        eyeRight = this.addPath(new Path.Ellipse(position, size));
-        eyeRight.position.x += rangeRandC(0, 5);
-        eyeLeft.position.x += rangeRandC(0, 5);
-        for (i = _j = 1, _ref1 = eyeLeft.segments.length - 1; 1 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 1 <= _ref1 ? ++_j : --_j) {
-          eyeLeft.segments[i].point.x += Math.random() * 3;
-          eyeLeft.segments[i].point.y += Math.random() * 3;
-          eyeRight.segments[i].point.x += Math.random() * 3;
-          eyeRight.segments[i].point.y += Math.random() * 3;
-        }
-      };
-
-      return FaceShape;
-
-    })(RShape);
-    g.FaceShape = FaceShape;
-    g.pathClasses.push(g.FaceShape);
     Checkpoint = (function(_super) {
       __extends(Checkpoint, _super);
 
@@ -3505,7 +3401,7 @@
 
       return Checkpoint;
 
-    })(RShape);
+    })(g.RShape);
     g.Checkpoint = Checkpoint;
     g.pathClasses.push(g.Checkpoint);
     StripeAnimation = (function(_super) {
@@ -3690,7 +3586,7 @@
 
       return StripeAnimation;
 
-    })(RShape);
+    })(g.RShape);
     g.StripeAnimation = StripeAnimation;
     g.pathClasses.push(g.StripeAnimation);
     Medusa = (function(_super) {
@@ -3815,7 +3711,7 @@
 
       return Medusa;
 
-    })(RShape);
+    })(g.RShape);
     g.Medusa = Medusa;
     g.pathClasses.push(g.Medusa);
   });

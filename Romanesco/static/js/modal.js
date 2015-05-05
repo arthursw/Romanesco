@@ -20,14 +20,31 @@
         return RModal.modalSubmit();
       });
 
-      RModal.initialize = function(title, submitCallback) {
+      RModal.initialize = function(title, submitCallback, validation, hideOnSubmit) {
         this.submitCallback = submitCallback;
+        this.validation = validation != null ? validation : null;
+        this.hideOnSubmit = hideOnSubmit != null ? hideOnSubmit : true;
         this.modalBodyJ.empty();
         this.extractors = {};
         this.modalJ.find("h4.modal-title").html(title);
+        this.modalJ.find(".modal-footer").show().find(".btn").show();
       };
 
-      RModal.addTextInput = function(name, placeholder, type, className, label, submitShortcut, id) {
+      RModal.alert = function(message, title) {
+        if (title == null) {
+          title = 'Info';
+        }
+        this.initialize(title);
+        this.addText(message);
+        g.RModal.modalJ.find("[name='cancel']").hide();
+        g.RModal.show();
+      };
+
+      RModal.addText = function(text) {
+        this.modalBodyJ.append("<p>" + text + "</p>");
+      };
+
+      RModal.addTextInput = function(name, placeholder, type, className, label, submitShortcut, id, required, errorMessage) {
         var args, divJ, extractor, inputID, inputJ, labelJ;
         if (placeholder == null) {
           placeholder = null;
@@ -47,11 +64,24 @@
         if (id == null) {
           id = null;
         }
+        if (required == null) {
+          required = false;
+        }
         submitShortcut = submitShortcut ? 'submit-shortcut' : '';
         inputJ = $("<input type='" + type + "' class='" + className + " form-control " + submitShortcut + "' placeholder='" + placeholder + "'>");
+        if (required) {
+          if (errorMessage == null) {
+            errorMessage = "<em>" + (label || name) + "</em> is invalid.";
+          }
+          inputJ.attr('data-error', errorMessage);
+        }
         args = inputJ;
-        extractor = function(data, inputJ, name) {
+        extractor = function(data, inputJ, name, required) {
+          if (required == null) {
+            required = false;
+          }
           data[name] = inputJ.val();
+          return (!required) || ((data[name] != null) && data[name] !== '');
         };
         if (label) {
           inputID = 'modal-' + name + '-' + Math.random().toString();
@@ -62,7 +92,7 @@
           divJ.append(inputJ);
           inputJ = divJ;
         }
-        this.addCustomContent(name, inputJ, extractor, args);
+        this.addCustomContent(name, inputJ, extractor, args, required);
         return inputJ;
       };
 
@@ -80,6 +110,7 @@
         }
         extractor = function(data, checkboxJ, name) {
           data[name] = checkboxJ.is(':checked');
+          return true;
         };
         this.addCustomContent(name, divJ, extractor, checkboxJ);
         return divJ;
@@ -100,16 +131,25 @@
           radioJ.append(labelJ);
           divJ.append(radioJ);
         }
-        extractor = function(data, divJ, name) {
-          data[name] = divJ.find("input[type=radio][name=" + name + "]:checked")[0].value;
+        extractor = function(data, divJ, name, required) {
+          var choiceJ, _ref;
+          if (required == null) {
+            required = false;
+          }
+          choiceJ = divJ.find("input[type=radio][name=" + name + "]:checked");
+          data[name] = (_ref = choiceJ[0]) != null ? _ref.value : void 0;
+          return (!required) || (data[name] != null);
         };
         this.addCustomContent(name, divJ, extractor);
         return divJ;
       };
 
-      RModal.addCustomContent = function(name, div, extractor, args) {
+      RModal.addCustomContent = function(name, div, extractor, args, required) {
         if (args == null) {
           args = null;
+        }
+        if (required == null) {
+          required = false;
         }
         if (args == null) {
           args = div;
@@ -119,7 +159,8 @@
         this.extractors[name] = {
           extractor: extractor,
           args: args,
-          div: div
+          div: div,
+          required: required
         };
       };
 
@@ -135,18 +176,38 @@
         this.modalJ.modal('show');
       };
 
+      RModal.hide = function() {
+        this.modalJ.modal('hide');
+      };
+
       RModal.modalSubmit = function() {
-        var data, extractor, name, _ref;
+        var data, errorMessage, extractor, name, valid, _ref;
         data = {};
+        this.modalJ.find(".error-message").remove();
+        valid = true;
         _ref = this.extractors;
         for (name in _ref) {
           extractor = _ref[name];
-          extractor.extractor(data, extractor.args, name);
+          valid &= extractor.extractor(data, extractor.args, name, extractor.required);
+          if (!valid) {
+            errorMessage = extractor.div.find("[data-error]").attr('data-error');
+            if (errorMessage == null) {
+              errorMessage = 'The field "' + name + '"" is invalid.';
+            }
+            this.modalBodyJ.append("<div class='error-message'>" + errorMessage + "</div>");
+          }
         }
-        this.submitCallback(data);
-        this.modalBodyJ.empty();
+        if (!valid || (this.validation != null) && !this.validation(data)) {
+          return;
+        }
+        if (typeof this.submitCallback === "function") {
+          this.submitCallback(data);
+        }
         this.extractors = {};
-        this.modalJ.modal('hide');
+        if (this.hideOnSubmit) {
+          this.modalBodyJ.empty();
+          this.modalJ.modal('hide');
+        }
       };
 
       return RModal;

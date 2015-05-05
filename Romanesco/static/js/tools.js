@@ -61,7 +61,7 @@
         this.cursorDefault = cursorDefault != null ? cursorDefault : "default";
         g.tools[this.name] = this;
         if (this.btnJ == null) {
-          this.btnJ = g.toolsJ.find('li[data-type="' + this.name + '"]');
+          this.btnJ = g.toolsJ.find('li[data-name="' + this.name + '"]');
         }
         this.cursorName = this.btnJ.attr("data-cursor");
         this.btnJ.click((function(_this) {
@@ -155,7 +155,7 @@
 
       CodeTool.prototype.select = function() {
         CodeTool.__super__.select.call(this);
-        g.toolEditor();
+        g.showEditor();
       };
 
       return CodeTool;
@@ -556,48 +556,32 @@
       __extends(PathTool, _super);
 
       function PathTool(RPath, justCreated) {
-        var favorite, name, shortNameJ, toolNameJ, word, words, _i, _len, _ref;
+        var favorite, _ref;
         this.RPath = RPath;
         if (justCreated == null) {
           justCreated = false;
         }
         this.name = this.RPath.rname;
-        this.btnJ = g.toolsJ.find('li[data-type="' + this.name + '"]');
-        if (this.btnJ.length === 0) {
-          this.btnJ = $("<li>");
-          this.btnJ.attr("data-type", this.name);
-          this.btnJ.attr("alt", this.name);
-          if (this.RPath.iconUrl != null) {
-            this.btnJ.append('<img src="' + this.RPath.iconUrl + '" alt="' + this.RPath.iconAlt + '">');
-          } else {
-            this.btnJ.addClass("text-btn");
-            name = "";
-            words = this.name.split(" ");
-            if (words.length > 1) {
-              for (_i = 0, _len = words.length; _i < _len; _i++) {
-                word = words[_i];
-                name += word.substring(0, 1);
-              }
-            } else {
-              name += this.name.substring(0, 2);
-            }
-            shortNameJ = $('<span class="short-name">').text(name + ".");
-            this.btnJ.append(shortNameJ);
-          }
-          if (this.name === 'Precise path') {
-            this.RPath.iconUrl = null;
-          }
-          favorite = justCreated | ((_ref = g.favoriteTools) != null ? _ref.indexOf(this.name) : void 0) >= 0;
-          if (favorite) {
-            g.favoriteToolsJ.append(this.btnJ);
-          } else {
-            g.allToolsJ.append(this.btnJ);
-          }
+        if (justCreated && (g.tools[this.name] != null)) {
+          g[this.RPath.constructor.name] = this.RPath;
+          g.tools[this.name].remove();
+          delete g.tools[this.name];
+          g.lastPathCreated = this.RPath;
         }
-        toolNameJ = $('<span class="tool-name">').text(this.name);
-        this.btnJ.append(toolNameJ);
-        this.btnJ.addClass("tool-btn");
+        this.btnJ = g.allToolsJ.find('li[data-name="' + this.name + '"]');
+        if (this.btnJ.length === 0) {
+          favorite = justCreated || ((_ref = g.favoriteTools) != null ? _ref.indexOf(this.name) : void 0) >= 0;
+          this.btnJ = g.createToolButton(this.name, this.RPath.iconURL, favorite, this.RPath.category);
+        } else {
+          this.btnJ.off("click");
+        }
+        if (this.name === 'Precise path') {
+          this.RPath.iconURL = null;
+        }
         PathTool.__super__.constructor.call(this, this.RPath.rname, this.RPath.cursorPosition, this.RPath.cursorDefault, this.RPath.options);
+        if (justCreated) {
+          this.select();
+        }
         return;
       }
 

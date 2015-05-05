@@ -68,6 +68,7 @@
         siteURLJ = $("<div class=\"form-group siteName\">\n	<label for=\"modalSiteName\">Site name</label>\n	<div class=\"input-group\">\n		<input id=\"modalSiteName\" type=\"text\" class=\"name form-control\" placeholder=\"Site name\">\n		<span class=\"input-group-addon\">.romanesco.city</span>\n	</div>\n</div>");
         siteUrlExtractor = function(data, siteURLJ) {
           data.siteURL = siteURLJ.find("#modalSiteName").val();
+          return true;
         };
         g.RModal.addCustomContent('siteName', siteURLJ, siteUrlExtractor);
         g.RModal.addTextInput('message', 'Enter the message you want others to see when they look at this link.', 'text', '', 'Message', true);
@@ -119,6 +120,23 @@
         return locks;
       };
 
+      RLock.getSelectedLock = function(warnIfMultipleLocksSelected) {
+        var item, lock, _i, _len, _ref;
+        lock = null;
+        _ref = g.selectedItems;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          item = _ref[_i];
+          if (g.RLock.prototype.isPrototypeOf(item)) {
+            if (lock !== null && warnIfMultipleLocksSelected) {
+              g.romanesco_alert("Two locks are selected, please choose a single lock.", "Warning");
+              return null;
+            }
+            lock = item;
+          }
+        }
+        return lock;
+      };
+
       RLock.parameters = function() {
         var fillColor, parameters, strokeColor, strokeWidth;
         parameters = RLock.__super__.constructor.parameters.call(this);
@@ -133,16 +151,37 @@
         parameters['Style'].strokeWidth = strokeWidth;
         parameters['Style'].strokeColor = strokeColor;
         parameters['Style'].fillColor = fillColor;
+        parameters['Options'] = {
+          addModule: {
+            type: 'button',
+            label: 'Add module',
+            "default": function() {
+              var lock;
+              lock = g.RLock.getSelectedLock(true);
+              if (lock != null) {
+                return g.codeEditor.setLockModule(lock);
+              }
+            },
+            initializeController: function(controller, item) {
+              var lock;
+              lock = g.RLock.getSelectedLock(true);
+              if ((lock != null) && (lock.modulePk != null)) {
+                $(controller.domElement).parent().find(".property-name").text('Update module');
+              }
+            }
+          }
+        };
         return parameters;
       };
 
-      function RLock(rectangle, data, pk, owner, date) {
+      function RLock(rectangle, data, pk, owner, date, modulePk) {
         var item, pkString, title, titleJ, _i, _len, _ref, _ref1;
         this.rectangle = rectangle;
         this.data = data != null ? data : null;
         this.pk = pk != null ? pk : null;
         this.owner = owner != null ? owner : null;
         this.date = date;
+        this.modulePk = modulePk;
         this.select = __bind(this.select, this);
         this.update = __bind(this.update, this);
         this.saveCallback = __bind(this.saveCallback, this);
@@ -203,6 +242,11 @@
         }
         if ((_ref1 = this.data) != null ? _ref1.loadEntireArea : void 0) {
           g.entireAreas.push(this);
+        }
+        if (this.modulePk != null) {
+          Dajaxice.draw.getModuleSource(g.initializeModule, {
+            pk: modulePk
+          });
         }
         return;
       }
@@ -277,7 +321,8 @@
           object_type: this.object_type,
           name: this.data.name,
           data: this.getStringifiedData(),
-          updateType: type
+          updateType: type,
+          modulePk: this.modulePk
         };
         args = [];
         args.push({
@@ -425,6 +470,14 @@
           this.highlightRectangle.strokeColor = color;
           this.highlightRectangle.dashArray = [];
         }
+      };
+
+      RLock.prototype.addModule = function(modulePk) {
+        this.modulePk = modulePk;
+        Dajaxice.draw.updateBox(g.checkError, {
+          pk: this.pk,
+          modulePk: this.modulePk
+        });
       };
 
       return RLock;

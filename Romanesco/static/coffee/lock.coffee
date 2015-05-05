@@ -68,7 +68,7 @@ define [
 			""")
 			siteUrlExtractor = (data, siteURLJ)->
 				data.siteURL = siteURLJ.find("#modalSiteName").val()
-				return
+				return true
 			g.RModal.addCustomContent('siteName', siteURLJ, siteUrlExtractor)
 			g.RModal.addTextInput('message', 'Enter the message you want others to see when they look at this link.', 'text', '', 'Message', true)
 
@@ -117,6 +117,16 @@ define [
 					locks.push(lock)
 			return locks
 
+		@getSelectedLock: (warnIfMultipleLocksSelected)->
+			lock = null
+			for item in g.selectedItems
+				if g.RLock.prototype.isPrototypeOf(item)
+					if lock != null and warnIfMultipleLocksSelected
+						g.romanesco_alert "Two locks are selected, please choose a single lock.", "Warning"
+						return null
+					lock = item
+			return lock
+
 		@parameters: ()->
 			parameters = super()
 
@@ -132,10 +142,22 @@ define [
 			parameters['Style'].strokeWidth = strokeWidth
 			parameters['Style'].strokeColor = strokeColor
 			parameters['Style'].fillColor = fillColor
+			parameters['Options'] =
+				addModule:
+					type: 'button'
+					label: 'Add module'
+					default: ()->
+						lock = g.RLock.getSelectedLock(true)
+						if lock? then g.codeEditor.setLockModule(lock)
+					initializeController: (controller, item)->
+						lock = g.RLock.getSelectedLock(true)
+						if lock? and lock.modulePk?
+							$(controller.domElement).parent().find(".property-name").text('Update module')
+						return
 
 			return parameters
 
-		constructor: (@rectangle, @data=null, @pk=null, @owner=null, @date) ->
+		constructor: (@rectangle, @data=null, @pk=null, @owner=null, @date, @modulePk) ->
 			super(@data, @pk)
 
 			g.locks.push(@)
@@ -191,6 +213,9 @@ define [
 			# check if the lock must be entirely loaded
 			if @data?.loadEntireArea
 				g.entireAreas.push(@)
+
+			if @modulePk?
+				Dajaxice.draw.getModuleSource(g.initializeModule, pk: modulePk)
 
 			return
 
@@ -263,7 +288,8 @@ define [
 				object_type: @object_type
 				name: @data.name
 				data: @getStringifiedData()
-				updateType: type
+				updateType: type 		# not used anymore
+				modulePk: @modulePk
 				# message: @data.message
 
 			# Dajaxice.draw.updateBox( @updateCallback, args )
@@ -365,6 +391,10 @@ define [
 				@highlightRectangle.fillColor = color
 				@highlightRectangle.strokeColor = color
 				@highlightRectangle.dashArray = []
+			return
+
+		addModule: (@modulePk)->
+			Dajaxice.draw.updateBox( g.checkError, { pk: @pk, modulePk: @modulePk } )
 			return
 
 	g.RLock = RLock

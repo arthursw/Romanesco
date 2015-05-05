@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Romanesco client",
   "dependencies": {
-    "coffee-script": "^1.9.1"
+    "coffee-script": "^1.9.2"
   },
   "devDependencies": {
     "gulp": "^3.8.11",

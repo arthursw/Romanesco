@@ -192,6 +192,21 @@
     g.linearInterpolation = function(v1, v2, f) {
       return v1 * (1 - f) + v2 * f;
     };
+    g.ajax = function(url, callback, type) {
+      var xmlhttp;
+      if (type == null) {
+        type = "GET";
+      }
+      xmlhttp = new RXMLHttpRequest();
+      xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+          callback();
+        }
+      };
+      xmlhttp.open(type, url, true);
+      xmlhttp.send();
+      return xmlhttp.onreadystatechange;
+    };
     return {
       g: function() {
         return g;

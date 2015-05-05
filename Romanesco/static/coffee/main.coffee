@@ -1,6 +1,7 @@
 define [
 	'utils'
 	'paper'
+	'coffee'
 	'coordinateSystems'
 	'global'
 	'ajax'
@@ -12,6 +13,7 @@ define [
 	'lock'
 	'path'
 	'tools'
+	'mod'
 	'rasterizer'
 	'editor'
 	'sound'
@@ -24,7 +26,7 @@ define [
 	'typeahead'
 	'prefix'
 	'ace'
-], (utils, paper) ->
+], (utils, paper, CoffeeScript) ->
 
 	g = utils.g()
 
@@ -55,62 +57,15 @@ define [
 
 	###
 
-	initializeAddons = () ->
-
-		if g.rasterizerMode?
-			g.setTools()
-			return
-
-		# init tool typeahead
-		initAddonTypeahead = (addons)->
-			g.typeaheadAddonEngine = new Bloodhound({
-				name: 'Addons',
-				local: addons,
-				datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
-				queryTokenizer: Bloodhound.tokenizers.whitespace
-			})
-
-			g.typeaheadAddonEngine.initialize()
-			g.codeEditor.initializeAddonInput()
-			return
-
-		g.allAddonsJ = g.allToolsContainerJ.find(".all-tool-list")
-
-		# get custom addons from the database, and initialize them
-		# ajaxPost '/getAddons', {}, (result)->
-		Dajaxice.draw.getAddons (result)->
-			addons = JSON.parse(result.addons)
-			addonValues = []
-			for addon, i in addons
-				g.createButton(addon.name, addon.iconURL, g.allAddonsJ)
-				addonValues.push(value: addon.name, iconURL: addon.iconURL)
-
-			initAddonTypeahead(addonValues)
-			return
-
-		g.searchAddonInputJ = $("#AllTools").find("input.search-tool")
-		g.searchAddonInputJ.keyup (event)->
-			query = g.searchAddonInputJ.val()
-			if query == ""
-				g.allAddonsJ.children().show()
-				return
-			g.allAddonsJ.children().hide()
-			g.typeaheadAddonEngine.get( query, (suggestions)->
-				for suggestion in suggestions
-					g.allAddonsJ.children("[data-type='" + suggestion.value + "']").show()
-			)
-			return
-
-		return
 
 	## Init tools
 	# - init jQuery elements related to the tools
 	# - create all tools
 	# - init tool typeahead (the algorithm to find the tools from a few letters in the search tool input)
 	# - get custom tools from the database, and initialize them
-	# - make the tools draggable between the 'favorite tools' and 'other tools' panels, and update g.typeaheadToolEngine and g.favoriteTools accordingly
+	# - make the tools draggable between the 'favorite tools' and 'other tools' panels, and update g.typeaheadModuleEngine and g.favoriteTools accordingly
 	initTools = () ->
-		# $.getJSON 'https://api.github.com/users/RomanescoAddons/repos', (json)->
+		# $.getJSON 'https://api.github.com/users/RomanescoModules/repos', (json)->
 		# 	for repo in json.repos
 		# 		repo.
 		# 	return
@@ -150,23 +105,25 @@ define [
 		new g.MediaTool(g.RMedia)
 		new g.ScreenshotTool()
 
+		g.modules = {}
 		# path tools
 		for pathClass in g.pathClasses
-			new g.PathTool(pathClass)
+			pathTool = new g.PathTool(pathClass)
+			g.modules[pathTool.name] = { name: pathTool.name, iconURL: pathTool.RPath.iconURL, source: pathTool.RPath.source, description: pathTool.RPath.description, owner: 'Romanesco', thumbnailURL: pathTool.RPath.thumbnailURL, accepted: true, coreModule: true, category: pathTool.RPath.category }
 
-		initializeAddons()
+		g.initializeModules()
 
 		# # init tool typeahead
 		# initToolTypeahead = ()->
 		# 	toolValues = []
-		# 	toolValues.push( value: $(tool).attr("data-type") ) for tool in g.allToolsJ.children()
-		# 	g.typeaheadToolEngine = new Bloodhound({
+		# 	toolValues.push( value: $(tool).attr("data-name") ) for tool in g.allToolsJ.children()
+		# 	g.typeaheadModuleEngine = new Bloodhound({
 		# 		name: 'Tools',
 		# 		local: toolValues,
 		# 		datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
 		# 		queryTokenizer: Bloodhound.tokenizers.whitespace
 		# 	})
-		# 	promise = g.typeaheadToolEngine.initialize()
+		# 	promise = g.typeaheadModuleEngine.initialize()
 
 		# 	g.searchToolInputJ = g.allToolsContainerJ.find("input.search-tool")
 		# 	g.searchToolInputJ.keyup (event)->
@@ -175,10 +132,10 @@ define [
 		# 			g.allToolsJ.children().show()
 		# 			return
 		# 		g.allToolsJ.children().hide()
-		# 		g.typeaheadToolEngine.get( query, (suggestions)->
+		# 		g.typeaheadModuleEngine.get( query, (suggestions)->
 		# 			for suggestion in suggestions
 		# 				console.log(suggestion)
-		# 				g.allToolsJ.children("[data-type='" + suggestion.value + "']").show()
+		# 				g.allToolsJ.children("[data-name='" + suggestion.value + "']").show()
 		# 		)
 		# 		return
 		# 	return
@@ -194,34 +151,37 @@ define [
 		# 	initToolTypeahead()
 		# 	return
 
-		# make the tools draggable between the 'favorite tools' and 'other tools' panels, and update g.typeaheadToolEngine and g.favoriteTools accordingly
-		sortStart = (event, ui)->
-			$( "#sortable1, #sortable2" ).addClass("drag-over")
-			return
+		# make the tools draggable between the 'favorite tools' and 'other tools' panels, and update g.typeaheadModuleEngine and g.favoriteTools accordingly
 
-		sortStop = (event, ui)->
-			$( "#sortable1, #sortable2" ).removeClass("drag-over")
-			if not localStorage? then return
-			names = []
-			for li in g.favoriteToolsJ.children()
-				names.push($(li).attr("data-type"))
-			localStorage.favorites = JSON.stringify(names)
 
-			toolValues = []
-			toolValues.push( value: $(tool).attr("data-type") ) for tool in g.allToolsJ.children()
-			g.typeaheadToolEngine.clear()
-			g.typeaheadToolEngine.add(toolValues)
+		# sortStart = (event, ui)->
+		# 	$( "#sortable1, #sortable2" ).addClass("drag-over")
+		# 	return
 
-			return
+		# sortStop = (event, ui)->
+		# 	$( "#sortable1, #sortable2" ).removeClass("drag-over")
+		# 	if not localStorage? then return
+		# 	names = []
+		# 	for li in g.favoriteToolsJ.children()
+		# 		names.push($(li).attr("data-name"))
+		# 	localStorage.favorites = JSON.stringify(names)
 
-		sortableArgs =
-			connectWith: ".connectedSortable"
-			appendTo: g.sidebarJ
-			helper: "clone"
-			start: sortStart
-			stop: sortStop
-			delay: 250
-		$( "#sortable1, #sortable2" ).sortable( sortableArgs ).disableSelection()
+		# 	toolValues = []
+		# 	toolValues.push( value: $(tool).attr("data-name") ) for tool in g.allToolsJ.children()
+		# 	g.typeaheadModuleEngine.clear()
+		# 	g.typeaheadModuleEngine.add(toolValues)
+
+		# 	return
+
+		# sortableArgs =
+		# 	connectWith: ".connectedSortable"
+		# 	appendTo: g.sidebarJ
+		# 	helper: "clone"
+		# 	cancel: '.category'
+		# 	start: sortStart
+		# 	stop: sortStop
+		# 	delay: 250
+		# $( "#sortable1, #sortable2" ).sortable( sortableArgs ).disableSelection()
 
 		g.tools['Move'].select() 		# select the move tool
 
@@ -448,6 +408,11 @@ define [
 		g.limitPathH = null 					# the horizontal limit path (line between two planets)
 		g.selectedItems = [] 					# the selectedItems
 		g.ignoreSockets = false 				# whether sockets messages are ignored
+		g.mousePosition = new Point() 			# the mouse position in window coordinates (updated everytime the mouse moves)
+												# used to get mouse position on a key event
+		g.DajaxiceXMLHttpRequest = window.XMLHttpRequest
+
+		window.XMLHttpRequest = window.RXMLHttpRequest
 		# initialize sort
 
 		g.itemListsJ = $("#RItems .layers")
@@ -588,8 +553,6 @@ define [
 			g.toggleSidebar()
 			return
 
-		$(".mCustomScrollbar.sidebar-scrollbar").mCustomScrollbar( keyboard: false )
-
 		# g.sound = new g.RSound(['/static/sounds/space_ship_engine.mp3', '/static/sounds/space_ship_engine.ogg'])
 		g.sound = new g.RSound(['/static/sounds/viper.ogg']) 			# load car sound
 
@@ -637,20 +600,69 @@ define [
 		# 	)
 
 		# load path source code
-		$.ajax( url: g.romanescoURL + "static/coffee/path.coffee" ).done (data)->
 
-			lines = data.split(/\n/)
-			expressions = CoffeeScript.nodes(data).expressions
+		xmlhttp = new RXMLHttpRequest()
+		url = g.romanescoURL + "static/coffee/path.coffee"
 
-			classMap = {}
-			for pathClass in g.pathClasses
-				classMap[pathClass.name] = pathClass
+		xmlhttp.onreadystatechange = ()->
+			if xmlhttp.readyState == 4 and xmlhttp.status == 200
+				sources = xmlhttp.responseText
 
-			for expression in expressions
-				source = lines[expression.locationData.first_line .. expression.locationData.last_line].join("\n")
-				classMap[expression.variable.base.value]?.source = source
+				lines = sources.split(/\n/)
+				expressions = CoffeeScript.nodes(sources).expressions
 
+				classMap = {}
+				for pathClass in g.pathClasses
+					classMap[pathClass.name] = pathClass
+
+				classExpressions = expressions[0].args[1].body.expressions
+				for expression in classExpressions
+					className = expression.variable?.base?.value
+					if className? and classMap[className]? and expression.locationData?
+						start = expression.locationData.first_line
+						end = expression.locationData.last_line-1
+						# remove tab:
+						for i in [start .. end]
+							lines[i] = lines[i].substring(1)
+						source = lines[start .. end].join("\n")
+						# automatically create new PathTool
+						source += "\ntool = new g.PathTool(#{className}, true)"
+						pathClass = classMap[className]
+						pathClass.source = source
+						g.modules[pathClass.rname]?.source = source
 			return
+
+		xmlhttp.open("GET", url, true)
+		xmlhttp.send()
+
+		# not working, because of dajaxice
+		# $.ajax( url: g.romanescoURL + "static/coffee/path.coffee", cache: false )
+		# .done (data)->
+		# 	console.log "done"
+		# 	lines = data.split(/\n/)
+		# 	expressions = CoffeeScript.nodes(data).expressions
+
+		# 	classMap = {}
+		# 	for pathClass in g.pathClasses
+		# 		classMap[pathClass.name] = pathClass
+
+		# 	for expression in expressions
+		# 		source = lines[expression.locationData.first_line .. expression.locationData.last_line].join("\n")
+		# 		classMap[expression.variable.base.value]?.source = source
+
+		# 	return
+		# .success (data)->
+		# 	console.log "success"
+		# 	return
+		# .fail (data)->
+		# 	console.log "fail"
+		# 	return
+		# .error (data)->
+		# 	console.log "error"
+		# 	return
+		# .always (data)->
+		# 	console.log "always"
+		# 	return
 
 		g.initializeGlobalParameters()
 		g.initParameters()
@@ -659,6 +671,8 @@ define [
 
 		initTools()
 		initPosition()
+
+		$(".mCustomScrollbar").mCustomScrollbar( keyboard: false )
 
 		# initLoadingBar()
 		g.updateGrid()
@@ -680,13 +694,15 @@ define [
 		g.tool = new Tool()
 
 		focusIsOnCanvas = ()->
-			activeElementIsOnSidebar = $(document.activeElement).parents(".sidebar").length>0
-			activeElementIsTextarea = $(document.activeElement).is("textarea")
-			activeElementIsOnParameterBar = $(document.activeElement).parents(".dat-gui").length
-			return not activeElementIsOnSidebar and not activeElementIsTextarea and not activeElementIsOnParameterBar
+			return $(document.activeElement).is("body")
+			# activeElementIsOnSidebar = $(document.activeElement).parents(".sidebar").length>0
+			# activeElementIsTextarea = $(document.activeElement).is("textarea")
+			# activeElementIsOnParameterBar = $(document.activeElement).parents(".dat-gui").length
+			# return not activeElementIsOnSidebar and not activeElementIsTextarea and not activeElementIsOnParameterBar
 
 		# Paper listeners
 		g.tool.onMouseDown = (event) ->
+
 			if g.wacomPenAPI?.isEraser
 				g.tool.onKeyUp( key: 'delete' )
 				return
@@ -750,6 +766,8 @@ define [
 					g.previousTool?.select()
 				when 'v'
 					g.tools['Select'].select()
+				when 't'
+					g.showToolBox()
 				when 'delete', 'backspace'
 					selectedItems = g.selectedItems.slice()
 					for item in selectedItems
@@ -816,6 +834,8 @@ define [
 
 		# mousemove event listener
 		mousemove = (event) ->
+			g.mousePosition.x = event.pageX
+			g.mousePosition.y = event.pageY
 
 			if g.selectedTool.name == 'Move' and g.selectedTool.dragging
 				# mousePosition = new Point(event.pageX, event.pageY)
@@ -847,6 +867,9 @@ define [
 		# mouseup event listener
 		mouseup = (event) ->
 
+			if g.stageJ.hasClass("has-tool-box") and not $(event.target).parents('.tool-box').length>0
+				g.hideToolBox()
+
 			if g.selectedTool.name == 'Move'
 				# g.selectedTool.end(g.previousMousePosition.equals(g.initialMousePosition))
 				g.selectedTool.endNative(event)
@@ -876,7 +899,7 @@ define [
 
 			return
 		# jQuery listeners
-		g.canvasJ.mousedown( mousedown )
+		# g.canvasJ.mousedown( mousedown )
 		g.stageJ.mousedown( mousedown )
 		$(window).mousemove( mousemove )
 		$(window).mouseup( mouseup )

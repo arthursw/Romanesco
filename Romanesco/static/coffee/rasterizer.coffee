@@ -220,9 +220,10 @@ define [
 			g.selectionLayer.visible = true
 			g.grid.visible = true
 
-			# hide all items except selected ones
+			# hide all items except selected ones and the ones being created
 			for pk, item of g.items
-				item.group?.visible = item.selectionRectangle?
+				if item == g.currentPaths[g.me] or item.selectionRectangle? then continue
+				item.group?.visible = false
 
 			# show excluded items and their children
 			for item in @itemsToExclude

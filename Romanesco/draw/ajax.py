@@ -31,17 +31,32 @@ import StringIO
 import traceback
 
 import base64
-
+from Romanesco import settings
 from github import Github
 from git import Repo
 
 # from wand.image import Image
 
+import functools
+
+debugMode = False
+
+if settings.DEBUG:
+	def checkDebug(func):
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+			if debugMode:
+				import pdb; pdb.set_trace()
+			return func(*args, **kwargs)
+		return wrapper
+else:
+	def checkDebug(func):
+	    return func
 
 logger = logging.getLogger(__name__)
 
 with open('/data/secret_github.txt') as f:
-    PASSWORD = base64.b64decode(f.read().strip())
+	PASSWORD = base64.b64decode(f.read().strip())
 
 github = Github("arthurpub.sw@gmail.com", PASSWORD)
 romanescoOrg = github.get_organization('RomanescoModules')
@@ -53,12 +68,12 @@ romanescoOrg = github.get_organization('RomanescoModules')
 import datetime
 
 def unix_time(dt):
-    epoch = datetime.datetime.utcfromtimestamp(0)
-    delta = dt - epoch
-    return delta.total_seconds()
+	epoch = datetime.datetime.utcfromtimestamp(0)
+	delta = dt - epoch
+	return delta.total_seconds()
 
 def unix_time_millis(dt):
-    return unix_time(dt) * 1000.0
+	return unix_time(dt) * 1000.0
 
 def makeBox(tlX, tlY, brX, brY):
 	return { "type": "Polygon", "coordinates": [ [ [tlX, tlY], [brX, tlY], [brX, brY], [tlX, brY], [tlX, tlY] ] ] }
@@ -70,6 +85,13 @@ isUpdatingRasters = False
 defaultPathTools = ["Precise path", "Thickness path", "Meander", "Grid path", "Geometric lines", "Shape path", "Rectangle", "Ellipse", "Star", "Spiral", "Face generator", "Checkpoint"]
 
 @dajaxice_register
+def setDebugMode(request, debug):
+	global debugMode
+	debugMode = debug
+	return json.dumps({"message": "success"})
+
+@dajaxice_register
+@checkDebug
 def multipleCalls(request, functionsAndArguments):
 	results = []
 	for fa in functionsAndArguments:
@@ -77,6 +99,7 @@ def multipleCalls(request, functionsAndArguments):
 	return json.dumps(results)
 
 @dajaxice_register
+@checkDebug
 def benchmarkLoad(request, areasToLoad):
 
 	start = time.time()
@@ -127,6 +150,7 @@ def benchmarkLoad(request, areasToLoad):
 	return json.dumps({"message": "success"})
 
 # @dajaxice_register
+# @checkDebug
 # def quick_load(request, box, boxes, zoom):
 
 # 	items = {}
@@ -208,6 +232,7 @@ def benchmarkLoad(request, areasToLoad):
 # 	return json.dumps( { 'items': items.values(), 'rasters': rasters, 'zoom': zoom, 'user': user } )
 
 @dajaxice_register
+@checkDebug
 def load(request, rectangle, areasToLoad, qZoom):
 
 	items = {}
@@ -300,6 +325,7 @@ def load(request, rectangle, areasToLoad, qZoom):
 
 
 @dajaxice_register
+@checkDebug
 def loadRasterizer(request, areasToLoad, itemsDates):
 
 	items = {}
@@ -351,7 +377,7 @@ def getAreas(bounds):
 	areas = {}
 	scale = 1000
 	l = int(floor(bounds['x'] / scale))
- 	t = int(floor(bounds['y'] / scale))
+	t = int(floor(bounds['y'] / scale))
 	r = int(floor((bounds['x']+bounds['width']) / scale))
 	b = int(floor((bounds['y']+bounds['height']) / scale))
 
@@ -594,6 +620,7 @@ def getAreas(bounds):
 # 	return
 
 @dajaxice_register
+@checkDebug
 def savePath(request, points, object_type, box, date, data=None):
 # def savePath(request, points, pID, planet, object_type, data=None, rasterData=None, rasterPosition=None, areasNotRasterized=None):
 
@@ -631,6 +658,7 @@ def savePath(request, points, object_type, box, date, data=None):
 	return json.dumps( {'state': 'success', 'pk': str(p.pk) } )
 
 @dajaxice_register
+@checkDebug
 def updatePath(request, pk, points=None, box=None, data=None, date=None):
 
 	try:
@@ -680,6 +708,7 @@ def updatePath(request, pk, points=None, box=None, data=None, date=None):
 	return json.dumps( {'state': 'success'} )
 
 @dajaxice_register
+@checkDebug
 def deletePath(request, pk):
 
 	try:
@@ -697,6 +726,7 @@ def deletePath(request, pk):
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
+@checkDebug
 def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
@@ -739,7 +769,8 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(b.pk), 'box':box } )
 
 @dajaxice_register
-def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
+@checkDebug
+def updateBox(request, pk, box=None, data=None, name=None, updateType=None, modulePk=None):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
 
@@ -807,12 +838,20 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 		addAreaToUpdate( points, planetX, planetY )
 	if data:
 		b.data = data
+	if modulePk:
+		try:
+			module = Module.objects.get(pk=modulePk)
+		except Module.DoesNotExist:
+			return json.dumps({'state': 'error', 'message': 'The module does not exist.'})
+		b.module = module
+		module.lock = b
+		module.save()
 	b.lastUpdate = datetime.datetime.now()
 
 	try:
 		b.save()
 	except ValidationError:
-		return json.dumps({'state': 'error', 'message': 'invalid_url'})
+		return json.dumps({'state': 'error', 'message': 'The URL is invalid.'})
 
 	# if box:
 	# 	# retrieve the new paths and divs to lock them if they were not in the old box:
@@ -844,6 +883,7 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None):
 	return json.dumps( {'state': 'success' } )
 
 @dajaxice_register
+@checkDebug
 def deleteBox(request, pk):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
@@ -871,6 +911,7 @@ def deleteBox(request, pk):
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
+@checkDebug
 def saveDiv(request, box, object_type, date=None, data=None, lock=None):
 
 	points = box['points']
@@ -895,6 +936,7 @@ def saveDiv(request, box, object_type, date=None, data=None, lock=None):
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(d.pk), 'box': box } )
 
 @dajaxice_register
+@checkDebug
 def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, lock=None):
 
 	try:
@@ -940,6 +982,7 @@ def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, loc
 	return json.dumps( {'state': 'success' } )
 
 @dajaxice_register
+@checkDebug
 def deleteDiv(request, pk):
 
 	try:
@@ -965,55 +1008,63 @@ def addAreaToUpdate(points, planetX, planetY):
 	print '<<<'
 	print 'start merging all regions overlapping with the new area to update: '
 	print 'points: ' + str(points)
+
 	overlappingAreas = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=[points])
-	left = xMin = points[0][0]
-	right = xMax = points[2][0]
-	top = yMin = points[0][1]
-	bottom = yMax = points[2][1]
-	for overlappingArea in overlappingAreas:
 
-		cbox = overlappingArea.box['coordinates'][0]
-		cleft = cbox[0][0]
-		ctop = cbox[0][1]
-		cright = cbox[2][0]
-		cbottom = cbox[2][1]
+	xMin = points[0][0]
+	xMax = points[2][0]
+	yMin = points[0][1]
+	yMax = points[2][1]
 
-		# if the areas just share an edge: continue
-		# check if intersection has a positive area
-		ileft = max(left, cleft)
-		itop = max(top, ctop)
-		iright = min(right, cright)
-		ibottom = min(bottom, cbottom)
+	while len(overlappingAreas)>0:
 
-		if (iright-ileft) <= 0 or (ibottom-itop) <= 0 or (iright-ileft) * (ibottom-itop) <= 0.001:
-			continue
+		for overlappingArea in overlappingAreas:
 
-		print '!!! OVERLAPPING !!!'
+			cbox = overlappingArea.box['coordinates'][0]
+			cleft = cbox[0][0]
+			ctop = cbox[0][1]
+			cright = cbox[2][0]
+			cbottom = cbox[2][1]
 
-		if not xMin or cleft < xMin:
-			xMin = cleft
-		if not xMax or cright > xMax:
-			xMax = cright
-		if not yMin or ctop < yMin:
-			yMin = ctop
-		if not yMax or cbottom > yMax:
-			yMax = cbottom
+			# # if the areas just share an edge: continue
+			# # check if intersection has a positive area
+			# ileft = max(left, cleft)
+			# itop = max(top, ctop)
+			# iright = min(right, cright)
+			# ibottom = min(bottom, cbottom)
+
+			# if (iright-ileft) <= 0 or (ibottom-itop) <= 0 or (iright-ileft) * (ibottom-itop) <= 0.001:
+			# 	continue
+
+			print '!!! OVERLAPPING !!!'
+
+			if not xMin or cleft < xMin:
+				xMin = cleft
+			if not xMax or cright > xMax:
+				xMax = cright
+			if not yMin or ctop < yMin:
+				yMin = ctop
+			if not yMax or cbottom > yMax:
+				yMax = cbottom
 
 
-		print 'start deleting areas of overlapping area: ' + str(overlappingArea.pk)
-		print 'start deleting overlapping area: ' + str(overlappingArea.pk) + '...'
-		try:
-			overlappingArea.delete()
-		except Area.DoesNotExist:
-			print "Impossible to delete area: " + str(overlappingArea.pk) + ", skipping area merging"
-			xMin = points[0][0]
-			xMax = points[2][0]
-			yMin = points[0][1]
-			yMax = points[2][1]
-			break
-		print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
+			print 'start deleting areas of overlapping area: ' + str(overlappingArea.pk)
+			print 'start deleting overlapping area: ' + str(overlappingArea.pk) + '...'
+			try:
+				overlappingArea.delete()
+			except Area.DoesNotExist:
+				print "Impossible to delete area: " + str(overlappingArea.pk) + ", skipping area merging"
+				xMin = points[0][0]
+				xMax = points[2][0]
+				yMin = points[0][1]
+				yMax = points[2][1]
+				break
+			print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
 
-	areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[[ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]])
+		points = [ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]
+		overlappingAreas = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=[points])
+
+	areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[points])
 	areaToUpdate.save()
 
 	return
@@ -1029,6 +1080,7 @@ def posOnPlanetToProject(xp, yp, planetX, planetY):
 	return (x,y)
 
 @dajaxice_register
+@checkDebug
 def batchUpdateRasters(request, args):
 	results = []
 	for arg in args:
@@ -1036,6 +1088,7 @@ def batchUpdateRasters(request, args):
 	return json.dumps(results)
 
 # @dajaxice_register
+# @checkDebug
 # def updateRasters(request, data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
 # 	result = updateRastersJson(data, position, areasNotRasterized, areaToDeletePk)
 # 	return json.dumps(result)
@@ -1048,6 +1101,7 @@ def ceilToMultiple(x, m):
 	return int(ceil(x/float(m))*m)
 
 # # @dajaxice_register
+# @checkDebug
 # def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
 # 	print "updateRastersJson"
 
@@ -1694,6 +1748,7 @@ def ceilToMultiple(x, m):
 # 	return { 'state': 'success', 'areasToUpdate': areasToUpdate, 'areasDeleted': areasDeleted }
 
 # @dajaxice_register
+# @checkDebug
 # def loadRasters(request, areasToLoad):
 
 # 	images = []
@@ -1717,11 +1772,13 @@ def ceilToMultiple(x, m):
 # 	return json.dumps( { 'images': images } )
 
 @dajaxice_register
+@checkDebug
 def getAreasToUpdate(request):
 	areas = AreaToUpdate.objects()
 	return areas.to_json()
 
 @dajaxice_register
+@checkDebug
 def deleteAreaToUpdate(request, pk):
 	try:
 		area = AreaToUpdate.objects.get(pk=pk)
@@ -1731,6 +1788,7 @@ def deleteAreaToUpdate(request, pk):
 	return
 
 # @dajaxice_register
+# @checkDebug
 # def updateAreasToUpdate(request, pk, newAreas):
 
 # 	try:
@@ -1756,6 +1814,7 @@ def deleteAreaToUpdate(request, pk):
 # --- images --- #
 
 @dajaxice_register
+@checkDebug
 def saveImage(request, image):
 
 	imageData = re.search(r'base64,(.*)', image).group(1)
@@ -1785,60 +1844,96 @@ def saveImage(request, image):
 
 # --- modules --- #
 
-def addModule(name, source, compiledSource, description, iconURL=None):
+def createCommitAndPush(repoName, source, localRepository, commitDescription):
 
-	githubRepository = romanescoOrg.create_repo(name, description=description, auto_init=True, gitignore_template='None')
-
-	localRepository = Repo.clone_from(path_to='modules/' + name, url=githubRepository.clone_url)
-	origin = localRepository.remote(name='origin')
-
-	moduleName = name + '.coffee'
-	sourcePath = 'modules/' + moduleName
+	sourcePath = 'modules/' + repoName + '/main.coffee'
 	moduleFile = open(sourcePath, 'wb')
-	moduleFile.write(source)
+	moduleFile.write(source.encode('utf-8'))
 	moduleFile.close()
 
-	localRepository.index.add([moduleName])
-	localRepository.index.commit("initial commit")
-	origin.fetch()
-	origin.push()
-
-	module.githubURL = githubRepository.clone_url
-	module.save()
-
-	return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.', 'cloneURL': githubRepository.clone_url } )
-
-def updateModule(name, source, compiledSource, description, iconURL=None):
-	sourcePath = name + '.coffee'
-	output = open(sourcePath, 'wb')
-	output.write(source)
-	output.close()
-
-	localRepository = Repo.init('modules/' + name)
 	origin = localRepository.remote(name='origin')
-	localRepository.index.add([sourcePath])
+	localRepository.index.add(['main.coffee'])
 	localRepository.index.commit(commitDescription)
 	origin.fetch()
 	origin.push()
 
-	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
+	return
+
+def addModule(user, name, source, compiledSource, description, type=None, commitDescription=None, iconURL=None, category=None, lockPk=None):
+
+	if 'Romanesco module' not in description:
+		description = 'Romanesco module - ' + description
+
+	try:
+		githubRepository = romanescoOrg.create_repo(name, description=description, auto_init=True)
+	except Exception as githubException:
+		errorMessage = 'unknown error'
+		if 'errors' in githubException.data and len(githubException.data['errors'])>=1 and 'message' in githubException.data['errors'][0]:
+			errorMessage = githubException.data['errors'][0]['message']
+		return json.dumps( { 'state': 'error', 'message': 'An error occured while creating the github repository: ' + errorMessage })
+
+	repoName = githubRepository.name
+
+	lock = None
+	if lockPk:
+		try:
+			lock = Box.objects.get(pk=lockPk)
+		except:
+			return json.dumps( { 'state': 'error', 'message': 'The lock could not be found.'})
+
+	try:
+		module = Module(owner=user, name=name, repoName=repoName, description=description, source=source, compiledSource=compiledSource, iconURL=iconURL, local=True, category=category, githubURL=githubRepository.html_url, moduleType=type, lock=lock)
+		module.save()
+	except Exception as e:
+		return json.dumps( { 'state': 'error', 'message': 'An error occured while creating the module.'})
+
+	localRepository = Repo.clone_from(githubRepository.clone_url, 'modules/' + repoName, branch='master')
+
+	createCommitAndPush(repoName, source, localRepository, commitDescription or "initial commit")
+
+	return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.', 'githubURL': githubRepository.html_url, 'modulePk': str(module.pk) } )
+
+def updateModule(user, module, name, repoName, source, compiledSource, commitDescription, githubURL=None, iconURL=None, category=None):
+	if module.local:
+		# update (commit) local repo
+
+		localRepository = Repo('modules/' + repoName)
+		createCommitAndPush(repoName, source, localRepository, commitDescription)
+
+		if iconURL:
+			module.iconURL = iconURL
+		if category:
+			module.category = category
+
+		module.save()
+		githubURL = module.githubURL
+	else:
+		# push request
+
+		githubRepository = github.get_repo(githubURL)
+		fork = romanescoOrg.create_fork(githubRepository)
+
+		localRepository = Repo.clone_from(fork.clone_url, 'modules/' + repoName, branch='master')
+		createCommitAndPush(repoName, source, localRepository, commitDescription)
+
+		fork.create_pull('Pull request created by ' + str(user), description, 'master', 'master')
+		githubURL = fork.html_url
+
+	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.', 'githubURL': githubURL } )
 
 @dajaxice_register
-def addOrUpdateModule(name, source, compiledSource, description, iconURL=None):
+@checkDebug
+def addOrUpdateModule(request, name, source, compiledSource, type=None, description=None, commitDescription=None, githubURL=None, iconURL=None, category=None, lockPk=None):
 	try:
 		module = Module.objects.get(name=name)
-		result = updateModule(name, source, compiledSource, description, iconURL)
+		result = updateModule(request.user.username, module, name, module.repoName, source, compiledSource, commitDescription, githubURL, iconURL, category)
 	except Module.DoesNotExist:
-		try:
-			module = Module(owner=request.user.username, name=name, source=source, compiledSource=compiledSource, iconURL=iconURL)
-		except OperationError:
-			return json.dumps( { 'state': 'error', 'message': 'An error occured while creating the module.'})
-
-		result = addModule(name, source, compiledSource, description, iconURL)
+		result = addModule(request.user.username, name, source, compiledSource, type, description, commitDescription, iconURL, category, lockPk)
 
 	return result
 
 # @dajaxice_register
+# @checkDebug
 # def addModule(request, name, className, source, compiledSource, isTool, description, iconURL=None):
 
 # 	try:
@@ -1846,9 +1941,9 @@ def addOrUpdateModule(name, source, compiledSource, description, iconURL=None):
 # 	except OperationError:
 # 		return json.dumps( { 'state': 'error', 'message': 'A module with the name ' + name + ' or the className ' + className + ' already exists.' } )
 
-# 	githubRepository = romanescoOrg.create_repo(name, description=description, auto_init=True, gitignore_template='None')
+# 	githubRepository = romanescoOrg.create_repo(name, description=description, auto_init=True)
 
-# 	localRepository = Repo.clone_from(path_to='modules/' + name, url=githubRepository.clone_url)
+# 	localRepository = Repo.clone_from(path_to='modules/' + name, url=githubRepository.clone_url, branch='master')
 # 	origin = localRepository.remote(name='origin')
 
 # 	moduleName = name + '.coffee'
@@ -1868,6 +1963,7 @@ def addOrUpdateModule(name, source, compiledSource, description, iconURL=None):
 # 	return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.', 'cloneURL': githubRepository.clone_url } )
 
 # @dajaxice_register
+# @checkDebug
 # def updateModule(request, name, source):
 # 	try:
 # 		module = Module.objects.get(name=name)
@@ -1889,65 +1985,136 @@ def addOrUpdateModule(name, source, compiledSource, description, iconURL=None):
 # 	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
 
 @dajaxice_register
+@checkDebug
 def getModules(request):
-	modules = Module.objects(accepted=True).only('name', 'iconURL')
+	modules = Module.objects(accepted=True).only('name', 'iconURL', 'githubURL', 'category')
 	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
 
 @dajaxice_register
-def getModuleSource(request, name):
-	module = Module.objects(accepted=True, name=name).only('source')
+@checkDebug
+def getModuleList(request):
+	modules = Module.objects().only('name', 'iconURL', 'githubURL', 'thumbnailURL', 'description', 'owner', 'accepted', 'category', 'lastUpdate')
+	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
+
+@dajaxice_register
+@checkDebug
+def getModuleSource(request, name=None, pk=None):
+	if name:
+		try:
+			module = Module.objects.get(accepted=True, name=name)
+		except Module.DoesNotExist:
+			return json.dumps( { 'state': 'error', 'message': 'Module ' + name + ' does not exist.' } )
+	elif pk:
+		try:
+			module = Module.objects.get(accepted=True, pk=pk)
+		except Module.DoesNotExist:
+			return json.dumps( { 'state': 'error', 'message': 'Module ' + pk + ' does not exist.' } )
+	else:
+		return json.dumps( { 'state': 'error', 'message': 'Module name and pk are null.' } )
+
 	return json.dumps( { 'state': 'success', 'module': module.to_json() } )
 
 @dajaxice_register
-def getWaitingModule(request):
-	if request.user.username != 'arthur.sw':
+@checkDebug
+def getWaitingModules(request):
+	if not (request.user.username == 'arthur.sw' or request.user.username == 'arthur'):
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting modules.' } )
 
-	modules = Module.objects(accepted=False)
+	latestModules = []
 
-	for module in modules:
-		githubRepository = romanescoOrg.get_repo(module.name)
-
-		if githubRepository.updated_at > module.lastUpdate:
-
-			modulePath = 'modules/' + module.name
-			localRepository = Repo.init(modulePath)
-
-			origin = localRepository.remote(name='origin')
-			origin.fetch()
-			origin.pull()
-
-			moduleFile = open(modulePath + '/' + module.name, 'rb')
-			module.source = moduleFile.read()
-			inputfile.close()
-
-			# module.source = compileModule(modulePath)
+	acceptedModules = Module.objects(accepted=True)
+	acceptedModulesNames = acceptedModules.scalar('repoName', 'name', 'lastUpdate')
+	namesToLastUpdate = {}
+	for module in acceptedModulesNames:
+		namesToLastUpdate[module[0]] = { 'name': module[1], 'lastUpdate': module[2] }
 
 	# search on github for repositories with 'romanesco module' in the description
 	repos = github.legacy_search_repos('romanesco module')
-	for repo in repos:
-		print "repose toi bien."
+	for githubRepository in repos:
+		if githubRepository.name in namesToLastUpdate:
+			if githubRepository.updated_at <= namesToLastUpdate[githubRepository.name]['lastUpdate']:
+				continue
+			name = namesToLastUpdate[githubRepository.name]['name']
+		else:
+			name = githubRepository.name
+		try:
+			source = base64.b64decode(githubRepository.get_file_contents('main.coffee').content)
+		except:
+			source = 'Impossible to open main.coffee'
 
-	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
+		latestModules.append( {'name': name, 'repoName': githubRepository.name, 'source': source, 'owner': githubRepository.owner.url, 'githubURL': githubRepository.html_url } )
+
+	# for module in modules:
+	# 	githubRepository = romanescoOrg.get_repo(module.name)
+
+	# 	if githubRepository.updated_at > module.lastUpdate:
+
+	# 	# localRepository = Repo.clone_from(path_to='modules/', url=githubRepository.clone_url, branch='master')
+	# 	# origin = localRepository.remote(name='origin')
+
+	# 		modulePath = 'modules/' + module.name
+	# 		localRepository = Repo.init(modulePath)
+
+	# 		origin = localRepository.remote(name='origin')
+	# 		origin.fetch()
+	# 		origin.pull()
+
+	# 		moduleFile = open(modulePath + '/' + module.name, 'rb')
+	# 		module.source = moduleFile.read()
+	# 		inputfile.close()
+
+			# module.source = compileModule(modulePath)
+
+
+	return json.dumps( { 'state': 'success', 'modules': latestModules } )
 
 @dajaxice_register
-def acceptModule(request, name, source, compiledSource):
-	if request.user.username != 'arthur.sw':
-		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to accept modules.' } )
+@checkDebug
+def acceptModule(request, name, repoName, source, compiledSource, description=None, owner=None, githubURL=None, iconURL=None):
+	if not (request.user.username == 'arthur.sw' or request.user.username == 'arthur'):
+		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting modules.' } )
+
 	try:
 		module = Module.objects.get(name=name)
+		module.lastUpdate = datetime.datetime.now()
+		module.source = source
+		module.compiledSource = compiledSource
+		module.accepted = True
+		module.save()
 	except Module.DoesNotExist:
-		return json.dumps( { 'state': 'success', 'message': 'New module does not exist.' } )
+		if not owner:
+			return json.dumps( { 'state': 'error', 'message': 'Module does not exist and owner was not provided.' } )
+		module = Module(owner=owner, name=name, repoName=repoName, description=description, source=source, compiledSource=compiledSource, githubURL=githubURL, iconURL=iconURL, accepted=True)
+		module.save()
 
-	module.source = source
-	module.compiledSource = compiledSource
-	module.save()
+	return json.dumps( { 'state': 'success', 'message': 'The module ' + module.name + ' was accepted.' } )
 
-	return json.dumps( { 'state': 'success' } )
+@dajaxice_register
+@checkDebug
+def deleteModule(request, name=None, pk=None, repoName=None):
+
+	try:
+		module = Module.objects.get(name=name)
+		githubRepository = romanescoOrg.get_repo(repoName or module.repoName)
+		githubRepository.delete()
+		module.delete()
+	except Module.DoesNotExist:
+		if pk:
+			try:
+				module = Module.objects.get(pk=pk)
+				module.delete()
+			except Module.DoesNotExist:
+				return json.dumps( { 'state': 'Warning', 'message': 'Module ' + name + ' does not exist.' } )
+		githubRepository = romanescoOrg.get_repo(repoName or name)
+		githubRepository.delete()
+
+	return json.dumps( { 'state': 'success', 'message': 'Module deleted.' } )
+
 
 # --- tools --- #
 
 @dajaxice_register
+@checkDebug
 def addTool(request, name, className, source, compiledSource, isTool):
 
 	try:
@@ -1958,6 +2125,7 @@ def addTool(request, name, className, source, compiledSource, isTool):
 	return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.' } )
 
 @dajaxice_register
+@checkDebug
 def updateTool(request, name, className, source, compiledSource):
 
 	try:
@@ -1975,6 +2143,7 @@ def updateTool(request, name, className, source, compiledSource):
 	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
 
 @dajaxice_register
+@checkDebug
 def getTools(request):
 	tools = Tool.objects(accepted=True)
 	return json.dumps( { 'state': 'success', 'tools': tools.to_json() } )
@@ -1982,6 +2151,7 @@ def getTools(request):
 # --- admin --- #
 
 @dajaxice_register
+@checkDebug
 def getWaitingTools(request):
 	if request.user.username != 'arthur.sw':
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting tools.' } )
@@ -1989,6 +2159,7 @@ def getWaitingTools(request):
 	return json.dumps( { 'state': 'success', 'tools': tools.to_json() } )
 
 @dajaxice_register
+@checkDebug
 def acceptTool(request, name):
 	if request.user.username != 'arthur.sw':
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to accept tools.' } )
@@ -2013,6 +2184,7 @@ def acceptTool(request, name):
 # --- loadSite --- #
 
 @dajaxice_register
+@checkDebug
 def loadSite(request, siteName):
 	try:
 		site = Site.objects.get(name=siteName)

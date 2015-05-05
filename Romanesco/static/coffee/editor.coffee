@@ -4,16 +4,17 @@ define [
 
 	if not ace?
 		require ['ace'], ()->
-			debugger
+			console.log "ace: " + ace
 			return
 
 	g = utils.g()
 
 	# --- Code editor --- #
 
-	# todo: bug when modifying (click edit btn) a tool existing in DB: the editor do not show the code.
+	# todo: bug when modifying (click edit btn) a module existing in DB: the editor do not show the code.
 	g.codeEditor = {}
 	ce = g.codeEditor
+	ce.module = null
 	ce.MAX_COMMANDS = 50
 	ce.commandQueue = []
 	ce.commandIndex = -1
@@ -34,45 +35,73 @@ define [
 			# dropDown.css(position: 'relative', display: 'inline-block', right:0)
 			return
 
-		getSource = (result)->
-			ce.editor.getSession().setValue( source )
-			ce.editor.newTool = false
+		ce.setSourceFromServer = (result)->
+			if not g.checkError(result) then return
+			module = JSON.parse(result.module)
+			if module.lock?
+				module.lock = g.items[module.lock.$oid]
+			if not module.lock?
+				g.romanesco_alert "The module is linked with a lock, but the lock is not loaded.", "warning"
+			ce.setSource(module)
 			return
 
-		initializeNewModuleFromName = (moduleName)->
-			source = "class #{moduleName} extends g.PrecisePath\n"
-			source += "\t@rname = '#{moduleName}'\n"
-			source += "\t@rdescription = '#{moduleName}'\n"
-			source += """
-			\t
-				drawBegin: ()->
+		ce.setSource = (module)->
+			ce.editor.getSession().setValue( module.source )
+			ce.module = module
+			g.codeEditor.pushRequestBtnJ.text('Push request (update "' + module.name + '" module)')
+			return
 
-					@initializeDrawing(false)
+		ce.initializeNewModuleFromName = (moduleName='NewPath', lock=null)->
+			if not lock?
+				source = "class #{moduleName} extends g.PrecisePath\n"
+				source += "\t@rname = '#{moduleName}'\n"
+				source += "\t@rdescription = '#{moduleName}'\n"
+				source += """
+				\t
+					drawBegin: ()->
 
-					@path = @addPath()
-					return
+						@initializeDrawing(false)
 
-				drawUpdateStep: (length)->
+						@path = @addPath()
+						return
 
-					point = @controlPath.getPointAt(length)
-					@path.add(point)
-					return
+					drawUpdateStep: (length)->
 
-				drawEnd: ()->
-					return
+						point = @controlPath.getPointAt(length)
+						@path.add(point)
+						return
 
-			"""
+					drawEnd: ()->
+						return
+
+
+				"""
+				source += "tool = new g.PathTool(#{moduleName}, true)"
+			else
+				source = ""
 			ce.editor.getSession().setValue( source )
-			ce.editor.newTool = true
+			ce.module = null
+			if lock?
+				ce.module = type: 'lock', lock: lock, newModule: true
+			g.codeEditor.pushRequestBtnJ.text('Push request (create new module)')
+			return
+
+		input.keyup (event)->
+			if event.which == 13 # return key
+				input.typeahead('close')
 			return
 
 		input.on 'typeahead:closed', ()->
 			moduleName = input.val()
 			if moduleName == '' then return
+
 			if ce.moduleNameValue == moduleName 	# the module exists
-				Dajaxice.draw.getSource(getSource, moduleName: moduleName)
+				if g.modules[moduleName]?
+					ce.setSource(g.modules[moduleName])
+				else
+					Dajaxice.draw.getModuleSource(ce.setSourceFromServer, name: moduleName)
 			else 							# the module does not exist
-				initializeNewModuleFromName(moduleName)
+				ce.initializeNewModuleFromName(moduleName)
 			return
 
 		input.on 'typeahead:cursorchanged', (event, suggestions, name)->
@@ -85,6 +114,52 @@ define [
 
 		input.on 'typeahead:autocompleted', (event, suggestions, name)->
 			ce.moduleNameValue = input.val()
+			return
+
+		return
+
+	ce.loadModule = (event)->
+		moduleName = $(this).attr("data-name")
+		if g.modules[moduleName]?
+			if g.modules[moduleName].source?
+				g.codeEditor.setSource(g.modules[moduleName], false)
+			else
+				Dajaxice.draw.getModuleSource(ce.setSourceFromServer, name: moduleName)
+		else
+			owner = $(this).attr("data-owner")
+			jqxhr = $.get "https://api.github.com/repos/" + owner + "/" + moduleName + "/contents/main.coffee", (data)->
+				if data.content?
+					source = atob(data.content)
+					g.codeEditor.setSource( { name: moduleName, source: source, githubURL: data.html_url }, false)
+				return
+		g.RModal.hide()
+		return
+
+	ce.createModuleEditorModal = (result)->
+		if not g.checkError(result) then return
+
+		modules = JSON.parse(result.modules)
+		acceptedGithubURLs = []
+
+		for module in modules
+			g.modules[module.name] = module
+			acceptedGithubURLs.push(module.githubURL)
+
+		g.createModuleModal("Romanesco modules", ce.loadModule)
+
+		# window.XMLHttpRequest = RXMLHttpRequest
+		jqxhr = $.get "https://api.github.com/search/repositories?q=romanesco+module", (data)->
+			console.log "success"
+			console.log data
+			for item in data.items
+				if item.html_url in acceptedGithubURLs then continue
+				module =
+					name: item.name
+					owner: item.owner.login
+					githubURL: item.html_url
+					accepted: no
+				g.addModuleToModal(item.name, module, g.RModal.modalJ.find('tbody'), ce.loadModule)
+			# window.XMLHttpRequest = g.DajaxiceXMLHttpRequest
 			return
 
 		return
@@ -104,10 +179,14 @@ define [
 		ce.consoleHandleJ = ce.editorJ.find(".console-handle")
 		ce.consoleCloseBtnJ = ce.consoleHandleJ.find(".close")
 		ce.footerJ = ce.editorJ.find(".footer")
+		ce.openModalBtnJ = ce.editorJ.find(".open-modal")
+
+		ce.openModalBtnJ.click (event)->
+			Dajaxice.draw.getModuleList(ce.createModuleEditorModal)
+			return
 
 		# initialize ace editor
-
-		# ace.require("ace/ext/language_tools")
+		# ace.require("ace/ext/language_modules")
 
 		ce.editor = ace.edit(ce.codeJ[0])
 		ce.editor.$blockScrolling = Infinity
@@ -246,6 +325,7 @@ define [
 
 		ce.openConsole = (consoleHeight=null)->
 			if ce.consoleJ.hasClass('closed')
+				ce.consoleJ.removeClass("highlight")
 				ce.consoleJ.css( height: consoleHeight or ce.consoleHeight ).removeClass('closed')
 				ce.consoleCloseBtnJ.find('.glyphicon').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down')
 				ce.editor.resize()
@@ -363,17 +443,17 @@ define [
 			g.deferredExecution(saveChanges, 'saveChanges', 1000)
 			return
 
-		# todo: try compile at each change, see if name is in DB to determine if it's a update or a new tool and make notice to user
+		# todo: try compile at each change, see if name is in DB to determine if it's a update or a new module and make notice to user
 		# ce.editor.getSession().on 'change', (e)->
-		# 	newToolName = compileSource()
-		# 	if newToolName != 'error'
+		# 	newModuleName = compileSource()
+		# 	if newModuleName != 'error'
 		# 		pushRequestBtnJ
 		# 	return
 
 		# editor.setOptions( maxLines: 300 )
-		# submitBtnJ = ce.editorJ.find("button.submit.tool")
+		# submitBtnJ = ce.editorJ.find("button.submit.module")
 		# submitBtnJ.click (event)->
-		# 	g.addTool()
+		# 	g.addModule()
 		# 	return
 
 		# initialize run button handler
@@ -382,28 +462,87 @@ define [
 			g.runScript()	# compile and run the script in code editor
 			return
 
-		ce.pushRequest = ()->
-			tool = g.compileSource()
-			if not tool.name? or tool.name == ''
-				g.romanesco_alert "You must set a name for the module."
+		ce.pushRequest = (data)->
+			if ce.module?.coreModule
+				g.RModal.alert("Use the main <a href='https://github.com/RomanescoModules/Romanesco'>Romanesco repository</a> to update core modules.")
 				return
-			if tool?
-				args =
-					name: tool.name
-					className: tool.className
-					source: tool.source
-					compiledSource: tool.compiledSource
-					iconURL: tool.iconURL
-				Dajaxice.draw.addOrUpdateModule(g.checkError, args)
-				# if ce.editor.newTool
-				# 	args.isTool = tool.isTool
+
+			module = g.compileSource()
+
+			if module?
+
+				hasName = module.name? and module.name != ''
+				hasDescription = module.description? and module.description != ''
+
+				callback = (results)->
+					if not g.checkError(results)
+						return
+					g.RModal.modalJ.find(".modal-footer").show()
+					g.RModal.initialize("Success")
+					g.RModal.hideOnSubmit = true
+					g.RModal.addText(results.message)
+					textInputJ = g.RModal.addTextInput('githubURL', null, null, null, 'Github repository URL')
+					textInputJ.find('input').val(results.githubURL).select().focus()
+					g.RModal.show()
+					ce.module.lock.addModule(results.modulePk)
+					return
+
+				submit = (data)->
+					args =
+						name: ce.module?.name or module.name or data.name
+						source: module.source
+						compiledSource: module.compiledSource
+						iconURL: module.iconURL
+						description: module.description or data.description
+						commitDescription: data?.commitDescription
+						githubURL: ce.module.githubURL
+						category: data.category
+						type: ce.module.type
+						lockPk: ce.module.lock.pk
+					Dajaxice.draw.addOrUpdateModule(callback, args)
+
+					g.RModal.initialize("Loading")
+					g.RModal.addText("Your request is being processed...")
+					g.RModal.modalJ.find(".modal-footer").hide()
+					return
+
+				newModule = not ce.module? or ce.module.newModule
+				if ( newModule and ( not hasName or not hasDescription ) ) or not newModule
+					title = if newModule then 'Push new module' else 'Commit changes'
+					g.RModal.initialize(title, submit, null, false)
+					if newModule
+						if not hasName
+							g.RModal.addTextInput('name', 'Module name', null, null, 'Name', null, null, true)
+						if not hasDescription
+							g.RModal.addTextInput('description', 'Describe your module', null, null, 'Description', null, null, true)
+					categoryJ = g.RModal.addTextInput('category', 'Optional category', null, null, 'Category')
+					if ce.module?.category?
+						categoryJ.text(ce.module.category)
+					defaultCommitDescription = if newModule then 'initial commit' else 'Describe your changes'
+					g.RModal.addTextInput('commitDescription', defaultCommitDescription, null, null, 'Commit description', null, null, not newModule)
+
+					# radioButtons = [
+					# 	{ value: 'button', checked: true, label: 'Button - A button will be created to execute the module.', submitShortcut: true }
+					# 	{ value: 'lock', checked: false, label: 'Lock - The module will be executed when the lock is loaded.' }
+					# 	{ value: 'initializer', checked: false, label: 'Initializer - The module will be executed when Romanesco loads.' }
+					# ]
+
+					# g.RModal.addRadioGroup('moduleType', radioButtons)
+
+					g.RModal.show()
+				else
+					submit()
+
+
+				# if ce.editor.newModule
+				# 	args.isModule = module.isModule
 				# 	Dajaxice.draw.addModule(g.checkError, args)
 				# else
-				# 	# ajaxPost '/updateTool', { 'name': tool.name, 'className': tool.className, 'source': tool.source, 'compiledSource': tool.compiledSource }, toolUpdateCallback
+				# 	# ajaxPost '/updateModule', { 'name': module.name, 'className': module.className, 'source': module.source, 'compiledSource': module.compiledSource }, moduleUpdateCallback
 				# 	Dajaxice.draw.updateModule(g.checkError, args)
 			return
 
-		# push request button handler: compile source and add or update tool
+		# push request button handler: compile source and add or update module
 		ce.pushRequestBtnJ.click (event)->
 			ce.pushRequest()
 			return
@@ -427,7 +566,9 @@ define [
 				message = JSON.stringify(message)
 			ce.consoleContentJ.append( $("<p>").append(message) )
 			ce.consoleContentJ.scrollTop(ce.consoleContentJ[0].scrollHeight)
-			ce.openConsole()
+			if ce.consoleJ.hasClass("closed")
+				ce.consoleJ.addClass("highlight")
+			# ce.openConsole()
 			return
 
 		# custom error function: log to the console and to the console div
@@ -447,77 +588,51 @@ define [
 
 		g.log = console.log 	# log is a shortcut/synonym to console.log
 
+		return
 
 	# Compile source code:
 	# - extract className and rname and determine whether it is a simple script or a path class
-	# @return [{ name: String, className: String, source: String, compiledSource: String, isTool: Boolean }] the compiled script in an object with the source, compiled source, class name, etc.
+	# @return [{ name: String, className: String, source: String, compiledSource: String, isModule: Boolean }] the compiled script in an object with the source, compiled source, class name, etc.
 
-	g.compileSource = ()->
+	g.compileSource = (source, name)->
 
-		source = ce.editor.getValue()
+		source ?= ce.editor.getValue()
 		className = ''
 		compiledJS = ''
-		rname = ce.moduleInputJ.val()
+		name ?= ce.moduleInputJ.val()
+		description = ''
 		iconURL = ''
-		isTool = false
 
 		try
 			# extract className and rname and determine whether it is a simple script or a path class
 
-			# a nice regex tool can be found here: http://regex101.com/r/zT9iI1/1
+			# a nice regex module can be found here: http://regex101.com/r/zT9iI1/1
 			# allRegExp = /class {1}(\w+) extends {1}(PrecisePath|SpeedPath){1}\n\s+@rname = {1}(\'.*)\n{1}[\s\S]*(drawBegin: \(\)->|drawUpdate: \(length\)->|drawEnd: \(\)->)[\s\S]*/
 			# result = allRegExp.exec(source)
 
-			firstLineRegExp = /class {1}([A-Z]\w+) extends g.{1}(PrecisePath|SpeedPath|RShape){1}\n/
-
-			firstLineResult = firstLineRegExp.exec(source)
-
-			isTool = firstLineResult? and firstLineResult.length >= 2
-
-			iconResult = /@?iconURL = {1}((\'|\"|\"\"\").*(\'|\"|\"\"\"))/.exec(source)
-
-			if iconResult? and iconResult.length>=1
-				iconURL = iconResult[1]
-
-			if isTool
+			firstLineResult = /class ([A-Z]\w+) extends g.(PrecisePath|SpeedPath|RShape)\n/.exec(source)
+			if firstLineResult? and firstLineResult.length>2
 				className = firstLineResult[1]
 				superClass = firstLineResult[2]
-				source += "\ng." + className + " = " + className
-			# else
-				# throw { location: 1, message: 'The code must begin with "class YourToolName extends SuperClass".\nSuperClass can be
-				# "PrecisePath", "SpeedPath" or "RShape".\n"YourToolName" can be any word starting with a captial letter.' }
+				# source += "\ntool = new g.PathTool(#{className}, true)"
 
-				rnameResult = /@rname = {1}(\'.*)/.exec(source)
-				if rnameResult? and rnameResult.length>=1
-					rname = rnameResult[1]
-				else
-					message = '@rname is not correctly set. There must be something like @rname = "your path name"'
-					throw location: 'NA', message: message
-			# else
-			# 	firstLineRegExp = /scriptName = {1}(("|')\w+("|'))\n/
-			# 	firstLineResult = firstLineRegExp.exec(source)
-			# 	if firstLineResult? and firstLineResult.length>=1
-			# 		rname = firstLineResult[1]
-			# 		className = rname
-			# 	else
-			# 		throw
-			# 			location: 'NA',
-			# 			message: """scriptName or class name is not correctly set.
-			# 			Your script can be either a general script or a path script.
-			# 			A general script must begin with 'scriptName = "yourScriptName"'.
-			# 			A path script must begin with "class YourPathName extends g.SuperClass".
-			# 			SuperClass can be "PrecisePath", "SpeedPath" or "RShape".
-			# 			There must not be any comment or white character at the end of the first line.
-			# 			"""
+			iconResult = /@?iconURL = (\'|\"|\"\"\")(.*)(\'|\"|\"\"\")/.exec(source)
 
-			# if /(drawBegin: \(\)->|drawUpdate: \(length\)->|drawEnd: \(\)->)/.exec(source).length==0
-			# 	throw { 1, 'The methods drawBegin, drawUpdate or drawEnd must be defined.' }
+			if iconResult? and iconResult.length>=2
+				iconURL = iconResult[2]
+
+			descriptionResult = /@?rdescription = (\'|\"|\"\"\")(.*)(\'|\"|\"\"\")/.exec(source)
+
+			if descriptionResult? and descriptionResult.length>=2
+				description = descriptionResult[2]
+
+			nameResult = /@?rname = (\'|\"|\"\"\")(.*)(\'|\"|\"\"\")/.exec(source)
+
+			if nameResult? and nameResult.length>=2
+				name = nameResult[2]
+
 
 			compiledJS = CoffeeScript.compile source, bare: on 			# compile coffeescript to javascript
-
-			# update ui: hide console div
-			# ce.consoleJ.removeClass 'error'
-			# ce.codeJ.removeClass 'message'
 
 		catch {location, message} 	# compilation error, or className was not found: log & display error
 			if location?
@@ -527,95 +642,112 @@ define [
 			console.error errorMessage
 			return null
 
-		return  { name: rname, className: className, source: source, compiledSource: compiledJS, isTool: isTool, iconURL: iconURL }
+		return  { name: name, className: className, source: source, compiledSource: compiledJS, description: description, iconURL: iconURL }
 
-	# this.addTool = (tool)->
-	# 	justCreated = not tool?
-	# 	tool ?= compileSource()
-	# 	if tool?
+	# this.addModule = (module)->
+	# 	justCreated = not module?
+	# 	module ?= compileSource()
+	# 	if module?
 	# 		# Eval the compiled js.
 	# 		try
 
-	# 			eval tool.compiledSource
-	# 			if g.tools[tool.rname]?
-	# 				g.tools[tool.rname].remove()
-	# 				delete this[tool.className]
-	# 			newTool = new PathTool(this[tool.className], justCreated)
-	# 			newTool.constructor.source = tool.source
-	# 			if justCreated then newTool.select()
+	# 			eval module.compiledSource
+	# 			if g.modules[module.rname]?
+	# 				g.modules[module.rname].remove()
+	# 				delete this[module.className]
+	# 			newModule = new PathModule(this[module.className], justCreated)
+	# 			newModule.constructor.source = module.source
+	# 			if justCreated then newModule.select()
 	# 		catch error
 	# 			console.error error
 	# 			return null
-	# 	return tool
+	# 	return module
 
-	# run script and create path tool if script is a path class
+	# run script and create path module if script is a path class
 	# if *script* is not provided, the content of the code editor is compiled and taken as the script
 	# called by the run button in the code editor (then the content of the code editor is compiled and taken as the script)
-	# and when loading tools from database (then the script is given with its compiled version)
-	# @return [{ name: String, className: String, source: String, compiledSource: String, isTool: Boolean }] the compiled
+	# and when loading modules from database (then the script is given with its compiled version)
+	# @return [{ name: String, className: String, source: String, compiledSource: String, isModule: Boolean }] the compiled
 	#			script in an object with the source, compiled source, class name, etc.
 	g.runScript = (script)->
-		justCreated = not script?
+		# justCreated = not script?
 		script ?= g.compileSource()
 		if script?
 			# Eval the compiled js.
 			try
-				console.log eval script.compiledSource
-				# model = window[script.compiledSource] # Use square brackets instead?
-				if script.isTool 							# if the script is a tool (or more exactly a path class)
-					if g.tools[script.rname]? 				# remove the tool with the same name if exists, create the new Path tool and select it
-						g.tools[script.rname].remove()
-						delete this[script.className]
-					className = null
-					if script.originalClassName? and script.originalClassName.length>0
-						className = script.originalClassName
-					else
-						className = script.className
-					newTool = new g.PathTool(this[className], justCreated)
-					newTool.RPath.source = script.source
-					# newTool.constructor.source = script.source
-					if justCreated then newTool.select()
+				result = eval script.compiledSource
+				try
+					console.log result
+				catch error
+					console.log error
+
+				if g.lastPathCreated?
+					g.lastPathCreated.source = script.source
+					g.lastPathCreated = null
+				# # model = window[script.compiledSource] # Use square brackets instead?
+				# if script.isModule 							# if the script is a module (or more exactly a path class)
+				# 	if g.modules[script.rname]? 				# remove the module with the same name if exists, create the new Path module and select it
+				# 		g.modules[script.rname].remove()
+				# 		delete this[script.className]
+				# 	className = null
+				# 	if script.originalClassName? and script.originalClassName.length>0
+				# 		className = script.originalClassName
+				# 	else
+				# 		className = script.className
+				# 	newModule = new g.PathModule(this[className], justCreated)
+				# 	newModule.RPath.source = script.source
+				# 	# newModule.constructor.source = script.source
+				# 	if justCreated then newModule.select()
 			catch error 									# display and throw error if any
 				console.error error
 				throw error
 				return null
 		return script
 
-	# show the tool editor (and set code editor content)
-	# @param [RPath constructor] optionnal: set RPath.source as the content of the code editor if not null, set the example source otherwise
-	g.toolEditor = (RPath)->
-		ce.editor.getSession().setValue(if RPath? then RPath.source else g.codeExample)
-		editorJ = ce.editorJ
-		editorJ.show()
+	g.compileAndRunModule = (module)->
+		g.runModule(g.compileSource(module.source, module.name))
+		return
+
+	g.runModule = (module)->
+		try
+			console.log eval module.compiledSource
+
+			if g.lastPathCreated?
+				g.lastPathCreated.source = module.source
+				g.lastPathCreated = null
+
+		catch error
+
+			console.error error
+			throw error
+			return null
+
+		return
+
+	g.initializeEditor = ()->
+		ce.editorJ.show()
 		console.log = g.logMessage
 		console.error = g.logError
-		editorJ.rNewtool = not RPath?
-		if RPath?
-			g.codeEditor.pushRequestBtnJ.text('Push request (update "' + RPath.rname + '" tool)')
+		return
+
+	# show the module editor (and set code editor content)
+	# @param [RPath constructor] optional: set RPath.source as the content of the code editor if not null, set the example source otherwise
+	g.showEditor = (RItem)->
+		ce = g.codeEditor
+		if RItem?
+			ce.setSource(g.modules[RItem.rname])
 		else
-			g.codeEditor.pushRequestBtnJ.text('Push request (create new tool)')
+			ce.initializeNewModuleFromName(g.codeExample)
+		g.initializeEditor()
 		return
 
-	## Administration functions to test and accept tools (which are not validated yet)
-
-	# set tool as accepted in the database
-	g.acceptTool = (tool)->
-		acceptToolCallback = (result)-> g.checkError(result)
-		# ajaxPost '/acceptTool', { 'name':tool.name }, acceptToolCallback
-		Dajaxice.draw.acceptTool( acceptToolCallback, { 'name': tool.name } )
-		return
-
-	# get tools which are not accepted yet, and put them in g.waitingTools
-	g.getWaitingTools = (value)->
-
-		getWaitingToolsCallback = (result)->
-			if g.checkError(result)
-				g.waitingTools = JSON.parse(result.tools)
-				console.log g.waitingTools
-			return
-
-		# ajaxPost '/getWaitingTools', { }, getWaitingToolsCallback
-		Dajaxice.draw.getWaitingTools( getWaitingToolsCallback, {} )
+	ce.setLockModule = (lock)->
+		ce = g.codeEditor
+		if lock.modulePk?
+			Dajaxice.draw.getModuleSource(ce.setSourceFromServer, pk: lock.modulePk)
+		else
+			ce.initializeNewModuleFromName("MyLockModule", lock)
+		g.initializeEditor()
 		return
 
 	return

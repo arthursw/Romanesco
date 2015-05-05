@@ -312,13 +312,13 @@ define [
 				lock = null
 				switch box.object_type
 					when 'link'
-						lock = new g.RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
+						lock = new g.RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date, box.module?.$oid)
 					when 'lock'
-						lock = new g.RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
+						lock = new g.RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date, box.module?.$oid)
 					when 'website'
-						lock = new g.RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
+						lock = new g.RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date, box.module?.$oid)
 					when 'video-game'
-						lock = new g.RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date)
+						lock = new g.RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date, box.module?.$oid)
 
 				lock.lastUpdateDate = box.lastUpdate.$date
 			else

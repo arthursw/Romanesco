@@ -167,4 +167,14 @@ define [
 	g.linearInterpolation = (v1, v2, f)->
 		return v1 * (1-f) + v2 * f
 
+	g.ajax = (url, callback, type="GET")->
+		xmlhttp = new RXMLHttpRequest()
+		xmlhttp.onreadystatechange = ()->
+			if xmlhttp.readyState == 4 and xmlhttp.status == 200
+				callback()
+			return
+		xmlhttp.open(type, url, true)
+		xmlhttp.send()
+		return xmlhttp.onreadystatechange
+
 	return g: ()-> return g

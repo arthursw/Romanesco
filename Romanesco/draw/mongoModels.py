@@ -1,21 +1,6 @@
 from mongoengine import *
 import datetime
 
-connect('Romanesco')
-
-class AreaToUpdate(Document):
-    planetX = DecimalField()
-    planetY = DecimalField()
-    box = PolygonField()
-
-    rType = StringField(default='AreaToUpdate')
-    # areas = ListField(ReferenceField('Area'))
-
-    meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
-    }
-
-
 class Path(Document):
     planetX = DecimalField()
     planetY = DecimalField()
@@ -32,7 +17,7 @@ class Path(Document):
     data = StringField(default='')
 
     meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("points", "2dsphere"), ("date", 1) ]]
+        'indexes': [[ ("planetX", 1), ("planetY", 1), ("points", "2dsphere") ]]
     }
 
 class Box(Document):
@@ -42,18 +27,24 @@ class Box(Document):
     rType = StringField(default='Box')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
+    lastUpdate = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
 
+    restrictedArea = BooleanField(default=False)
+    disableToolbar = BooleanField(default=False)
+    loadEntireArea = BooleanField(default=False)
+    module = ReferenceField('Module')
+
     # deprecated: put in data
-    url = URLField(verify_exists=True, required=False)
+    # url = URLField(verify_exists=True, required=False)
     name = StringField()
-    message = StringField()
+    # message = StringField()
     # areas = ListField(ReferenceField('Area'))
 
     data = StringField(default='')
 
     meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
+        'indexes': [ [ ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ], [ ("name", 1) ] ]
     }
 
 class AreaToUpdate(Document):
@@ -65,7 +56,7 @@ class AreaToUpdate(Document):
     # areas = ListField(ReferenceField('Area'))
 
     meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
+        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ]]
     }
 
 class Div(Document):
@@ -75,6 +66,7 @@ class Div(Document):
     rType = StringField(default='Div')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
+    lastUpdate = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
     lock = StringField(default=None)
 
@@ -87,25 +79,7 @@ class Div(Document):
     data = StringField(default='')
 
     meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
-    }
-
-class Module(Document):
-    name = StringField(unique=True)
-    repoName = StringField(unique=True)
-    owner = StringField()
-    url = StringField()
-    githubURL = URLField()
-    iconURL = StringField()
-    source = StringField()
-    compiledSource = StringField()
-    local = BooleanField()
-    lastUpdate = DateTimeField(default=datetime.datetime.now)
-
-    accepted = BooleanField(default=False)
-
-    meta = {
-        'indexes': [[ ("accepted", 1), ("name", 1) ]]
+        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ]]
     }
 
 class Tool(Document):
@@ -119,6 +93,29 @@ class Tool(Document):
     nRequests = IntField(default=0)
     isTool = BooleanField()
     # requests = ListField(StringField())
+    accepted = BooleanField(default=False)
+
+    meta = {
+        'indexes': [[ ("accepted", 1), ("name", 1) ]]
+    }
+
+class Module(Document):
+    name = StringField(unique=True)
+    moduleType = StringField()
+    category = StringField()
+    description = StringField()
+    repoName = StringField(unique=True)
+    owner = StringField()
+    url = StringField()
+    githubURL = URLField()
+    iconURL = StringField()
+    thumbnailURL = StringField()
+    source = StringField()
+    compiledSource = StringField()
+    local = BooleanField()
+    lock = ReferenceField('Box', required=False)
+    lastUpdate = DateTimeField(default=datetime.datetime.now)
+
     accepted = BooleanField(default=False)
 
     meta = {
@@ -139,3 +136,16 @@ class Site(Document):
     meta = {
         'indexes': [[ ("name", 1) ]]
     }
+
+# class Area(Document):
+#     x = DecimalField()
+#     y = DecimalField()
+#     items = ListField(GenericReferenceField())
+#     # paths = ListField(ReferenceField(Path))
+#     # boxes = ListField(ReferenceField(Box))
+#     # divs = ListField(ReferenceField(Div))
+#     # areasToUpdate = ListField(ReferenceField(AreaToUpdate))
+
+#     meta = {
+#         'indexes': [[ ("x", 1), ("y", 1) ]]
+#     }

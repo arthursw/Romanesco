@@ -275,8 +275,11 @@
         _ref3 = g.items;
         for (pk in _ref3) {
           item = _ref3[pk];
+          if (item === g.currentPaths[g.me] || (item.selectionRectangle != null)) {
+            continue;
+          }
           if ((_ref4 = item.group) != null) {
-            _ref4.visible = item.selectionRectangle != null;
+            _ref4.visible = false;
           }
         }
         _ref5 = this.itemsToExclude;

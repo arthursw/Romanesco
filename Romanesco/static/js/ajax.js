@@ -216,7 +216,7 @@
       return true;
     };
     loadCallback = function(results) {
-      var box, data, date, deletedItemLastUpdate, dispatchLoadFinished, div, i, item, itemToReplace, itemsToLoad, lock, path, pk, planet, point, points, rdiv, rpath, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4;
+      var box, data, date, deletedItemLastUpdate, dispatchLoadFinished, div, i, item, itemToReplace, itemsToLoad, lock, path, pk, planet, point, points, rdiv, rpath, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
       console.log("load callback");
       dispatchLoadFinished = function() {
         var commandEvent;
@@ -272,16 +272,16 @@
           lock = null;
           switch (box.object_type) {
             case 'link':
-              lock = new g.RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date);
+              lock = new g.RLink(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date, (_ref3 = box.module) != null ? _ref3.$oid : void 0);
               break;
             case 'lock':
-              lock = new g.RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date);
+              lock = new g.RLock(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date, (_ref4 = box.module) != null ? _ref4.$oid : void 0);
               break;
             case 'website':
-              lock = new g.RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date);
+              lock = new g.RWebsite(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date, (_ref5 = box.module) != null ? _ref5.$oid : void 0);
               break;
             case 'video-game':
-              lock = new g.RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date);
+              lock = new g.RVideoGame(g.rectangleFromBox(box), data, box._id.$oid, box.owner, date, (_ref6 = box.module) != null ? _ref6.$oid : void 0);
           }
           lock.lastUpdateDate = box.lastUpdate.$date;
         } else {
@@ -291,7 +291,7 @@
       for (_j = 0, _len1 = itemsToLoad.length; _j < _len1; _j++) {
         item = itemsToLoad[_j];
         pk = item._id.$oid;
-        date = (_ref3 = item.date) != null ? _ref3.$date : void 0;
+        date = (_ref7 = item.date) != null ? _ref7.$date : void 0;
         data = (item.data != null) && item.data.length > 0 ? JSON.parse(item.data) : null;
         lock = item.lock != null ? g.items[item.lock] : null;
         switch (item.rType) {
@@ -316,9 +316,9 @@
               data.planet = planet;
             }
             points = [];
-            _ref4 = path.points.coordinates;
-            for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
-              point = _ref4[_k];
+            _ref8 = path.points.coordinates;
+            for (_k = 0, _len2 = _ref8.length; _k < _len2; _k++) {
+              point = _ref8[_k];
               points.push(g.posOnPlanetToProject(point, planet));
             }
             rpath = null;

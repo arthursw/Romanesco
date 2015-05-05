@@ -4,7 +4,7 @@
     baseUrl: '../static/js',
     paths: {
       'ace': ['//cdnjs.cloudflare.com/ajax/libs/ace/1.1.9/ace', '../libs/ace'],
-      'aceTools': ['//cdnjs.cloudflare.com/ajax/libs/ace/1.1.9/ext-language_tools', '../libs/ace-ext-language_tools'],
+      'aceTools': ['//cdnjs.cloudflare.com/ajax/libs/ace/1.1.9/ext-language_tools', '../libs/ace/ext-language_tools'],
       'underscore': ['//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min', '../libs/underscore-min'],
       'jquery': ['//code.jquery.com/jquery-2.1.3.min', '../libs/jquery-2.1.3.min'],
       'jqueryUi': ['//code.jquery.com/ui/1.11.4/jquery-ui.min', '../libs/jquery-ui.min'],
@@ -23,7 +23,8 @@
       'coffee': '../libs/coffee-script',
       'tween': '../libs/tween.min',
       'socketio': '../libs/socket.io',
-      'oembed': '../libs/jquery.oembed'
+      'oembed': '../libs/jquery.oembed',
+      'mod': 'module'
     },
     shim: {
       'oembed': ['jquery'],

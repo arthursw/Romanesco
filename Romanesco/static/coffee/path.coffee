@@ -22,7 +22,7 @@ define [
 
 	# There are three main RPaths:
 	# - PrecisePath adds control handles to the control path (which can be hidden): one can edit, add or remove points, to precisely shape the curve.
-	# - SpeedPath which extends PrecisePath to add speed functionnalities:
+	# - SpeedPath which extends g.PrecisePath to add speed functionnalities:
 	#    - the speed at which the user has drawn the path is stored and has influence on the drawing,
 	#    - the speed values are displayed as normals of the path, and can be edited thanks to handles
 	#    - when the user drags a handle, it will also influence surrounding speed values depending on how far from the normal the user drags the handle (with a gaussian attenuation)
@@ -70,7 +70,7 @@ define [
 					editTool:
 						type: 'button'
 						label: 'Edit tool'
-						default: ()=> g.toolEditor(@)
+						default: ()=> g.showEditor(@)
 				'Style':
 					strokeWidth: $.extend(true, {}, g.parameters.strokeWidth)
 					strokeColor: $.extend(true, {}, g.parameters.strokeColor)
@@ -594,7 +594,7 @@ define [
 
 	g.RPath = RPath
 
-	# PrecisePath extends RPath to add precise editing functionalities
+	# PrecisePath extends g.RPath to add precise editing functionalities
 	# PrecisePath adds control handles to the control path (which can be hidden):
 	# one can edit, add or remove points, to precisely shape the curve.
 	# The user can edit the curve with the 'Edit Curve' folder of the gui
@@ -640,10 +640,10 @@ define [
 	#     - the remaining step (which is shorter) is split in half and distributed among the first and last step
 	#     - updateDraw() is called in a loop to draw the whole drawing along the control path at once, in {PrecisePath#draw}
 
-	class PrecisePath extends RPath
+	class PrecisePath extends g.RPath
 		@rname = 'Precise path'
 		@rdescription = "This path offers precise controls, one can modify points along with their handles and their type."
-		@iconUrl = 'static/images/icons/inverted/editCurve.png'
+		@iconURL = 'static/images/icons/inverted/editCurve.png'
 		@iconAlt = 'edit curve'
 
 		@hitOptions =
@@ -1431,16 +1431,16 @@ define [
 	g.pathClasses = []
 	g.pathClasses.push(g.PrecisePath)
 
-	# SpeedPath extends PrecisePath to add speed functionnalities:
+	# SpeedPath extends g.PrecisePath to add speed functionnalities:
 	#  - the speed at which the user has drawn the path is stored and has influence on the drawing,
 	#  - the speed values are displayed as normals of the path, and can be edited thanks to handles,
 	#  - when the user drags a handle, it will also influence surrounding speed values depending on how far from the normal the user drags the handle (with a gaussian attenuation)
 	#  - the speed path and handles are added to a speed group, which is added to the main group
 	#  - the speed group can be shown or hidden through the folder 'Edit curve' in the gui
-	class SpeedPath extends PrecisePath
+	class SpeedPath extends g.PrecisePath
 		@rname = 'Speed path'
 		@rdescription = "This path offers speed."
-		@iconUrl = null
+		@iconURL = null
 		@iconAlt = null
 
 		@maxSpeed = 200
@@ -1863,10 +1863,10 @@ define [
 
 	# The thickness pass demonstrates a simple use of the speed path: it draws a stroke which is thick where the user draws quickly, and thin elsewhere
 	# The stroke width can be changed with the speed handles at any time
-	class ThicknessPath extends SpeedPath
+	class ThicknessPath extends g.SpeedPath
 		@rname = 'Thickness path'
 		@rdescription = "The stroke width is function of the drawing speed: the faster the wider."
-		@iconUrl = 'static/images/icons/inverted/rollerBrush.png'
+		@iconURL = 'static/images/icons/inverted/rollerBrush.png'
 		@iconAlt = 'roller brush'
 
 		# The thickness path adds two parameters in the options bar:
@@ -1948,13 +1948,13 @@ define [
 	# Meander makes use of both the tangent and the normal of the control path to draw a spiral at each step
 	# Many different versions can be derived from this one (some inspiration can be found here:
 	# http://www.dreamstime.com/photos-images/meander-wave-ancient-greek-ornament.html )
-	class Meander extends PrecisePath
+	class Meander extends g.PrecisePath
 		@rname = 'Meander'
 		@rdescription = """As Karl Kerenyi pointed out, "the meander is the figure of a labyrinth in linear form".
 		A meander or meandros (Greek: Μαίανδρος) is a decorative border constructed from a continuous line, shaped into a repeated motif.
 		Such a design is also called the Greek fret or Greek key design, although these are modern designations.
 		(source: http://en.wikipedia.org/wiki/Meander_(art))"""
-		@iconUrl = 'static/images/icons/inverted/squareSpiral.png'
+		@iconURL = 'static/images/icons/inverted/squareSpiral.png'
 		@iconAlt = 'square spiral'
 
 		# The thickness path adds 3 parameters in the options bar:
@@ -2070,7 +2070,7 @@ define [
 	g.pathClasses.push(g.Meander)
 
 	# The grid path is similar to the thickness path, but draws a grid along the path
-	class GridPath extends SpeedPath
+	class GridPath extends g.SpeedPath
 		@rname = 'Grid path'
 		@rdescription = "Draws a grid along the path, the thickness of the grid being function of the speed of the drawing."
 
@@ -2233,10 +2233,10 @@ define [
 	# we use a child canvas for the drawing.
 	# We must convert the points in canvas coordinates, draw with the @context of the canvas
 	# (and use the native html5 canvas drawing functions, unless we load an external library)
-	class GeometricLines extends PrecisePath
+	class GeometricLines extends g.PrecisePath
 		@rname = 'Geometric lines'
 		@rdescription = "Draws a line between pair of points which are close enough."
-		@iconUrl = 'static/images/icons/inverted/links.png'
+		@iconURL = 'static/images/icons/inverted/links.png'
 		@iconAlt = 'links'
 
 		@parameters: ()->
@@ -2298,10 +2298,10 @@ define [
 	g.GeometricLines = GeometricLines
 	g.pathClasses.push(g.GeometricLines)
 
-	class PaintBrush extends PrecisePath
+	class PaintBrush extends g.PrecisePath
 		@rname = 'Paint brush'
 		@rdescription = "Paints a thick stroke with customable blur effects."
-		@iconUrl = 'static/images/icons/inverted/brush.png'
+		@iconURL = 'static/images/icons/inverted/brush.png'
 		@iconAlt = 'brush'
 
 		@parameters: ()->
@@ -2374,7 +2374,7 @@ define [
 	g.PaintBrush = PaintBrush
 	g.pathClasses.push(g.PaintBrush)
 
-	class PaintGun extends SpeedPath
+	class PaintGun extends g.SpeedPath
 		@rname = 'Paint gun'
 		@rdescription = "The stroke width is function of the drawing speed: the faster the wider."
 		# "http://thenounproject.com/term/spray-bottle/7835/"
@@ -2505,7 +2505,7 @@ define [
 	g.PaintGun = PaintGun
 	g.pathClasses.push(g.PaintGun)
 
-	class DynamicBrush extends SpeedPath
+	class DynamicBrush extends g.SpeedPath
 		@rname = 'Dynamic brush'
 		@rdescription = "The stroke width is function of the drawing speed: the faster the wider."
 		@polygonMode = false
@@ -2809,7 +2809,7 @@ define [
 	g.pathClasses.push(g.DynamicBrush)
 
 	# The shape path draw a rectangle or an ellipse along the control path
-	class ShapePath extends SpeedPath
+	class ShapePath extends g.SpeedPath
 		@rname = 'Shape path'
 		@rdescription = "Draws rectangles or ellipses along the path. The size of the shapes is function of the drawing speed."
 
@@ -2909,7 +2909,7 @@ define [
 
 	# An RShape is defined by a rectangle in which the drawing should be included
 	# during the creation, the user draw the rectangle with the mouse
-	class RShape extends RPath
+	class RShape extends g.RPath
 		@Shape = paper.Path.Rectangle
 		@rname = 'Shape'
 		@rdescription = "Base shape class"
@@ -3068,12 +3068,13 @@ define [
 	g.RShape = RShape
 
 	# Simple rectangle shape
-	class RectangleShape extends RShape
+	class RectangleShape extends g.RShape
 		@Shape = paper.Path.Rectangle
+		@category = 'Shape'
 		@rname = 'Rectangle'
 		@rdescription = """Simple rectangle, square by default (use shift key to draw a rectangle) which can have rounded corners.
 		Use special key (command on a mac, control otherwise) to center the shape on the first point."""
-		@iconUrl = 'static/images/icons/inverted/rectangle.png'
+		@iconURL = 'static/images/icons/inverted/rectangle.png'
 		@iconAlt = 'rectangle'
 
 		@parameters: ()->
@@ -3095,12 +3096,13 @@ define [
 	g.pathClasses.push(g.RectangleShape)
 
 	# The ellipse path does not even override any function, the RShape.createShape draws the shape defined in @constructor.Shape by default
-	class EllipseShape extends RShape
+	class EllipseShape extends g.RShape
 		@Shape = paper.Path.Ellipse 			# the shape to draw
+		@category = 'Shape'
 		@rname = 'Ellipse'
 		@rdescription = """Simple ellipse, circle by default (use shift key to draw an ellipse).
 		Use special key (command on a mac, control otherwise) to avoid the shape to be centered on the first point."""
-		@iconUrl = 'static/images/icons/inverted/circle.png'
+		@iconURL = 'static/images/icons/inverted/circle.png'
 		@iconAlt = 'circle'
 		@squareByDefault = true
 		@centerByDefault = true
@@ -3109,11 +3111,12 @@ define [
 	g.pathClasses.push(g.EllipseShape)
 
 	# The star shape can be animated
-	class StarShape extends RShape
+	class StarShape extends g.RShape
 		@Shape = paper.Path.Star
+		@category = 'Shape/Animated'
 		@rname = 'Star'
 		@rdescription = "Draws a star which can be animated (the color changes and it rotates)."
-		@iconUrl = 'static/images/icons/inverted/star.png'
+		@iconURL = 'static/images/icons/inverted/star.png'
 		@iconAlt = 'star'
 
 		@parameters: ()->
@@ -3175,11 +3178,12 @@ define [
 
 	# The spiral shape can have an intern radius, and a custom number of sides
 	# A smooth spiral could be drawn with less points and with handles, that could be more efficient
-	class SpiralShape extends RShape
+	class SpiralShape extends g.RShape
 		@Shape = paper.Path.Ellipse
+		@category = 'Shape/Animated/Spiral'
 		@rname = 'Spiral'
 		@rdescription = "The spiral shape can have an intern radius, and a custom number of sides."
-		@iconUrl = 'static/images/icons/inverted/spiral.png'
+		@iconURL = 'static/images/icons/inverted/spiral.png'
 		@iconAlt = 'spiral'
 
 		@parameters: ()->
@@ -3262,112 +3266,112 @@ define [
 	g.SpiralShape = SpiralShape
 	g.pathClasses.push(g.SpiralShape)
 
-	class FaceShape extends RShape
-		@Shape = paper.Path.Rectangle
-		@rname = 'Face generator'
-		# @iconUrl = 'static/images/icons/inverted/spiral.png'
-		# @iconAlt = 'spiral'
-		@rdescription = "Face generator, inspired by weird faces study by Matthias Dörfelt aka mokafolio."
+	# class FaceShape extends g.RShape
+	# 	@Shape = paper.Path.Rectangle
+	# 	@rname = 'Face generator'
+	# 	# @iconURL = 'static/images/icons/inverted/spiral.png'
+	# 	# @iconAlt = 'spiral'
+	# 	@rdescription = "Face generator, inspired by weird faces study by Matthias Dörfelt aka mokafolio."
 
-		@parameters: ()->
-			parameters = super()
+	# 	@parameters: ()->
+	# 		parameters = super()
 
-			parameters['Parameters'] ?= {}
-			parameters['Parameters'].minRadius =
-				type: 'slider'
-				label: 'Minimum radius'
-				min: 0
-				max: 100
-				default: 0
-			parameters['Parameters'].nTurns =
-				type: 'slider'
-				label: 'Number of turns'
-				min: 1
-				max: 50
-				default: 10
-			parameters['Parameters'].nSides =
-				type: 'slider'
-				label: 'Sides'
-				min: 3
-				max: 100
-				default: 50
+	# 		parameters['Parameters'] ?= {}
+	# 		parameters['Parameters'].minRadius =
+	# 			type: 'slider'
+	# 			label: 'Minimum radius'
+	# 			min: 0
+	# 			max: 100
+	# 			default: 0
+	# 		parameters['Parameters'].nTurns =
+	# 			type: 'slider'
+	# 			label: 'Number of turns'
+	# 			min: 1
+	# 			max: 50
+	# 			default: 10
+	# 		parameters['Parameters'].nSides =
+	# 			type: 'slider'
+	# 			label: 'Sides'
+	# 			min: 3
+	# 			max: 100
+	# 			default: 50
 
-			return parameters
+	# 		return parameters
 
-		createShape: ()->
-			@headShape = @addPath(new Path.Ellipse(@rectangle.expand(-20,-10)))
+	# 	createShape: ()->
+	# 		@headShape = @addPath(new Path.Ellipse(@rectangle.expand(-20,-10)))
 
-			@headShape.flatten(50)
-			for segment in @headShape.segments
-				segment.point.x += Math.random()*20
-				segment.point.y += Math.random()*5
-				segment.handleIn += Math.random()*5
-				segment.handleOut += Math.random()*5
+	# 		@headShape.flatten(50)
+	# 		for segment in @headShape.segments
+	# 			segment.point.x += Math.random()*20
+	# 			segment.point.y += Math.random()*5
+	# 			segment.handleIn += Math.random()*5
+	# 			segment.handleOut += Math.random()*5
 
-			@headShape.smooth()
+	# 		@headShape.smooth()
 
-			nozeShape = Math.random()
+	# 		nozeShape = Math.random()
 
-			center = @rectangle.center
-			width = @rectangle.width
-			height = @rectangle.height
+	# 		center = @rectangle.center
+	# 		width = @rectangle.width
+	# 		height = @rectangle.height
 
-			rangeRandMM = (min, max)->
-				return min + (max-min)*Math.random()
+	# 		rangeRandMM = (min, max)->
+	# 			return min + (max-min)*Math.random()
 
-			rangeRandC = (center, amplitude)->
-				return center + amplitude*(Math.random()-0.5)
+	# 		rangeRandC = (center, amplitude)->
+	# 			return center + amplitude*(Math.random()-0.5)
 
-			# noze
-			if nozeShape < 0.333	# two nostrils
-				deltaX = 0.1*width + Math.random()*10
-				x = center.x - deltaX
-				y = center.y + rangeRandC(0, 5)
-				position = center.add(x, y)
-				size = new Size(Math.random()*5, Math.random()*5)
-				nozeLeft = @addPath(new Path.Ellipse(position, size))
-				position += 2*deltaX
-				size = new Size(Math.random()*5, Math.random()*5)
-				nozeRight = @addPath(new Path.Ellipse(position, size))
-			else if nozeShape < 0.666 	# noze toward left
-				noze = @addPath()
-				noze.add(center)
-				noze.add(center.add(Math.random()*15, Math.random()*5))
-				noze.add(center.add(0, rangeRandMM(5,10)))
-				noze.smooth()
-			else				 	# noze toward right
-				noze = @addPath()
-				noze.add(center)
-				noze.add(center.add(-Math.random()*15, Math.random()*5))
-				noze.add(center.add(0, rangeRandMM(15,20)))
-				noze.smooth()
+	# 		# noze
+	# 		if nozeShape < 0.333	# two nostrils
+	# 			deltaX = 0.1*width + Math.random()*10
+	# 			x = center.x - deltaX
+	# 			y = center.y + rangeRandC(0, 5)
+	# 			position = center.add(x, y)
+	# 			size = new Size(Math.random()*5, Math.random()*5)
+	# 			nozeLeft = @addPath(new Path.Ellipse(position, size))
+	# 			position += 2*deltaX
+	# 			size = new Size(Math.random()*5, Math.random()*5)
+	# 			nozeRight = @addPath(new Path.Ellipse(position, size))
+	# 		else if nozeShape < 0.666 	# noze toward left
+	# 			noze = @addPath()
+	# 			noze.add(center)
+	# 			noze.add(center.add(Math.random()*15, Math.random()*5))
+	# 			noze.add(center.add(0, rangeRandMM(5,10)))
+	# 			noze.smooth()
+	# 		else				 	# noze toward right
+	# 			noze = @addPath()
+	# 			noze.add(center)
+	# 			noze.add(center.add(-Math.random()*15, Math.random()*5))
+	# 			noze.add(center.add(0, rangeRandMM(15,20)))
+	# 			noze.smooth()
 
-			# eyes
-			deltaX = rangeRandC(0, 0.1*width)
-			x = center.x - deltaX
-			y = @rectangle.top + width/3 + rangeRandC(0, 10)
-			position = new Point(x, y)
-			size = new Size(Math.max(Math.random()*30,deltaX), Math.random()*30)
-			eyeLeft = @addPath(new Path.Ellipse(position, size))
-			position.x += 2*deltaX
+	# 		# eyes
+	# 		deltaX = rangeRandC(0, 0.1*width)
+	# 		x = center.x - deltaX
+	# 		y = @rectangle.top + width/3 + rangeRandC(0, 10)
+	# 		position = new Point(x, y)
+	# 		size = new Size(Math.max(Math.random()*30,deltaX), Math.random()*30)
+	# 		eyeLeft = @addPath(new Path.Ellipse(position, size))
+	# 		position.x += 2*deltaX
 
-			eyeRight = @addPath(new Path.Ellipse(position, size))
+	# 		eyeRight = @addPath(new Path.Ellipse(position, size))
 
-			eyeRight.position.x += rangeRandC(0, 5)
-			eyeLeft.position.x += rangeRandC(0, 5)
+	# 		eyeRight.position.x += rangeRandC(0, 5)
+	# 		eyeLeft.position.x += rangeRandC(0, 5)
 
-			for i in [1 .. eyeLeft.segments.length-1]
-				eyeLeft.segments[i].point.x += Math.random()*3
-				eyeLeft.segments[i].point.y += Math.random()*3
-				eyeRight.segments[i].point.x += Math.random()*3
-				eyeRight.segments[i].point.y += Math.random()*3
-			return
+	# 		for i in [1 .. eyeLeft.segments.length-1]
+	# 			eyeLeft.segments[i].point.x += Math.random()*3
+	# 			eyeLeft.segments[i].point.y += Math.random()*3
+	# 			eyeRight.segments[i].point.x += Math.random()*3
+	# 			eyeRight.segments[i].point.y += Math.random()*3
+	# 		return
 
 
-	g.FaceShape = FaceShape
-	g.pathClasses.push(g.FaceShape)
+	# g.FaceShape = FaceShape
+	# g.pathClasses.push(g.FaceShape)
 
-	# class QuantificationPath extends PrecisePath
+	# class QuantificationPath extends g.PrecisePath
 	#   @rname = 'Quantification path'
 	#   @rdescription = "Quantification path."
 
@@ -3411,7 +3415,7 @@ define [
 
 
 
-	# class Brush extends PrecisePath
+	# class Brush extends g.PrecisePath
 	# 	@rname = 'new Path'
 	# 	@rdescription = "New tool description."
 
@@ -3455,7 +3459,7 @@ define [
 
 	# Checkpoint is a video game element:
 	# if placed on a video game area, it will be registered in it
-	class Checkpoint extends RShape
+	class Checkpoint extends g.RShape
 		@Shape = paper.Path.Rectangle
 		@rname = 'Checkpoint'
 		@rdescription = """Draw checkpoints on a video game area to create a race
@@ -3500,7 +3504,7 @@ define [
 	g.pathClasses.push(g.Checkpoint)
 
 
-	class StripeAnimation extends RShape
+	class StripeAnimation extends g.RShape
 		@Shape = paper.Path.Rectangle
 		@rname = 'Stripe animation'
 		@rdescription = "Creates a stripe animation from a set sequence of image."
@@ -3709,7 +3713,7 @@ define [
 	g.StripeAnimation = StripeAnimation
 	g.pathClasses.push(g.StripeAnimation)
 
-	class Medusa extends RShape
+	class Medusa extends g.RShape
 		@Shape = paper.Path.Rectangle
 		@rname = 'Medusa'
 		@rdescription = "Creates a bunch of aniamted Medusa."
