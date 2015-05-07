@@ -10,9 +10,9 @@ from django.views.decorators.csrf import csrf_exempt
 # from sockets import ChatNamespace, DrawNamespace
 # from socketio import socketio_manage
 
-def index(request, sitename=None):
-	if sitename:
-		result = loadSite(request, sitename)
+def index(request, site=None, owner=None, city=None, x=0, y=0):
+	if site:
+		result = loadSite(request, site)
 		return render_to_response(	"index.html", result, RequestContext(request) )
 	else:
 		return render_to_response(	"index.html", RequestContext(request) )
@@ -38,7 +38,7 @@ def rasterizer(request, sitename=None):
 
 @csrf_exempt
 def romanescoinsReturn(request):
-	
+
 	return render_to_response(	"romanescoin/return.html", RequestContext(request) )
 
 @csrf_exempt
@@ -87,7 +87,7 @@ def romanescoinsCancel(request):
 # def load(request, areasToLoad):
 
 # 	import pdb; pdb.set_trace()
-	
+
 # 	paths = []
 # 	divs = []
 # 	boxes = []
@@ -97,7 +97,7 @@ def romanescoinsCancel(request):
 # 	bpks = []
 
 # 	for area in areasToLoad:
-				
+
 # 		tlX = area['pos']['x']
 # 		tlY = area['pos']['y']
 
@@ -118,7 +118,7 @@ def romanescoinsCancel(request):
 # 		ppks += p.scalar("id")
 # 		dpks += d.scalar("id")
 # 		bpks += b.scalar("id")
-	
+
 # 	global userID
 # 	user = request.user.username
 # 	if not user:
@@ -198,7 +198,7 @@ def romanescoinsCancel(request):
 # 		return{'state': 'error', 'message': 'Not owner of path'}
 
 # 	p.delete()
-	
+
 # 	# return json.dumps( {  'state': 'success', 'pk': pk } )
 # 	return { 'state': 'success', 'pk': pk }
 
@@ -254,7 +254,7 @@ def romanescoinsCancel(request):
 # 	if not request.user.is_authenticated():
 # 		# return json.dumps({'state': 'not_logged_in'})
 # 		return {'state': 'not_logged_in'}
-	
+
 # 	if box:
 # 		points = box['points']
 # 		planetX = box['planet']['x']
@@ -280,7 +280,7 @@ def romanescoinsCancel(request):
 
 # 		planetX = b.planetX
 # 		planetY = b.planetY
-		
+
 # 		geometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
 # 		oldPaths = Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry)
 # 		oldDivs = Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry)
@@ -314,7 +314,7 @@ def romanescoinsCancel(request):
 
 # 		newPaths = Path.objects(planetX=b.planetX, planetY=b.planetY, points__geo_within=geometry)
 # 		newDivs = Div.objects(planetX=b.planetX, planetY=b.planetY, box__geo_within=geometry)
-		
+
 # 		# update old and new paths and divs
 # 		newPaths.update(set__locked=True, set__owner=request.user.username)
 # 		newDivs.update(set__locked=True, set__owner=request.user.username)
@@ -361,7 +361,7 @@ def romanescoinsCancel(request):
 # 		return{'state': 'error', 'message': 'Not owner of div'}
 
 # 	b.delete()
-	
+
 # 	# return json.dumps( { 'state': 'success', 'pk': pk } )
 # 	return { 'state': 'success', 'pk': pk }
 
@@ -433,7 +433,7 @@ def romanescoinsCancel(request):
 # 		d.message = message
 # 	if data:
 # 		d.data = data
-	
+
 # 	d.save()
 
 # 	# return json.dumps( {'state': 'success' } )
@@ -454,7 +454,7 @@ def romanescoinsCancel(request):
 # 		return{'state': 'error', 'message': 'You are not the owner of this div.'}
 
 # 	d.delete()
-	
+
 # 	# return json.dumps( { 'state': 'success', 'pk': pk } )
 # 	return { 'state': 'success', 'pk': pk }
 
@@ -465,9 +465,9 @@ def romanescoinsCancel(request):
 # def saveImage(request, image):
 
 # 	imageData = re.search(r'base64,(.*)', image).group(1)
-	
+
 # 	imagePath = 'static/images/' + request.user.username + '/'
-	
+
 # 	try:
 # 		os.mkdir(imagePath)
 # 	except OSError as exception:
@@ -485,7 +485,7 @@ def romanescoinsCancel(request):
 # 	# imageData = inputfile.read().encode('base64')
 # 	# inputfile.close()
 # 	# return json.dumps( { 'image': imageData, 'url': imageName } )
-	
+
 # 	# return json.dumps( { 'url': imageName } )
 # 	return { 'url': imageName }
 
@@ -507,7 +507,7 @@ def romanescoinsCancel(request):
 # @ajax
 # def updateTool(request, name, className, source, compiledSource):
 # 	try:
-# 		tool = Tool.objects.get(name=name)		
+# 		tool = Tool.objects.get(name=name)
 # 	except Tool.DoesNotExist:
 # 		# return json.dumps( { 'state': 'error', 'message': 'The tool with the name ' + name + ' or the className ' + className + ' does not exist.' } )
 # 		return { 'state': 'error', 'message': 'The tool with the name ' + name + ' or the className ' + className + ' does not exist.' }
@@ -585,11 +585,11 @@ def romanescoinsCancel(request):
 # 	ipn_obj = sender
 
 # 	print "updateUserRomanescoins"
-	
+
 # 	if ipn_obj.payment_status == "Completed":
 
 # 		data = json.loads(ipn_obj.custom)
-		
+
 # 		import pdb; pdb.set_trace()
 
 # 		# profile = User.objects.get(username=data['user']).profile
@@ -598,7 +598,7 @@ def romanescoinsCancel(request):
 # 		# Fails with: OperationalError: no such column: user_profile.romanescoins:
 # 		# UserProfile.objects.filter(user__username=data['user']).update(romanescoins=F('romanescoins')+1000*ipn_obj.num_cart_items)
 # 		# so instead:
-		
+
 # 		try:
 # 			userProfile = User.objects.get(username=data['user']).profile
 # 			userProfile.romanescoins += 1000*ipn_obj.num_cart_items

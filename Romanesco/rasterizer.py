@@ -12,21 +12,23 @@ import errno
 import threading, time
 
 ### --- Database model --- ###
-
 from mongoengine import *
 
 connect('Romanesco')
 
-class AreaToUpdate(Document):
-    planetX = DecimalField()
-    planetY = DecimalField()
-    box = PolygonField()
+from draw.mongoModels import AreaToUpdate
 
-    rType = StringField(default='AreaToUpdate')
+# class AreaToUpdate(Document):
+#     city =
+#     planetX = DecimalField()
+#     planetY = DecimalField()
+#     box = PolygonField()
 
-    meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
-    }
+#     rType = StringField(default='AreaToUpdate')
+
+#     meta = {
+#         'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere"), ("date", 1) ]]
+#     }
 
 ### --- Rasterizer --- ###
 
@@ -43,7 +45,7 @@ def floorToMultiple(x, m):
 def ceilToMultiple(x, m):
     return int(ceil(x/float(m))*m)
 
-def saveImage(image, xf, yf):
+def saveImage(image, xf, yf, cityPk):
     x = int(xf)
     y = int(yf)
 
@@ -76,7 +78,7 @@ def saveImage(image, xf, yf):
             x25 = floorToMultiple(x1, 25)
             y25 = floorToMultiple(y1, 25)
 
-            rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
+            rasterPath = 'media/rasters/' + cityPk + '/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
 
             try:
                 os.makedirs(rasterPath)
@@ -128,7 +130,7 @@ def saveImage(image, xf, yf):
             x25 = floorToMultiple(x1, 25)
             y25 = floorToMultiple(y1, 25)
 
-            rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
+            rasterPath = 'media/rasters/' + cityPk + '/zoom20/' + str(x25) + ',' + str(y25) + '/'
 
             try:
                 os.makedirs(rasterPath)
@@ -167,7 +169,7 @@ def saveImage(image, xf, yf):
             x25 = floorToMultiple(x1, 25)
             y25 = floorToMultiple(y1, 25)
 
-            rasterPath = 'media/rasters/zoom4/'
+            rasterPath = 'media/rasters/' + cityPk + '/zoom4/'
 
             try:
                 os.makedirs(rasterPath)
@@ -193,7 +195,7 @@ def saveImage(image, xf, yf):
             raster.save(rasterName)
 
     # image.save('media/rasters/lastImageRendered_' + str(random.random()) + '.png')
-    image.save('media/rasters/lastImageRendered_.png')
+    image.save('media/rasters/lastImageRendered.png')
     image.close()
 
     end = time.time()
@@ -215,7 +217,7 @@ def loopRasterize():
     print 'loopRasterize'
     browser.GetMainFrame().ExecuteFunction("loopRasterize")
 
-def saveOnServer(imageDataURL, x, y, finished):
+def saveOnServer(imageDataURL, x, y, finished, cityPk):
 
     print 'received image to save'
 
@@ -226,7 +228,7 @@ def saveOnServer(imageDataURL, x, y, finished):
     except IOError:
         return { 'state': 'error', 'message': 'impossible to read image.'}
 
-    saveImage(image, x, y)
+    saveImage(image, x, y, cityPk)
 
     if not finished:
         print 'post loopRasterize task'

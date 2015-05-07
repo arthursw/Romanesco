@@ -2,9 +2,10 @@ from mongoengine import *
 import datetime
 
 class Path(Document):
-    planetX = DecimalField()
-    planetY = DecimalField()
-    box = PolygonField()
+    city = StringField(required=True)
+    planetX = DecimalField(required=True)
+    planetY = DecimalField(required=True)
+    box = PolygonField(required=True)
     points = LineStringField()
     rType = StringField(default='Path')
     owner = StringField()
@@ -17,13 +18,14 @@ class Path(Document):
     data = StringField(default='')
 
     meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("points", "2dsphere") ]]
+        'indexes': [[ ("city", 1), ("planetX", 1), ("planetY", 1), ("points", "2dsphere") ]]
     }
 
 class Box(Document):
-    planetX = DecimalField()
-    planetY = DecimalField()
-    box = PolygonField()
+    city = StringField(required=True)
+    planetX = DecimalField(required=True)
+    planetY = DecimalField(required=True)
+    box = PolygonField(required=True)
     rType = StringField(default='Box')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
@@ -44,25 +46,27 @@ class Box(Document):
     data = StringField(default='')
 
     meta = {
-        'indexes': [ [ ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ], [ ("name", 1) ] ]
+        'indexes': [ [ ("city", 1), ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ], [ ("name", 1) ] ]
     }
 
 class AreaToUpdate(Document):
-    planetX = DecimalField()
-    planetY = DecimalField()
-    box = PolygonField()
+    city = StringField(required=True)
+    planetX = DecimalField(required=True)
+    planetY = DecimalField(required=True)
+    box = PolygonField(required=True)
 
     rType = StringField(default='AreaToUpdate')
     # areas = ListField(ReferenceField('Area'))
 
     meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ]]
+        'indexes': [[ ("city", 1), ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ]]
     }
 
 class Div(Document):
-    planetX = DecimalField()
-    planetY = DecimalField()
-    box = PolygonField()
+    city = StringField(required=True)
+    planetX = DecimalField(required=True)
+    planetY = DecimalField(required=True)
+    box = PolygonField(required=True)
     rType = StringField(default='Div')
     owner = StringField()
     date = DateTimeField(default=datetime.datetime.now)
@@ -79,7 +83,7 @@ class Div(Document):
     data = StringField(default='')
 
     meta = {
-        'indexes': [[ ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ]]
+        'indexes': [[ ("city", 1), ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ]]
     }
 
 class Tool(Document):
@@ -119,7 +123,7 @@ class Module(Document):
     accepted = BooleanField(default=False)
 
     meta = {
-        'indexes': [[ ("accepted", 1), ("name", 1) ]]
+        'indexes': [[ ("accepted", 1), ("moduleType", 1), ("name", 1) ]]
     }
 
 class Site(Document):
@@ -136,6 +140,23 @@ class Site(Document):
     meta = {
         'indexes': [[ ("name", 1) ]]
     }
+
+class City(Document):
+    owner = StringField(required=True)
+    name = StringField(required=True)
+    public = BooleanField(default=False)
+
+    meta = {
+        'indexes': [[ ("owner", 1), ("public", 1), ("name", 1) ]]
+    }
+
+# class RUser(Document):
+#     name = StringField(required=True)
+#     cities = ListField(ReferenceField(City))
+
+#     meta = {
+#         'indexes': [[ ("name", 1) ]]
+#     }
 
 # class Area(Document):
 #     x = DecimalField()

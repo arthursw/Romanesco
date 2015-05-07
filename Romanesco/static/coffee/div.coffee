@@ -105,6 +105,7 @@ define [
 				return
 
 			args =
+				city: g.city
 				box: g.boxFromRectangle(@getBounds())
 				object_type: @object_type
 				date: Date.now()
@@ -513,6 +514,8 @@ define [
 			if not available then return
 
 			@data.fontFamily = fontFamily
+
+			# WebFont.load( google: {	families: ['Droid Sans', 'Droid Serif']	} )
 
 			g.addFont(fontFamily, @data.effect)
 			g.loadFonts()

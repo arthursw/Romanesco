@@ -18,6 +18,7 @@
       'typeahead': ['//cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.10.4/typeahead.bundle.min', '../libs/typeahead.bundle.min'],
       'pinit': ['//assets.pinterest.com/js/pinit', '../libs/pinit'],
       'zeroClipboard': ['//cdnjs.cloudflare.com/ajax/libs/zeroclipboard/2.2.0/ZeroClipboard.min', '../libs/ZeroClipboard.min'],
+      'pixijs': ['//cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.2/pixi.min'],
       'colorpickersliders': '../libs/bootstrap-colorpickersliders/bootstrap.colorpickersliders.nocielch',
       'requestAnimationFrame': '../libs/RequestAnimationFrame',
       'coffee': '../libs/coffee-script',

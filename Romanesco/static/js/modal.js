@@ -4,7 +4,7 @@
     var RModal, g;
     g = utils.g();
     RModal = (function() {
-      function RModal() {}
+      RModal.modals = [];
 
       RModal.extractors = [];
 
@@ -45,7 +45,6 @@
       };
 
       RModal.addTextInput = function(name, placeholder, type, className, label, submitShortcut, id, required, errorMessage) {
-        var args, divJ, extractor, inputID, inputJ, labelJ;
         if (placeholder == null) {
           placeholder = null;
         }
@@ -67,8 +66,35 @@
         if (required == null) {
           required = false;
         }
+        this.addTextInputA({
+          name: name,
+          placeholder: placeholder,
+          type: type,
+          className: classNamen,
+          label: label,
+          submitShortcut: submitShortcut,
+          id: id,
+          required: required,
+          errorMessage: errorMessage
+        });
+      };
+
+      RModal.addTextInputA = function(args) {
+        var className, divJ, errorMessage, extractor, id, inputID, inputJ, label, labelJ, name, placeholder, required, submitShortcut, type;
+        name = args.name;
+        placeholder = args.placeholder;
+        type = args.type;
+        className = args.className;
+        label = args.label;
+        submitShortcut = args.submitShortcut;
+        id = args.id;
+        required = args.required;
+        errorMessage = args.errorMessage;
         submitShortcut = submitShortcut ? 'submit-shortcut' : '';
-        inputJ = $("<input type='" + type + "' class='" + className + " form-control " + submitShortcut + "' placeholder='" + placeholder + "'>");
+        inputJ = $("<input type='" + type + "' class='" + className + " form-control " + submitShortcut + "'>");
+        if ((placeholder != null) && placeholder !== '') {
+          inputJ.attr("placeholder", placeholder);
+        }
         if (required) {
           if (errorMessage == null) {
             errorMessage = "<em>" + (label || name) + "</em> is invalid.";
@@ -208,6 +234,275 @@
           this.modalBodyJ.empty();
           this.modalJ.modal('hide');
         }
+      };
+
+      RModal.createModal = function(args) {
+        var modal, zIndex;
+        modal = new RModal(args);
+        if (this.modals.length > 0) {
+          zIndex = parseInt(this.modals.last().modalJ.css('z-index'));
+          modal.modalJ.css('z-index', zIndex + 2);
+        }
+        this.modals.push(modal);
+        return modal;
+      };
+
+      RModal.deleteModal = function(modal) {
+        modal["delete"]();
+        this.modals.remove(modal);
+      };
+
+      RModal.getModalByTitle = function(title) {
+        var modal, _i, _len, _ref;
+        _ref = this.modals;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          modal = _ref[_i];
+          if (modal.title === title) {
+            return modal;
+          }
+        }
+        return null;
+      };
+
+      RModal.getModalByName = function(name) {
+        var modal, _i, _len, _ref;
+        _ref = this.modals;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          modal = _ref[_i];
+          if (modal.name === name) {
+            return modal;
+          }
+        }
+        return null;
+      };
+
+      function RModal(args) {
+        this.data = {
+          data: args.data
+        };
+        this.title = args.title;
+        this.name = args.name;
+        this.validation = args.validation;
+        this.postSubmit = args.postSubmit || 'hide';
+        this.submitCallback = args.submit;
+        this.extractors = [];
+        this.modalJ = this.constructor.modalJ.clone();
+        g.templatesJ.find('.modals').append(this.modalJ);
+        this.modalBodyJ = this.modalJ.find('.modal-body');
+        this.modalBodyJ.empty();
+        this.modalJ.find(".modal-footer").show().find(".btn").show();
+        this.modalJ.on('shown.bs.modal', (function(_this) {
+          return function(event) {
+            var zIndex;
+            _this.modalJ.find('input.form-control:visible:first').focus();
+            zIndex = parseInt(_this.modalJ.css('z-index'));
+            return $('body').find('.modal-backdrop:last').css('z-index', zIndex - 1);
+          };
+        })(this));
+        this.modalJ.on('hidden.bs.modal', (function(_this) {
+          return function(event) {
+            return g.RModal.deleteModal(_this);
+          };
+        })(this));
+        this.modalJ.find('.btn-primary').click((function(_this) {
+          return function(event) {
+            return _this.modalSubmit();
+          };
+        })(this));
+        this.extractors = {};
+        this.modalJ.find("h4.modal-title").html(args.title);
+        this.modalJ.find(".modal-footer").show().find(".btn").show();
+        return;
+      }
+
+      RModal.prototype.addText = function(text) {
+        this.modalBodyJ.append("<p>" + text + "</p>");
+      };
+
+      RModal.prototype.addTextInput = function(args) {
+        var className, defaultValue, divJ, errorMessage, extractor, id, inputID, inputJ, label, labelJ, name, placeholder, required, submitShortcut, type;
+        name = args.name;
+        placeholder = args.placeholder;
+        type = args.type;
+        className = args.className;
+        label = args.label;
+        submitShortcut = args.submitShortcut;
+        id = args.id;
+        required = args.required;
+        errorMessage = args.errorMessage;
+        defaultValue = args.defaultValue;
+        if (required) {
+          if (errorMessage == null) {
+            errorMessage = "<em>" + (label || name) + "</em> is invalid.";
+          }
+        }
+        submitShortcut = submitShortcut ? 'submit-shortcut' : '';
+        inputJ = $("<input type='" + type + "' class='" + className + " form-control " + submitShortcut + "'>");
+        if ((placeholder != null) && placeholder !== '') {
+          inputJ.attr("placeholder", placeholder);
+        }
+        inputJ.val(defaultValue);
+        args = inputJ;
+        extractor = function(data, inputJ, name, required) {
+          if (required == null) {
+            required = false;
+          }
+          data[name] = inputJ.val();
+          return (!required) || ((data[name] != null) && data[name] !== '');
+        };
+        if (label) {
+          inputID = 'modal-' + name + '-' + Math.random().toString();
+          inputJ.attr('id', inputID);
+          divJ = $("<div id='" + id + "' class='form-group " + className + "-group'></div>");
+          labelJ = $("<label for='" + inputID + "'>" + label + "</label>");
+          divJ.append(labelJ);
+          divJ.append(inputJ);
+          inputJ = divJ;
+        }
+        this.addCustomContent({
+          name: name,
+          divJ: inputJ,
+          extractor: extractor,
+          args: args,
+          required: required,
+          errorMessage: errorMessage
+        });
+        return inputJ;
+      };
+
+      RModal.prototype.addCheckbox = function(args) {
+        var checkboxJ, defaultValue, divJ, extractor, helpMessage, helpMessageJ, label, name;
+        name = args.name;
+        label = args.label;
+        helpMessage = args.helpMessage;
+        defaultValue = args.defaultValue;
+        divJ = $("<div>");
+        checkboxJ = $("<label><input type='checkbox' form-control>" + label + "</label>");
+        if (defaultValue) {
+          checkboxJ.find('input').attr('checked', true);
+        }
+        divJ.append(checkboxJ);
+        if (helpMessage) {
+          helpMessageJ = $("<p class='help-block'>" + helpMessage + "</p>");
+          divJ.append(helpMessageJ);
+        }
+        extractor = function(data, checkboxJ, name) {
+          data[name] = checkboxJ.is(':checked');
+          return true;
+        };
+        this.addCustomContent({
+          name: name,
+          divJ: divJ,
+          extractor: extractor,
+          args: checkboxJ
+        });
+        return divJ;
+      };
+
+      RModal.prototype.addRadioGroup = function(args) {
+        var checked, divJ, extractor, inputJ, labelJ, name, radioButton, radioButtons, radioJ, submitShortcut, _i, _len;
+        name = args.name;
+        radioButtons = args.radioButtons;
+        divJ = $("<div>");
+        for (_i = 0, _len = radioButtons.length; _i < _len; _i++) {
+          radioButton = radioButtons[_i];
+          radioJ = $("<div class='radio'>");
+          labelJ = $("<label>");
+          checked = radioButton.checked ? 'checked' : '';
+          submitShortcut = radioButton.submitShortcut ? 'class="submit-shortcut"' : '';
+          inputJ = $("<input type='radio' name='" + name + "' value='" + radioButton.value + "' " + checked + " " + submitShortcut + ">");
+          labelJ.append(inputJ);
+          labelJ.append(radioButton.label);
+          radioJ.append(labelJ);
+          divJ.append(radioJ);
+        }
+        extractor = function(data, divJ, name, required) {
+          var choiceJ, _ref;
+          if (required == null) {
+            required = false;
+          }
+          choiceJ = divJ.find("input[type=radio][name=" + name + "]:checked");
+          data[name] = (_ref = choiceJ[0]) != null ? _ref.value : void 0;
+          return (!required) || (data[name] != null);
+        };
+        this.addCustomContent({
+          name: name,
+          divJ: divJ,
+          extractor: extractor
+        });
+        return divJ;
+      };
+
+      RModal.prototype.addCustomContent = function(args) {
+        if (args.args == null) {
+          args.args = args.divJ;
+        }
+        args.divJ.attr('id', 'modal-' + args.name);
+        this.modalBodyJ.append(args.divJ);
+        this.extractors[args.name] = args;
+      };
+
+      RModal.prototype.show = function() {
+        this.modalJ.find('.submit-shortcut').keypress((function(_this) {
+          return function(event) {
+            if (event.which === 13) {
+              event.preventDefault();
+              _this.modalSubmit();
+            }
+          };
+        })(this));
+        this.modalJ.modal('show');
+      };
+
+      RModal.prototype.hide = function() {
+        this.modalJ.modal('hide');
+      };
+
+      RModal.prototype.addProgressBar = function() {
+        var progressJ;
+        progressJ = $(" <div class=\"progress modal-progress-bar\">\n	<div class=\"progress-bar progress-bar-striped active\" role=\"progressbar\" aria-valuenow=\"100\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: 100%\">\n		<span class=\"sr-only\">Loading...</span>\n	</div>\n</div>");
+        this.modalBodyJ.append(progressJ);
+      };
+
+      RModal.prototype.removeProgressBar = function() {
+        this.modalBodyJ.find('.modal-progress-bar').remove();
+      };
+
+      RModal.prototype.modalSubmit = function() {
+        var errorMessage, extractor, name, valid, _ref;
+        this.modalJ.find(".error-message").remove();
+        valid = true;
+        _ref = this.extractors;
+        for (name in _ref) {
+          extractor = _ref[name];
+          valid &= extractor.extractor(this.data, extractor.args, name, extractor.required);
+          if (!valid) {
+            errorMessage = extractor.errorMessage;
+            if (errorMessage == null) {
+              errorMessage = 'The field "' + name + '"" is invalid.';
+            }
+            this.modalBodyJ.append("<div class='error-message'>" + errorMessage + "</div>");
+          }
+        }
+        if (!valid || (this.validation != null) && !this.validation(data)) {
+          return;
+        }
+        if (typeof this.submitCallback === "function") {
+          this.submitCallback(this.data);
+        }
+        this.extractors = {};
+        switch (this.postSubmit) {
+          case 'hide':
+            this.modalJ.modal('hide');
+            break;
+          case 'load':
+            this.modalBodyJ.children().hide();
+            this.addProgressBar();
+        }
+      };
+
+      RModal.prototype["delete"] = function() {
+        this.modalJ.remove();
       };
 
       return RModal;

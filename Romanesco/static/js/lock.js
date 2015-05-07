@@ -281,6 +281,9 @@
           loadEntireArea: data.loadEntireArea
         };
         args = {
+          city: {
+            city: g.city
+          },
           box: g.boxFromRectangle(this.rectangle),
           object_type: this.constructor.object_type,
           data: JSON.stringify(data),

@@ -5,6 +5,7 @@
     g = utils.g();
     window.tinycolor = tinycolor;
     g.initializeGlobalParameters = function() {
+      var colorName, colorRGBstring;
       g.parameters = {};
       g.parameters.location = {
         type: 'string',
@@ -117,6 +118,17 @@
         permanent: true,
         onChange: function() {
           return g.updateGrid();
+        }
+      };
+      g.parameters.renderingMode = {
+        type: 'dropdown',
+        label: 'Render mode',
+        values: ['paper', 'tile', 'fast tile'],
+        "default": 'fast tile',
+        renderingMode: 'fast tile',
+        permanent: true,
+        onFinishChange: function(value) {
+          g.setRasterizerType(value);
         }
       };
       g.parameters.align = {
@@ -399,18 +411,15 @@
           });
         }
       };
-    };
-    g.initParameters = function() {
-      var colorName, colorRGBstring, controller, jqxhr, toggleGuiButtonJ;
-      g.optionsJ = $(".option-list");
       colorName = g.defaultColors.random();
       colorRGBstring = tinycolor(colorName).toRgbString();
       g.strokeColor = colorRGBstring;
       g.fillColor = "rgb(255,255,255,255)";
-      g.fillShape = false;
-      g.strokeWidth = 3;
-      project.selectedMedias = [];
       g.displayGrid = false;
+    };
+    g.initParameters = function() {
+      var controller, jqxhr, toggleGuiButtonJ;
+      g.optionsJ = $(".option-list");
       dat.GUI.autoPace = false;
       g.gui = new dat.GUI();
       g.generalFolder = g.gui.addFolder('General');
@@ -428,6 +437,7 @@
         ignoreSockets: g.parameters.ignoreSockets["default"]
       }, 'ignoreSockets', false).name(g.parameters.ignoreSockets.name).onChange(g.parameters.ignoreSockets.onChange);
       g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max).name(g.parameters.snap.label).step(g.parameters.snap.step).onChange(g.parameters.snap.onChange);
+      g.generalFolder.add(g.parameters.renderingMode, 'renderingMode', g.parameters.renderingMode.values).name(g.parameters.renderingMode.label).onFinishChange(g.parameters.renderingMode.onFinishChange);
       g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement);
       toggleGuiButtonJ = $(g.gui.domElement).find("button.dat-gui-toggle");
       toggleGuiButtonJ.click(function() {

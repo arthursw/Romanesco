@@ -104,6 +104,7 @@
           return;
         }
         args = {
+          city: g.city,
           box: g.boxFromRectangle(this.getBounds()),
           object_type: this.object_type,
           date: Date.now(),

@@ -20,6 +20,19 @@
       }
       return false;
     };
+    g.unload = function() {
+      var item, pk, _ref;
+      g.loadedAreas = [];
+      _ref = g.items;
+      for (pk in _ref) {
+        if (!__hasProp.call(_ref, pk)) continue;
+        item = _ref[pk];
+        item.remove();
+      }
+      g.items = {};
+      g.rasterizer.clearRasters();
+      g.previousLoadPosition = null;
+    };
     g.load = function(area) {
       var areaRectangle, areasToLoad, b, bounds, debug, halfSize, i, item, itemsDates, itemsOutsideLimit, j, l, limit, pk, planet, pos, qZoom, r, rectangle, removeRectangle, scale, showLoadingBar, t, unloadDist, x, y, _i, _j, _ref, _ref1, _ref2, _ref3;
       if (area == null) {
@@ -202,7 +215,8 @@
         Dajaxice.draw.load(loadCallback, {
           rectangle: rectangle,
           areasToLoad: areasToLoad,
-          qZoom: qZoom
+          qZoom: qZoom,
+          city: g.city
         });
       } else {
         itemsDates = g.createItemsDates(bounds);
@@ -210,24 +224,27 @@
         console.log(itemsDates);
         Dajaxice.draw.loadRasterizer(loadCallback, {
           areasToLoad: areasToLoad,
-          itemsDates: itemsDates
+          itemsDates: itemsDates,
+          cityPk: g.city
         });
       }
       return true;
     };
+    g.dispatchLoadFinished = function() {
+      var commandEvent;
+      console.log("dispatch command executed");
+      commandEvent = document.createEvent('Event');
+      commandEvent.initEvent('command executed', true, true);
+      document.dispatchEvent(commandEvent);
+    };
     loadCallback = function(results) {
-      var box, data, date, deletedItemLastUpdate, dispatchLoadFinished, div, i, item, itemToReplace, itemsToLoad, lock, path, pk, planet, point, points, rdiv, rpath, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
+      var box, data, date, deletedItemLastUpdate, div, i, item, itemToReplace, itemsToLoad, lock, path, pk, planet, point, points, rdiv, rpath, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
       console.log("load callback");
-      dispatchLoadFinished = function() {
-        var commandEvent;
-        console.log("dispatch command executed");
-        commandEvent = document.createEvent('Event');
-        commandEvent.initEvent('command executed', true, true);
-        document.dispatchEvent(commandEvent);
-      };
-      g.checkError(results);
+      if (!g.checkError(results)) {
+        return;
+      }
       if (results.hasOwnProperty('message') && results.message === 'no_paths') {
-        dispatchLoadFinished();
+        g.dispatchLoadFinished();
         return;
       }
       if ((g.me == null) && (results.user != null)) {
@@ -348,7 +365,7 @@
         clearTimeout(g.loadingBarTimeout);
         g.loadingBarTimeout = null;
         $("#loadingBar").hide();
-        dispatchLoadFinished();
+        g.dispatchLoadFinished();
       }
       if (typeof window.saveOnServer === "function") {
         console.log("rasterizeAndSaveOnServer");

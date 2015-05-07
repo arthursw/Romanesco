@@ -146,20 +146,24 @@
     };
     g.initializeModules = function(moduleValues) {
       var searchToolsJ;
-      g.allModulesJ = g.allToolsContainerJ.find(".all-tool-list");
-      searchToolsJ = $(".search-tools");
-      g.searchModuleInputJ = searchToolsJ.find("input.search-tool");
-      g.searchModuleInputJ.keyup(g.getSuggestions);
-      g.searchModuleBtnJ = searchToolsJ.find(".search button");
-      g.searchModuleBtnJ.click(g.createToolModal);
+      if (!g.rasterizerMode) {
+        g.allModulesJ = g.allToolsContainerJ.find(".all-tool-list");
+        searchToolsJ = $(".search-tools");
+        g.searchModuleInputJ = searchToolsJ.find("input.search-tool");
+        g.searchModuleInputJ.keyup(g.getSuggestions);
+        g.searchModuleBtnJ = searchToolsJ.find(".open-modal");
+        g.searchModuleBtnJ.click(g.createToolModal);
+      }
       Dajaxice.draw.getModules(function(result) {
         var btnJ, favorite, i, module, modules, name, _i, _len, _ref;
         modules = JSON.parse(result.modules);
         for (i = _i = 0, _len = modules.length; _i < _len; i = ++_i) {
           module = modules[i];
-          favorite = g.favoriteTools.indexOf(module.name) >= 0;
-          btnJ = g.createToolButton(module.name, module.iconURL, favorite, module.category);
-          btnJ.click(g.getModule);
+          if (!g.rasterizerMode) {
+            favorite = g.favoriteTools.indexOf(module.name) >= 0;
+            btnJ = g.createToolButton(module.name, module.iconURL, favorite, module.category);
+            btnJ.click(g.getModule);
+          }
           g.modules[module.name] = module;
         }
         moduleValues = [];
@@ -176,7 +180,9 @@
             });
           }
         }
-        initModuleTypeahead(moduleValues);
+        if (!g.rasterizerMode) {
+          initModuleTypeahead(moduleValues);
+        }
       });
     };
     g.addModuleToModal = function(name, module, tbodyJ, actionOnClick, prepend) {

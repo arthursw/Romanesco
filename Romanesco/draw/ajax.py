@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import shutil
 import os.path
 import errno
 import json
@@ -10,7 +11,7 @@ from django.core import serializers
 from dajaxice.core import dajaxice_functions
 from django.contrib.auth.models import User
 from django.db.models import F
-from models import Path, Box, Div, UserProfile, Tool, Module, Site, AreaToUpdate
+from models import *
 import ast
 from pprint import pprint
 from django.contrib.auth import authenticate, login, logout
@@ -60,6 +61,13 @@ with open('/data/secret_github.txt') as f:
 
 github = Github("arthurpub.sw@gmail.com", PASSWORD)
 romanescoOrg = github.get_organization('RomanescoModules')
+
+try:
+	romanescoCity = City.objects.get(name='Romanesco', owner='RomanescoOrg', public=True)
+except City.DoesNotExist:
+	romanescoCity = City(name='Romanesco', owner='RomanescoOrg', public=True)
+	romanescoCity.save()
+
 
 # pprint(vars(object))
 # import pdb; pdb.set_trace()
@@ -233,13 +241,98 @@ def benchmarkLoad(request, areasToLoad):
 
 @dajaxice_register
 @checkDebug
-def load(request, rectangle, areasToLoad, qZoom):
+def createCity(request, name, public=None):
+	try:
+		city = City.objects.get(name=name, owner=request.user.username)
+		return json.dumps( { 'state': 'error', 'message': 'The city named ' + name + ' already exists.' } )
+	except Exception:
+		pass
+
+	city = City(name=name, owner=request.user.username, public=public)
+	city.save()
+
+	return json.dumps( { 'state': 'succes', 'city': city.to_json() } )
+
+@dajaxice_register
+@checkDebug
+def deleteCity(request, name):
+	try:
+		city = City.objects.get(name=name, owner=request.user.username)
+	except City.DoesNotExist:
+		return json.dumps( { 'state': 'error', 'message': 'The city ' + name + ' for user ' + request.user.username + ' does not exist.' } )
+
+	city.delete()
+
+	models = ['Path', 'Div', 'Box', 'AreaToUpdate']
+
+	for model in models:
+		globals()[model].objects(city=city).delete()
+
+	shutil.rmtree('media/rasters/' + city)
+
+	return json.dumps( { 'state': 'succes', 'city': city.to_json() } )
+
+@dajaxice_register
+@checkDebug
+def updateCity(request, pk, name, public=None):
+	try:
+		city = City.objects.get(name=name, owner=request.user.username)
+		return json.dumps( { 'state': 'error', 'message': 'The city named ' + name + ' already exists.' } )
+	except Exception:
+		pass
+
+	try:
+		city = City.objects.get(pk=pk, owner=request.user.username)
+		city.name = name
+		if public:
+			city.public = public
+		city.save()
+	except City.DoesNotExist:
+		return json.dumps( { 'state': 'error', 'message': 'The city with id ' + pk + ' for user ' + request.user.username + ' does not exist.' } )
+
+	return json.dumps( { 'state': 'succes', 'city': city.to_json() } )
+
+@dajaxice_register
+@checkDebug
+def loadCities(request):
+	userCities = City.objects(owner=request.user.username)
+	publicCities = City.objects(public=True)
+	return json.dumps( { 'userCities': userCities.to_json(), 'publicCities': publicCities.to_json() } )
+
+@dajaxice_register
+@checkDebug
+def loadCity(request, pk):
+	try:
+		city = City.objects.get(pk=pk, owner=request.user.username)
+	except City.DoesNotExist:
+		return json.dumps( { 'state': 'error', 'message': 'The city with id ' + pk + ' for user ' + request.user.username + ' does not exist.' } )
+	return json.dumps( { 'state': 'succes', 'city': city.to_json() } )
+
+def getCity(request, cityObject=None):
+	if not cityObject or not ('name' in cityObject and 'owner' in cityObject) or (cityObject['name'] == '' or cityObject['owner'] == ''):
+		city = romanescoCity
+	else:
+		try:
+			city = City.objects.get(name=cityObject['name'], owner=cityObject['owner'])
+			if not city.public and request.user.username != city.owner:
+				return None
+		except City.DoesNotExist:
+			return None
+	return str(city.pk)
+
+@dajaxice_register
+@checkDebug
+def load(request, rectangle, areasToLoad, qZoom, city=None):
 
 	items = {}
 
 	start = time.time()
 
 	models = ['Path', 'Div', 'Box', 'AreaToUpdate']
+
+	city = getCity(request, city)
+	if not city:
+		return json.dumps( { 'state': 'error', 'message': 'The city does not exist.' } )
 
 	for area in areasToLoad:
 
@@ -252,7 +345,7 @@ def load(request, rectangle, areasToLoad, qZoom):
 		geometry = makeBox(tlX, tlY, tlX+qZoom, tlY+qZoom)
 
 		for model in models:
-			itemsQuerySet = globals()[model].objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+			itemsQuerySet = globals()[model].objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
 
 			for item in itemsQuerySet:
 				if not item.pk in items:
@@ -298,13 +391,13 @@ def load(request, rectangle, areasToLoad, qZoom):
 
 			if qZoom < 5:
 				position = { 'x': x1, 'y': y1 }
-				rasterPath = 'media/rasters/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
+				rasterPath = 'media/rasters/' + city + '/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
 			elif qZoom < 25:
 				position = { 'x': x5, 'y': y5 }
-				rasterPath = 'media/rasters/zoom20/' + str(x25) + ',' + str(y25) + '/'
+				rasterPath = 'media/rasters/' + city + '/zoom20/' + str(x25) + ',' + str(y25) + '/'
 			else:
 				position = { 'x': x25, 'y': y25 }
-				rasterPath = 'media/rasters/zoom4/'
+				rasterPath = 'media/rasters/' + city + '/zoom4/'
 
 			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
 
@@ -323,14 +416,19 @@ def load(request, rectangle, areasToLoad, qZoom):
 	# return json.dumps( { 'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user, 'rasters': rasters, 'areasToUpdate': areas, 'zoom': zoom } )
 	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'qZoom': qZoom } )
 
-
 @dajaxice_register
 @checkDebug
-def loadRasterizer(request, areasToLoad, itemsDates):
+def loadRasterizer(request, areasToLoad, itemsDates, cityPk=None):
 
 	items = {}
 
 	start = time.time()
+
+	try:
+		c = City.objects.get(pk=cityPk)
+		city = str(c.pk)
+	except City.DoesNotExist:
+		return json.dumps( { 'status': 'error', 'message': 'City ' + cityPk + ' does not exist.' } )
 
 	models = ['Path', 'Box']
 
@@ -346,7 +444,7 @@ def loadRasterizer(request, areasToLoad, itemsDates):
 		# geometry = makeBox(tlX, tlY, tlX+0.2, tlY+0.2)
 
 		for model in models:
-			itemsQuerySet = globals()[model].objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+			itemsQuerySet = globals()[model].objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
 
 			for item in itemsQuerySet:
 				pk = str(item.pk)
@@ -621,14 +719,18 @@ def getAreas(bounds):
 
 @dajaxice_register
 @checkDebug
-def savePath(request, points, object_type, box, date, data=None):
+def savePath(request, points, object_type, box, date, data=None, city=None):
 # def savePath(request, points, pID, planet, object_type, data=None, rasterData=None, rasterPosition=None, areasNotRasterized=None):
+
+	city = getCity(request, city)
+	if not city:
+		return json.dumps( { 'state': 'error', 'message': 'The city does not exist.' } )
 
 	boxPoints = box['points']
 	planetX = box['planet']['x']
 	planetY = box['planet']['y']
 
-	lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) # , owner__ne=request.user.username )
+	lockedAreas = Box.objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) # , owner__ne=request.user.username )
 	lock = None
 	for area in lockedAreas:
 		if area.owner == request.user.username:
@@ -645,10 +747,10 @@ def savePath(request, points, object_type, box, date, data=None):
 
 	boxGeometry = makeBox(boxPoints[0][0], boxPoints[0][1], boxPoints[2][0], boxPoints[2][1])
 
-	p = Path(planetX=planetX, planetY=planetY, box=boxGeometry, points=points, owner=request.user.username, object_type=object_type, data=data, date=datetime.datetime.fromtimestamp(date/1000.0), lock=lock )
+	p = Path(city=city, planetX=planetX, planetY=planetY, box=boxGeometry, points=points, owner=request.user.username, object_type=object_type, data=data, date=datetime.datetime.fromtimestamp(date/1000.0), lock=lock )
 	p.save()
 
-	addAreaToUpdate( boxPoints, planetX, planetY )
+	addAreaToUpdate( boxPoints, planetX, planetY, city )
 
 	# addAreas(bounds, p)
 
@@ -673,11 +775,12 @@ def updatePath(request, pk, points=None, box=None, data=None, date=None):
 		return json.dumps( { 'state': 'error', 'message': 'Modifying points without box or box without points' } )
 
 	if points and box:
+
 		boxPoints = box['points']
 		planetX = box['planet']['x']
 		planetY = box['planet']['y']
 
-		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) #, owner__ne=request.user.username )
+		lockedAreas = Box.objects(city=p.city, planetX=planetX, planetY=planetY, box__geo_intersects={"type": "LineString", "coordinates": points }) #, owner__ne=request.user.username )
 		p.lock = None
 		p.owner = None
 
@@ -688,14 +791,14 @@ def updatePath(request, pk, points=None, box=None, data=None, date=None):
 			else:
 				return json.dumps( {'state': 'error', 'message': 'Your path intersects with a locked area which you do not own'} )
 
-		addAreaToUpdate( p.box['coordinates'][0], p.planetX, p.planetY )
+		addAreaToUpdate( p.box['coordinates'][0], p.planetX, p.planetY, p.city )
 
 		p.box = [boxPoints]
 		p.planetX = planetX
 		p.planetY = planetY
 		p.points = points
 
-		addAreaToUpdate( boxPoints, planetX, planetY )
+		addAreaToUpdate( boxPoints, planetX, planetY, p.city )
 	if data:
 		p.data = data
 	if date:
@@ -719,7 +822,7 @@ def deletePath(request, pk):
 	if p.lock and request.user.username != p.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of path'})
 
-	addAreaToUpdate( p.box['coordinates'][0], p.planetX, p.planetY )
+	addAreaToUpdate( p.box['coordinates'][0], p.planetX, p.planetY, p.city )
 
 	p.delete()
 
@@ -727,9 +830,13 @@ def deletePath(request, pk):
 
 @dajaxice_register
 @checkDebug
-def saveBox(request, box, object_type, data=None, siteData=None, name=None):
+def saveBox(request, box, object_type, data=None, siteData=None, name=None, city=None):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
+
+	city = getCity(request, city)
+	if not city:
+		return json.dumps( { 'state': 'error', 'message': 'The city does not exist.' } )
 
 	points = box['points']
 	planetX = box['planet']['x']
@@ -737,7 +844,7 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 
 	# check if the box intersects with another one
 	geometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
-	lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry, owner__ne=request.user.username )
+	lockedAreas = Box.objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects=geometry, owner__ne=request.user.username )
 	if lockedAreas.count()>0:
 		return json.dumps( {'state': 'error', 'message': 'This area intersects with another locked area'} )
 
@@ -746,9 +853,9 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 	# todo: warning: website is not defined in Box model...
 	try:
 		data = json.dumps( { 'loadEntireArea': loadEntireArea } )
-		b = Box(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data) # , website=website
+		b = Box(city=city, planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data) # , website=website
 		b.save()
-		addAreaToUpdate( points, planetX, planetY )
+		addAreaToUpdate( points, planetX, planetY, city )
 	except ValidationError:
 		return json.dumps({'state': 'error', 'message': 'invalid_url'})
 
@@ -763,8 +870,8 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None):
 	# 	path.locked = True
 	# 	path.save()
 
-	Path.objects(planetX=planetX, planetY=planetY, points__geo_within=geometry).update(set__lock=str(b.pk), set__owner=request.user.username)
-	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=geometry).update(set__lock=str(b.pk), set__owner=request.user.username)
+	Path.objects(city=city, planetX=planetX, planetY=planetY, points__geo_within=geometry).update(set__lock=str(b.pk), set__owner=request.user.username)
+	Div.objects(city=city, planetX=planetX, planetY=planetY, box__geo_within=geometry).update(set__lock=str(b.pk), set__owner=request.user.username)
 
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(b.pk), 'box':box } )
 
@@ -774,7 +881,13 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None, modu
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
 
+	try:
+		b = Box.objects.get(pk=pk, owner=request.user.username)
+	except Box.DoesNotExist:
+		return json.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
+
 	if box:
+
 		points = box['points']
 		planetX = box['planet']['x']
 		planetY = box['planet']['y']
@@ -782,14 +895,10 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None, modu
 		geometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
 
 		# check if new box intersects with another one
-		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry, owner__ne=request.user.username )
+		lockedAreas = Box.objects(city=b.city, planetX=planetX, planetY=planetY, box__geo_intersects=geometry, owner__ne=request.user.username )
 		if lockedAreas.count()>0:
 			return json.dumps( {'state': 'error', 'message': 'This area intersects with a locked area'} )
 
-	try:
-		b = Box.objects.get(pk=pk, owner=request.user.username)
-	except Box.DoesNotExist:
-		return json.dumps({'state': 'error', 'message': 'Element does not exist for this user'})
 
 	# if box and updateType=='position':
 	# 	newPoints = box['points']
@@ -831,11 +940,11 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None, modu
 
 	# update the box:
 	if box:
-		addAreaToUpdate( b.box['coordinates'][0], b.planetX, b.planetY )
+		addAreaToUpdate( b.box['coordinates'][0], b.planetX, b.planetY, b.city )
 		b.box = [points]
 		b.planetX = planetX
 		b.planetY = planetY
-		addAreaToUpdate( points, planetX, planetY )
+		addAreaToUpdate( points, planetX, planetY, city )
 	if data:
 		b.data = data
 	if modulePk:
@@ -898,27 +1007,31 @@ def deleteBox(request, pk):
 	planetY = b.planetY
 	oldGeometry = makeBox(points[0][0], points[0][1], points[2][0], points[2][1])
 
-	Path.objects(planetX=planetX, planetY=planetY, points__geo_within=oldGeometry).update(set__lock=None)
-	Div.objects(planetX=planetX, planetY=planetY, box__geo_within=oldGeometry).update(set__lock=None)
+	Path.objects(city=b.city, planetX=planetX, planetY=planetY, points__geo_within=oldGeometry).update(set__lock=None)
+	Div.objects(city=b.city, planetX=planetX, planetY=planetY, box__geo_within=oldGeometry).update(set__lock=None)
 
 	if request.user.username != b.owner:
 		return json.dumps({'state': 'error', 'message': 'Not owner of div'})
 
 	# deleteAreas(b)
-	addAreaToUpdate( points, planetX, planetY )
+	addAreaToUpdate( points, planetX, planetY, b.city )
 	b.delete()
 
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
 @dajaxice_register
 @checkDebug
-def saveDiv(request, box, object_type, date=None, data=None, lock=None):
+def saveDiv(request, box, object_type, date=None, data=None, lock=None, city=None):
 
 	points = box['points']
 	planetX = box['planet']['x']
 	planetY = box['planet']['y']
 
-	lockedAreas = Box.objects( planetX=planetX, planetY=planetY, box__geo_intersects=makeBox(points[0][0], points[0][1], points[2][0], points[2][1]) ) # , owner__ne=request.user.username )
+	city = getCity(request, city)
+	if not city:
+		return json.dumps( { 'status': 'error', 'message': 'The city does not exist.' } )
+
+	lockedAreas = Box.objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects=makeBox(points[0][0], points[0][1], points[2][0], points[2][1]) ) # , owner__ne=request.user.username )
 	lock = None
 	for area in lockedAreas:
 		if area.owner == request.user.username:
@@ -929,7 +1042,7 @@ def saveDiv(request, box, object_type, date=None, data=None, lock=None):
 	# if lockedAreas.count()>0:
 	# 	return json.dumps( {'state': 'error', 'message': 'Your div intersects with a locked area'} )
 
-	d = Div(planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data, lock=lock, date=datetime.datetime.fromtimestamp(date/1000.0))
+	d = Div(city=city, planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data, lock=lock, date=datetime.datetime.fromtimestamp(date/1000.0))
 	# addAreaToUpdate( points, planetX, planetY )
 	d.save()
 
@@ -952,7 +1065,7 @@ def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, loc
 		planetX = box['planet']['x']
 		planetY = box['planet']['y']
 
-		lockedAreas = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=makeBox(points[0][0], points[0][1], points[2][0], points[2][1]) ) # , owner__ne=request.user.username )
+		lockedAreas = Box.objects(city=d.city, planetX=planetX, planetY=planetY, box__geo_intersects=makeBox(points[0][0], points[0][1], points[2][0], points[2][1]) ) # , owner__ne=request.user.username )
 		d.lock = None
 		d.owner = None
 		for area in lockedAreas:
@@ -1002,14 +1115,14 @@ def deleteDiv(request, pk):
 
 # --- rasters --- #
 
-def addAreaToUpdate(points, planetX, planetY):
+def addAreaToUpdate(points, planetX, planetY, city):
 
 	# merge all overlapping areas into one (and delete them)
 	print '<<<'
 	print 'start merging all regions overlapping with the new area to update: '
 	print 'points: ' + str(points)
 
-	overlappingAreas = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=[points])
+	overlappingAreas = AreaToUpdate.objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects=[points])
 
 	xMin = points[0][0]
 	xMax = points[2][0]
@@ -1062,9 +1175,9 @@ def addAreaToUpdate(points, planetX, planetY):
 			print '...finished deleting overlapping area: ' + str(overlappingArea.pk)
 
 		points = [ [xMin, yMin], [xMax, yMin], [xMax, yMax], [xMin, yMax], [xMin, yMin] ]
-		overlappingAreas = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=[points])
+		overlappingAreas = AreaToUpdate.objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects=[points])
 
-	areaToUpdate = AreaToUpdate(planetX=planetX, planetY=planetY, box=[points])
+	areaToUpdate = AreaToUpdate(city=city, planetX=planetX, planetY=planetY, box=[points])
 	areaToUpdate.save()
 
 	return
@@ -2017,7 +2130,7 @@ def getModuleSource(request, name=None, pk=None):
 @dajaxice_register
 @checkDebug
 def getWaitingModules(request):
-	if not (request.user.username == 'arthur.sw' or request.user.username == 'arthur'):
+	if not request.user.admin:
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting modules.' } )
 
 	latestModules = []
@@ -2071,7 +2184,7 @@ def getWaitingModules(request):
 @dajaxice_register
 @checkDebug
 def acceptModule(request, name, repoName, source, compiledSource, description=None, owner=None, githubURL=None, iconURL=None):
-	if not (request.user.username == 'arthur.sw' or request.user.username == 'arthur'):
+	if not request.user.admin:
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting modules.' } )
 
 	try:

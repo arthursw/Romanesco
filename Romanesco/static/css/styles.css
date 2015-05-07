@@ -859,6 +859,15 @@ li.tool-btn.selected .favorite-btn {
   height: 30px;
   margin-right: 0px;
 }
+.sidebar ul.tool-list li.tool-btn span.glyphicon,
+.sidebar ul.tool-list ul li span.glyphicon {
+  width: 30px;
+  height: 30px;
+  font-size: 25px;
+  text-align: center;
+  justify-content: center;
+  line-height: 25px;
+}
 .sidebar ul.tool-list li.tool-btn:hover,
 .sidebar ul.tool-list ul li:hover {
   background-color: #6f5499;

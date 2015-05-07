@@ -510,7 +510,7 @@
         this.updateSelectionRectangle(true);
         g.selectedItems.push(this);
         g.updateParametersForSelectedItems();
-        g.rasterizer.rasterize(this, true);
+        g.rasterizer.selectItem(this);
         this.zindex = this.group.index;
         g.selectionLayer.addChild(this.group);
         return true;
@@ -528,7 +528,7 @@
         g.selectedItems.remove(this);
         g.updateParametersForSelectedItems();
         if (this.group != null) {
-          g.rasterizer.rasterize(this);
+          g.rasterizer.deselectItem(this);
           if (!this.lock) {
             g.mainLayer.insertChild(this.zindex, this.group);
           } else {

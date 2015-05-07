@@ -680,7 +680,10 @@ define [
 	# set *g.ignoreHashChange* flag to ignore this change in *window.onhashchange* callback
 	g.updateHash = ()->
 		g.ignoreHashChange = true
-		location.hash = '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)
+		prefix = ''
+		if g.city.owner? and g.city.name? and g.city.owner != 'RomanescoOrg' and g.city.name != 'Romanesco'
+			prefix = g.city.owner + '/' + g.city.name + '/'
+		location.hash = prefix + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2)
 		return
 
 	# Update hash (the string after '#' in the url bar) according to the location of the (center of the) view
@@ -689,10 +692,21 @@ define [
 		if g.ignoreHashChange
 			g.ignoreHashChange = false
 			return
-		pos = location.hash.substr(1).split(',')
+
 		p = new Point()
+
+		fields = location.hash.substr(1).split('/')
+
+		if fields.length>=3
+			owner = fields[0]
+			name = fields[1]
+			if g.city.name != name or g.city.owner != owner
+				g.loadCity(name, owner)
+
+		pos = fields.last().split(',')
 		p.x = parseFloat(pos[0])
 		p.y = parseFloat(pos[1])
+
 		if not p.x then p.x = 0
 		if not p.y then p.y = 0
 		g.RMoveTo(p)
@@ -1236,22 +1250,6 @@ define [
 					return controller
 		return
 
-	g.hideCanvas = ()->
-		g.canvasJ.css opacity: 0
-		return
-
-	g.showCanvas = ()->
-		g.canvasJ.css opacity: 1
-		return
-
-	g.hideRasters = ()->
-		$("#rasters").css opacity: 0
-		return
-
-	g.showRasters = ()->
-		$("#rasters").css opacity: 1
-		return
-
 	g.logStack = ()->
 		caller = arguments.callee.caller
 		while caller?
@@ -1308,7 +1306,7 @@ define [
 
 	g.createToolButton = (name, iconURL, favorite, category=null, parentJ)->
 		parentJ ?= g.allToolsJ
-		if category?
+		if category? and category != ""
 			# split into sub categories
 			categories = category.split("/")
 

@@ -135,13 +135,14 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 
 	g.initializeModules = (moduleValues) ->
 
-		g.allModulesJ = g.allToolsContainerJ.find(".all-tool-list")
-		searchToolsJ = $(".search-tools")
-		g.searchModuleInputJ = searchToolsJ.find("input.search-tool")
-		g.searchModuleInputJ.keyup(g.getSuggestions)
+		if not g.rasterizerMode
+			g.allModulesJ = g.allToolsContainerJ.find(".all-tool-list")
+			searchToolsJ = $(".search-tools")
+			g.searchModuleInputJ = searchToolsJ.find("input.search-tool")
+			g.searchModuleInputJ.keyup(g.getSuggestions)
 
-		g.searchModuleBtnJ = searchToolsJ.find(".search button")
-		g.searchModuleBtnJ.click(g.createToolModal)
+			g.searchModuleBtnJ = searchToolsJ.find(".open-modal")
+			g.searchModuleBtnJ.click(g.createToolModal)
 
 
 		# get custom modules from the database, and initialize them
@@ -150,9 +151,10 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 			modules = JSON.parse(result.modules)
 
 			for module, i in modules
-				favorite = g.favoriteTools.indexOf(module.name)>=0
-				btnJ = g.createToolButton(module.name, module.iconURL, favorite, module.category)
-				btnJ.click(g.getModule)
+				if not g.rasterizerMode
+					favorite = g.favoriteTools.indexOf(module.name)>=0
+					btnJ = g.createToolButton(module.name, module.iconURL, favorite, module.category)
+					btnJ.click(g.getModule)
 				g.modules[module.name] = module
 
 			moduleValues = []
@@ -160,7 +162,9 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 				moduleValues.push(value: name, iconURL: module.iconURL)
 				if module.category?
 					moduleValues.push(value: module.category)
-			initModuleTypeahead(moduleValues)
+
+			if not g.rasterizerMode
+				initModuleTypeahead(moduleValues)
 			return
 
 		return

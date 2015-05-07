@@ -385,17 +385,30 @@
       return somethingToLoad;
     };
     g.updateHash = function() {
+      var prefix;
       g.ignoreHashChange = true;
-      location.hash = '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2);
+      prefix = '';
+      if ((g.city.owner != null) && (g.city.name != null) && g.city.owner !== 'RomanescoOrg' && g.city.name !== 'Romanesco') {
+        prefix = g.city.owner + '/' + g.city.name + '/';
+      }
+      location.hash = prefix + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2);
     };
     window.onhashchange = function(event) {
-      var p, pos;
+      var fields, name, owner, p, pos;
       if (g.ignoreHashChange) {
         g.ignoreHashChange = false;
         return;
       }
-      pos = location.hash.substr(1).split(',');
       p = new Point();
+      fields = location.hash.substr(1).split('/');
+      if (fields.length >= 3) {
+        owner = fields[0];
+        name = fields[1];
+        if (g.city.name !== name || g.city.owner !== owner) {
+          g.loadCity(name, owner);
+        }
+      }
+      pos = fields.last().split(',');
       p.x = parseFloat(pos[0]);
       p.y = parseFloat(pos[1]);
       if (!p.x) {
@@ -859,26 +872,6 @@
         }
       }
     };
-    g.hideCanvas = function() {
-      g.canvasJ.css({
-        opacity: 0
-      });
-    };
-    g.showCanvas = function() {
-      g.canvasJ.css({
-        opacity: 1
-      });
-    };
-    g.hideRasters = function() {
-      $("#rasters").css({
-        opacity: 0
-      });
-    };
-    g.showRasters = function() {
-      $("#rasters").css({
-        opacity: 1
-      });
-    };
     g.logStack = function() {
       var caller;
       caller = arguments.callee.caller;
@@ -952,7 +945,7 @@
       if (parentJ == null) {
         parentJ = g.allToolsJ;
       }
-      if (category != null) {
+      if ((category != null) && category !== "") {
         categories = category.split("/");
         for (_i = 0, _len = categories.length; _i < _len; _i++) {
           category = categories[_i];

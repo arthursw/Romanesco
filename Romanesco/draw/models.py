@@ -20,6 +20,7 @@ from mongoModels import *
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, related_name='profile')
+    admin = models.BooleanField(default=False)
     romanescoins = models.IntegerField(default=0)
 
     def __unicode__(self):

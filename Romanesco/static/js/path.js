@@ -129,6 +129,9 @@
 
       RPath.prototype.getDrawingBounds = function() {
         if (!this.canvasRaster && (this.drawing != null) && this.drawing.strokeBounds.area > 0) {
+          if (this.raster != null) {
+            return this.raster.bounds;
+          }
           return this.drawing.strokeBounds;
         }
         return this.getBounds().expand(this.data.strokeWidth);
@@ -137,6 +140,7 @@
       RPath.prototype.endSetRectangle = function() {
         RPath.__super__.endSetRectangle.call(this);
         this.draw();
+        this.rasterize();
       };
 
       RPath.prototype.setRectangle = function(event, update) {
@@ -213,6 +217,15 @@
 
       RPath.prototype.endAction = function() {
         RPath.__super__.endAction.call(this);
+      };
+
+      RPath.prototype.rasterize = function() {
+        if ((this.raster != null) || (this.drawing == null)) {
+          return;
+        }
+        this.raster = this.drawing.rasterize();
+        this.group.addChild(this.raster);
+        this.drawing.remove();
       };
 
       RPath.prototype.updateSelect = function(event) {
@@ -393,6 +406,7 @@
         }
         g.paths[this.pk != null ? this.pk : this.id] = this;
         args = {
+          city: g.city,
           box: g.boxFromRectangle(this.getDrawingBounds()),
           points: this.pathOnPlanet(),
           data: this.getStringifiedData(),
@@ -625,7 +639,7 @@
       }
 
       PrecisePath.prototype.loadPath = function(points) {
-        var distanceMax, flattenedPath, i, index, point, recordedPoint, resultingPoint, time, _i, _j, _len, _ref, _ref1;
+        var distanceMax, flattenedPath, i, index, point, recordedPoint, resultingPoint, time, _i, _j, _len, _ref;
         this.initializeControlPath(g.posOnPlanetToProject(this.data.points[0], this.data.planet));
         _ref = this.data.points;
         for (i = _i = 0, _len = _ref.length; _i < _len; i = _i += 4) {
@@ -641,9 +655,7 @@
           this.controlPath.add(points[1]);
         }
         this.finish(true);
-        if (((_ref1 = this.data) != null ? _ref1.animate : void 0) || g.selectedToolNeedsDrawings()) {
-          this.draw();
-        }
+        g.rasterizer.loadItem(this);
         time = Date.now();
         flattenedPath = this.controlPath.copyTo(project);
         flattenedPath.flatten(this.constructor.secureStep);
@@ -1315,6 +1327,7 @@
           this.controlPath.smooth();
         }
         this.draw();
+        this.rasterize();
         this.selectionHighlight.bringToFront();
         this.update('points');
       };
@@ -1426,7 +1439,7 @@
         parameters['Edit curve'].showSpeed = {
           type: 'checkbox',
           label: 'Show speed',
-          value: true
+          value: false
         };
         if (g.wacomPenAPI != null) {
           parameters['Edit curve'].usePenPressure = {
@@ -1824,6 +1837,7 @@
       SpeedPath.prototype.endModifySpeed = function() {
         var _ref;
         this.draw();
+        this.rasterize();
         this.update('speed');
         if ((_ref = this.speedSelectionHighlight) != null) {
           _ref.remove();
@@ -2952,7 +2966,7 @@
       };
 
       RShape.prototype.loadPath = function(points) {
-        var distanceMax, i, point, _i, _len, _ref;
+        var distanceMax, i, point, _i, _len;
         if (this.data.rectangle == null) {
           console.log('Error loading shape ' + this.pk + ': invalid rectangle.');
         }
@@ -2960,9 +2974,7 @@
         this.initializeControlPath();
         this.controlPath.rotation = this.rotation;
         this.initialize();
-        if (((_ref = this.data) != null ? _ref.animate : void 0) || g.selectedToolNeedsDrawings()) {
-          this.draw();
-        }
+        g.rasterizer.loadItem(this);
         distanceMax = this.constructor.secureDistance * this.constructor.secureDistance;
         for (i = _i = 0, _len = points.length; _i < _len; i = ++_i) {
           point = points[i];

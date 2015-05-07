@@ -21,6 +21,15 @@ define [
 	# 			return true
 	# 	return false
 
+	g.unload = () ->
+		g.loadedAreas = []
+		for own pk, item of g.items
+			item.remove()
+		g.items = {}
+		g.rasterizer.clearRasters()
+		g.previousLoadPosition = null
+		return
+
 	# load an area from the server
 	# the project coordinate system is divided into square cells of size *g.scale*
 	# an Area is an object { pos: Point, planet: Point } corresponding to a cell (pos is the top left corner of the cell, the server consider the cells to be 1 unit wide (1000 pixels))
@@ -34,7 +43,6 @@ define [
 	# @param [Rectangle] (optional) the area to load, *area* equals the bounds of the view if not defined
 	g.load = (area=null) ->
 
-
 		if not g.rasterizerMode and g.previousLoadPosition?
 			if g.previousLoadPosition.position.subtract(view.center).length<50
 				if Math.abs(1-g.previousLoadPosition.zoom/view.zoom)<0.2
@@ -46,7 +54,6 @@ define [
 		# g.startLoadingBar()
 
 		debug = false
-
 
 		g.previousLoadPosition = position: view.center, zoom: view.zoom
 
@@ -224,33 +231,32 @@ define [
 				return
 			g.loadingBarTimeout = setTimeout(showLoadingBar , 0)
 
-
 		if not g.rasterizerMode
 			rectangle = { left: l / 1000.0, top: t / 1000.0, right: r / 1000.0, bottom: b / 1000.0 }
-			Dajaxice.draw.load(loadCallback, { rectangle: rectangle, areasToLoad: areasToLoad, qZoom: qZoom })
+			Dajaxice.draw.load(loadCallback, { rectangle: rectangle, areasToLoad: areasToLoad, qZoom: qZoom, city: g.city })
 		else
 			itemsDates = g.createItemsDates(bounds)
 			console.log 'itemsDates'
 			console.log itemsDates
-			Dajaxice.draw.loadRasterizer(loadCallback, { areasToLoad: areasToLoad, itemsDates: itemsDates })
+			Dajaxice.draw.loadRasterizer(loadCallback, { areasToLoad: areasToLoad, itemsDates: itemsDates, cityPk: g.city })
 		# ajaxPost '/load', args, loadCallback
 		return true
+
+	g.dispatchLoadFinished = ()->
+		console.log "dispatch command executed"
+		commandEvent = document.createEvent('Event')
+		commandEvent .initEvent('command executed', true, true)
+		document.dispatchEvent(commandEvent)
+		return
 
 	# load callback: add loaded RItems
 	loadCallback = (results)->
 		console.log "load callback"
 
-		dispatchLoadFinished = ()->
-			console.log "dispatch command executed"
-			commandEvent = document.createEvent('Event')
-			commandEvent .initEvent('command executed', true, true)
-			document.dispatchEvent(commandEvent)
-			return
-
-		g.checkError(results)
+		if not g.checkError(results) then return
 
 		if results.hasOwnProperty('message') && results.message == 'no_paths'
-			dispatchLoadFinished()
+			g.dispatchLoadFinished()
 			return
 
 		# set g.me (the server sends the username at each load)
@@ -406,7 +412,7 @@ define [
 			g.loadingBarTimeout = null
 			$("#loadingBar").hide()
 
-			dispatchLoadFinished()
+			g.dispatchLoadFinished()
 
 		if typeof window.saveOnServer == "function"
 			console.log "rasterizeAndSaveOnServer"

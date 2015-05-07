@@ -247,6 +247,7 @@ define [
 				loadEntireArea: data.loadEntireArea
 
 			args =
+				city: city: g.city
 				box: g.boxFromRectangle(@rectangle)
 				object_type: @constructor.object_type
 				data: JSON.stringify(data)

@@ -4,15 +4,88 @@ define [
 
 	g = utils.g()
 
-	class Rasterizer
+	#  values: ['one raster per shape', 'paper.js only', 'tiled canvas', 'hide inactives', 'single canvas']
 
+	class Rasterizer
+		@TYPE = 'paper'
 		@MAX_AREA = 1.5
 		@UNION_RATIO = 1.5
 
 		constructor:()->
+			g.rasterizers[@constructor.TYPE] = @
+			return
+
+		rasterize: (items, excludeItems)->
+			return
+
+		unload: (limit)->
+			return
+
+		load: (rasters, qZoom)->
+			return
+
+		move: ()->
+			return
+
+		loadItem: (item)->
+			item.draw()
+			return
+
+		selectItem: (item)->
+			return
+
+		deselectItem: (item)->
+			return
+
+		rasterizeRectangle: (rectangle)->
+			return
+
+		addAreaToUpdate: (area)->
+			return
+
+		setQZoomToUpdate: (qZoom)->
+			return
+
+		rasterizeAreasToUpdate: ()->
+			return
+
+		maxArea: ()->
+			return view.bounds.area * @constructor.MAX_AREA
+
+		rasterizeView: ()->
+			return
+
+		disableRasterization: ()->
+			return
+
+		enableRasterization: ()->
+			return
+
+		clearRasters: ()->
+			return
+
+		drawItems: (showPath=false)->
+			return
+
+		rasterizeItems: ()->
+			@disableRasterization()
+
+			for pk, item of g.items
+				item.rasterize?()
+
+			return
+
+	g.Rasterizer = Rasterizer
+
+	class TileRasterizer extends g.Rasterizer
+
+		@TYPE = 'tile'
+
+		constructor: ()->
+			super()
 			@itemsToExclude = []
-			@areaToRasterize = null
-			@areasToUpdate = []
+			@areaToRasterize = null 	# areas to rasterize on the client (when user modifies an item)
+			@areasToUpdate = [] 		# areas to update stored in server (areas not yet rasterized by the server rasterizer)
 
 			@rasters = {}
 
@@ -27,6 +100,19 @@ define [
 					@createUpdateRaster(x, y, zoom)
 
 			@move()
+			return
+
+		loadItem: (item)->
+			if item.data?.animate or g.selectedToolNeedsDrawings()	# only draw if animated thanks to rasterization
+				item.draw()
+			return
+
+		selectItem: (item)->
+			@rasterize(item, true)
+			return
+
+		deselectItem: (item)->
+			@rasterize(item)
 			return
 
 		quantizeBounds: (bounds=view.bounds, scale=g.scale)->
@@ -134,6 +220,8 @@ define [
 
 		splitAreaToRasterize: ()->
 			maxSize = view.size.multiply(2)
+
+			areaToRasterizeInteger = g.expandRectangleToInteger(@areaToRasterize)
 			area = g.expandRectangleToInteger(new Rectangle(@areaToRasterize.topLeft, Size.min(maxSize, @areaToRasterize.size)))
 			areas = [area.clone()]
 
@@ -141,8 +229,10 @@ define [
 				if area.right < @areaToRasterize.right
 					area.x += maxSize.width
 				else
+					area.x = areaToRasterizeInteger.left
 					area.y += maxSize.height
-				areas.push(area.clone())
+
+				areas.push(area.intersect(areaToRasterizeInteger))
 
 			return areas
 
@@ -214,9 +304,14 @@ define [
 
 			g.grid.visible = false
 			g.selectionLayer.visible = false
+			g.carLayer.visible = false
+			viewOnFrame = view.onFrame
+			view.onFrame = null
 
 			@rasterizeAreas(areas)
 
+			view.onFrame = viewOnFrame
+			g.carLayer.visible = true
 			g.selectionLayer.visible = true
 			g.grid.visible = true
 
@@ -294,6 +389,24 @@ define [
 			view.zoom = previousZoom
 			return
 
+		clearRasters: ()->
+			for x, rasterColumn of @rasters
+				for y, raster of rasterColumn
+					raster.context.clearRect(0, 0, g.scale, g.scale)
+			return
+
+		drawItems: (showPath=false)->
+			if @rasterizationDisabled then return
+
+			for pk, item of g.items
+				if not item.drawing? then item.draw?()
+				item.group.visible = showPath or item.selectionRectangle?
+			return
+
+		rasterizeView: ()->
+			@rasterizeRectangle(view.bounds)
+			return
+
 		# rasterizeItem: (item)->
 		# 	if item.getDrawingBounds().area > @maxArea()
 		# 		return
@@ -306,49 +419,86 @@ define [
 		# 	item.selectionRectangle?.visible = true
 		# 	return
 
-		maxArea: ()->
-			return view.bounds.area * @constructor.MAX_AREA
 
-		drawItems: (showPath=false)->
-			if @rasterizationDisabled then return
+		# disableRasterization: ()->
+		# 	@drawItems(true)
+		# 	g.hideRasters()
+		# 	@previousFunctions = {}
+		# 	for name, property of @
+		# 		if typeof(property) == 'function' and name != 'enableRasterization'
+		# 			@previousFunctions[name] = property
+		# 			@[name] = ()-> return
+		# 	return
 
-			for pk, item of g.items
-				if not item.drawing? then item.draw?()
-				item.group.visible = showPath or item.selectionRectangle?
+		# enableRasterization: ()->
+		# 	for name, property of @previousFunction
+		# 		if typeof(property) == 'function'
+		# 			@[name] = @previousFunction[name]
+
+		# 	delete @previousFunctions
+
+		# 	g.showRasters()
+		# 	@clearRasters()
+		# 	@rasterizeView()
+		# 	return
+
+
+	g.TileRasterizer = TileRasterizer
+
+	class FastTileRasterizer extends g.TileRasterizer
+
+		@TYPE = 'fast tile'
+
+		constructor:()->
+			super()
 			return
 
-		clearRasters: ()->
-			for x, rasterColumn of @rasters
-				for y, raster of rasterColumn
-					raster.context.clearRect(0, 0, g.scale, g.scale)
+		loadItem: (item)->
+			super(item)
+			item.rasterize()
 			return
 
-		rasterizeView: ()->
-			@rasterizeRectangle(view.bounds)
+		selectItem: (item)->
+			super(item)
 			return
 
-		disableRasterization: ()->
-			@drawItems(true)
-			g.hideRasters()
-			@previousFunctions = {}
-			for name, property of @
-				if typeof(property) == 'function' and name != 'enableRasterization'
-					@previousFunctions[name] = property
-					@[name] = ()-> return
+		deselectItem: (item)->
+			item.rasterize()
+			super(item)
 			return
 
-		enableRasterization: ()->
-			for name, property of @previousFunction
-				if typeof(property) == 'function'
-					@[name] = @previousFunction[name]
+	g.FastTileRasterizer = FastTileRasterizer
 
-			delete @previousFunctions
+	g.initializeRasterizers = ()->
+		g.rasterizers = {}
+		new Rasterizer()
+		new TileRasterizer()
+		new FastTileRasterizer()
 
-			g.showRasters()
-			@clearRasters()
-			@rasterizeView()
-			return
+		g.rasterizer = g.rasterizers[g.parameters.renderingMode.renderingMode]
+		return
 
-	g.Rasterizer = Rasterizer
+	g.setRasterizerType = (type)->
+		g.unload()
+		g.rasterizer = g.rasterizers[type]
+		g.load()
+		return
+
+	g.hideCanvas = ()->
+		g.canvasJ.css opacity: 0
+		return
+
+	g.showCanvas = ()->
+		g.canvasJ.css opacity: 1
+		return
+
+	g.hideRasters = ()->
+		$("#rasters").css opacity: 0
+		return
+
+	g.showRasters = ()->
+		$("#rasters").css opacity: 1
+		return
+
 
 	return

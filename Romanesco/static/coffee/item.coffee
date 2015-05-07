@@ -438,7 +438,8 @@ define [
 			@updateSelectionRectangle(true)
 			g.selectedItems.push(@)
 			g.updateParametersForSelectedItems()
-			g.rasterizer.rasterize(@, true)
+
+			g.rasterizer.selectItem(@)
 
 			@zindex = @group.index
 			g.selectionLayer.addChild(@group)
@@ -455,7 +456,8 @@ define [
 
 			if @group? 	# @group is null when item is removed (called from @remove())
 
-				g.rasterizer.rasterize(@)
+				g.rasterizer.deselectItem(@)
+				# g.rasterizer.rasterize(@)
 
 				if not @lock
 					g.mainLayer.insertChild(@zindex, @group)

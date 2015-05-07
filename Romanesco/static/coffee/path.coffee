@@ -141,12 +141,26 @@ define [
 		# return [Rectangle] the bounds of the drawing group
 		getDrawingBounds: ()->
 			if not @canvasRaster and @drawing? and @drawing.strokeBounds.area>0
+				if @raster?
+					return @raster.bounds
 				return @drawing.strokeBounds
 			return @getBounds().expand(@data.strokeWidth)
+
+		# updateMove: (event)->
+		# 	if @drawing?
+		# 		@drawing.remove()
+		# 	super(event)
+		# 	return
+
+		# endMove: (update)->
+		# 	super(update)
+		# 	@group.addChild(@drawing)
+		# 	return
 
 		endSetRectangle: ()->
 			super()
 			@draw()
+			@rasterize()
 			return
 
 		setRectangle: (event, update)->
@@ -228,12 +242,13 @@ define [
 
 		# called when user deselects, after a not simplified draw or once the user finished creating the path
 		# this is suppose to convert all the group to a raster to speed up paper.js operations, but it does not drastically improve speed, so it is just commented out
-		# rasterize: ()->
-		# 	# if @raster? or not @drawing? then return
-		# 	# @raster = @drawing.rasterize()
-		# 	# @group.addChild(@raster)
-		# 	# @drawing.visible = false
-		# 	returnrasterize
+		rasterize: ()->
+			if @raster? or not @drawing? then return
+			@raster = @drawing.rasterize()
+			@group.addChild(@raster)
+			# @drawing.visible = false
+			@drawing.remove()
+			return
 
 		# common to all RItems
 		# update select action
@@ -256,6 +271,7 @@ define [
 		# @param points [Array of Point] (optional) the points of the controlPath
 		loadPath: (points)->
 			return
+
 		# called when a parameter is changed:
 		# - from user action (parameter.onChange)
 		# @param name [String] the name of the value to change
@@ -360,6 +376,10 @@ define [
 				@context.lineWidth = @data.strokeWidth
 			return
 
+		# finishDrawing: ()->
+		# 	@rasterize()
+		# 	return
+
 		# set animated: push/remove RPath to/from g.animatedItems
 		# @param animated [Boolean] whether to set the path as animated or not animated
 		setAnimated: (animated)->
@@ -451,6 +471,7 @@ define [
 			g.paths[if @pk? then @pk else @id] = @
 
 			args =
+				city: g.city
 				box: g.boxFromRectangle( @getDrawingBounds() )
 				points: @pathOnPlanet()
 				data: @getStringifiedData()
@@ -718,8 +739,7 @@ define [
 
 			@finish(true)
 
-			if @data?.animate or g.selectedToolNeedsDrawings()	# only draw if animated thanks to rasterization
-				@draw()
+			g.rasterizer.loadItem(@)
 
 			time = Date.now()
 
@@ -1369,6 +1389,7 @@ define [
 		endModifyPoint: ()->
 			if @data.smooth then @controlPath.smooth()
 			@draw()
+			@rasterize()
 			@selectionHighlight.bringToFront()
 			@update('points')
 			return
@@ -1454,7 +1475,7 @@ define [
 			parameters['Edit curve'].showSpeed =
 				type: 'checkbox'
 				label: 'Show speed'
-				value: true
+				value: false
 
 			if g.wacomPenAPI?
 				parameters['Edit curve'].usePenPressure =
@@ -1847,6 +1868,7 @@ define [
 
 		endModifySpeed: ()->
 			@draw()
+			@rasterize()
 			@update('speed')
 			@speedSelectionHighlight?.remove()
 			@speedSelectionHighlight = null
@@ -2942,8 +2964,7 @@ define [
 			@controlPath.rotation = @rotation
 			@initialize()
 
-			if @data?.animate or g.selectedToolNeedsDrawings() 	# only draw if animated thanks to rasterization
-				@draw()
+			g.rasterizer.loadItem(@)
 
 			# Check shape validity
 			distanceMax = @constructor.secureDistance*@constructor.secureDistance

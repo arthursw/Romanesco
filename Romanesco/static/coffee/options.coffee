@@ -115,6 +115,16 @@ define [
 			snap: 0
 			permanent: true
 			onChange: ()-> g.updateGrid()
+		g.parameters.renderingMode =
+			type: 'dropdown'
+			label: 'Render mode'
+			values: ['paper', 'tile', 'fast tile']
+			default: 'fast tile'
+			renderingMode: 'fast tile'
+			permanent: true
+			onFinishChange: (value)->
+				g.setRasterizerType(value)
+				return
 		g.parameters.align =
 			type: 'button-group'
 			label: 'Align'
@@ -291,22 +301,20 @@ define [
 				distributeJ = $("#distribute:first")
 				distributeJ.find("button").click ()-> distribute($(this).attr("data-type"))
 				return
+
+		colorName = g.defaultColors.random()
+		colorRGBstring = tinycolor(colorName).toRgbString()
+		g.strokeColor = colorRGBstring
+		g.fillColor = "rgb(255,255,255,255)"
+		g.displayGrid = false
+
 		return
 
 	# Initialize general and default parameters
 	g.initParameters = () ->
 
 		g.optionsJ = $(".option-list")
-		colorName = g.defaultColors.random()
-		colorRGBstring = tinycolor(colorName).toRgbString()
-		g.strokeColor = colorRGBstring
-		g.fillColor = "rgb(255,255,255,255)"
 
-		g.fillShape = false
-		g.strokeWidth = 3
-
-		project.selectedMedias = []
-		g.displayGrid = false
 
 		# --- DAT GUI/ --- #
 
@@ -339,6 +347,10 @@ define [
 		.name(g.parameters.snap.label)
 		.step(g.parameters.snap.step)
 		.onChange(g.parameters.snap.onChange)
+
+		g.generalFolder.add(g.parameters.renderingMode, 'renderingMode', g.parameters.renderingMode.values)
+		.name(g.parameters.renderingMode.label)
+		.onFinishChange(g.parameters.renderingMode.onFinishChange)
 
 		g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement)
 		toggleGuiButtonJ = $(g.gui.domElement).find("button.dat-gui-toggle")
