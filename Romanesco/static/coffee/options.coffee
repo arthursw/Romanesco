@@ -29,6 +29,8 @@ define [
 
 	g.initializeGlobalParameters = ()->
 
+		renderingModeValues = g.parameters.renderingMode.values
+		renderingModeDefault = g.parameters.renderingMode.default
 		g.parameters = {}
 		g.parameters.location =
 			type: 'string'
@@ -118,9 +120,9 @@ define [
 		g.parameters.renderingMode =
 			type: 'dropdown'
 			label: 'Render mode'
-			values: ['paper', 'tile', 'fast tile']
-			default: 'fast tile'
-			renderingMode: 'fast tile'
+			values: renderingModeValues
+			default: renderingModeDefault
+			renderingMode: renderingModeDefault
 			permanent: true
 			onFinishChange: (value)->
 				g.setRasterizerType(value)

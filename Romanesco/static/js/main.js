@@ -432,7 +432,6 @@
       g.grid.name = 'grid group';
       view.zoom = 1;
       g.previousViewPosition = view.center;
-      g.initializeRasterizers();
       Point.prototype.toJSON = function() {
         return {
           x: this.x,
@@ -584,6 +583,7 @@
       };
       xmlhttp.open("GET", url, true);
       xmlhttp.send();
+      g.initializeRasterizers();
       g.initializeGlobalParameters();
       if (!g.rasterizerMode) {
         g.initParameters();

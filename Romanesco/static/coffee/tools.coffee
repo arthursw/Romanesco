@@ -459,10 +459,14 @@ define [
 		begin: (event) ->
 			if event.event.which == 2 then return 		# if the wheel button was clicked: return
 
+			console.log 'begin select'
+			g.logElapsedTime()
+
 			# perform hit test to see if there is any item under the mouse
 			path.prepareHitTest() for name, path of g.paths
 			hitResult = g.project.hitTest(event.point, hitOptions)
 			path.finishHitTest() for name, path of g.paths
+
 
 			if hitResult and hitResult.item.controller? 		# if user hits a path: select it
 				@selectedItem = hitResult.item.controller
@@ -478,6 +482,9 @@ define [
 			else 												# otherwise: remove selection group and create selection rectangle
 				g.deselectAll()
 				@createSelectionRectangle(event)
+
+			g.logElapsedTime()
+
 			return
 
 		# Update selection:
@@ -580,6 +587,9 @@ define [
 				delete g.currentPaths[g.me]
 				for name, item of g.items
 					item.unhighlight()
+
+			console.log 'end select'
+			g.logElapsedTime()
 			return
 
 		# Double click handler: send event to selected RItems
@@ -655,6 +665,7 @@ define [
 		select: ()->
 
 			g.rasterizer.drawItems()
+
 			super(@RPath)
 
 			g.tool.onMouseMove = (event) ->

@@ -514,6 +514,7 @@ define [
 	# all jQuery elements names end with a capital J: elementNameJ
 	init = ()->
 		# g.romanescoURL = 'http://romanesc.co/'
+
 		g.romanescoURL = 'http://localhost:8000/'
 		g.stageJ = $("#stage")
 		g.sidebarJ = $("#sidebar")
@@ -636,8 +637,6 @@ define [
 		g.grid.name = 'grid group'
 		view.zoom = 1 # 0.01
 		g.previousViewPosition = view.center
-
-		g.initializeRasterizers()
 
 		# add custom methods to export Paper Point and Rectangle to JSON
 		Point.prototype.toJSON = ()->
@@ -838,6 +837,7 @@ define [
 		# 	console.log "always"
 		# 	return
 
+		g.initializeRasterizers()
 		g.initializeGlobalParameters()
 
 		if not g.rasterizerMode

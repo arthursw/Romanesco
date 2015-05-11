@@ -999,6 +999,20 @@
       }
       return btnJ;
     };
+    g.startTime = Date.now();
+    g.logElapsedTime = function() {
+      var time;
+      time = (Date.now() - g.startTime) / 1000;
+      console.log("Time elapsed: " + time + " sec.");
+    };
+    g.startTimer = function() {
+      g.timerStartTime = Date.now();
+    };
+    g.stopTimer = function(message) {
+      var time;
+      time = (Date.now() - g.timerStartTime) / 1000;
+      console.log("" + message + ": " + time + " sec.");
+    };
     g.setDebugMode = function(debugMode) {
       Dajaxice.draw.setDebugMode(g.checkError, {
         debug: debugMode

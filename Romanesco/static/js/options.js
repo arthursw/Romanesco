@@ -5,7 +5,9 @@
     g = utils.g();
     window.tinycolor = tinycolor;
     g.initializeGlobalParameters = function() {
-      var colorName, colorRGBstring;
+      var colorName, colorRGBstring, renderingModeDefault, renderingModeValues;
+      renderingModeValues = g.parameters.renderingMode.values;
+      renderingModeDefault = g.parameters.renderingMode["default"];
       g.parameters = {};
       g.parameters.location = {
         type: 'string',
@@ -123,9 +125,9 @@
       g.parameters.renderingMode = {
         type: 'dropdown',
         label: 'Render mode',
-        values: ['paper', 'tile', 'fast tile'],
-        "default": 'fast tile',
-        renderingMode: 'fast tile',
+        values: renderingModeValues,
+        "default": renderingModeDefault,
+        renderingMode: renderingModeDefault,
         permanent: true,
         onFinishChange: function(value) {
           g.setRasterizerType(value);

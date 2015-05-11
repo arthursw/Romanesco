@@ -387,9 +387,6 @@ body {
 #stage.main .custom-div.website {
   cursor: url(images/hand.png) 32 32, move;
 }
-#user-login-group {
-  margin-bottom: 5px;
-}
 #user-profile .user-profile {
   padding: 0;
   margin: 0;

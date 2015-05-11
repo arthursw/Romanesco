@@ -1366,6 +1366,22 @@ define [
 
 		return btnJ
 
+	g.startTime = Date.now()
+
+	g.logElapsedTime = ()->
+		time = (Date.now() - g.startTime) / 1000
+		console.log "Time elapsed: " + time + " sec."
+		return
+
+	g.startTimer = ()->
+		g.timerStartTime = Date.now()
+		return
+
+	g.stopTimer = (message)->
+		time = (Date.now() - g.timerStartTime) / 1000
+		console.log "" + message + ": " + time + " sec."
+		return
+
 	g.setDebugMode = (debugMode)->
 		Dajaxice.draw.setDebugMode(g.checkError, debug: debugMode)
 		return

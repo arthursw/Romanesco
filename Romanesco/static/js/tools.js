@@ -429,6 +429,8 @@
         if (event.event.which === 2) {
           return;
         }
+        console.log('begin select');
+        g.logElapsedTime();
         _ref = g.paths;
         for (name in _ref) {
           path = _ref[name];
@@ -456,6 +458,7 @@
           g.deselectAll();
           this.createSelectionRectangle(event);
         }
+        g.logElapsedTime();
       };
 
       SelectTool.prototype.update = function(event) {
@@ -531,6 +534,8 @@
             item.unhighlight();
           }
         }
+        console.log('end select');
+        g.logElapsedTime();
       };
 
       SelectTool.prototype.doubleClick = function(event) {
