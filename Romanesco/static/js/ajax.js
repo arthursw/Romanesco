@@ -240,6 +240,7 @@
     loadCallback = function(results) {
       var box, data, date, deletedItemLastUpdate, div, i, item, itemToReplace, itemsToLoad, lock, path, pk, planet, point, points, rdiv, rpath, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
       console.log("load callback");
+      console.log(project.activeLayer.name);
       if (!g.checkError(results)) {
         return;
       }

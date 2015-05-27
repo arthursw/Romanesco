@@ -164,15 +164,7 @@ define [
 
 			@group.name = 'lock group'
 
-			# create background
-
-			@background = new Path.Rectangle(@rectangle)
-			@background.name = 'rlock background'
-			@background.strokeWidth = if @data.strokeWidth>0 then @data.strokeWidth else 1
-			@background.strokeColor = if @data.strokeColor? then @data.strokeColor else 'black'
-			@background.fillColor = @data.fillColor or 'white'
-			@background.controller = @
-			@group.addChild(@background)
+			@draw()
 			g.lockLayer.addChild(@group)
 
 			# create special list to contains children paths
@@ -219,14 +211,30 @@ define [
 
 			return
 
+		draw: ()->
+			if @drawing? then @drawing.remove()
+			if @raster? then @raster.remove()
+			@raster = null
+			@drawing = new Path.Rectangle(@rectangle)
+			@drawing.name = 'rlock background'
+			@drawing.strokeWidth = if @data.strokeWidth>0 then @data.strokeWidth else 1
+			@drawing.strokeColor = if @data.strokeColor? then @data.strokeColor else 'black'
+			@drawing.fillColor = @data.fillColor or 'white'
+			@drawing.controller = @
+			@group.addChild(@drawing)
+			return
+
 		# @param name [String] the name of the value to change
 		# @param value [Anything] the new value
 		# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from SetParameterCommand
-		setParameter: (name, value, updateGUI)->
-			super(name, value, updateGUI)
+		setParameter: (name, value, updateGUI, update)->
+			super(name, value, updateGUI, update)
 			switch name
 				when 'strokeWidth', 'strokeColor', 'fillColor'
-					@background[name] = @data[name]
+					if not @raster?
+						@drawing[name] = @data[name]
+					else
+						@draw()
 			return
 
 		save: (addCreateCommand=true) ->
@@ -331,7 +339,7 @@ define [
 		setRectangle: (rectangle, update)->
 			super(rectangle, update)
 			p = new Path.Rectangle(rectangle)
-			@background.segments = p.segments.slice()
+			@drawing.segments = p.segments.slice()
 			p.remove()
 			return
 
@@ -371,7 +379,7 @@ define [
 			@itemListsJ.remove()
 			@itemListsJ = null
 			g.locks.remove(@)
-			@background = null
+			@drawing = null
 			super
 			return
 

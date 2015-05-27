@@ -29,8 +29,6 @@ define [
 
 	g.initializeGlobalParameters = ()->
 
-		renderingModeValues = g.parameters.renderingMode.values
-		renderingModeDefault = g.parameters.renderingMode.default
 		g.parameters = {}
 		g.parameters.location =
 			type: 'string'
@@ -117,16 +115,6 @@ define [
 			snap: 0
 			permanent: true
 			onChange: ()-> g.updateGrid()
-		g.parameters.renderingMode =
-			type: 'dropdown'
-			label: 'Render mode'
-			values: renderingModeValues
-			default: renderingModeDefault
-			renderingMode: renderingModeDefault
-			permanent: true
-			onFinishChange: (value)->
-				g.setRasterizerType(value)
-				return
 		g.parameters.align =
 			type: 'button-group'
 			label: 'Align'
@@ -350,9 +338,7 @@ define [
 		.step(g.parameters.snap.step)
 		.onChange(g.parameters.snap.onChange)
 
-		g.generalFolder.add(g.parameters.renderingMode, 'renderingMode', g.parameters.renderingMode.values)
-		.name(g.parameters.renderingMode.label)
-		.onFinishChange(g.parameters.renderingMode.onFinishChange)
+		g.addRasterizerParameters()
 
 		g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement)
 		toggleGuiButtonJ = $(g.gui.domElement).find("button.dat-gui-toggle")
@@ -638,7 +624,7 @@ define [
 
 				colorPicker = inputJ.ColorPickerSliders({
 					title: parameter.label,
-					placement: 'left',
+					placement: 'auto',
 					size: 'sm',
 					# hsvpanel: true
 					color: tinycolor(if value? then value else parameter.default).toRgbString(),
@@ -660,20 +646,27 @@ define [
 					},
 					customswatches: "different-swatches-groupname",
 					swatches: g.defaultColors,
+					hsvpanel: true,
 					onchange: (container, color) ->
 						parameter.onChange(color.tiny.toRgbString())
 						checkboxJ[0].checked = true
 				}).click ()->
 					guiJ = $(g.gui.domElement)
 					colorPickerPopoverJ = $(".cp-popover-container .popover")
+
+					swatchesJ = colorPickerPopoverJ.find('.cp-swatches')
+					# gradientSwatchesJ = $('<div>')
+					# gradientSwatchesJ.text('AHAH')
+					# swatchesJ.append(gradientSwatchesJ)
+
 					if guiJ.parent().hasClass("dg-sidebar")
-						position = guiJ.offset().left + guiJ.outerWidth()
-						colorPickerPopoverJ.css( left: position )
+						# position = guiJ.offset().left + guiJ.outerWidth()
+						# colorPickerPopoverJ.css( left: position )
 						colorPickerPopoverJ.removeClass("left").addClass("right")
 						# $(".cp-popover-container .arrow").hide()
-					else
-						position = guiJ.offset().left - colorPickerPopoverJ.width()
-						colorPickerPopoverJ.css( left: position )
+					# else
+					# 	position = guiJ.offset().left - colorPickerPopoverJ.width()
+					# 	colorPickerPopoverJ.css( left: position )
 					return
 				checkboxJ.change ()-> if this.checked then parameter.onChange(colorPicker.val()) else parameter.onChange(null)
 				datFolder.__controllers[datFolder.__controllers.length-1].rValue = () -> return if checkboxJ[0].checked then colorPicker.val() else null

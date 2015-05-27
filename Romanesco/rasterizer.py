@@ -203,6 +203,13 @@ def saveImage(image, xf, yf, cityPk):
     print "Time elapsed: " + str(end - start)
     return
 
+def setPageFullyLoaded(loaded):
+    print "page fully loaded"
+    global state
+    if ( state == 'page not loaded' or state == 'page loaded' ) and loaded:
+        state = 'page fully loaded'
+    return
+
 def onLoadEnd(*args, **kwargs):
     print "global on load end"
     global state
@@ -253,7 +260,7 @@ def checkAreasToUpdates():
     global state, area
     # print "check area to update: " + state
     # sys.stdout.write('\n')
-    if state == 'image saved' or state == 'page loaded':
+    if state == 'image saved' or state == 'page fully loaded':
         # global area
         print 'begin check area'
         if area:
@@ -380,6 +387,8 @@ browser.SetClientCallback("OnLoadEnd", onLoadEnd)
 bindings = cefpython.JavascriptBindings(bindToFrames=True, bindToPopups=True)
 
 bindings.SetFunction("saveOnServer", saveOnServer)
+bindings.SetFunction("setPageFullyLoaded", setPageFullyLoaded)
+
 browser.SetJavascriptBindings(bindings)
 
 browser.WasResized()

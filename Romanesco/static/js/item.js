@@ -590,6 +590,35 @@
         g.commandManager.add(new g.DuplicateItemCommand(this), true);
       };
 
+      RItem.prototype.removeDrawing = function() {
+        var _ref;
+        if (((_ref = this.drawing) != null ? _ref.parent : void 0) == null) {
+          return;
+        }
+        this.drawingRelativePosition = this.drawing.position.subtract(this.rectangle.center);
+        this.drawing.remove();
+      };
+
+      RItem.prototype.replaceDrawing = function() {
+        var _ref;
+        if (((_ref = this.drawing) != null ? _ref.parent : void 0) == null) {
+          return;
+        }
+        this.group.addChild(this.drawing);
+        this.drawing.position = this.rectangle.center.add(this.drawingRelativePosition);
+        this.drawingRelativePosition = null;
+      };
+
+      RItem.prototype.rasterize = function() {
+        if ((this.raster != null) || (this.drawing == null)) {
+          return;
+        }
+        this.raster = this.drawing.rasterize();
+        this.group.addChild(this.raster);
+        this.raster.sendToBack();
+        this.removeDrawing();
+      };
+
       return RItem;
 
     })();

@@ -219,15 +219,6 @@
         RPath.__super__.endAction.call(this);
       };
 
-      RPath.prototype.rasterize = function() {
-        if ((this.raster != null) || (this.drawing == null)) {
-          return;
-        }
-        this.raster = this.drawing.rasterize();
-        this.group.addChild(this.raster);
-        this.drawing.remove();
-      };
-
       RPath.prototype.updateSelect = function(event) {
         RPath.__super__.updateSelect.call(this, event);
       };
@@ -879,6 +870,10 @@
         if (redrawing == null) {
           redrawing = true;
         }
+        this.drawn = false;
+        if (!g.rasterizer.requestDraw(this, simplified, redrawing)) {
+          return;
+        }
         if (this.controlPath.segments.length < 2) {
           return;
         }
@@ -922,6 +917,7 @@
         if (simplified) {
           this.simplifiedModeOff();
         }
+        this.drawn = true;
       };
 
       PrecisePath.prototype.pathOnPlanet = function() {
@@ -2997,6 +2993,10 @@
         if (simplified == null) {
           simplified = false;
         }
+        this.drawn = false;
+        if (!g.rasterizer.requestDraw(this, simplified)) {
+          return;
+        }
         process = (function(_this) {
           return function() {
             _this.initializeDrawing();
@@ -3016,6 +3016,7 @@
             throw error;
           }
         }
+        this.drawn = true;
       };
 
       RShape.prototype.initializeControlPath = function(pointA, pointB, shift, specialKey) {

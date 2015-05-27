@@ -70,7 +70,7 @@
           name: name,
           placeholder: placeholder,
           type: type,
-          className: classNamen,
+          className: className,
           label: label,
           submitShortcut: submitShortcut,
           id: id,

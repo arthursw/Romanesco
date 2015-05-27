@@ -497,6 +497,7 @@
       closeBtnJ = ce.editorJ.find("button.close-editor");
       closeBtnJ.click(function(event) {
         ce.editorJ.hide();
+        ce.editorJ.removeClass('visible');
         console.log = console.olog;
         console.error = console.oerror;
       });
@@ -624,6 +625,7 @@
     };
     g.initializeEditor = function() {
       ce.editorJ.show();
+      ce.editorJ.addClass('visible');
       console.log = g.logMessage;
       console.error = g.logError;
     };
@@ -632,9 +634,13 @@
       if (RItem != null) {
         ce.setSource(g.modules[RItem.rname]);
       } else {
-        ce.initializeNewModuleFromName(g.codeExample);
+        if (!ce.editorJ.hasClass('visible')) {
+          ce.initializeNewModuleFromName(g.codeExample);
+        }
       }
-      g.initializeEditor();
+      if (!ce.editorJ.hasClass('visible')) {
+        g.initializeEditor();
+      }
     };
     ce.setLockModule = function(lock) {
       ce = g.codeEditor;

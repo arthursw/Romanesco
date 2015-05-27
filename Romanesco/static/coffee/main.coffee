@@ -523,6 +523,12 @@ define [
 		g.canvas.width = window.innerWidth
 		g.canvas.height = window.innerHeight
 		g.context = g.canvas.getContext('2d')
+
+		g.selectionCanvasJ = g.stageJ.find("#selection-canvas")
+		g.selectionCanvas = g.selectionCanvasJ[0]
+		g.selectionCanvas.width = window.innerWidth
+		g.selectionCanvas.height = window.innerHeight
+
 		# g.backgroundCanvasJ = g.stageJ.find("#background-canvas")
 		# g.backgroundCanvas = g.backgroundCanvasJ[0]
 		# g.backgroundCanvas.width = window.innerWidth
@@ -530,6 +536,7 @@ define [
 		# g.backgroundCanvasJ.width(window.innerWidth)
 		# g.backgroundCanvasJ.height(window.innerHeight)
 		# g.backgroundContext = g.backgroundCanvas.getContext('2d')
+
 		g.templatesJ = $("#templates")
 		g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
 		g.selectionLayer = null					# paper layer containing all selected paper items
@@ -618,19 +625,26 @@ define [
 		if navigator.appVersion.indexOf("Linux")!=-1 then g.OSName = "Linux"
 
 		# init paper.js
+		paper.setup(g.selectionCanvas)
+		g.selectionProject = project
+
 		paper.setup(g.canvas)
 		g.project = project
+
 		g.mainLayer = project.activeLayer
+		g.mainLayer.name = 'main layer'
 		g.debugLayer = new Layer()				# Paper layer to append debug items
 		g.debugLayer.name = 'debug layer'
 		g.carLayer = new Layer() 				# Paper layer to append all cars
 		g.carLayer.name = 'car layer'
 		g.lockLayer = new Layer()	 			# Paper layer to keep all locked items
 		g.lockLayer.name = 'lock layer'
-		g.selectionLayer = new Layer() 			# Paper layer to keep all selected items
+		# g.selectionLayer = new Layer() 			# Paper layer to keep all selected items
+		g.selectionLayer = g.selectionProject.activeLayer
 		g.selectionLayer.name = 'selection layer'
 		g.areasToUpdateLayer = new Layer() 		# Paper layer to show areas to update
 		g.areasToUpdateLayer.name = 'areasToUpdateLayer'
+		g.areasToUpdateLayer.visible = false
 		g.mainLayer.activate()
 		paper.settings.hitTolerance = 5
 		g.grid = new Group() 					# Paper Group to append all grid items
@@ -854,6 +868,7 @@ define [
 		# initLoadingBar()
 		g.updateGrid()
 
+		window.setPageFullyLoaded?(true)
 		return
 
 	# Initialize Romanesco and handlers
@@ -938,14 +953,22 @@ define [
 					item.moveBy(new Point(0,-delta), true) for item in g.selectedItems
 				when 'down'
 					item.moveBy(new Point(0,delta), true) for item in g.selectedItems
-				when 'enter', 'escape'
+				when 'enter'
 					g.selectedTool.finish?()
+				when 'escape'
+					finishingPath = g.selectedTool.finish?()
+					if g.selectedTool.name == 'Select' or g.PathTool.prototype.isPrototypeOf(g.selectedTool) and not finishingPath
+						g.deselectAll()
 				when 'space'
 					g.previousTool?.select()
 				when 'v'
 					g.tools['Select'].select()
 				when 't'
 					g.showToolBox()
+				when 'r'
+					# if g.specialKey(event) # Ctrl + R is already used to reload the page
+					if event.modifiers.shift
+						g.rasterizer.rasterizeImmediately()
 				when 'delete', 'backspace'
 					selectedItems = g.selectedItems.slice()
 					for item in selectedItems
@@ -962,6 +985,8 @@ define [
 		# - update cars positions
 		view.onFrame = (event)->
 			TWEEN.update(event.time)
+
+			g.rasterizer.updateLoadingBar?(event.time)
 
 			g.selectedTool.onFrame?(event)
 
@@ -987,6 +1012,14 @@ define [
 			g.updateGrid()
 			$(".mCustomScrollbar").mCustomScrollbar("update")
 			view.update()
+
+			g.canvasJ.width(window.innerWidth)
+			g.canvasJ.height(window.innerHeight)
+			view.viewSize = new Size(window.innerWidth, window.innerHeight)
+
+			g.selectionCanvasJ.width(window.innerWidth)
+			g.selectionCanvasJ.height(window.innerHeight)
+			g.selectionProject.view.viewSize = new Size(window.innerWidth, window.innerHeight)
 			return
 
 		# mousedown event listener
@@ -1053,11 +1086,12 @@ define [
 			if g.selectedTool.name == 'Move'
 				# g.selectedTool.end(g.previousMousePosition.equals(g.initialMousePosition))
 				g.selectedTool.endNative(event)
+
+				# deselect move tool and select previous tool if middle mouse button
+				if event.which == 2 # middle mouse button
+					g.previousTool?.select()
 				return
 
-			# deselect move tool and select previous tool if middle mouse button
-			if event.which == 2 # middle mouse button
-				g.previousTool?.select()
 
 			if g.currentDiv?
 				paperEvent = g.jEventToPaperEvent(event, g.previousMousePosition, g.initialMousePosition, 'mouseup')

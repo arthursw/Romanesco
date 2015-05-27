@@ -551,6 +551,7 @@ define [
 		closeBtnJ = ce.editorJ.find("button.close-editor")
 		closeBtnJ.click (event)->
 			ce.editorJ.hide()
+			ce.editorJ.removeClass('visible')
 			console.log = console.olog
 			console.error = console.oerror
 			return
@@ -726,6 +727,7 @@ define [
 
 	g.initializeEditor = ()->
 		ce.editorJ.show()
+		ce.editorJ.addClass('visible')
 		console.log = g.logMessage
 		console.error = g.logError
 		return
@@ -737,8 +739,10 @@ define [
 		if RItem?
 			ce.setSource(g.modules[RItem.rname])
 		else
-			ce.initializeNewModuleFromName(g.codeExample)
-		g.initializeEditor()
+			if not ce.editorJ.hasClass('visible')
+				ce.initializeNewModuleFromName(g.codeExample)
+		if not ce.editorJ.hasClass('visible')
+			g.initializeEditor()
 		return
 
 	ce.setLockModule = (lock)->

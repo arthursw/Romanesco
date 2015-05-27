@@ -166,10 +166,16 @@ body {
   user-select: none;
 }
 #stage.main #canvas {
-  position: relative;
+  position: absolute;
   top: 0;
   left: 0;
   z-index: 0;
+}
+#stage.main #selection-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
 #stage.main #rasters {
   position: absolute;
@@ -1191,6 +1197,15 @@ li.tool-btn.selected .favorite-btn {
   margin-top: -5px;
   border-color: #575757;
 }
+.dat-gui .dg.main .loadingBar {
+  width: 241px;
+  height: 5px;
+  background-color: #2fa1d6;
+  position: relative;
+  top: -5px;
+  right: -4px;
+  left: -16px;
+}
 .item-list {
   position: absolute;
   top: 75px;
@@ -1477,6 +1492,12 @@ li.tool-btn.selected .favorite-btn {
 }
 #codeEditorBckp.r-hidden {
   left: 5px;
+}
+.cp-popover-container .popover.left {
+  margin-left: -120px;
+}
+.cp-popover-container .popover.right {
+  margin-left: 0px;
 }
 #screenshotModal,
 .pinterest-modal {

@@ -252,6 +252,7 @@ define [
 	# load callback: add loaded RItems
 	loadCallback = (results)->
 		console.log "load callback"
+		console.log project.activeLayer.name
 
 		if not g.checkError(results) then return
 
@@ -386,6 +387,7 @@ define [
 					# areaToUpdate.strokeWidth = 3
 					# areaToUpdate.getBounds = ()-> return areaToUpdate.bounds
 					# g.areasToUpdateLayer.addChild(areaToUpdate)
+					# g.mainLayer.activate()
 				else
 					continue
 

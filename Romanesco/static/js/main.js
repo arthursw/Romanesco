@@ -333,6 +333,10 @@
       g.canvas.width = window.innerWidth;
       g.canvas.height = window.innerHeight;
       g.context = g.canvas.getContext('2d');
+      g.selectionCanvasJ = g.stageJ.find("#selection-canvas");
+      g.selectionCanvas = g.selectionCanvasJ[0];
+      g.selectionCanvas.width = window.innerWidth;
+      g.selectionCanvas.height = window.innerHeight;
       g.templatesJ = $("#templates");
       g.me = null;
       g.selectionLayer = null;
@@ -413,19 +417,23 @@
       if (navigator.appVersion.indexOf("Linux") !== -1) {
         g.OSName = "Linux";
       }
+      paper.setup(g.selectionCanvas);
+      g.selectionProject = project;
       paper.setup(g.canvas);
       g.project = project;
       g.mainLayer = project.activeLayer;
+      g.mainLayer.name = 'main layer';
       g.debugLayer = new Layer();
       g.debugLayer.name = 'debug layer';
       g.carLayer = new Layer();
       g.carLayer.name = 'car layer';
       g.lockLayer = new Layer();
       g.lockLayer.name = 'lock layer';
-      g.selectionLayer = new Layer();
+      g.selectionLayer = g.selectionProject.activeLayer;
       g.selectionLayer.name = 'selection layer';
       g.areasToUpdateLayer = new Layer();
       g.areasToUpdateLayer.name = 'areasToUpdateLayer';
+      g.areasToUpdateLayer.visible = false;
       g.mainLayer.activate();
       paper.settings.hitTolerance = 5;
       g.grid = new Group();
@@ -598,6 +606,9 @@
       }
       initPosition();
       g.updateGrid();
+      if (typeof window.setPageFullyLoaded === "function") {
+        window.setPageFullyLoaded(true);
+      }
     };
     $(document).ready(function() {
       var focusIsOnCanvas, mousedown, mousemove, mouseup;
@@ -663,7 +674,7 @@
         }
       };
       g.tool.onKeyUp = function(event) {
-        var delta, item, selectedItems, _base, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
+        var delta, finishingPath, item, selectedItems, _base, _base1, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
         if (!focusIsOnCanvas()) {
           return;
         }
@@ -700,9 +711,14 @@
             }
             break;
           case 'enter':
-          case 'escape':
             if (typeof (_base = g.selectedTool).finish === "function") {
               _base.finish();
+            }
+            break;
+          case 'escape':
+            finishingPath = typeof (_base1 = g.selectedTool).finish === "function" ? _base1.finish() : void 0;
+            if (g.selectedTool.name === 'Select' || g.PathTool.prototype.isPrototypeOf(g.selectedTool) && !finishingPath) {
+              g.deselectAll();
             }
             break;
           case 'space':
@@ -715,6 +731,11 @@
             break;
           case 't':
             g.showToolBox();
+            break;
+          case 'r':
+            if (event.modifiers.shift) {
+              g.rasterizer.rasterizeImmediately();
+            }
             break;
           case 'delete':
           case 'backspace':
@@ -731,10 +752,13 @@
         event.preventDefault();
       };
       view.onFrame = function(event) {
-        var car, direction, item, username, _base, _i, _len, _ref, _ref1;
+        var car, direction, item, username, _base, _base1, _i, _len, _ref, _ref1;
         TWEEN.update(event.time);
-        if (typeof (_base = g.selectedTool).onFrame === "function") {
-          _base.onFrame(event);
+        if (typeof (_base = g.rasterizer).updateLoadingBar === "function") {
+          _base.updateLoadingBar(event.time);
+        }
+        if (typeof (_base1 = g.selectedTool).onFrame === "function") {
+          _base1.onFrame(event);
         }
         _ref = g.animatedItems;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -757,6 +781,12 @@
         g.updateGrid();
         $(".mCustomScrollbar").mCustomScrollbar("update");
         view.update();
+        g.canvasJ.width(window.innerWidth);
+        g.canvasJ.height(window.innerHeight);
+        view.viewSize = new Size(window.innerWidth, window.innerHeight);
+        g.selectionCanvasJ.width(window.innerWidth);
+        g.selectionCanvasJ.height(window.innerHeight);
+        g.selectionProject.view.viewSize = new Size(window.innerWidth, window.innerHeight);
       });
       mousedown = function(event) {
         var _base;
@@ -801,12 +831,12 @@
         g.codeEditor.mouseup(event);
         if (g.selectedTool.name === 'Move') {
           g.selectedTool.endNative(event);
-          return;
-        }
-        if (event.which === 2) {
-          if ((_ref = g.previousTool) != null) {
-            _ref.select();
+          if (event.which === 2) {
+            if ((_ref = g.previousTool) != null) {
+              _ref.select();
+            }
           }
+          return;
         }
         if (g.currentDiv != null) {
           paperEvent = g.jEventToPaperEvent(event, g.previousMousePosition, g.initialMousePosition, 'mouseup');

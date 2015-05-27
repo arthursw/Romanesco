@@ -13,6 +13,7 @@ define [
 
 		constructor:()->
 			g.rasterizers[@constructor.TYPE] = @
+			@rasterizeItems = true
 			return
 
 		quantizeBounds: (bounds=view.bounds, scale=g.scale)->
@@ -36,13 +37,19 @@ define [
 			return
 
 		loadItem: (item)->
-			item.draw()
+			item.draw?()
+			if @rasterizeItems
+				item.rasterize?()
 			return
+
+		requestDraw: ()->
+			return true
 
 		selectItem: (item)->
 			return
 
 		deselectItem: (item)->
+			item.rasterize?()
 			return
 
 		rasterizeRectangle: (rectangle)->
@@ -69,42 +76,31 @@ define [
 		drawItems: (showPath=false)->
 			return
 
-		rasterizeItems: ()->
+		rasterizeAllItems: ()->
 
 			for pk, item of g.items
 				item.rasterize?()
 
 			return
 
+		hideOthers: (itemsToExclude)->
+			return
+
+		showItems: ()->
+			return
+
+		hideRasters: ()->
+			return
+
+		showRasters: ()->
+			return
+
 	g.Rasterizer = Rasterizer
-
-	class SimpleRasterizer extends g.Rasterizer
-
-		@TYPE = 'simple'
-
-		constructor:()->
-			super()
-			return
-
-		loadItem: (item)->
-			super(item)
-			item.rasterize()
-			return
-
-		selectItem: (item)->
-			super(item)
-			return
-
-		deselectItem: (item)->
-			item.rasterize()
-			super(item)
-			return
-
-	g.SimpleRasterizer = SimpleRasterizer
 
 	class TileRasterizer extends g.Rasterizer
 
 		@TYPE = 'abstract tile'
+		@loadingBarJ = null
 
 		constructor: ()->
 			super()
@@ -114,33 +110,95 @@ define [
 
 			@rasters = {}
 
-			@keepRastersMode = true
+			@rasterizeItems = true
 			@rasterizationDisabled = false
+			@autoRasterization = 'deferred'
+			@rasterizationDelay = 800
+
+			@itemsAreVisible = false
+
+			@renderInView = false
 
 			@move()
 			return
 
 		loadItem: (item)->
 			if item.data?.animate or g.selectedToolNeedsDrawings()	# only draw if animated thanks to rasterization
-				item.draw()
-			if @keepRastersMode
-				item.rasterize()
+				item.draw?()
+			if @rasterizeItems
+				item.rasterize?()
+			return
+
+		startLoading: ()->
+			@startLoadingTime = view._time
+			g.TileRasterizer.loadingBarJ.css( width: 0 )
+			g.TileRasterizer.loadingBarJ.show()
+
+			g.deferredExecution(@rasterizeCallback, 'rasterize', @rasterizationDelay)
+			return
+
+		stopLoading: (cancelTimeout=true)->
+			@startLoadingTime = null
+			g.TileRasterizer.loadingBarJ.hide()
+
+			if cancelTimeout
+				clearTimeout(g.updateTimeout['rasterize'])
+			return
+
+		rasterizeImmediately: ()=>
+			@stopLoading()
+			@rasterizeCallback()
+			return
+
+		updateLoadingBar: (time)->
+			if not @startLoadingTime? then return
+			duration = 1000 * ( time - @startLoadingTime ) / @rasterizationDelay
+			totalWidth = 241
+			g.TileRasterizer.loadingBarJ.css( width: duration * totalWidth )
+			if duration>=1
+				@stopLoading(false)
+			return
+
+		drawItemsAndHideRasters: ()->
+			if not @itemsAreVisible
+				@drawItems(true)
+				@hideRasters()
 			return
 
 		selectItem: (item)->
 			@rasterize(item, true)
+
+			switch @autoRasterization
+				when 'disabled'
+					@drawItemsAndHideRasters()
+					item.group.visible = true
+				when 'deferred'
+					@drawItemsAndHideRasters()
+					item.group.visible = true
+					@stopLoading()
+				when 'immediate'
+					g.callNextFrame(@rasterizeCallback, 'rasterize')
 			return
 
 		deselectItem: (item)->
-			if @keepRastersMode
-				item.rasterize()
+			if @rasterizeItems
+				item.rasterize?()
+
 			@rasterize(item)
+
+			switch @autoRasterization
+				when 'deferred'
+					@startLoading()
+				when 'immediate'
+					g.callNextFrame(@rasterizeCallback, 'rasterize')
+
 			return
 
 		rasterLoaded: (raster)->
 			raster.context.clearRect(0, 0, g.scale, g.scale)
 			raster.context.drawImage(raster.image, 0, 0)
 			raster.ready = true
+			raster.loaded = true
 			allRastersAreReady = true
 			for x, rasterColumn of @rasters
 				for y, raster of rasterColumn
@@ -152,6 +210,7 @@ define [
 		createRaster: (x, y, zoom, raster)->
 			raster.zoom = zoom
 			raster.ready = true
+			raster.loaded = false
 			@rasters[x] ?= {}
 			@rasters[x][y] = raster
 			return
@@ -178,6 +237,9 @@ define [
 
 			return
 
+		loadImageForRaster: (raster, url)->
+			return
+
 		load: (rasters, qZoom)->
 			@move()
 
@@ -185,20 +247,24 @@ define [
 				x = r.position.x * g.scale
 				y = r.position.y * g.scale
 				raster = @rasters[x]?[y]
-				if raster
+				if raster and not raster.loaded
 					raster.ready = false
-					raster.image.src = g.romanescoURL + r.url + '?' + Math.random()
+					url = g.romanescoURL + r.url + '?' + Math.random()
+					@loadImageForRaster(raster, url)
 
 			return
 
-		move: ()->
+		createRasters: (rectangle)->
 			qZoom = g.quantizeZoom(1.0 / view.zoom)
 			scale = g.scale * qZoom
-			qBounds = @quantizeBounds(view.bounds, scale)
+			qBounds = @quantizeBounds(rectangle, scale)
 			for x in [qBounds.l .. qBounds.r] by scale
 				for y in [qBounds.t .. qBounds.b] by scale
 					@createRaster(x, y, qZoom)
+			return
 
+		move: ()->
+			@createRasters(view.bounds)
 			return
 
 		splitAreaToRasterize: ()->
@@ -219,31 +285,43 @@ define [
 
 			return areas
 
-		rasterizeCanvasInRaster: (x, y, canvas, rectangle, qZoom, clearRasters=false)->
+		rasterizeCanvasInRaster: (x, y, canvas, rectangle, qZoom, clearRasters=false, sourceRectangle=null)->
 			if not @rasters[x]?[y]? then return
 			rasterRectangle = @getRasterBounds(x, y)
 			intersection = rectangle.intersect(rasterRectangle)
-			sourceRectangle = new Rectangle(intersection.topLeft.subtract(rectangle.topLeft).divide(qZoom), intersection.size.divide(qZoom))
+
 			destinationRectangle = new Rectangle(intersection.topLeft.subtract(rasterRectangle.topLeft).divide(qZoom), intersection.size.divide(qZoom))
+
 			context = @rasters[x][y].context
+
 			# context.fillRect(destinationRectangle.x-1, destinationRectangle.y-1, destinationRectangle.width+2, destinationRectangle.height+2)
+
 			if clearRasters then context.clearRect(destinationRectangle.x, destinationRectangle.y, destinationRectangle.width, destinationRectangle.height)
 			# if clearRasters
 			# 	context.globalCompositeOperation = 'copy' # this clear completely and then draw the new image (not what we want)
 			# else
 			# 	context.globalCompositeOperation = 'source-over'
-			context.drawImage(canvas, sourceRectangle.x, sourceRectangle.y, sourceRectangle.width, sourceRectangle.height,
-			destinationRectangle.x, destinationRectangle.y, destinationRectangle.width, destinationRectangle.height)
+			if canvas?
+				if sourceRectangle?
+					sourceRectangle = new Rectangle(intersection.topLeft.subtract(sourceRectangle.topLeft), intersection.size)
+				else
+					sourceRectangle = new Rectangle(intersection.topLeft.subtract(rectangle.topLeft).divide(qZoom), intersection.size.divide(qZoom))
+				context.drawImage(canvas, sourceRectangle.x, sourceRectangle.y, sourceRectangle.width, sourceRectangle.height,
+					destinationRectangle.x, destinationRectangle.y, destinationRectangle.width, destinationRectangle.height)
 			return
 
-		rasterizeCanvas: (canvas, rectangle, clearRasters=false)->
+		rasterizeCanvas: (canvas, rectangle, clearRasters=false, sourceRectangle=null)->
 			console.log "rasterize: " + rectangle.width + ", " + rectangle.height
 			qZoom = g.quantizeZoom(1.0 / view.zoom)
 			scale = g.scale * qZoom
 			qBounds = @quantizeBounds(rectangle, scale)
 			for x in [qBounds.l .. qBounds.r] by scale
 				for y in [qBounds.t .. qBounds.b] by scale
-					@rasterizeCanvasInRaster(x, y, canvas, rectangle, qZoom, clearRasters)
+					@rasterizeCanvasInRaster(x, y, canvas, rectangle, qZoom, clearRasters, sourceRectangle)
+			return
+
+		clearAreaInRasters: (rectangle)->
+			@rasterizeCanvas(null, rectangle, true)
 			return
 
 		rasterizeArea: (area)->
@@ -269,19 +347,10 @@ define [
 			view.center = viewPosition
 			return
 
-		rasterizeCallback: (step)=>
-
-			console.log "rasterize"
-
-			g.logElapsedTime()
-
-			g.startTimer()
-
+		prepareView: ()->
 			# show all items
 			for pk, item of g.items
 				item.group.visible = true
-
-			areas = @splitAreaToRasterize()
 
 			# hide excluded items
 			for item in @itemsToExclude
@@ -290,19 +359,51 @@ define [
 			g.grid.visible = false
 			g.selectionLayer.visible = false
 			g.carLayer.visible = false
-			viewOnFrame = view.onFrame
+			@viewOnFrame = view.onFrame
 			view.onFrame = null
 
 			@rasterLayer?.visible = false
+			return
 
-			@rasterizeAreas(areas)
-
+		restoreView: ()->
 			@rasterLayer?.visible = true
 
-			view.onFrame = viewOnFrame
+			view.onFrame = @viewOnFrame
 			g.carLayer.visible = true
 			g.selectionLayer.visible = true
 			g.grid.visible = true
+			return
+
+		rasterizeCallback: (step)=>
+
+			if not @areaToRasterize then return
+
+			console.log "rasterize"
+
+			g.logElapsedTime()
+
+			g.startTimer()
+
+			if @autoRasterization == 'deferred' or @autoRasterization == 'disabled'
+				@showRasters()
+
+			areas = @splitAreaToRasterize()
+
+			if @renderInView
+				@prepareView()
+				@rasterizeAreas(areas)
+				@restoreView()
+			else
+				sortedItems = g.getSortedItems()
+				for area in areas
+					# p = new Path.Rectangle(area)
+					# p.strokeColor = 'red'
+					# p.strokeWidth = 1
+					# g.debugLayer.addChild(p)
+					@clearAreaInRasters(area)
+					for item in sortedItems
+						if item.raster?.bounds.intersects(area) and item not in @itemsToExclude
+							@rasterizeCanvas(item.raster.canvas, item.raster.bounds.intersect(area), false, item.raster.bounds)
 
 			# hide all items except selected ones and the ones being created
 			for pk, item of g.items
@@ -316,18 +417,23 @@ define [
 
 			@itemsToExclude = []
 			@areaToRasterize = null
+			@itemsAreVisible = false
+
+			@stopLoading()
 
 			g.stopTimer('Time to rasterize path: ')
 			g.logElapsedTime()
 			return
 
 		rasterize: (items, excludeItems)->
+
 			if @rasterizationDisabled then return
 
-			console.log "ask rasterize" + (if excludeItems then "exclude items" else "")
+			console.log "ask rasterize" + (if excludeItems then " excluding items." else "")
 			g.logElapsedTime()
 
 			if not g.isArray(items) then items = [items]
+			if not excludeItems then @itemsToExclude = []
 
 			for item in items
 				@areaToRasterize ?= item.getDrawingBounds()
@@ -335,7 +441,6 @@ define [
 				if excludeItems
 					g.pushIfAbsent(@itemsToExclude, item)
 
-			g.callNextFrame(@rasterizeCallback, 'rasterize')
 			return
 
 		rasterizeRectangle: (rectangle)->
@@ -370,6 +475,7 @@ define [
 
 			@itemsToExclude = []
 			for area in @areasToUpdate
+				# @createRasters(area)
 				@areaToRasterize = area
 				@rasterizeCallback()
 
@@ -391,9 +497,14 @@ define [
 
 			for pk, item of g.items
 				if not item.drawing? then item.draw?()
-				item.group.visible = showPath or item.selectionRectangle?
-				if @keepRastersMode
+				if showPath or item.selectionRectangle?
+					item.group.visible = true
+				if @rasterizeItems
 					item.rasterize?()
+
+			if showPath
+				@itemsAreVisible = true
+
 			return
 
 		disableRasterization: ()->
@@ -411,6 +522,24 @@ define [
 			@rasterizeRectangle(view.bounds)
 			return
 
+		hideRasters: ()->
+			return
+
+		showRasters: ()->
+			return
+
+		hideOthers: (itemToExclude)->
+			console.log itemToExclude.pk
+			for pk, item of g.items
+				if item != itemToExclude
+					item.group.visible = false
+			return
+
+		showItems: ()->
+			for pk, item of g.items
+				item.group.visible = true
+			return
+
 	g.TileRasterizer = TileRasterizer
 
 	class PaperTileRasterizer extends g.TileRasterizer
@@ -419,8 +548,9 @@ define [
 
 		constructor:()->
 			@rasterLayer = new Layer()
-			@rasterLayer.moveBelow(g.mainLayer)
-			@useCanvasMode = true
+			@rasterLayer.name = 'raster layer'
+			@rasterLayer.moveBelow(g.mainLayer) 	# this will activate the top layer (selection layer or areasToUpdateLayer)
+			g.mainLayer.activate()
 			super()
 			return
 
@@ -428,6 +558,8 @@ define [
 			if @rasters[x]?[y]? then return
 
 			raster = new Raster()
+			raster.name = 'raster: ' + x + ', ' + y
+			console.log raster.name
 			raster.position.x = x + 0.5 * g.scale * zoom
 			raster.position.y = y + 0.5 * g.scale * zoom
 			raster.width = g.scale
@@ -436,69 +568,10 @@ define [
 			raster.context = raster.canvas.getContext('2d')
 			@rasterLayer.addChild(raster)
 			raster.onLoad = ()=>
-				@rasterLoaded(this)
+				raster.context = raster.canvas.getContext('2d')
+				@rasterLoaded(raster)
 				return
 			super(x, y, zoom, raster)
-			return
-
-		rasterizeCallback2: ()->
-
-			console.log "rasterize"
-
-			g.logElapsedTime()
-
-			g.startTimer()
-
-			# show all items
-			for pk, item of g.items
-				item.group.visible = true
-
-			areas = @splitAreaToRasterize()
-
-			# hide excluded items
-			for item in @itemsToExclude
-				item.group?.visible = false 	# group is null when item has been deleted
-
-			for area in areas
-				qZoom = g.quantizeZoom(1.0 / view.zoom)
-				scale = g.scale * qZoom
-				qBounds = @quantizeBounds(area, scale)
-				for x in [qBounds.l .. qBounds.r] by scale
-					for y in [qBounds.t .. qBounds.b] by scale
-						if not @rasters[x]?[y]? then continue
-						rasterRectangle = @getRasterBounds(x, y)
-
-						@rasters[x][y].context.clearRect(0, 0, g.scale, g.scale)
-
-						for pk, item of g.items
-							if item.raster?.bounds.intersects(rasterRectangle)
-								raster = @rasters[x][y]
-								rasterTopLeft = raster.position.subtract(raster.zoom * 0.5 * g.scale)
-								position = item.raster.bounds.topLeft.subtract(rasterTopLeft)
-								@rasters[x][y].drawImage(item.raster.canvas, position)
-
-			# hide all items except selected ones and the ones being created
-			for pk, item of g.items
-				if item == g.currentPaths[g.me] or item.selectionRectangle? then continue
-				item.group?.visible = false
-
-			# show excluded items and their children
-			for item in @itemsToExclude
-				item.group?.visible = true
-				item.showChildren?()
-
-			@itemsToExclude = []
-			@areaToRasterize = null
-
-			g.stopTimer('Time to rasterize path: ')
-			g.logElapsedTime()
-			return
-
-		rasterizeCallback: (step)=>
-			if @useCanvasMode
-				super()
-			else
-				@rasterizeCallback2()
 			return
 
 		removeRaster: (raster, x, y)->
@@ -506,8 +579,87 @@ define [
 			super(raster, x, y)
 			return
 
+		loadImageForRaster: (raster, url)->
+			raster.source = url
+			return
+
+		hideRasters: ()->
+			for x, rasterColumn of @rasters
+				for y, raster of rasterColumn
+					raster.visible = false
+			return
+
+		showRasters: ()->
+			for x, rasterColumn of @rasters
+				for y, raster of rasterColumn
+					raster.visible = true
+			return
+
 	g.PaperTileRasterizer = PaperTileRasterizer
 
+
+	class InstantPaperTileRasterizer extends g.PaperTileRasterizer
+
+		@TYPE = 'light'
+
+		constructor:()->
+			super()
+			@disableDrawing = true
+			@updateDrawingAfterDelay = true
+			@itemsToDraw = {}
+			return
+
+		drawItemsAndHideRasters: ()->
+			return
+
+		requestDraw: (item, simplified, redrawing)->
+			if @disableDrawing
+				if @updateDrawingAfterDelay
+					time = Date.now()
+					delay = 500
+					if not @itemsToDraw[item.pk]? or time-@itemsToDraw[item.pk] < delay
+						@itemsToDraw[item.pk] = time
+						g.deferredExecution(item.draw, 'item.draw:'+item.pk, delay, [simplified, redrawing], item)
+					else
+						delete @itemsToDraw[item.pk]
+						return true
+			return not @disableDrawing
+
+		selectItem: (item)->
+			if not @rasterizeItems
+				item.removeDrawing()
+			super(item)
+			return
+
+		deselectItem: (item)->
+			super(item)
+
+			if not @rasterizeItems
+				item.replaceDrawing()
+			return
+
+		rasterizeCallback: (step)->
+
+			@disableDrawing = false
+
+			for pk, item of g.items
+				if item.drawn? and not item.drawn and item.getDrawingBounds().intersects(@areaToRasterize)
+					item.draw?()
+					if @rasterizeItems then item.rasterize?()
+
+			@disableDrawing = true
+
+			super(step)
+
+			return
+
+		rasterizeAreasToUpdate: ()->
+			@disableDrawing = false
+			super()
+			@disableDrawing = true
+			return
+
+	g.InstantPaperTileRasterizer = InstantPaperTileRasterizer
 
 	class CanvasTileRasterizer extends g.TileRasterizer
 
@@ -548,6 +700,10 @@ define [
 			super(raster, x, y)
 			return
 
+		loadImageForRaster: (raster, url)->
+			raster.image.src = url
+			return
+
 		move: ()->
 			super()
 
@@ -567,47 +723,107 @@ define [
 						raster.canvasJ.css( 'transform': css, 'top': 0, 'left': 0, 'transform-origin': '0 0' )
 			return
 
+		hideRasters: ()->
+			for x, rasterColumn of @rasters
+				for y, raster of rasterColumn
+					raster.canvasJ.hide()
+			return
+
+		showRasters: ()->
+			for x, rasterColumn of @rasters
+				for y, raster of rasterColumn
+					raster.canvasJ.show()
+			return
+
 	g.CanvasTileRasterizer = CanvasTileRasterizer
-
-	class FastCanvasTileRasterizer extends g.CanvasTileRasterizer
-
-		@TYPE = 'fast canvas tile'
-
-		constructor:()->
-			super()
-			return
-
-		loadItem: (item)->
-			super(item)
-			item.rasterize()
-			return
-
-		selectItem: (item)->
-			super(item)
-			return
-
-		deselectItem: (item)->
-			item.rasterize()
-			super(item)
-			return
-
-	g.FastCanvasTileRasterizer = FastCanvasTileRasterizer
 
 	g.initializeRasterizers = ()->
 		g.rasterizers = {}
 		new g.Rasterizer()
 		new g.CanvasTileRasterizer()
-		new g.FastCanvasTileRasterizer()
+		new g.InstantPaperTileRasterizer()
 		g.rasterizer = new g.PaperTileRasterizer()
 
-		g.parameters ?= { renderingMode: values: [], default: g.rasterizer.constructor.TYPE }
+		return
+
+	g.addRasterizerParameters = ()->
+
+		values = []
 		for type, rasterizer of g.rasterizers
-			g.parameters.renderingMode.values.push(type)
+			values.push(type)
+
+		g.rasterizerFolder = g.generalFolder.addFolder('Rasterizer')
+		divJ = $('<div>')
+		divJ.addClass('loadingBar')
+		$(g.rasterizerFolder.__ul).find('li.title').append(divJ)
+		g.TileRasterizer.loadingBarJ = divJ
+
+		g.rasterizerFolder.add({ renderingMode: g.rasterizer.constructor.TYPE, permanent: true }, 'renderingMode', values)
+		.name('Render mode')
+		.onFinishChange(g.setRasterizerType)
+
+		g.rasterizerFolder.add({ rasterizeItems: true, permanent: true }, 'rasterizeItems')
+		.name('Rasterize items')
+		.onFinishChange (value)->
+			g.rasterizer.rasterizeItems = value
+
+			if not value
+				g.rasterizer.renderInView = true
+
+			for controller in g.rasterizerFolder.__controllers
+				if controller.property == 'renderInView'
+					if value
+						$(controller.__li).show()
+					else
+						$(controller.__li).hide()
+			return
+
+		g.rasterizerFolder.add({ renderInView: false, permanent: true }, 'renderInView')
+		.name('Render in view')
+		.onFinishChange (value)->
+			g.rasterizer.renderInView = value
+			return
+
+		g.rasterizerFolder.add({ autoRasterization: 'deferred', permanent: true }, 'autoRasterization', ['immediate', 'deferred', 'disabled'])
+		.name('Auto rasterization')
+		.onFinishChange (value)->
+			g.rasterizer.autoRasterization = value
+			return
+
+		g.rasterizerFolder.add({ rasterizationDelay: 800, permanent: true }, 'rasterizationDelay', 0, 10000)
+		.name('Delay')
+		.onFinishChange (value)->
+			g.rasterizer.rasterizationDelay = value
+			return
+
+		rasterizeImmediately = ()->
+			g.rasterizer.rasterizeImmediately()
+			return
+
+		g.rasterizerFolder.add({ rasterizeImmediately: rasterizeImmediately, permanent: true }, 'rasterizeImmediately')
+		.name('Rasterize')
+
 		return
 
 	g.setRasterizerType = (type)->
+		if type == g.Rasterizer.TYPE
+			for controller in g.rasterizerFolder.__controllers
+				if controller.property in [ 'renderInView', 'autoRasterization', 'rasterizationDelay', 'rasterizeImmediately' ]
+					$(controller.__li).hide()
+		else
+			for controller in g.rasterizerFolder.__controllers
+				$(controller.__li).show()
+
 		g.unload()
 		g.rasterizer = g.rasterizers[type]
+
+		for controller in g.rasterizerFolder.__controllers
+			if g.rasterizer[controller.property]?
+				onFinishChange = controller.__onFinishChange
+				controller.__onFinishChange = ()->return
+				controller.setValue(g.rasterizer[controller.property])
+				controller.__onFinishChange = onFinishChange
+
 		g.load()
 		return
 

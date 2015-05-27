@@ -197,10 +197,16 @@ body {
 	// 	z-index: -1;
 	// }
 	#canvas {
-		position: relative;
+		position: absolute;
 		top: 0;
 		left: 0;
 		z-index: 0;
+	}
+	#selection-canvas {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 1;
 	}
 	#rasters {
 		position: absolute;
@@ -1286,6 +1292,16 @@ li.tool-btn {
 			// background-color: #F9F9F9;
 		}
 
+		.loadingBar {
+			width: 241px;
+			height: 5px;
+			background-color: @hover-blue;
+			position: relative;
+			top: -5px;
+			right: -4px;
+			left: -16px;
+		}
+
 	}
 }
 // ---- /dat.GUI ---- //
@@ -1592,6 +1608,18 @@ li.tool-btn {
 	}
 }
 
+.cp-popover-container {
+
+	.popover {
+		&.left {
+			margin-left: -120px;
+		}
+		&.right {
+			margin-left: 0px;
+		}
+	}
+
+}
 
 #screenshotModal, .pinterest-modal {
 

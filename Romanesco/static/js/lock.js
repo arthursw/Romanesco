@@ -188,13 +188,7 @@
         RLock.__super__.constructor.call(this, this.data, this.pk);
         g.locks.push(this);
         this.group.name = 'lock group';
-        this.background = new Path.Rectangle(this.rectangle);
-        this.background.name = 'rlock background';
-        this.background.strokeWidth = this.data.strokeWidth > 0 ? this.data.strokeWidth : 1;
-        this.background.strokeColor = this.data.strokeColor != null ? this.data.strokeColor : 'black';
-        this.background.fillColor = this.data.fillColor || 'white';
-        this.background.controller = this;
-        this.group.addChild(this.background);
+        this.draw();
         g.lockLayer.addChild(this.group);
         this.sortedPaths = [];
         this.sortedDivs = [];
@@ -251,13 +245,34 @@
         return;
       }
 
-      RLock.prototype.setParameter = function(name, value, updateGUI) {
-        RLock.__super__.setParameter.call(this, name, value, updateGUI);
+      RLock.prototype.draw = function() {
+        if (this.drawing != null) {
+          this.drawing.remove();
+        }
+        if (this.raster != null) {
+          this.raster.remove();
+        }
+        this.raster = null;
+        this.drawing = new Path.Rectangle(this.rectangle);
+        this.drawing.name = 'rlock background';
+        this.drawing.strokeWidth = this.data.strokeWidth > 0 ? this.data.strokeWidth : 1;
+        this.drawing.strokeColor = this.data.strokeColor != null ? this.data.strokeColor : 'black';
+        this.drawing.fillColor = this.data.fillColor || 'white';
+        this.drawing.controller = this;
+        this.group.addChild(this.drawing);
+      };
+
+      RLock.prototype.setParameter = function(name, value, updateGUI, update) {
+        RLock.__super__.setParameter.call(this, name, value, updateGUI, update);
         switch (name) {
           case 'strokeWidth':
           case 'strokeColor':
           case 'fillColor':
-            this.background[name] = this.data[name];
+            if (this.raster == null) {
+              this.drawing[name] = this.data[name];
+            } else {
+              this.draw();
+            }
         }
       };
 
@@ -382,7 +397,7 @@
         var p;
         RLock.__super__.setRectangle.call(this, rectangle, update);
         p = new Path.Rectangle(rectangle);
-        this.background.segments = p.segments.slice();
+        this.drawing.segments = p.segments.slice();
         p.remove();
       };
 
@@ -450,7 +465,7 @@
         this.itemListsJ.remove();
         this.itemListsJ = null;
         g.locks.remove(this);
-        this.background = null;
+        this.drawing = null;
         RLock.__super__.remove.apply(this, arguments);
       };
 

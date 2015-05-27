@@ -502,6 +502,27 @@ define [
 			g.commandManager.add(new g.DuplicateItemCommand(@), true)
 			return
 
+		removeDrawing: ()->
+			if not @drawing?.parent? then return
+			@drawingRelativePosition = @drawing.position.subtract(@rectangle.center)
+			@drawing.remove()
+			return
+
+		replaceDrawing: ()->
+			if not @drawing?.parent? then return
+			@group.addChild(@drawing)
+			@drawing.position = @rectangle.center.add(@drawingRelativePosition)
+			@drawingRelativePosition = null
+			return
+
+		rasterize: ()->
+			if @raster? or not @drawing? then return
+			@raster = @drawing.rasterize()
+			@group.addChild(@raster)
+			@raster.sendToBack() 	# the raster (of a lock) must be send behind other items
+			@removeDrawing()
+			return
+
 	g.RItem = RItem
 
 	class RContent extends RItem

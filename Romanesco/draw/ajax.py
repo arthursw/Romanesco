@@ -401,7 +401,9 @@ def load(request, rectangle, areasToLoad, qZoom, city=None):
 
 			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
 
-			if os.path.isfile(os.getcwd() + '/' + rasterName):
+			filePath = os.getcwd() + '/' + rasterName
+			if os.path.isfile(filePath):
+				# rasters.append( { 'url': rasterName, 'position': position, 'lastUpdate': time.ctime(os.path.getmtime(filePath)) } )
 				rasters.append( { 'url': rasterName, 'position': position } )
 
 	end = time.time()
@@ -944,7 +946,7 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None, modu
 		b.box = [points]
 		b.planetX = planetX
 		b.planetY = planetY
-		addAreaToUpdate( points, planetX, planetY, city )
+		addAreaToUpdate( points, planetX, planetY, b.city )
 	if data:
 		b.data = data
 	if modulePk:

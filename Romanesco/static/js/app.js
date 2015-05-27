@@ -13,7 +13,7 @@
       'tinycolor': ['//cdnjs.cloudflare.com/ajax/libs/tinycolor/1.1.2/tinycolor.min', '../libs/tinycolor.min'],
       'prefix': ['//cdnjs.cloudflare.com/ajax/libs/prefixfree/1.0.7/prefixfree.min'],
       'bootstrap': ['//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min', '../libs/bootstrap.min'],
-      'paper': ['//cdnjs.cloudflare.com/ajax/libs/paper.js/0.9.22/paper-full.min', '../libs/paper-full.min'],
+      'paper': ['//cdnjs.cloudflare.com/ajax/libs/paper.js/0.9.22/paper-full', '../libs/paper-full'],
       'gui': ['//cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min', '../libs/dat.gui.min'],
       'typeahead': ['//cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.10.4/typeahead.bundle.min', '../libs/typeahead.bundle.min'],
       'pinit': ['//assets.pinterest.com/js/pinit', '../libs/pinit'],

@@ -240,16 +240,6 @@ define [
 			# 	g.rasterizer.rasterizeItem(@)
 			return
 
-		# called when user deselects, after a not simplified draw or once the user finished creating the path
-		# this is suppose to convert all the group to a raster to speed up paper.js operations, but it does not drastically improve speed, so it is just commented out
-		rasterize: ()->
-			if @raster? or not @drawing? then return
-			@raster = @drawing.rasterize()
-			@group.addChild(@raster)
-			# @drawing.visible = false
-			@drawing.remove()
-			return
-
 		# common to all RItems
 		# update select action
 		# to be overloaded by children classes
@@ -282,7 +272,7 @@ define [
 			super(name, value, updateGUI, update)
 			# if not @drawing then g.updateView() 	# update the view if it was rasterized
 			@previousBoundingBox ?= @getDrawingBounds()
-			@draw()		# if draw in simple mode, then how to see the change of parameters which matter?
+			@draw()		# if draw in simple mode, then how to see the change of simplified parameters?
 			return
 
 		# add a path to the drawing group:
@@ -982,6 +972,11 @@ define [
 		# @param simplified [Boolean] whether to draw in simplified mode or not (much faster)
 		draw: (simplified=false, redrawing=true)->
 
+			@drawn = false
+
+			if not g.rasterizer.requestDraw(@, simplified, redrawing) then return
+			# if g.rasterizer.disableDrawing then return
+
 			if @controlPath.segments.length < 2 then return
 
 			if simplified then @simplifiedModeOn()
@@ -1019,7 +1014,11 @@ define [
 				return
 
 			if not g.catchErrors
+				# g.rasterizer.hideOthers(@)
+				# g.startTimer()
 				process()
+				# g.stopTimer("Time to draw")
+				# g.rasterizer.showItems()
 			else
 				try 	# catch errors to log them in the code editor console (if user is making a script)
 					process()
@@ -1030,6 +1029,8 @@ define [
 
 			if simplified
 				@simplifiedModeOff()
+
+			@drawn = true
 
 			return
 
@@ -2987,6 +2988,9 @@ define [
 		# redefine {RPath#draw}
 		# initialize the drawing and draw the shape
 		draw: (simplified=false)->
+			@drawn = false
+			if not g.rasterizer.requestDraw(@, simplified) then return
+			# if g.rasterizer.disableDrawing then return
 			process = ()=>
 				@initializeDrawing()
 				@createShape()
@@ -3001,6 +3005,8 @@ define [
 					console.error error.stack
 					console.error error
 					throw error
+
+			@drawn = true
 			return
 
 		# initialize the control path

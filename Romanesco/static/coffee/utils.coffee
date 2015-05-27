@@ -5,6 +5,39 @@ define [
 	g = {}
 	window.g = g
 
+	#\
+	#|*|
+	#|*|  IE-specific polyfill which enables the passage of arbitrary arguments to the
+	#|*|  callback functions of JavaScript timers (HTML5 standard syntax).
+	#|*|
+	#|*|  https://developer.mozilla.org/en-US/docs/DOM/window.setInterval
+	#|*|
+	#|*|  Syntax:
+	#|*|  var timeoutID = window.setTimeout(func, delay, [param1, param2, ...]);
+	#|*|  var timeoutID = window.setTimeout(code, delay);
+	#|*|  var intervalID = window.setInterval(func, delay[, param1, param2, ...]);
+	#|*|  var intervalID = window.setInterval(code, delay);
+	#|*|
+	#\
+	if document.all and not window.setTimeout.isPolyfill
+		__nativeST__ = window.setTimeout
+		window.setTimeout = (vCallback, nDelay) -> #, argumentToPass1, argumentToPass2, etc.
+			aArgs = Array::slice.call(arguments, 2)
+			__nativeST__ (if vCallback instanceof Function then ->
+				vCallback.apply null, aArgs
+			else vCallback), nDelay
+
+		window.setTimeout.isPolyfill = true
+	if document.all and not window.setInterval.isPolyfill
+		__nativeSI__ = window.setInterval
+		window.setInterval = (vCallback, nDelay) -> #, argumentToPass1, argumentToPass2, etc.
+			aArgs = Array::slice.call(arguments, 2)
+			__nativeSI__ (if vCallback instanceof Function then ->
+				vCallback.apply null, aArgs
+			else vCallback), nDelay
+
+	window.setInterval.isPolyfill = true
+
 	g.specialKeys = {
 		8: 'backspace',
 		9: 'tab',
@@ -108,19 +141,23 @@ define [
 		if array.indexOf(item)<0 then array.push(item)
 		return
 
+	g.deferredExecutionCallbackWrapper = (callback, id, args, oThis)->
+		console.log "deferredExecutionCallbackWrapper: " + id
+		delete g.updateTimeout[id]
+		if not args? then callback?() else callback?.apply(oThis, args)
+		return
+
 	# Execute *callback* after *n* milliseconds, reset the delay timer at each call
 	# @param [function] callback function
 	# @param [Anything] a unique id (usually the id or pk of RItems) to avoid collisions between deferred executions
 	# @param [Number] delay before *callback* is called
-	g.deferredExecution = (callback, id, n=500) ->
-		id ?= callback
-		callbackWrapper = ()->
-			delete g.updateTimeout[id]
-			callback()
-			return
+	g.deferredExecution = (callback, id, n=500, args, oThis) ->
+		if not id? then return
+		# id ?= callback.name # for ECMAScript 6
 		# console.log "deferredExecution: " + id + ", updateTimeout[id]: " + g.updateTimeout[id]
 		if g.updateTimeout[id]? then clearTimeout(g.updateTimeout[id])
-		g.updateTimeout[id] = setTimeout(callbackWrapper, n)
+		console.log "deferred execution: " + id + ', ' + g.updateTimeout[id]
+		g.updateTimeout[id] = setTimeout(g.deferredExecutionCallbackWrapper, n, callback, id, args, oThis)
 		return
 
 	# Execute *callback* at next animation frame

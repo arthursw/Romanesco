@@ -786,10 +786,10 @@ define [
 		# - select and save path and emit event on websocket (if user is the author of the event), (remove path from g.currentPaths)
 		# @param [String] author (username) of the event
 		finish: (from=g.me)->
-			if not g.currentPaths[g.me]?.data?.polygonMode then return
+			if not g.currentPaths[g.me]?.data?.polygonMode then return false
 			g.currentPaths[from].finish()
 			@createPath(event, from)
-			return
+			return true
 
 	g.PathTool = PathTool
 

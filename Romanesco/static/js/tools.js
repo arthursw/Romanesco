@@ -732,10 +732,11 @@
           from = g.me;
         }
         if (!((_ref = g.currentPaths[g.me]) != null ? (_ref1 = _ref.data) != null ? _ref1.polygonMode : void 0 : void 0)) {
-          return;
+          return false;
         }
         g.currentPaths[from].finish();
         this.createPath(event, from);
+        return true;
       };
 
       return PathTool;

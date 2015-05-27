@@ -5,9 +5,7 @@
     g = utils.g();
     window.tinycolor = tinycolor;
     g.initializeGlobalParameters = function() {
-      var colorName, colorRGBstring, renderingModeDefault, renderingModeValues;
-      renderingModeValues = g.parameters.renderingMode.values;
-      renderingModeDefault = g.parameters.renderingMode["default"];
+      var colorName, colorRGBstring;
       g.parameters = {};
       g.parameters.location = {
         type: 'string',
@@ -120,17 +118,6 @@
         permanent: true,
         onChange: function() {
           return g.updateGrid();
-        }
-      };
-      g.parameters.renderingMode = {
-        type: 'dropdown',
-        label: 'Render mode',
-        values: renderingModeValues,
-        "default": renderingModeDefault,
-        renderingMode: renderingModeDefault,
-        permanent: true,
-        onFinishChange: function(value) {
-          g.setRasterizerType(value);
         }
       };
       g.parameters.align = {
@@ -439,7 +426,7 @@
         ignoreSockets: g.parameters.ignoreSockets["default"]
       }, 'ignoreSockets', false).name(g.parameters.ignoreSockets.name).onChange(g.parameters.ignoreSockets.onChange);
       g.generalFolder.add(g.parameters.snap, 'snap', g.parameters.snap.min, g.parameters.snap.max).name(g.parameters.snap.label).step(g.parameters.snap.step).onChange(g.parameters.snap.onChange);
-      g.generalFolder.add(g.parameters.renderingMode, 'renderingMode', g.parameters.renderingMode.values).name(g.parameters.renderingMode.label).onFinishChange(g.parameters.renderingMode.onFinishChange);
+      g.addRasterizerParameters();
       g.templatesJ.find("button.dat-gui-toggle").clone().appendTo(g.gui.domElement);
       toggleGuiButtonJ = $(g.gui.domElement).find("button.dat-gui-toggle");
       toggleGuiButtonJ.click(function() {
@@ -673,7 +660,7 @@
           checkboxJ[0].checked = (item != null) && datFolder.name !== 'General' ? item.data[name] != null : parameter.defaultCheck;
           colorPicker = inputJ.ColorPickerSliders({
             title: parameter.label,
-            placement: 'left',
+            placement: 'auto',
             size: 'sm',
             color: tinycolor(value != null ? value : parameter["default"]).toRgbString(),
             order: {
@@ -694,25 +681,18 @@
             },
             customswatches: "different-swatches-groupname",
             swatches: g.defaultColors,
+            hsvpanel: true,
             onchange: function(container, color) {
               parameter.onChange(color.tiny.toRgbString());
               return checkboxJ[0].checked = true;
             }
           }).click(function() {
-            var colorPickerPopoverJ, guiJ, position;
+            var colorPickerPopoverJ, guiJ, swatchesJ;
             guiJ = $(g.gui.domElement);
             colorPickerPopoverJ = $(".cp-popover-container .popover");
+            swatchesJ = colorPickerPopoverJ.find('.cp-swatches');
             if (guiJ.parent().hasClass("dg-sidebar")) {
-              position = guiJ.offset().left + guiJ.outerWidth();
-              colorPickerPopoverJ.css({
-                left: position
-              });
               colorPickerPopoverJ.removeClass("left").addClass("right");
-            } else {
-              position = guiJ.offset().left - colorPickerPopoverJ.width();
-              colorPickerPopoverJ.css({
-                left: position
-              });
             }
           });
           checkboxJ.change(function() {
