@@ -6,6 +6,8 @@ define [
 
 	class Command
 
+		@needValidPosition = false
+
 		constructor: (@name)->
 			@liJ = $("<li>").text(@name)
 			@liJ.click(@click)
@@ -67,6 +69,9 @@ define [
 	# @DuplicateCommand = DuplicateCommand
 
 	class ResizeCommand extends Command
+
+		@needValidPosition = true
+
 		constructor: (@item, @newRectangle)->
 			super("Resize item", @item)
 			@previousRectangle = @item.rectangle
@@ -97,6 +102,9 @@ define [
 	g.ResizeCommand = ResizeCommand
 
 	class RotationCommand extends Command
+
+		@needValidPosition = true
+
 		constructor: (@item, @newRotation)->
 			super("Rotate item")
 			@previousRotation = @item.rotation
@@ -127,6 +135,9 @@ define [
 	g.RotationCommand = RotationCommand
 
 	class MoveCommand extends Command
+
+		@needValidPosition = true
+
 		constructor: (@item, @newPosition)->
 			super("Move item")
 			@previousPosition = @item.rectangle.center
@@ -185,6 +196,8 @@ define [
 	g.MoveCommand = MoveCommand
 
 	class ModifyPointCommand extends Command
+
+		@needValidPosition = true
 
 		constructor: (@item)->
 			@segment = @item.selectionState.segment
@@ -255,6 +268,7 @@ define [
 	g.ModifySpeedCommand = ModifySpeedCommand
 
 	class SetParameterCommand extends Command
+
 		constructor: (@item, args)->
 			@parameterName = args[0]
 			@previousValue = @item.data[@parameterName]
@@ -291,6 +305,9 @@ define [
 	# ---- # # ---- # # ---- # # ---- #
 
 	class AddPointCommand extends Command
+
+		@needValidPosition = true
+
 		constructor: (@item, @location, name=null)->
 			super(if not name? then 'Add point on item' else name)
 			return
@@ -316,6 +333,9 @@ define [
 	g.AddPointCommand = AddPointCommand
 
 	class DeletePointCommand extends AddPointCommand
+
+		@needValidPosition = true
+
 		constructor: (@item, @segment)-> super(@item, @segment, 'Delete point on item')
 
 		do: ()->
@@ -335,6 +355,8 @@ define [
 	g.DeletePointCommand = DeletePointCommand
 
 	class ModifyPointTypeCommand extends Command
+
+		@needValidPosition = true
 
 		constructor: (@item, @segment, @rtype)->
 			@previousRType = @segment.rtype
@@ -357,6 +379,28 @@ define [
 
 	g.ModifyPointTypeCommand = ModifyPointTypeCommand
 
+	### --- Custom command for all kinds of command which modifiy the path --- ###
+
+	class ModifyControlPathCommand extends Command
+
+		@needValidPosition = true
+
+		constructor: (@item, @previousPointsAndPlanet, @newPointsAndPlanet)->
+			super('Modify path')
+			@superDo()
+			return
+
+		do: ()->
+			@item.modifyControlPath(@newPointsAndPlanet)
+			super()
+			return
+
+		undo: ()->
+			@item.modifyControlPath(@previousPointsAndPlanet)
+			super()
+			return
+
+	g.ModifyControlPathCommand = ModifyControlPathCommand
 
 	class MoveViewCommand extends Command
 		constructor: (@previousPosition, @newPosition)->
@@ -523,7 +567,11 @@ define [
 	# @DeselectCommand = DeselectCommand
 
 	class CreateItemCommand extends Command
+
+		@needValidPosition = true
+
 		constructor: (@item, name=null)->
+			name ?= 'Create item'
 			@itemConstructor = @item.constructor
 			super(name)
 			@superDo()
@@ -596,6 +644,39 @@ define [
 			super(item, 'Duplicate item')
 
 	g.DuplicateItemCommand = DuplicateItemCommand
+
+	class ModifyTextCommand extends Command
+
+		constructor: (@item, args)->
+			super("Change text", @item)
+			@newText = args[0]
+			@previousText = @item.data.message
+			return
+
+		do: ()->
+			@item.data.message = @newText
+			@item.contentJ.val(@newText)
+			super()
+			return
+
+		undo: ()->
+			@item.data.message = @previousText
+			@item.contentJ.val(@previousText)
+			super()
+			return
+
+		update: (@newText)->
+			@item.setText(@newText, false)
+			return
+
+		end: (valid)->
+			if @newText == @previousText then return false
+			if not valid then return false
+			@item.update('text')
+			super()
+			return true
+
+	g.ModifyTextCommand = ModifyTextCommand
 
 	# class CreatePathCommand extends CreateItemCommand
 	# 	constructor: (item, name=null)->

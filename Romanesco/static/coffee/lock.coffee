@@ -49,7 +49,7 @@ define [
 				{ value: 'lock', checked: true, label: 'Create simple lock', submitShortcut: true, linked: [] }
 				{ value: 'link', checked: false, label: 'Create link', linked: ['linkName', 'url', 'message'] }
 				{ value: 'website', checked: false, label: 'Create  website (® x2)', linked: ['restrictArea', 'disableToolbar', 'siteName'] }
-				{ value: 'video-game', checked: false, label: 'Create  video game (® x2)', linked: ['message'] }
+				# { value: 'video-game', checked: false, label: 'Create  video game (® x2)', linked: ['message'] }
 			]
 
 			radioGroupJ = g.RModal.addRadioGroup('object_type', radioButtons)
@@ -61,8 +61,8 @@ define [
 				<div class="form-group siteName">
 					<label for="modalSiteName">Site name</label>
 					<div class="input-group">
+						<span class="input-group-addon">romanesco.city/#</span>
 						<input id="modalSiteName" type="text" class="name form-control" placeholder="Site name">
-						<span class="input-group-addon">.romanesco.city</span>
 					</div>
 				</div>
 			""")
@@ -178,8 +178,11 @@ define [
 			if @owner then title += " of " + @owner
 			titleJ = @itemListsJ.find(".title")
 			titleJ.text(title)
-			titleJ.click (event)->
-				$(this).parent().toggleClass('closed')
+			titleJ.click (event)=>
+				@itemListsJ.toggleClass('closed')
+				if not event.shiftKey
+					g.deselectAll()
+				@select()
 				return
 
 			@itemListsJ.find('.rDiv-list').sortable( stop: g.zIndexSortStop, delay: 250 )
@@ -219,7 +222,7 @@ define [
 			@drawing.name = 'rlock background'
 			@drawing.strokeWidth = if @data.strokeWidth>0 then @data.strokeWidth else 1
 			@drawing.strokeColor = if @data.strokeColor? then @data.strokeColor else 'black'
-			@drawing.fillColor = @data.fillColor or 'white'
+			@drawing.fillColor = @data.fillColor or new Color(255,255,255,0.5)
 			@drawing.controller = @
 			@group.addChild(@drawing)
 			return

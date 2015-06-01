@@ -627,7 +627,7 @@ define [
 
 		# scroll the paper views
 		project.view.scrollBy(new Point(delta.x, delta.y))
-		g.selectionProject.view.scrollBy(new Point(delta.x, delta.y))
+		# g.selectionProject.view.scrollBy(new Point(delta.x, delta.y))
 
 		for div in g.divs 										# update RDivs' positions
 			div.updateTransform()
@@ -791,6 +791,9 @@ define [
 	# @param bounds [Paper Rectangle] (optional) the bounds to consider, item's bounds are used if *bounds* is null
 	# @param highlight [boolean] (optional) whether to highlight or update the items
 	g.validatePosition = (item, bounds=null, highlight=false)->
+		if g.RSelectionRectangle.prototype.isPrototypeOf(item)
+			return true
+
 		if item.getDrawingBounds?() > g.rasterizer.maxArea()
 			if highlight
 				g.romanesco_alert('The path is too big.', 'Warning')

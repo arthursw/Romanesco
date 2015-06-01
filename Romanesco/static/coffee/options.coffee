@@ -311,6 +311,7 @@ define [
 		# todo: use addItems for general settings!!!
 		dat.GUI.autoPace = false
 		g.gui = new dat.GUI()
+		dat.GUI.toggleHide = ()-> return
 		g.generalFolder = g.gui.addFolder('General')
 
 		controller = g.generalFolder.add({location: g.parameters.location.default}, 'location')
@@ -645,18 +646,30 @@ define [
 						opacity: 'Opacity'
 					},
 					customswatches: "different-swatches-groupname",
-					swatches: g.defaultColors,
-					hsvpanel: true,
+					swatches: false,
+					# swatches: g.defaultColors,
+					# hsvpanel: true,
 					onchange: (container, color) ->
-						parameter.onChange(color.tiny.toRgbString())
+						colorPickerPopoverJ = $(".cp-popover-container .popover")
+						gradient = colorPickerPopoverJ.find('.gradient-checkbox')[0].checked
+						if gradient
+							g.selectedGradientHandle.setColor(color.tiny.toRgbString())
+						else
+							parameter.onChange(color.tiny.toRgbString())
 						checkboxJ[0].checked = true
 				}).click ()->
 					guiJ = $(g.gui.domElement)
 					colorPickerPopoverJ = $(".cp-popover-container .popover")
 
-					swatchesJ = colorPickerPopoverJ.find('.cp-swatches')
-					# gradientSwatchesJ = $('<div>')
-					# gradientSwatchesJ.text('AHAH')
+					# swatchesJ = colorPickerPopoverJ.find('.cp-swatches')
+					checkboxJ = $("<label><input type='checkbox' class='gradient-checkbox' form-control>Gradient</label>")
+					checkboxJ.insertBefore(colorPickerPopoverJ.find('.cp-preview'))
+					checkboxJ.click (event)->
+						if this.checked
+							g.initializeGradientTool()
+						else
+							g.removeGradientTool()
+						return
 					# swatchesJ.append(gradientSwatchesJ)
 
 					if guiJ.parent().hasClass("dg-sidebar")

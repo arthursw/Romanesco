@@ -85,11 +85,7 @@
 
       Rasterizer.prototype.clearRasters = function() {};
 
-      Rasterizer.prototype.drawItems = function(showPath) {
-        if (showPath == null) {
-          showPath = false;
-        }
-      };
+      Rasterizer.prototype.drawItems = function() {};
 
       Rasterizer.prototype.rasterizeAllItems = function() {
         var item, pk, _ref;
@@ -109,6 +105,10 @@
       Rasterizer.prototype.hideRasters = function() {};
 
       Rasterizer.prototype.showRasters = function() {};
+
+      Rasterizer.prototype.extractImage = function(rectangle, redraw) {
+        return g.areaToImageDataUrl(rectangle);
+      };
 
       return Rasterizer;
 
@@ -133,8 +133,9 @@
         this.rasterizationDisabled = false;
         this.autoRasterization = 'deferred';
         this.rasterizationDelay = 800;
-        this.itemsAreVisible = false;
         this.renderInView = false;
+        this.itemsAreDrawn = false;
+        this.itemsAreVisible = false;
         this.move();
         return;
       }
@@ -145,6 +146,8 @@
           if (typeof item.draw === "function") {
             item.draw();
           }
+        } else {
+          this.itemsAreDrawn = false;
         }
         if (this.rasterizeItems) {
           if (typeof item.rasterize === "function") {
@@ -194,13 +197,12 @@
       };
 
       TileRasterizer.prototype.drawItemsAndHideRasters = function() {
-        if (!this.itemsAreVisible) {
-          this.drawItems(true);
-          this.hideRasters();
-        }
+        this.drawItems(true);
+        this.hideRasters();
       };
 
       TileRasterizer.prototype.selectItem = function(item) {
+        this.drawItems();
         this.rasterize(item, true);
         switch (this.autoRasterization) {
           case 'disabled':
@@ -590,10 +592,16 @@
         }
       };
 
-      TileRasterizer.prototype.drawItems = function(showPath) {
+      TileRasterizer.prototype.drawItems = function(showItems) {
         var item, pk, _ref;
-        if (showPath == null) {
-          showPath = false;
+        if (showItems == null) {
+          showItems = false;
+        }
+        if (showItems) {
+          this.showItems();
+        }
+        if (this.itemsAreDrawn) {
+          return;
         }
         _ref = g.items;
         for (pk in _ref) {
@@ -603,18 +611,26 @@
               item.draw();
             }
           }
-          if (showPath || (item.selectionRectangle != null)) {
-            item.group.visible = true;
-          }
           if (this.rasterizeItems) {
             if (typeof item.rasterize === "function") {
               item.rasterize();
             }
           }
         }
-        if (showPath) {
-          this.itemsAreVisible = true;
+        this.itemsAreDrawn = true;
+      };
+
+      TileRasterizer.prototype.showItems = function() {
+        var item, pk, _ref;
+        if (this.itemsAreVisible) {
+          return;
         }
+        _ref = g.items;
+        for (pk in _ref) {
+          item = _ref[pk];
+          item.group.visible = true;
+        }
+        this.itemsAreVisible = true;
       };
 
       TileRasterizer.prototype.disableRasterization = function() {
@@ -648,12 +664,33 @@
         }
       };
 
-      TileRasterizer.prototype.showItems = function() {
-        var item, pk, _ref;
-        _ref = g.items;
-        for (pk in _ref) {
-          item = _ref[pk];
-          item.group.visible = true;
+      TileRasterizer.prototype.extractImage = function(rectangle, redraw) {
+        var dataURL, disableDrawing, item, pk, rasterizeItems, _ref;
+        if (redraw) {
+          rasterizeItems = this.rasterizeItems;
+          this.rasterizeItems = false;
+          disableDrawing = this.disableDrawing;
+          this.disableDrawing = false;
+          this.drawItemsAndHideRasters();
+          dataURL = g.areaToImageDataUrl(rectangle);
+          if (rasterizeItems) {
+            this.rasterizeItems = true;
+            _ref = g.items;
+            for (pk in _ref) {
+              item = _ref[pk];
+              if (typeof item.rasterize === "function") {
+                item.rasterize();
+              }
+            }
+          }
+          if (disableDrawing) {
+            this.disableDrawing = true;
+          }
+          this.showRasters();
+          this.rasterizeImmediately();
+          return dataURL;
+        } else {
+          return g.areaToImageDataUrl(rectangle);
         }
       };
 

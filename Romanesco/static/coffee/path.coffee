@@ -80,13 +80,13 @@ define [
 					shadowOffsetX:
 						type: 'slider'
 						label: 'Shadow offset x'
-						min: 0
+						min: -25
 						max: 25
 						default: 0
 					shadowOffsetY:
 						type: 'slider'
 						label: 'Shadow offset y'
-						min: 0
+						min: -25
 						max: 25
 						default: 0
 					shadowBlur:
@@ -178,8 +178,8 @@ define [
 		# store the current state of items, and change their state (the original states will be restored in @finishHitTest())
 		# @param fullySelected [Boolean] (optional) whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles)
 		# @param strokeWidth [Number] (optional) control path width will be set to *strokeWidth* if it is provided
-		prepareHitTest: (fullySelected=true, strokeWidth)->
-			super(fullySelected, strokeWidth)
+		prepareHitTest: (fullySelected, strokeWidth)->
+			super()
 
 			@stateBeforeHitTest = {}
 			@stateBeforeHitTest.groupWasVisible = @group.visible
@@ -204,9 +204,10 @@ define [
 			super(fullySelected)
 			@group.visible = @stateBeforeHitTest.groupWasVisible
 			@controlPath.visible = @stateBeforeHitTest.controlPathWasVisible
-			@controlPath.selected = @stateBeforeHitTest.controlPathWasSelected
 			@controlPath.strokeWidth = @stateBeforeHitTest.controlPathStrokeWidth
-			if fullySelected then @controlPath.fullySelected = @stateBeforeHitTest.controlPathWasFullySelected
+			@controlPath.fullySelected = @stateBeforeHitTest.controlPathWasFullySelected
+			if not @controlPath.fullySelected
+				@controlPath.selected = @stateBeforeHitTest.controlPathWasSelected
 			@stateBeforeHitTest = null
 
 			@speedGroup?.selected = false
@@ -281,16 +282,20 @@ define [
 		# - add to the drawing group
 		# @param path [Paper path] (optional) the path to add to drawing, create an empty one if not provided
 		# @return [Paper path] the resulting path
-		addPath: (path)->
+		addPath: (path, applyStyles=true)->
 			path ?= new Path()
-			path.name = 'group path'
+			# path.name = 'group path'
 			path.controller = @
-			path.strokeColor = @data.strokeColor
-			path.strokeWidth = @data.strokeWidth
-			path.fillColor = @data.fillColor
-			path.shadowOffset = new Point(@data.shadowOffsetX, @data.shadowOffsetY)
-			path.shadowBlur = @data.shadowBlur
-			path.shadowColor = @data.shadowColor
+			if applyStyles
+				path.strokeColor = @data.strokeColor
+				path.strokeWidth = @data.strokeWidth
+				path.fillColor = @data.fillColor
+				if @data.shadowOffsetY?
+					path.shadowOffset = new Point(@data.shadowOffsetX, @data.shadowOffsetY)
+				if @data.shadowBlur?
+					path.shadowBlur = @data.shadowBlur
+				if @data.shadowColor?
+					path.shadowColor = @data.shadowColor
 			@drawing.addChild(path)
 			return path
 
@@ -451,7 +456,7 @@ define [
 			return JSON.stringify(@getData())
 
 		# @return [Point] the planet on which the RPath lies
-		planet: ()->
+		getPlanet: ()->
 			return g.projectToPlanet( @controlPath.segments[0].point )
 
 		# save RPath to server
@@ -538,8 +543,8 @@ define [
 			# 	@speedGroup?.visible = speedGroupVisible
 
 			# if type == 'points'
-			# 	# ajaxPost '/updatePath', {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData() }, @updatePathCallback
-			# 	Dajaxice.draw.updatePath( @updatePathCallback, {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @planet(), 'data': @getStringifiedData() } )
+			# 	# ajaxPost '/updatePath', {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @getPlanet(), 'data': @getStringifiedData() }, @updatePathCallback
+			# 	Dajaxice.draw.updatePath( @updatePathCallback, {'pk': @pk, 'points':@pathOnPlanet(), 'planet': @getPlanet(), 'data': @getStringifiedData() } )
 			# else
 			# 	# ajaxPost '/updatePath', {'pk': @pk, 'data': @getStringifiedData() } , @updatePathCallback
 			# 	Dajaxice.draw.updatePath( @updatePathCallback, {'pk': @pk, 'data': @getStringifiedData() } )
@@ -565,6 +570,7 @@ define [
 		# @delete() removes the path and delete it in the database
 		# @remove() just removes visually
 		remove: ()->
+			if not @group then return
 			@deregisterAnimation()
 			@controlPath = null
 			@drawing = null
@@ -597,7 +603,7 @@ define [
 		# return [Array of Paper point] a list of point from the control path converted in the planet coordinate system
 		pathOnPlanet: (controlSegments=@controlPath.segments)->
 			points = []
-			planet = @planet()
+			planet = @getPlanet()
 			for segment in controlSegments
 				p = g.projectToPosOnPlanet(segment.point, planet)
 				points.push( g.pointToArray(p) )
@@ -685,6 +691,7 @@ define [
 					type: 'checkbox'
 					label: 'Smooth'
 					default: false
+					onChange: (value)-> item.setSmooth?(value) for item in g.selectedItems; return
 				pointType:
 					type: 'dropdown'
 					label: 'Point type'
@@ -699,12 +706,12 @@ define [
 				simplify:
 					type: 'button'
 					label: 'Simplify'
-					default: ()->
-						for item in g.selectedItems
-							item.controlPath?.simplify()
-							item.draw()
-							item.update()
-						return
+					default: (value)-> item.simplifyControlPath?(value) for item in g.selectedItems; return
+					onChange: (value)-> return
+				showSelectionRectangle:
+					type: 'checkbox'
+					label: 'Selection box'
+					value: true
 
 			return parameters
 
@@ -713,19 +720,26 @@ define [
 			super(@date, @data, @pk, points, @lock)
 			if @constructor.polygonMode then @data.polygonMode = g.polygonMode
 			@rotation = @data.rotation = 0
+			# @data.showSelectionRectangle = true
+			return
+
+		setControlPath: (points, planet)->
+			for point, i in points by 4
+				@controlPath.add(g.posOnPlanetToProject(point, planet))
+				@controlPath.lastSegment.handleIn = new Point(points[i+1])
+				@controlPath.lastSegment.handleOut = new Point(points[i+2])
+				@controlPath.lastSegment.rtype = points[i+3]
 			return
 
 		# redefine {RPath#loadPath}
 		# load control path from @data.points and check if *points* fit to the created control path
 		loadPath: (points)->
 			# load control path from @data.points
-			@initializeControlPath(g.posOnPlanetToProject(@data.points[0], @data.planet))
-			for point, i in @data.points by 4
-				if i>0 then @controlPath.add(g.posOnPlanetToProject(point, @data.planet))
-				@controlPath.lastSegment.handleIn = new Point(@data.points[i+1])
-				@controlPath.lastSegment.handleOut = new Point(@data.points[i+2])
-				@controlPath.lastSegment.rtype = @data.points[i+3]
-			if points.length == 2 then @controlPath.add(points[1])
+
+			@addControlPath()
+			@setControlPath(@data.points, @data.planet)
+
+			@rectangle = @controlPath.bounds
 
 			@finish(true)
 
@@ -820,14 +834,6 @@ define [
 
 			return
 
-		# initialize the main group and the control path
-		# @param point [Point] the first point of the path
-		initializeControlPath: (point)->
-			@addControlPath()
-			@controlPath.add(point)
-			@rectangle = @controlPath.bounds
-			return
-
 		# redefine {RPath#beginCreate}
 		# begin create action:
 		# initialize the control path and draw begin
@@ -838,12 +844,16 @@ define [
 			super()
 
 			if not @data.polygonMode 				# in normal mode: just initialize the control path and begin drawing
-				@initializeControlPath(point)
+				@addControlPath()
+				@controlPath.add(point)
+				@rectangle = @controlPath.bounds
 				@beginDraw(false)
 			else 									# in polygon mode:
 				if not @controlPath?					# if the user just started the creation (first point, on mouse down)
-					@initializeControlPath(point)		# 	initialize the control path, add the point and begin drawing
+					@addControlPath()
 					@controlPath.add(point)
+					@rectangle = @controlPath.bounds
+					@controlPath.add(point) 			# add twice the first point because the last point will follow the mouse (in polygon mode)
 					@beginDraw(false)
 				else 									# if the user already added some points: just add the point to the control path
 					@controlPath.add(point)
@@ -1041,16 +1051,23 @@ define [
 			flatennedPath.remove()
 			return super(flatennedPath.segments)
 
+		getPoints: ()->
+			points = []
+			for segment in @controlPath.segments
+				points.push(g.projectToPosOnPlanet(segment.point))
+				points.push(g.pointToObj(segment.handleIn))
+				points.push(g.pointToObj(segment.handleOut))
+				points.push(segment.rtype)
+			return points
+
+		getPointsAndPlanet: ()->
+			return planet: @getPlanet(), points: @getPoints()
+
 		# get data, usually to save the RPath (some information must be added to data)
 		# the control path is stored in @data.points and @data.planet
 		getData: ()->
-			@data.planet = g.projectToPlanet(@controlPath.segments[0].point)
-			@data.points = []
-			for segment in @controlPath.segments
-				@data.points.push(g.projectToPosOnPlanet(segment.point))
-				@data.points.push(g.pointToObj(segment.handleIn))
-				@data.points.push(g.pointToObj(segment.handleOut))
-				@data.points.push(segment.rtype)
+			@data.planet = @getPlanet()
+			@data.points = @getPoints()
 			return @data
 
 		# @see RPath.select
@@ -1159,8 +1176,11 @@ define [
 				@rotation = 0
 
 			super()
+
 			@controlPath.pivot = @selectionRectangle.pivot
 
+			@selectionRectangle.selected = @data.showSelectionRectangle
+			@selectionRectangle.visible = @data.showSelectionRectangle
 			return
 
 		setRectangle: (rectangle, update)->
@@ -1313,10 +1333,6 @@ define [
 			@deletePoint(@selectionState.segment)
 			return
 
-		modifyPointTypeCommand: (rtype)->
-			g.commandManager.add(new g.ModifyPointTypeCommand(@, @selectionState.segment, rtype), true)
-			return
-
 		# change selected segment position and handle position
 		# @param position [Paper Point] the new position
 		# @param handleIn [Paper Point] the new handle in position
@@ -1395,6 +1411,10 @@ define [
 			@update('points')
 			return
 
+		modifyPointTypeCommand: (rtype)->
+			g.commandManager.add(new g.ModifyPointTypeCommand(@, @selectionState.segment, rtype), true)
+			return
+
 		modifySelectedPointType: (value, update=true)->
 			if not @selectionState.segment? then return
 			@modifyPointType(@selectionState.segment, value, update)
@@ -1426,24 +1446,65 @@ define [
 				g.chatSocket.emit "bounce", itemPk: @pk, function: "modifyPointType", arguments: [segment.index, rtype, false]
 			return
 
+		modifyControlPathCommand: (previousPointsAndPlanet, newPointsAndPlanet)->
+			g.commandManager.add(new g.ModifyControlPathCommand(@, previousPointsAndPlanet, newPointsAndPlanet), false)
+			return
+
+		modifyControlPath: (pointsAndPlanet, update=true)->
+			selected = @controlPath.selected
+			fullySelected = @controlPath.fullySelected
+			@controlPath.removeSegments()
+			@setControlPath(pointsAndPlanet.points, pointsAndPlanet.planet)
+			@controlPath.selected = selected
+			if fullySelected then @controlPath.fullySelected = true
+			@selectionState = move: true
+			@highlightSelectedPoint()
+			@draw()
+			if not @socketAction
+				if update then @update('point')
+				g.chatSocket.emit "bounce", itemPk: @pk, function: "modifyControlPath", arguments: [pointsAndPlanet, false]
+			return
+
+		setSmooth: (smooth)->
+			@data.smooth = smooth
+			if @data.smooth
+				previousPointsAndPlanet = @getPointsAndPlanet()
+				@controlPath.smooth()
+				@controlPath.fullySelected = false
+				@controlPath.selected = true
+				@selectionState = move: true
+				@highlightSelectedPoint()
+				for segment in @controlPath.segments
+					segment.rtype = 'smooth'
+				@draw()
+				@modifyControlPathCommand(previousPointsAndPlanet, @getPointsAndPlanet())
+			else
+				@controlPath.fullySelected = true
+			return
+
+		simplifyControlPath: ()->
+			previousPointsAndPlanet = @getPointsAndPlanet()
+
+			@controlPath?.simplify()
+			@draw()
+			@update()
+
+			@modifyControlPathCommand(previousPointsAndPlanet, @getPointsAndPlanet())
+			return
+
 		# overload {RPath#parameterChanged}, but update the control path state if 'smooth' was changed
 		# called when a parameter is changed
 		setParameter: (name, value, updateGUI, update)->
 			super(name, value, updateGUI, update)
-			if name == 'smooth'
-				# todo: add a warning when changing smooth?
-				if @data.smooth 		# todo: put this in @draw()? and remove this function?
-					@controlPath.smooth()
-					@controlPath.fullySelected = false
-					@controlPath.selected = true
-					segment.rtype = 'smooth' for segment in @controlPath.segments
-				else
-					@controlPath.fullySelected = true
+			switch name
+				when 'showSelectionRectangle'
+					@selectionRectangle?.selected = @data.showSelectionRectangle
+					@selectionRectangle?.visible = @data.showSelectionRectangle
 			return
 
 		# overload {RPath#remove}, but in addition: remove the selected point highlight and the canvas raster
 		remove: ()->
-			@selectionHighlight = null
+			@canvasRaster?.remove()
 			@canvasRaster = null
 			super()
 			return

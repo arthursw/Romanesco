@@ -51,14 +51,14 @@
             shadowOffsetX: {
               type: 'slider',
               label: 'Shadow offset x',
-              min: 0,
+              min: -25,
               max: 25,
               "default": 0
             },
             shadowOffsetY: {
               type: 'slider',
               label: 'Shadow offset y',
-              min: 0,
+              min: -25,
               max: 25,
               "default": 0
             },
@@ -154,10 +154,7 @@
 
       RPath.prototype.prepareHitTest = function(fullySelected, strokeWidth) {
         var _ref;
-        if (fullySelected == null) {
-          fullySelected = true;
-        }
-        RPath.__super__.prepareHitTest.call(this, fullySelected, strokeWidth);
+        RPath.__super__.prepareHitTest.call(this);
         this.stateBeforeHitTest = {};
         this.stateBeforeHitTest.groupWasVisible = this.group.visible;
         this.stateBeforeHitTest.controlPathWasVisible = this.controlPath.visible;
@@ -186,10 +183,10 @@
         RPath.__super__.finishHitTest.call(this, fullySelected);
         this.group.visible = this.stateBeforeHitTest.groupWasVisible;
         this.controlPath.visible = this.stateBeforeHitTest.controlPathWasVisible;
-        this.controlPath.selected = this.stateBeforeHitTest.controlPathWasSelected;
         this.controlPath.strokeWidth = this.stateBeforeHitTest.controlPathStrokeWidth;
-        if (fullySelected) {
-          this.controlPath.fullySelected = this.stateBeforeHitTest.controlPathWasFullySelected;
+        this.controlPath.fullySelected = this.stateBeforeHitTest.controlPathWasFullySelected;
+        if (!this.controlPath.fullySelected) {
+          this.controlPath.selected = this.stateBeforeHitTest.controlPathWasSelected;
         }
         this.stateBeforeHitTest = null;
         if ((_ref = this.speedGroup) != null) {
@@ -235,18 +232,28 @@
         this.draw();
       };
 
-      RPath.prototype.addPath = function(path) {
+      RPath.prototype.addPath = function(path, applyStyles) {
+        if (applyStyles == null) {
+          applyStyles = true;
+        }
         if (path == null) {
           path = new Path();
         }
-        path.name = 'group path';
         path.controller = this;
-        path.strokeColor = this.data.strokeColor;
-        path.strokeWidth = this.data.strokeWidth;
-        path.fillColor = this.data.fillColor;
-        path.shadowOffset = new Point(this.data.shadowOffsetX, this.data.shadowOffsetY);
-        path.shadowBlur = this.data.shadowBlur;
-        path.shadowColor = this.data.shadowColor;
+        if (applyStyles) {
+          path.strokeColor = this.data.strokeColor;
+          path.strokeWidth = this.data.strokeWidth;
+          path.fillColor = this.data.fillColor;
+          if (this.data.shadowOffsetY != null) {
+            path.shadowOffset = new Point(this.data.shadowOffsetX, this.data.shadowOffsetY);
+          }
+          if (this.data.shadowBlur != null) {
+            path.shadowBlur = this.data.shadowBlur;
+          }
+          if (this.data.shadowColor != null) {
+            path.shadowColor = this.data.shadowColor;
+          }
+        }
         this.drawing.addChild(path);
         return path;
       };
@@ -383,7 +390,7 @@
         return JSON.stringify(this.getData());
       };
 
-      RPath.prototype.planet = function() {
+      RPath.prototype.getPlanet = function() {
         return g.projectToPlanet(this.controlPath.segments[0].point);
       };
 
@@ -464,6 +471,9 @@
       };
 
       RPath.prototype.remove = function() {
+        if (!this.group) {
+          return;
+        }
         this.deregisterAnimation();
         this.controlPath = null;
         this.drawing = null;
@@ -505,7 +515,7 @@
           controlSegments = this.controlPath.segments;
         }
         points = [];
-        planet = this.planet();
+        planet = this.getPlanet();
         for (_i = 0, _len = controlSegments.length; _i < _len; _i++) {
           segment = controlSegments[_i];
           p = g.projectToPosOnPlanet(segment.point, planet);
@@ -560,7 +570,17 @@
           smooth: {
             type: 'checkbox',
             label: 'Smooth',
-            "default": false
+            "default": false,
+            onChange: function(value) {
+              var item, _i, _len, _ref;
+              _ref = g.selectedItems;
+              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                item = _ref[_i];
+                if (typeof item.setSmooth === "function") {
+                  item.setSmooth(value);
+                }
+              }
+            }
           },
           pointType: {
             type: 'dropdown',
@@ -596,18 +616,22 @@
           simplify: {
             type: 'button',
             label: 'Simplify',
-            "default": function() {
-              var item, _i, _len, _ref, _ref1;
+            "default": function(value) {
+              var item, _i, _len, _ref;
               _ref = g.selectedItems;
               for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                 item = _ref[_i];
-                if ((_ref1 = item.controlPath) != null) {
-                  _ref1.simplify();
+                if (typeof item.simplifyControlPath === "function") {
+                  item.simplifyControlPath(value);
                 }
-                item.draw();
-                item.update();
               }
-            }
+            },
+            onChange: function(value) {}
+          },
+          showSelectionRectangle: {
+            type: 'checkbox',
+            label: 'Selection box',
+            value: true
           }
         };
         return parameters;
@@ -629,29 +653,29 @@
         return;
       }
 
+      PrecisePath.prototype.setControlPath = function(points, planet) {
+        var i, point, _i, _len;
+        for (i = _i = 0, _len = points.length; _i < _len; i = _i += 4) {
+          point = points[i];
+          this.controlPath.add(g.posOnPlanetToProject(point, planet));
+          this.controlPath.lastSegment.handleIn = new Point(points[i + 1]);
+          this.controlPath.lastSegment.handleOut = new Point(points[i + 2]);
+          this.controlPath.lastSegment.rtype = points[i + 3];
+        }
+      };
+
       PrecisePath.prototype.loadPath = function(points) {
-        var distanceMax, flattenedPath, i, index, point, recordedPoint, resultingPoint, time, _i, _j, _len, _ref;
-        this.initializeControlPath(g.posOnPlanetToProject(this.data.points[0], this.data.planet));
-        _ref = this.data.points;
-        for (i = _i = 0, _len = _ref.length; _i < _len; i = _i += 4) {
-          point = _ref[i];
-          if (i > 0) {
-            this.controlPath.add(g.posOnPlanetToProject(point, this.data.planet));
-          }
-          this.controlPath.lastSegment.handleIn = new Point(this.data.points[i + 1]);
-          this.controlPath.lastSegment.handleOut = new Point(this.data.points[i + 2]);
-          this.controlPath.lastSegment.rtype = this.data.points[i + 3];
-        }
-        if (points.length === 2) {
-          this.controlPath.add(points[1]);
-        }
+        var distanceMax, flattenedPath, i, index, recordedPoint, resultingPoint, time, _i;
+        this.addControlPath();
+        this.setControlPath(this.data.points, this.data.planet);
+        this.rectangle = this.controlPath.bounds;
         this.finish(true);
         g.rasterizer.loadItem(this);
         time = Date.now();
         flattenedPath = this.controlPath.copyTo(project);
         flattenedPath.flatten(this.constructor.secureStep);
         distanceMax = this.constructor.secureDistance * this.constructor.secureDistance;
-        for (i = _j = 1; _j <= 10; i = ++_j) {
+        for (i = _i = 1; _i <= 10; i = ++_i) {
           index = Math.floor(Math.random() * points.length);
           recordedPoint = new Point(points[index]);
           resultingPoint = flattenedPath.segments[index].point;
@@ -732,20 +756,18 @@
         }
       };
 
-      PrecisePath.prototype.initializeControlPath = function(point) {
-        this.addControlPath();
-        this.controlPath.add(point);
-        this.rectangle = this.controlPath.bounds;
-      };
-
       PrecisePath.prototype.beginCreate = function(point, event) {
         PrecisePath.__super__.beginCreate.call(this);
         if (!this.data.polygonMode) {
-          this.initializeControlPath(point);
+          this.addControlPath();
+          this.controlPath.add(point);
+          this.rectangle = this.controlPath.bounds;
           this.beginDraw(false);
         } else {
           if (this.controlPath == null) {
-            this.initializeControlPath(point);
+            this.addControlPath();
+            this.controlPath.add(point);
+            this.rectangle = this.controlPath.bounds;
             this.controlPath.add(point);
             this.beginDraw(false);
           } else {
@@ -928,18 +950,30 @@
         return PrecisePath.__super__.pathOnPlanet.call(this, flatennedPath.segments);
       };
 
-      PrecisePath.prototype.getData = function() {
-        var segment, _i, _len, _ref;
-        this.data.planet = g.projectToPlanet(this.controlPath.segments[0].point);
-        this.data.points = [];
+      PrecisePath.prototype.getPoints = function() {
+        var points, segment, _i, _len, _ref;
+        points = [];
         _ref = this.controlPath.segments;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           segment = _ref[_i];
-          this.data.points.push(g.projectToPosOnPlanet(segment.point));
-          this.data.points.push(g.pointToObj(segment.handleIn));
-          this.data.points.push(g.pointToObj(segment.handleOut));
-          this.data.points.push(segment.rtype);
+          points.push(g.projectToPosOnPlanet(segment.point));
+          points.push(g.pointToObj(segment.handleIn));
+          points.push(g.pointToObj(segment.handleOut));
+          points.push(segment.rtype);
         }
+        return points;
+      };
+
+      PrecisePath.prototype.getPointsAndPlanet = function() {
+        return {
+          planet: this.getPlanet(),
+          points: this.getPoints()
+        };
+      };
+
+      PrecisePath.prototype.getData = function() {
+        this.data.planet = this.getPlanet();
+        this.data.points = this.getPoints();
         return this.data;
       };
 
@@ -1069,6 +1103,8 @@
         }
         PrecisePath.__super__.updateSelectionRectangle.call(this);
         this.controlPath.pivot = this.selectionRectangle.pivot;
+        this.selectionRectangle.selected = this.data.showSelectionRectangle;
+        this.selectionRectangle.visible = this.data.showSelectionRectangle;
       };
 
       PrecisePath.prototype.setRectangle = function(rectangle, update) {
@@ -1227,10 +1263,6 @@
         this.deletePoint(this.selectionState.segment);
       };
 
-      PrecisePath.prototype.modifyPointTypeCommand = function(rtype) {
-        g.commandManager.add(new g.ModifyPointTypeCommand(this, this.selectionState.segment, rtype), true);
-      };
-
       PrecisePath.prototype.modifySelectedPoint = function(position, handleIn, handleOut, fastDraw, update) {
         if (fastDraw == null) {
           fastDraw = true;
@@ -1328,6 +1360,10 @@
         this.update('points');
       };
 
+      PrecisePath.prototype.modifyPointTypeCommand = function(rtype) {
+        g.commandManager.add(new g.ModifyPointTypeCommand(this, this.selectionState.segment, rtype), true);
+      };
+
       PrecisePath.prototype.modifySelectedPointType = function(value, update) {
         if (update == null) {
           update = true;
@@ -1377,27 +1413,94 @@
         }
       };
 
-      PrecisePath.prototype.setParameter = function(name, value, updateGUI, update) {
-        var segment, _i, _len, _ref;
-        PrecisePath.__super__.setParameter.call(this, name, value, updateGUI, update);
-        if (name === 'smooth') {
-          if (this.data.smooth) {
-            this.controlPath.smooth();
-            this.controlPath.fullySelected = false;
-            this.controlPath.selected = true;
-            _ref = this.controlPath.segments;
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              segment = _ref[_i];
-              segment.rtype = 'smooth';
-            }
-          } else {
-            this.controlPath.fullySelected = true;
+      PrecisePath.prototype.modifyControlPathCommand = function(previousPointsAndPlanet, newPointsAndPlanet) {
+        g.commandManager.add(new g.ModifyControlPathCommand(this, previousPointsAndPlanet, newPointsAndPlanet), false);
+      };
+
+      PrecisePath.prototype.modifyControlPath = function(pointsAndPlanet, update) {
+        var fullySelected, selected;
+        if (update == null) {
+          update = true;
+        }
+        selected = this.controlPath.selected;
+        fullySelected = this.controlPath.fullySelected;
+        this.controlPath.removeSegments();
+        this.setControlPath(pointsAndPlanet.points, pointsAndPlanet.planet);
+        this.controlPath.selected = selected;
+        if (fullySelected) {
+          this.controlPath.fullySelected = true;
+        }
+        this.selectionState = {
+          move: true
+        };
+        this.highlightSelectedPoint();
+        this.draw();
+        if (!this.socketAction) {
+          if (update) {
+            this.update('point');
           }
+          g.chatSocket.emit("bounce", {
+            itemPk: this.pk,
+            "function": "modifyControlPath",
+            "arguments": [pointsAndPlanet, false]
+          });
+        }
+      };
+
+      PrecisePath.prototype.setSmooth = function(smooth) {
+        var previousPointsAndPlanet, segment, _i, _len, _ref;
+        this.data.smooth = smooth;
+        if (this.data.smooth) {
+          previousPointsAndPlanet = this.getPointsAndPlanet();
+          this.controlPath.smooth();
+          this.controlPath.fullySelected = false;
+          this.controlPath.selected = true;
+          this.selectionState = {
+            move: true
+          };
+          this.highlightSelectedPoint();
+          _ref = this.controlPath.segments;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            segment = _ref[_i];
+            segment.rtype = 'smooth';
+          }
+          this.draw();
+          this.modifyControlPathCommand(previousPointsAndPlanet, this.getPointsAndPlanet());
+        } else {
+          this.controlPath.fullySelected = true;
+        }
+      };
+
+      PrecisePath.prototype.simplifyControlPath = function() {
+        var previousPointsAndPlanet, _ref;
+        previousPointsAndPlanet = this.getPointsAndPlanet();
+        if ((_ref = this.controlPath) != null) {
+          _ref.simplify();
+        }
+        this.draw();
+        this.update();
+        this.modifyControlPathCommand(previousPointsAndPlanet, this.getPointsAndPlanet());
+      };
+
+      PrecisePath.prototype.setParameter = function(name, value, updateGUI, update) {
+        var _ref, _ref1;
+        PrecisePath.__super__.setParameter.call(this, name, value, updateGUI, update);
+        switch (name) {
+          case 'showSelectionRectangle':
+            if ((_ref = this.selectionRectangle) != null) {
+              _ref.selected = this.data.showSelectionRectangle;
+            }
+            if ((_ref1 = this.selectionRectangle) != null) {
+              _ref1.visible = this.data.showSelectionRectangle;
+            }
         }
       };
 
       PrecisePath.prototype.remove = function() {
-        this.selectionHighlight = null;
+        var _ref;
+        if ((_ref = this.canvasRaster) != null) {
+          _ref.remove();
+        }
         this.canvasRaster = null;
         PrecisePath.__super__.remove.call(this);
       };

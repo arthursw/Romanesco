@@ -5,7 +5,7 @@
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   define(['utils', 'zeroClipboard', 'item', 'lock', 'div', 'path', 'jquery', 'paper', 'bootstrap'], function(utils, ZeroClipboard) {
-    var CarTool, CodeTool, ItemTool, LockTool, MediaTool, MoveTool, PathTool, RTool, ScreenshotTool, SelectTool, TextTool, g;
+    var CarTool, CodeTool, GradientTool, ItemTool, LockTool, MediaTool, MoveTool, PathTool, RTool, ScreenshotTool, SelectTool, TextTool, g;
     g = utils.g();
     RTool = (function() {
 
@@ -136,6 +136,8 @@
       RTool.prototype.move = function(event) {};
 
       RTool.prototype.end = function(event) {};
+
+      RTool.prototype.keyUp = function(event) {};
 
       RTool.prototype.disableSnap = function() {
         return false;
@@ -362,6 +364,13 @@
         }
       };
 
+      CarTool.prototype.keyUp = function(event) {
+        switch (event.key) {
+          case 'escape':
+            g.tools['Move'].select();
+        }
+      };
+
       return CarTool;
 
     })(RTool);
@@ -389,7 +398,6 @@
 
       SelectTool.prototype.select = function() {
         var _ref;
-        g.rasterizer.drawItems();
         this.selectedItem = g.selectedItems.first();
         SelectTool.__super__.select.call(this, ((_ref = this.selectedItem) != null ? _ref.constructor : void 0) || this.constructor, this.selectedItem, false);
       };
@@ -450,6 +458,8 @@
                 g.commandManager.add(new g.DeselectCommand(), true);
               }
             }
+          } else {
+            g.tools['Screenshot'].checkRemoveScreenshotRectangle(hitResult.item.controller);
           }
           if (typeof (_base = hitResult.item.controller).beginSelect === "function") {
             _base.beginSelect(event);
@@ -551,6 +561,57 @@
 
       SelectTool.prototype.disableSnap = function() {
         return g.currentPaths[g.me] != null;
+      };
+
+      SelectTool.prototype.keyUp = function(event) {
+        var delta, item, selectedItems, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+        if ((_ref = event.key) === 'left' || _ref === 'right' || _ref === 'up' || _ref === 'down') {
+          delta = event.modifiers.shift ? 50 : event.modifiers.option ? 5 : 1;
+        }
+        switch (event.key) {
+          case 'right':
+            _ref1 = g.selectedItems;
+            for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+              item = _ref1[_i];
+              item.moveBy(new Point(delta, 0), true);
+            }
+            break;
+          case 'left':
+            _ref2 = g.selectedItems;
+            for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+              item = _ref2[_j];
+              item.moveBy(new Point(-delta, 0), true);
+            }
+            break;
+          case 'up':
+            _ref3 = g.selectedItems;
+            for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
+              item = _ref3[_k];
+              item.moveBy(new Point(0, -delta), true);
+            }
+            break;
+          case 'down':
+            _ref4 = g.selectedItems;
+            for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
+              item = _ref4[_l];
+              item.moveBy(new Point(0, delta), true);
+            }
+            break;
+          case 'escape':
+            g.deselectAll();
+            break;
+          case 'delete':
+          case 'backspace':
+            selectedItems = g.selectedItems.slice();
+            for (_m = 0, _len4 = selectedItems.length; _m < _len4; _m++) {
+              item = selectedItems[_m];
+              if (((_ref5 = item.selectionState) != null ? _ref5.segment : void 0) != null) {
+                item.deletePointCommand();
+              } else {
+                item.deleteCommand();
+              }
+            }
+        }
       };
 
       return SelectTool;
@@ -737,6 +798,22 @@
         g.currentPaths[from].finish();
         this.createPath(event, from);
         return true;
+      };
+
+      PathTool.prototype.keyUp = function(event) {
+        var finishingPath;
+        switch (event.key) {
+          case 'enter':
+            if (typeof this.finish === "function") {
+              this.finish();
+            }
+            break;
+          case 'escape':
+            finishingPath = typeof this.finish === "function" ? this.finish() : void 0;
+            if (!finishingPath) {
+              g.deselectAll();
+            }
+        }
       };
 
       return PathTool;
@@ -999,6 +1076,7 @@
         ZeroClipboard.config({
           swfPath: g.romanescoURL + "static/libs/ZeroClipboard/ZeroClipboard.swf"
         });
+        this.selectionRectangle = null;
         return;
       }
 
@@ -1010,15 +1088,10 @@
         }
       };
 
-      ScreenshotTool.prototype.select = function() {
-        ScreenshotTool.__super__.select.call(this);
-        g.rasterizer.drawItems();
-        g.rasterizer.clearRasters();
-      };
-
-      ScreenshotTool.prototype.deselect = function() {
-        ScreenshotTool.__super__.deselect.call(this);
-        g.rasterizer.rasterizeView();
+      ScreenshotTool.prototype.checkRemoveScreenshotRectangle = function(item) {
+        if ((this.selectionRectangle != null) && item !== this.selectionRectangle) {
+          this.selectionRectangle.remove();
+        }
       };
 
       ScreenshotTool.prototype.begin = function(event) {
@@ -1045,19 +1118,18 @@
         from = g.me;
         g.currentPaths[from].remove();
         delete g.currentPaths[from];
-        g.view.update();
         r = new Rectangle(event.downPoint, event.point);
         if (r.area < 100) {
           return;
         }
-        this.div = new g.RSelectionRectangle(new Rectangle(event.downPoint, event.point), this.extractImage);
+        this.selectionRectangle = new g.RSelectionRectangle(new Rectangle(event.downPoint, event.point), this.extractImage);
       };
 
-      ScreenshotTool.prototype.extractImage = function() {
+      ScreenshotTool.prototype.extractImage = function(redraw) {
         var copyDataBtnJ, imgJ, maxHeight, twitterLinkJ, twitterScriptJ;
-        this.rectangle = this.div.getBounds();
-        this.dataURL = g.areaToImageDataUrl(this.rectangle);
-        this.div.remove();
+        this.rectangle = this.selectionRectangle.getBounds();
+        this.selectionRectangle.remove();
+        this.dataURL = g.rasterizer.extractImage(this.rectangle, redraw);
         this.locationURL = g.romanescoURL + location.hash;
         this.descriptionJ.attr('placeholder', 'Artwork made with Romanesco: ' + this.locationURL);
         copyDataBtnJ = this.modalJ.find('button[name="copy-data-url"]');
@@ -1252,6 +1324,115 @@
 
     })(RTool);
     g.ScreenshotTool = ScreenshotTool;
+    GradientTool = (function(_super) {
+      __extends(GradientTool, _super);
+
+      GradientTool.handleSize = 5;
+
+      function GradientTool() {
+        var handleSize;
+        this.group = new Group();
+        handleSize = this.constructor.handleSize;
+        this.createHandle(view.bounds.scale(0.5).topLeft, 0, 'red');
+        this.createHandle(view.bounds.scale(0.5).bottomRight, 0, 'blue');
+        this.line = new Path();
+        this.line.add(this.startHandle.position);
+        this.line.add(this.endHandle.position);
+        this.group.addChild(this.line);
+        this.line.strokeColor = g.selectionBlue;
+        this.line.strokeWidth = 1;
+        this.handles = {
+          0: this.startHandle,
+          1: this.endHandle
+        };
+        g.selectionLayer.addChild(this.group);
+        return;
+      }
+
+      GradientTool.prototype.select = function() {
+        var differentTool, _ref;
+        differentTool = g.previousTool !== g.selectedTool;
+        if (this !== g.selectedTool) {
+          g.previousTool = g.selectedTool;
+        }
+        if ((_ref = g.selectedTool) != null) {
+          _ref.deselect();
+        }
+        g.selectedTool = this;
+      };
+
+      GradientTool.prototype.updateGradient = function() {
+        var handle, location, stops, _ref;
+        stops = [];
+        _ref = this.handles;
+        for (location in _ref) {
+          handle = _ref[location];
+          stops.push([handle.fillColor, location]);
+        }
+        return stops;
+      };
+
+      GradientTool.prototype.createHandle = function(position, location, color) {
+        var handle;
+        handle = new Path.Circle(position, this.constructor.handleSize);
+        handle.name = 'handle';
+        this.group.addChild(handle);
+        handle.strokeColor = g.selectionBlue;
+        handle.strokeWidth = 1;
+        this.handles[location] = handle;
+        this.updateGradient();
+        return handle;
+      };
+
+      GradientTool.prototype.addHandle = function(event) {
+        var location;
+        location = this.line.hitTest(event.point).location;
+        this.createHandle(location.position, location.location, g.selectedColor);
+      };
+
+      GradientTool.prototype.doubleClick = function(event) {
+        var hitResult, point;
+        point = view.viewToProject(new Point(event.pageX, event.pageY));
+        hitResult = this.group.hitTest();
+        if (hitResult) {
+          if (hitResult.item === this.line) {
+            this.addHandle(event);
+          } else if (hitResult.item.name === 'handle') {
+            hitResult.item.remove();
+            this.updateGradient();
+          }
+        }
+      };
+
+      GradientTool.prototype.begin = function(event) {
+        var hitResult;
+        hitResult = this.group.hitTest(event.point);
+        if (hitResult) {
+          if (hitResult.item.name === 'handle') {
+            this.selectedHandle = hitResult.item;
+            this.dragging = true;
+          }
+        }
+      };
+
+      GradientTool.prototype.update = function(event) {
+        if (this.dragging) {
+          if (this.selectedHandle === this.handles[0] || this.selectedHandle === this.handles[1]) {
+            this.selectedHandle.position.x += event.delta.x;
+            this.selectedHandle.position.y += event.delta.y;
+          } else {
+            this.selectedHandle.position = this.line.getNearestPoint(event.point);
+          }
+        }
+      };
+
+      GradientTool.prototype.end = function(event) {
+        this.dragging = false;
+      };
+
+      return GradientTool;
+
+    })(RTool);
   });
 
 }).call(this);

@@ -73,7 +73,7 @@ define [
 		clearRasters: ()->
 			return
 
-		drawItems: (showPath=false)->
+		drawItems: ()->
 			return
 
 		rasterizeAllItems: ()->
@@ -95,6 +95,9 @@ define [
 		showRasters: ()->
 			return
 
+		extractImage: (rectangle, redraw)->
+			return g.areaToImageDataUrl(rectangle)
+
 	g.Rasterizer = Rasterizer
 
 	class TileRasterizer extends g.Rasterizer
@@ -115,9 +118,10 @@ define [
 			@autoRasterization = 'deferred'
 			@rasterizationDelay = 800
 
-			@itemsAreVisible = false
-
 			@renderInView = false
+
+			@itemsAreDrawn = false
+			@itemsAreVisible = false
 
 			@move()
 			return
@@ -125,6 +129,8 @@ define [
 		loadItem: (item)->
 			if item.data?.animate or g.selectedToolNeedsDrawings()	# only draw if animated thanks to rasterization
 				item.draw?()
+			else
+				@itemsAreDrawn = false
 			if @rasterizeItems
 				item.rasterize?()
 			return
@@ -160,12 +166,12 @@ define [
 			return
 
 		drawItemsAndHideRasters: ()->
-			if not @itemsAreVisible
-				@drawItems(true)
-				@hideRasters()
+			@drawItems(true)
+			@hideRasters()
 			return
 
 		selectItem: (item)->
+			@drawItems()
 			@rasterize(item, true)
 
 			switch @autoRasterization
@@ -493,18 +499,27 @@ define [
 					raster.context.clearRect(0, 0, g.scale, g.scale)
 			return
 
-		drawItems: (showPath=false)->
+		drawItems: (showItems=false)->
+			if showItems then @showItems()
+
+			if @itemsAreDrawn then return
 
 			for pk, item of g.items
 				if not item.drawing? then item.draw?()
-				if showPath or item.selectionRectangle?
-					item.group.visible = true
 				if @rasterizeItems
 					item.rasterize?()
 
-			if showPath
-				@itemsAreVisible = true
+			@itemsAreDrawn = true
 
+			return
+
+		showItems: ()->
+			if @itemsAreVisible then return
+
+			for pk, item of g.items
+				item.group.visible = true
+
+			@itemsAreVisible = true
 			return
 
 		disableRasterization: ()->
@@ -535,10 +550,31 @@ define [
 					item.group.visible = false
 			return
 
-		showItems: ()->
-			for pk, item of g.items
-				item.group.visible = true
-			return
+		extractImage: (rectangle, redraw)->
+			if redraw
+
+				rasterizeItems = @rasterizeItems
+				@rasterizeItems = false
+				disableDrawing = @disableDrawing
+				@disableDrawing = false
+				@drawItemsAndHideRasters()
+
+				dataURL = g.areaToImageDataUrl(rectangle)
+
+				if rasterizeItems
+					@rasterizeItems = true
+					for pk, item of g.items
+						item.rasterize?()
+
+				if disableDrawing then @disableDrawing = true
+
+				@showRasters()
+				@rasterizeImmediately()
+
+				return dataURL
+			else
+				return g.areaToImageDataUrl(rectangle)
+
 
 	g.TileRasterizer = TileRasterizer
 

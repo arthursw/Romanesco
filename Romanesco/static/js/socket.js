@@ -182,7 +182,7 @@
           } else if (data.itemPk != null) {
             item = g.items[data.itemPk];
             if ((item != null) && (item.currentCommand == null)) {
-              allowedFunctions = ['setRectangle', 'setRotation', 'moveTo', 'setParameter', 'modifyPoint', 'modifyPointType', 'modifySpeed', 'setPK', 'delete', 'create', 'addPoint', 'deletePoint'];
+              allowedFunctions = ['setRectangle', 'setRotation', 'moveTo', 'setParameter', 'modifyPoint', 'modifyPointType', 'modifySpeed', 'setPK', 'delete', 'create', 'addPoint', 'deletePoint', 'modifyControlPath', 'setText'];
               if (_ref1 = data["function"], __indexOf.call(allowedFunctions, _ref1) < 0) {
                 console.log('Error: not authorized to call: ' + data["function"]);
                 return;

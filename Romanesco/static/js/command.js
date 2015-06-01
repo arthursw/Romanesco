@@ -5,9 +5,11 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   define(['utils', 'item', 'jquery', 'paper'], function(utils) {
-    var AddPointCommand, Command, CommandManager, CreateItemCommand, DeleteItemCommand, DeletePointCommand, DeselectCommand, DuplicateItemCommand, ModifyPointCommand, ModifyPointTypeCommand, ModifySpeedCommand, MoveCommand, MoveViewCommand, ResizeCommand, RotationCommand, SelectCommand, SetParameterCommand, g;
+    var AddPointCommand, Command, CommandManager, CreateItemCommand, DeleteItemCommand, DeletePointCommand, DeselectCommand, DuplicateItemCommand, ModifyControlPathCommand, ModifyPointCommand, ModifyPointTypeCommand, ModifySpeedCommand, ModifyTextCommand, MoveCommand, MoveViewCommand, ResizeCommand, RotationCommand, SelectCommand, SetParameterCommand, g;
     g = utils.g();
     Command = (function() {
+      Command.needValidPosition = false;
+
       function Command(name) {
         this.name = name;
         this.click = __bind(this.click, this);
@@ -63,6 +65,8 @@
     ResizeCommand = (function(_super) {
       __extends(ResizeCommand, _super);
 
+      ResizeCommand.needValidPosition = true;
+
       function ResizeCommand(item, newRectangle) {
         this.item = item;
         this.newRectangle = newRectangle;
@@ -105,6 +109,8 @@
     RotationCommand = (function(_super) {
       __extends(RotationCommand, _super);
 
+      RotationCommand.needValidPosition = true;
+
       function RotationCommand(item, newRotation) {
         this.item = item;
         this.newRotation = newRotation;
@@ -146,6 +152,8 @@
     g.RotationCommand = RotationCommand;
     MoveCommand = (function(_super) {
       __extends(MoveCommand, _super);
+
+      MoveCommand.needValidPosition = true;
 
       function MoveCommand(item, newPosition) {
         this.item = item;
@@ -233,6 +241,8 @@
     g.MoveCommand = MoveCommand;
     ModifyPointCommand = (function(_super) {
       __extends(ModifyPointCommand, _super);
+
+      ModifyPointCommand.needValidPosition = true;
 
       function ModifyPointCommand(item) {
         this.item = item;
@@ -364,6 +374,8 @@
     AddPointCommand = (function(_super) {
       __extends(AddPointCommand, _super);
 
+      AddPointCommand.needValidPosition = true;
+
       function AddPointCommand(item, location, name) {
         this.item = item;
         this.location = location;
@@ -402,6 +414,8 @@
     DeletePointCommand = (function(_super) {
       __extends(DeletePointCommand, _super);
 
+      DeletePointCommand.needValidPosition = true;
+
       function DeletePointCommand(item, segment) {
         this.item = item;
         this.segment = segment;
@@ -428,6 +442,8 @@
     g.DeletePointCommand = DeletePointCommand;
     ModifyPointTypeCommand = (function(_super) {
       __extends(ModifyPointTypeCommand, _super);
+
+      ModifyPointTypeCommand.needValidPosition = true;
 
       function ModifyPointTypeCommand(item, segment, rtype) {
         this.item = item;
@@ -456,6 +472,36 @@
 
     })(Command);
     g.ModifyPointTypeCommand = ModifyPointTypeCommand;
+
+    /* --- Custom command for all kinds of command which modifiy the path --- */
+    ModifyControlPathCommand = (function(_super) {
+      __extends(ModifyControlPathCommand, _super);
+
+      ModifyControlPathCommand.needValidPosition = true;
+
+      function ModifyControlPathCommand(item, previousPointsAndPlanet, newPointsAndPlanet) {
+        this.item = item;
+        this.previousPointsAndPlanet = previousPointsAndPlanet;
+        this.newPointsAndPlanet = newPointsAndPlanet;
+        ModifyControlPathCommand.__super__.constructor.call(this, 'Modify path');
+        this.superDo();
+        return;
+      }
+
+      ModifyControlPathCommand.prototype["do"] = function() {
+        this.item.modifyControlPath(this.newPointsAndPlanet);
+        ModifyControlPathCommand.__super__["do"].call(this);
+      };
+
+      ModifyControlPathCommand.prototype.undo = function() {
+        this.item.modifyControlPath(this.previousPointsAndPlanet);
+        ModifyControlPathCommand.__super__.undo.call(this);
+      };
+
+      return ModifyControlPathCommand;
+
+    })(Command);
+    g.ModifyControlPathCommand = ModifyControlPathCommand;
     MoveViewCommand = (function(_super) {
       __extends(MoveViewCommand, _super);
 
@@ -584,10 +630,15 @@
     CreateItemCommand = (function(_super) {
       __extends(CreateItemCommand, _super);
 
+      CreateItemCommand.needValidPosition = true;
+
       function CreateItemCommand(item, name) {
         this.item = item;
         if (name == null) {
           name = null;
+        }
+        if (name == null) {
+          name = 'Create item';
         }
         this.itemConstructor = this.item.constructor;
         CreateItemCommand.__super__.constructor.call(this, name);
@@ -702,6 +753,50 @@
 
     })(CreateItemCommand);
     g.DuplicateItemCommand = DuplicateItemCommand;
+    ModifyTextCommand = (function(_super) {
+      __extends(ModifyTextCommand, _super);
+
+      function ModifyTextCommand(item, args) {
+        this.item = item;
+        ModifyTextCommand.__super__.constructor.call(this, "Change text", this.item);
+        this.newText = args[0];
+        this.previousText = this.item.data.message;
+        return;
+      }
+
+      ModifyTextCommand.prototype["do"] = function() {
+        this.item.data.message = this.newText;
+        this.item.contentJ.val(this.newText);
+        ModifyTextCommand.__super__["do"].call(this);
+      };
+
+      ModifyTextCommand.prototype.undo = function() {
+        this.item.data.message = this.previousText;
+        this.item.contentJ.val(this.previousText);
+        ModifyTextCommand.__super__.undo.call(this);
+      };
+
+      ModifyTextCommand.prototype.update = function(newText) {
+        this.newText = newText;
+        this.item.setText(this.newText, false);
+      };
+
+      ModifyTextCommand.prototype.end = function(valid) {
+        if (this.newText === this.previousText) {
+          return false;
+        }
+        if (!valid) {
+          return false;
+        }
+        this.item.update('text');
+        ModifyTextCommand.__super__.end.call(this);
+        return true;
+      };
+
+      return ModifyTextCommand;
+
+    })(Command);
+    g.ModifyTextCommand = ModifyTextCommand;
     CommandManager = (function() {
       CommandManager.maxCommandNumber = 20;
 

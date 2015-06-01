@@ -35,6 +35,20 @@ define [
 
 			return parameters
 
+		@updateHiddenDivs: (event)->
+			if g.hiddenDivs.length > 0
+				point = new Point(event.pageX, event.pageY)
+				projectPoint = view.viewToProject(point)
+				for div in g.hiddenDivs
+					if not div.getBounds().contains(projectPoint)
+						div.show()
+			return
+
+		@showDivs: ()->
+			while g.hiddenDivs.length > 0
+				g.hiddenDivs.first().show()
+			return
+
 		@updateZIndex: (sortedDivs)->
 			for div, i in sortedDivs
 				div.divJ.css( 'z-index': i )
@@ -60,6 +74,13 @@ define [
 			separatorJ = g.stageJ.find("." + @object_type + "-separator")
 			@divJ = g.templatesJ.find(".custom-div").clone().insertAfter(separatorJ)
 
+			@divJ.mouseenter (event)=>
+				for item in g.selectedItems
+					if item != @ and item.getBounds().intersects(@getBounds())
+						@hide()
+						break
+				return
+
 			if not @lock
 				super(@data, @pk, @date, g.divList, g.sortedDivs)
 			else
@@ -84,6 +105,7 @@ define [
 			if g.selectedTool.name == 'Move' then @disableInteraction()
 
 			@divJ.click (event)=>
+				if @selectionRectangle? then return
 				if not event.shiftKey
 					g.deselectAll()
 				@select()
@@ -93,6 +115,16 @@ define [
 				console.log "Error: invalid div"
 				@remove()
 
+			return
+
+		hide: ()->
+			@divJ.css( opacity: 0.5, 'pointer-events': 'none' )
+			g.hiddenDivs.push(@)
+			return
+
+		show: ()->
+			@divJ.css( opacity: 1, 'pointer-events': 'auto' )
+			g.hiddenDivs.remove(@)
 			return
 
 		save: (addCreateCommand=true) ->
@@ -251,16 +283,10 @@ define [
 
 			return
 
-		# called after udpate, on server response
-		# @param result [Object] the server response
 		updateCallback: (result)->
 			g.checkError(result)
 			return
 
-		# common to all RItems
-		# - select the RDiv is not already selected
-		# - select the select tool
-		# - update parameters according to @data
 		select: (updateOptions, updateSelectionRectangle=true) =>
 			if not super(updateOptions, updateSelectionRectangle) or @divJ.hasClass("selected") then return false
 			if g.selectedTool != g.tools['Select'] then g.tools['Select'].select()
@@ -480,6 +506,13 @@ define [
 			@contentJ.blur( () -> $(this).removeClass("selected form-control") )
 			@contentJ.focus()
 
+			@contentJ.keydown (event)=>
+				if event.metaKey or event.ctrlKey
+					@deselect()
+					event.stopImmediatePropagation()
+					return false
+				return
+
 			if not lockedForMe
 				@contentJ.bind('input propertychange', (event) => @textChanged(event) )
 
@@ -487,12 +520,31 @@ define [
 				@setFont(false)
 			return
 
+		# select: (updateOptions=true, updateSelectionRectangle=true)->
+		# 	if not super(updateOptions, updateSelectionRectangle) then return false
+		# 	return true
+
+		deselect: ()->
+			if not super() then return false
+			@contentJ.blur()
+			return true
+
 		# called whenever the text is changed:
 		# emit the new text to websocket
 		# update the RText in 1 second (deferred execution)
 		# @param event [jQuery Event] the key event
 		textChanged: (event) =>
-			@data.message = @contentJ.val()
+			newText = @contentJ.val()
+			@deferredAction(g.ModifyTextCommand, newText)
+			# g.deferredExecution(@update, 'update', 1000, ['text'], @)
+			return
+
+		setText: (newText, update=false)->
+			@data.message = newText
+			@contentJ.val(newText)
+			if not @socketAction
+				if update then @update('text')
+				g.chatSocket.emit "bounce", itemPk: @pk, function: "setText", arguments: [newText, false]
 			return
 
 		# set the font family for the text
@@ -882,38 +934,5 @@ define [
 			return
 
 	g.RMedia = RMedia
-
-	# --- TODO: REPLACE RSelectionRectangle --- #
-
-	# RSelectionRectangle is just a helper to define a selection rectangle, it is used in {ScreenshotTool}
-	class RSelectionRectangle extends RDiv
-		@rname = 'Selection rectangle'
-		@object_type = 'lock'
-
-		# create the div and add a "Take snapshot" button
-		constructor: (@rectangle, handler) ->
-			g.tools['Select'].select()
-			super(rectangle)
-			@divJ.addClass("selection-rectangle")
-			@buttonJ = $("<button>")
-			@buttonJ.text("Take snapshot")
-			@buttonJ.click( (event)-> handler() )
-			@divJ.append(@buttonJ)
-			@select()
-			return
-
-		# deselect the div: remove it
-		deselect: ()->
-			if not super() then return false
-			if @deselected then return
-			@deselected = true
-			@remove()
-			return true
-
-		# the div should not be updated (it is not related to the server/database)
-		update: ()->
-			return
-
-	g.RSelectionRectangle = RSelectionRectangle
 
 	return

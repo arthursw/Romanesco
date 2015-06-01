@@ -411,6 +411,7 @@
       g.optionsJ = $(".option-list");
       dat.GUI.autoPace = false;
       g.gui = new dat.GUI();
+      dat.GUI.toggleHide = function() {};
       g.generalFolder = g.gui.addFolder('General');
       controller = g.generalFolder.add({
         location: g.parameters.location["default"]
@@ -680,17 +681,31 @@
               opacity: 'Opacity'
             },
             customswatches: "different-swatches-groupname",
-            swatches: g.defaultColors,
-            hsvpanel: true,
+            swatches: false,
             onchange: function(container, color) {
-              parameter.onChange(color.tiny.toRgbString());
+              var colorPickerPopoverJ, gradient;
+              colorPickerPopoverJ = $(".cp-popover-container .popover");
+              gradient = colorPickerPopoverJ.find('.gradient-checkbox')[0].checked;
+              if (gradient) {
+                g.selectedGradientHandle.setColor(color.tiny.toRgbString());
+              } else {
+                parameter.onChange(color.tiny.toRgbString());
+              }
               return checkboxJ[0].checked = true;
             }
           }).click(function() {
-            var colorPickerPopoverJ, guiJ, swatchesJ;
+            var colorPickerPopoverJ, guiJ;
             guiJ = $(g.gui.domElement);
             colorPickerPopoverJ = $(".cp-popover-container .popover");
-            swatchesJ = colorPickerPopoverJ.find('.cp-swatches');
+            checkboxJ = $("<label><input type='checkbox' class='gradient-checkbox' form-control>Gradient</label>");
+            checkboxJ.insertBefore(colorPickerPopoverJ.find('.cp-preview'));
+            checkboxJ.click(function(event) {
+              if (this.checked) {
+                g.initializeGradientTool();
+              } else {
+                g.removeGradientTool();
+              }
+            });
             if (guiJ.parent().hasClass("dg-sidebar")) {
               colorPickerPopoverJ.removeClass("left").addClass("right");
             }

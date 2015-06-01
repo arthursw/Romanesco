@@ -272,6 +272,7 @@ define [
 		new g.TextTool(g.RText)
 		new g.MediaTool(g.RMedia)
 		new g.ScreenshotTool()
+		new g.GradientTool()
 
 		g.modules = {}
 		# path tools
@@ -524,10 +525,10 @@ define [
 		g.canvas.height = window.innerHeight
 		g.context = g.canvas.getContext('2d')
 
-		g.selectionCanvasJ = g.stageJ.find("#selection-canvas")
-		g.selectionCanvas = g.selectionCanvasJ[0]
-		g.selectionCanvas.width = window.innerWidth
-		g.selectionCanvas.height = window.innerHeight
+		# g.selectionCanvasJ = g.stageJ.find("#selection-canvas")
+		# g.selectionCanvas = g.selectionCanvasJ[0]
+		# g.selectionCanvas.width = window.innerWidth
+		# g.selectionCanvas.height = window.innerHeight
 
 		# g.backgroundCanvasJ = g.stageJ.find("#background-canvas")
 		# g.backgroundCanvas = g.backgroundCanvasJ[0]
@@ -591,6 +592,8 @@ define [
 		g.ignoreSockets = false 				# whether sockets messages are ignored
 		g.mousePosition = new Point() 			# the mouse position in window coordinates (updated everytime the mouse moves)
 												# used to get mouse position on a key event
+		g.hiddenDivs = []
+
 		g.DajaxiceXMLHttpRequest = window.XMLHttpRequest
 
 		window.XMLHttpRequest = window.RXMLHttpRequest
@@ -625,8 +628,8 @@ define [
 		if navigator.appVersion.indexOf("Linux")!=-1 then g.OSName = "Linux"
 
 		# init paper.js
-		paper.setup(g.selectionCanvas)
-		g.selectionProject = project
+		# paper.setup(g.selectionCanvas)
+		# g.selectionProject = project
 
 		paper.setup(g.canvas)
 		g.project = project
@@ -639,8 +642,8 @@ define [
 		g.carLayer.name = 'car layer'
 		g.lockLayer = new Layer()	 			# Paper layer to keep all locked items
 		g.lockLayer.name = 'lock layer'
-		# g.selectionLayer = new Layer() 			# Paper layer to keep all selected items
-		g.selectionLayer = g.selectionProject.activeLayer
+		g.selectionLayer = new Layer() 			# Paper layer to keep all selected items
+		# g.selectionLayer = g.selectionProject.activeLayer
 		g.selectionLayer.name = 'selection layer'
 		g.areasToUpdateLayer = new Layer() 		# Paper layer to show areas to update
 		g.areasToUpdateLayer.name = 'areasToUpdateLayer'
@@ -911,6 +914,11 @@ define [
 			g.selectedTool.update(event)
 			return
 
+		# g.tool.onMouseMove = (event) ->
+		# 	if g.selectedTool.name == 'Select'
+		# 		event.item?.controller?.highlight()
+		# 	return
+
 		g.tool.onMouseUp = (event) ->
 			if g.wacomPenAPI?.isEraser then return
 			if g.currentDiv? then return
@@ -937,28 +945,9 @@ define [
 			# if the focus is on anything in the sidebar or is a textarea or in parameters bar: ignore the event
 			if not focusIsOnCanvas() then return
 
-			# - move selected RItem by delta if an arrow key was pressed (delta is function of special keys press)
-			# - finish current path (if in polygon mode) if 'enter' or 'escape' was pressed
-			# - select previous tool on space key up
-			# - select 'Select' tool if key == 'v'
-			# - delete selected item on 'delete' or 'backspace'
-			if event.key in ['left', 'right', 'up', 'down']
-				delta = if event.modifiers.shift then 50 else if event.modifiers.option then 5 else 1
+			g.selectedTool.keyUp(event)
+
 			switch event.key
-				when 'right'
-					item.moveBy(new Point(delta,0), true) for item in g.selectedItems
-				when 'left'
-					item.moveBy(new Point(-delta,0), true) for item in g.selectedItems
-				when 'up'
-					item.moveBy(new Point(0,-delta), true) for item in g.selectedItems
-				when 'down'
-					item.moveBy(new Point(0,delta), true) for item in g.selectedItems
-				when 'enter'
-					g.selectedTool.finish?()
-				when 'escape'
-					finishingPath = g.selectedTool.finish?()
-					if g.selectedTool.name == 'Select' or g.PathTool.prototype.isPrototypeOf(g.selectedTool) and not finishingPath
-						g.deselectAll()
 				when 'space'
 					g.previousTool?.select()
 				when 'v'
@@ -969,13 +958,6 @@ define [
 					# if g.specialKey(event) # Ctrl + R is already used to reload the page
 					if event.modifiers.shift
 						g.rasterizer.rasterizeImmediately()
-				when 'delete', 'backspace'
-					selectedItems = g.selectedItems.slice()
-					for item in selectedItems
-						if item.selectionState?.segment?
-							item.deletePointCommand()
-						else
-							item.deleteCommand()
 
 			event.preventDefault()
 			return
@@ -1017,9 +999,9 @@ define [
 			g.canvasJ.height(window.innerHeight)
 			view.viewSize = new Size(window.innerWidth, window.innerHeight)
 
-			g.selectionCanvasJ.width(window.innerWidth)
-			g.selectionCanvasJ.height(window.innerHeight)
-			g.selectionProject.view.viewSize = new Size(window.innerWidth, window.innerHeight)
+			# g.selectionCanvasJ.width(window.innerWidth)
+			# g.selectionCanvasJ.height(window.innerHeight)
+			# g.selectionProject.view.viewSize = new Size(window.innerWidth, window.innerHeight)
 			return
 
 		# mousedown event listener
@@ -1056,6 +1038,8 @@ define [
 				# g.selectedTool.update(simpleEvent) 	# update 'Move' tool if it is the one selected
 				g.selectedTool.updateNative(event)
 				return
+
+			g.RDiv.updateHiddenDivs(event)
 
 			# update selected RDivs
 			# if g.previousPoint?

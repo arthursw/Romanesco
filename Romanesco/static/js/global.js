@@ -355,7 +355,6 @@
         g.previousViewPosition = view.center;
       }
       project.view.scrollBy(new Point(delta.x, delta.y));
-      g.selectionProject.view.scrollBy(new Point(delta.x, delta.y));
       _ref = g.divs;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         div = _ref[_i];
@@ -475,6 +474,9 @@
       }
       if (highlight == null) {
         highlight = false;
+      }
+      if (g.RSelectionRectangle.prototype.isPrototypeOf(item)) {
+        return true;
       }
       if ((typeof item.getDrawingBounds === "function" ? item.getDrawingBounds() : void 0) > g.rasterizer.maxArea()) {
         if (highlight) {

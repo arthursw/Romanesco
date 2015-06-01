@@ -236,6 +236,7 @@
       new g.TextTool(g.RText);
       new g.MediaTool(g.RMedia);
       new g.ScreenshotTool();
+      new g.GradientTool();
       g.modules = {};
       _ref = g.pathClasses;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -333,10 +334,6 @@
       g.canvas.width = window.innerWidth;
       g.canvas.height = window.innerHeight;
       g.context = g.canvas.getContext('2d');
-      g.selectionCanvasJ = g.stageJ.find("#selection-canvas");
-      g.selectionCanvas = g.selectionCanvasJ[0];
-      g.selectionCanvas.width = window.innerWidth;
-      g.selectionCanvas.height = window.innerHeight;
       g.templatesJ = $("#templates");
       g.me = null;
       g.selectionLayer = null;
@@ -380,6 +377,7 @@
       g.selectedItems = [];
       g.ignoreSockets = false;
       g.mousePosition = new Point();
+      g.hiddenDivs = [];
       g.DajaxiceXMLHttpRequest = window.XMLHttpRequest;
       window.XMLHttpRequest = window.RXMLHttpRequest;
       g.itemListsJ = $("#RItems .layers");
@@ -417,8 +415,6 @@
       if (navigator.appVersion.indexOf("Linux") !== -1) {
         g.OSName = "Linux";
       }
-      paper.setup(g.selectionCanvas);
-      g.selectionProject = project;
       paper.setup(g.canvas);
       g.project = project;
       g.mainLayer = project.activeLayer;
@@ -429,7 +425,7 @@
       g.carLayer.name = 'car layer';
       g.lockLayer = new Layer();
       g.lockLayer.name = 'lock layer';
-      g.selectionLayer = g.selectionProject.activeLayer;
+      g.selectionLayer = new Layer();
       g.selectionLayer.name = 'selection layer';
       g.areasToUpdateLayer = new Layer();
       g.areasToUpdateLayer.name = 'areasToUpdateLayer';
@@ -674,56 +670,15 @@
         }
       };
       g.tool.onKeyUp = function(event) {
-        var delta, finishingPath, item, selectedItems, _base, _base1, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
+        var _ref;
         if (!focusIsOnCanvas()) {
           return;
         }
-        if ((_ref = event.key) === 'left' || _ref === 'right' || _ref === 'up' || _ref === 'down') {
-          delta = event.modifiers.shift ? 50 : event.modifiers.option ? 5 : 1;
-        }
+        g.selectedTool.keyUp(event);
         switch (event.key) {
-          case 'right':
-            _ref1 = g.selectedItems;
-            for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-              item = _ref1[_i];
-              item.moveBy(new Point(delta, 0), true);
-            }
-            break;
-          case 'left':
-            _ref2 = g.selectedItems;
-            for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-              item = _ref2[_j];
-              item.moveBy(new Point(-delta, 0), true);
-            }
-            break;
-          case 'up':
-            _ref3 = g.selectedItems;
-            for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
-              item = _ref3[_k];
-              item.moveBy(new Point(0, -delta), true);
-            }
-            break;
-          case 'down':
-            _ref4 = g.selectedItems;
-            for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
-              item = _ref4[_l];
-              item.moveBy(new Point(0, delta), true);
-            }
-            break;
-          case 'enter':
-            if (typeof (_base = g.selectedTool).finish === "function") {
-              _base.finish();
-            }
-            break;
-          case 'escape':
-            finishingPath = typeof (_base1 = g.selectedTool).finish === "function" ? _base1.finish() : void 0;
-            if (g.selectedTool.name === 'Select' || g.PathTool.prototype.isPrototypeOf(g.selectedTool) && !finishingPath) {
-              g.deselectAll();
-            }
-            break;
           case 'space':
-            if ((_ref5 = g.previousTool) != null) {
-              _ref5.select();
+            if ((_ref = g.previousTool) != null) {
+              _ref.select();
             }
             break;
           case 'v':
@@ -735,18 +690,6 @@
           case 'r':
             if (event.modifiers.shift) {
               g.rasterizer.rasterizeImmediately();
-            }
-            break;
-          case 'delete':
-          case 'backspace':
-            selectedItems = g.selectedItems.slice();
-            for (_m = 0, _len4 = selectedItems.length; _m < _len4; _m++) {
-              item = selectedItems[_m];
-              if (((_ref6 = item.selectionState) != null ? _ref6.segment : void 0) != null) {
-                item.deletePointCommand();
-              } else {
-                item.deleteCommand();
-              }
             }
         }
         event.preventDefault();
@@ -784,9 +727,6 @@
         g.canvasJ.width(window.innerWidth);
         g.canvasJ.height(window.innerHeight);
         view.viewSize = new Size(window.innerWidth, window.innerHeight);
-        g.selectionCanvasJ.width(window.innerWidth);
-        g.selectionCanvasJ.height(window.innerHeight);
-        g.selectionProject.view.viewSize = new Size(window.innerWidth, window.innerHeight);
       });
       mousedown = function(event) {
         var _base;
@@ -814,6 +754,7 @@
           g.selectedTool.updateNative(event);
           return;
         }
+        g.RDiv.updateHiddenDivs(event);
         g.codeEditor.mousemove(event);
         if (g.currentDiv != null) {
           paperEvent = g.jEventToPaperEvent(event, g.previousMousePosition, g.initialMousePosition, 'mousemove');

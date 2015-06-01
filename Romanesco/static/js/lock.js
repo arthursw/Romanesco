@@ -53,11 +53,6 @@
             checked: false,
             label: 'Create  website (® x2)',
             linked: ['restrictArea', 'disableToolbar', 'siteName']
-          }, {
-            value: 'video-game',
-            checked: false,
-            label: 'Create  video game (® x2)',
-            linked: ['message']
           }
         ];
         radioGroupJ = g.RModal.addRadioGroup('object_type', radioButtons);
@@ -65,7 +60,7 @@
         g.RModal.addCheckbox('disableToolbar', 'Disable toolbar', "Users will not have access to the toolbar on your site.");
         g.RModal.addTextInput('linkName', 'Site name', 'text', '', 'Site name');
         g.RModal.addTextInput('url', 'http://', 'url', 'url', 'URL');
-        siteURLJ = $("<div class=\"form-group siteName\">\n	<label for=\"modalSiteName\">Site name</label>\n	<div class=\"input-group\">\n		<input id=\"modalSiteName\" type=\"text\" class=\"name form-control\" placeholder=\"Site name\">\n		<span class=\"input-group-addon\">.romanesco.city</span>\n	</div>\n</div>");
+        siteURLJ = $("<div class=\"form-group siteName\">\n	<label for=\"modalSiteName\">Site name</label>\n	<div class=\"input-group\">\n		<span class=\"input-group-addon\">romanesco.city/#</span>\n		<input id=\"modalSiteName\" type=\"text\" class=\"name form-control\" placeholder=\"Site name\">\n	</div>\n</div>");
         siteUrlExtractor = function(data, siteURLJ) {
           data.siteURL = siteURLJ.find("#modalSiteName").val();
           return true;
@@ -201,9 +196,15 @@
         }
         titleJ = this.itemListsJ.find(".title");
         titleJ.text(title);
-        titleJ.click(function(event) {
-          $(this).parent().toggleClass('closed');
-        });
+        titleJ.click((function(_this) {
+          return function(event) {
+            _this.itemListsJ.toggleClass('closed');
+            if (!event.shiftKey) {
+              g.deselectAll();
+            }
+            _this.select();
+          };
+        })(this));
         this.itemListsJ.find('.rDiv-list').sortable({
           stop: g.zIndexSortStop,
           delay: 250
@@ -257,7 +258,7 @@
         this.drawing.name = 'rlock background';
         this.drawing.strokeWidth = this.data.strokeWidth > 0 ? this.data.strokeWidth : 1;
         this.drawing.strokeColor = this.data.strokeColor != null ? this.data.strokeColor : 'black';
-        this.drawing.fillColor = this.data.fillColor || 'white';
+        this.drawing.fillColor = this.data.fillColor || new Color(255, 255, 255, 0.5);
         this.drawing.controller = this;
         this.group.addChild(this.drawing);
       };

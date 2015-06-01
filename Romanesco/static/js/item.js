@@ -7,7 +7,7 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   define(['utils', 'global', 'coordinateSystems', 'jquery', 'paper'], function(utils) {
-    var RContent, RItem, g;
+    var RContent, RItem, RSelectionRectangle, g;
     g = utils.g();
     RItem = (function() {
       RItem.indexToName = {
@@ -149,21 +149,15 @@
         }
       };
 
-      RItem.prototype.prepareHitTest = function(fullySelected, strokeWidth) {
+      RItem.prototype.prepareHitTest = function() {
         var _ref;
-        if (fullySelected == null) {
-          fullySelected = true;
-        }
         if ((_ref = this.selectionRectangle) != null) {
           _ref.strokeColor = g.selectionBlue;
         }
       };
 
-      RItem.prototype.finishHitTest = function(fullySelected) {
+      RItem.prototype.finishHitTest = function() {
         var _ref;
-        if (fullySelected == null) {
-          fullySelected = true;
-        }
         if ((_ref = this.selectionRectangle) != null) {
           _ref.strokeColor = null;
         }
@@ -254,7 +248,7 @@
 
       RItem.prototype.endAction = function() {
         var commandChanged, positionIsValid;
-        positionIsValid = g.validatePosition(this);
+        positionIsValid = this.currentCommand.constructor.needValidPosition ? g.validatePosition(this) : true;
         commandChanged = this.currentCommand.end(positionIsValid);
         if (positionIsValid) {
           if (commandChanged) {
@@ -530,16 +524,20 @@
         if (this.group != null) {
           g.rasterizer.deselectItem(this);
           if (!this.lock) {
-            g.mainLayer.insertChild(this.zindex, this.group);
+            this.group = g.mainLayer.insertChild(this.zindex, this.group);
           } else {
-            this.lock.group.insertChild(this.zindex, this.group);
+            this.group = this.lock.group.insertChild(this.zindex, this.group);
           }
         }
+        g.RDiv.showDivs();
         return true;
       };
 
       RItem.prototype.remove = function() {
         var _ref;
+        if (!this.group) {
+          return;
+        }
         this.group.remove();
         this.group = null;
         this.deselect();
@@ -601,8 +599,11 @@
 
       RItem.prototype.replaceDrawing = function() {
         var _ref;
-        if (((_ref = this.drawing) != null ? _ref.parent : void 0) == null) {
+        if ((this.drawing == null) || (this.drawingRelativePosition == null)) {
           return;
+        }
+        if ((_ref = this.raster) != null) {
+          _ref.remove();
         }
         this.group.addChild(this.drawing);
         this.drawing.position = this.rectangle.center.add(this.drawingRelativePosition);
@@ -907,6 +908,81 @@
 
     })(RItem);
     g.RContent = RContent;
+    RSelectionRectangle = (function(_super) {
+      __extends(RSelectionRectangle, _super);
+
+      function RSelectionRectangle(rectangle, extractImage) {
+        var separatorJ;
+        this.rectangle = rectangle;
+        RSelectionRectangle.__super__.constructor.call(this);
+        this.drawing = new Path.Rectangle(this.rectangle);
+        this.drawing.name = 'selection rectangle background';
+        this.drawing.strokeWidth = 1;
+        this.drawing.strokeColor = g.selectionBlue;
+        this.drawing.controller = this;
+        this.group.addChild(this.drawing);
+        separatorJ = g.stageJ.find(".text-separator");
+        this.buttonJ = g.templatesJ.find(".screenshot-btn").clone().insertAfter(separatorJ);
+        this.buttonJ.find('.extract-btn').click(function(event) {
+          var redraw;
+          redraw = $(this).attr('data-click') === 'redraw-snapshot';
+          extractImage(redraw);
+        });
+        this.updateTransform();
+        this.select();
+        g.tools['Select'].select();
+        return;
+      }
+
+      RSelectionRectangle.prototype.remove = function() {
+        this.removing = true;
+        RSelectionRectangle.__super__.remove.call(this);
+        this.buttonJ.remove();
+        g.tools['Screenshot'].selectionRectangle = null;
+      };
+
+      RSelectionRectangle.prototype.deselect = function() {
+        if (!RSelectionRectangle.__super__.deselect.call(this)) {
+          return false;
+        }
+        if (!this.removing) {
+          this.remove();
+        }
+        return true;
+      };
+
+      RSelectionRectangle.prototype.setRectangle = function(rectangle, update) {
+        RSelectionRectangle.__super__.setRectangle.call(this, rectangle, update);
+        g.updatePathRectangle(this.drawing, rectangle);
+        this.updateTransform();
+      };
+
+      RSelectionRectangle.prototype.moveTo = function(position, update) {
+        RSelectionRectangle.__super__.moveTo.call(this, position, update);
+        this.updateTransform();
+      };
+
+      RSelectionRectangle.prototype.updateTransform = function() {
+        var transfrom, viewPos;
+        viewPos = view.projectToView(this.rectangle.center);
+        transfrom = 'translate(' + viewPos.x + 'px,' + viewPos.y + 'px)';
+        transfrom += 'translate(-50%, -50%)';
+        this.buttonJ.css({
+          'position': 'absolute',
+          'transform': transfrom,
+          'top': 0,
+          'left': 0,
+          'transform-origin': '50% 50%',
+          'z-index': 999
+        });
+      };
+
+      RSelectionRectangle.prototype.update = function() {};
+
+      return RSelectionRectangle;
+
+    })(RItem);
+    g.RSelectionRectangle = RSelectionRectangle;
   });
 
 }).call(this);

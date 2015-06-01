@@ -350,10 +350,10 @@
                         <ul class="layers folder">
                           <li class="main-layer">
                             <h6 class="title">Main layer</h6>
-                            <ul class="romanesco-ui rDiv-list">
+                            <ul class="romanesco-ui rPath-list">
                             </ul>
                             <!-- <hr> -->
-                            <ul class="romanesco-ui rPath-list">
+                            <ul class="romanesco-ui rDiv-list">
                             </ul>
                           </li>
                         </ul>
@@ -443,7 +443,7 @@
 
         <div id="stage" class="main">
 
-          <canvas id="selection-canvas" resize hidpi="off"></canvas>
+          <!-- <canvas id="selection-canvas" resize hidpi="off"></canvas> -->
 
           <div id="rasters"></div>
 
@@ -763,12 +763,24 @@
           <div class="mask"></div>
         </div>
 
+        <div class="screenshot-btn btn-group">
+          <button type="button" class="btn btn-primary extract-btn" data-click='quick-snapshot'>Take snapshot</button>
+          <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+            <span class="caret"></span>
+            <span class="sr-only">Toggle Dropdown</span>
+          </button>
+          <ul class="dropdown-menu" role="menu">
+            <li><a class="extract-btn" data-click='quick-snapshot'>Take snapshot (fast)</a></li>
+            <li><a class="extract-btn" data-click='redraw-snapshot'>Redraw and take snapshot (slower)</a></li>
+          </ul>
+        </div>
+
         <li class="layer">
           <h6 class="title"></h6>
-          <ul class="romanesco-ui rDiv-list">
+          <ul class="romanesco-ui rPath-list">
           </ul>
           <!-- <hr> -->
-          <ul class="romanesco-ui rPath-list">
+          <ul class="romanesco-ui rDiv-list">
           </ul>
         </li>
 

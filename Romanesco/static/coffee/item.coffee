@@ -118,13 +118,13 @@ define [
 		# store the current state of items, and change their state (the original states will be restored in @finishHitTest())
 		# @param fullySelected [Boolean] (optional) whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles)
 		# @param strokeWidth [Number] (optional) contorl path width will be set to *strokeWidth* if it is provided
-		prepareHitTest: (fullySelected=true, strokeWidth)->
+		prepareHitTest: ()->
 			@selectionRectangle?.strokeColor = g.selectionBlue
 			return
 
 		# restore path items orginial states (same as before @prepareHitTest())
 		# @param fullySelected [Boolean] (optional) whether the control path must be fully selected before performing the hit test (it must be if we want to test over control path handles)
-		finishHitTest: (fullySelected=true)->
+		finishHitTest: ()->
 			@selectionRectangle?.strokeColor = null
 			return
 
@@ -221,12 +221,14 @@ define [
 			return
 
 		endAction: ()=>
-			positionIsValid = g.validatePosition(@)
+
+			positionIsValid = if @currentCommand.constructor.needValidPosition then g.validatePosition(@) else true
 			commandChanged = @currentCommand.end(positionIsValid)
 			if positionIsValid
 				if commandChanged then g.commandManager.add(@currentCommand)
 			else
 				@currentCommand.undo()
+
 			@currentCommand = null
 			return
 
@@ -428,6 +430,7 @@ define [
 		select: ()->
 			if @selectionRectangle? then return false
 
+
 			@lock?.deselect()
 
 			# create or update the selection rectangle
@@ -457,16 +460,19 @@ define [
 			if @group? 	# @group is null when item is removed (called from @remove())
 
 				g.rasterizer.deselectItem(@)
-				# g.rasterizer.rasterize(@)
 
 				if not @lock
-					g.mainLayer.insertChild(@zindex, @group)
+					@group = g.mainLayer.insertChild(@zindex, @group)
 				else
-					@lock.group.insertChild(@zindex, @group)
+					@group = @lock.group.insertChild(@zindex, @group)
+
+			g.RDiv.showDivs()
 
 			return true
 
 		remove: ()->
+			if not @group then return
+
 			@group.remove()
 			@group = null
 			@deselect()
@@ -475,6 +481,9 @@ define [
 				delete g.items[@pk]
 			else
 				delete g.items[@id]
+
+			# @pk = null 	# pk is required to delete the path!!
+			# @id = null
 			return
 
 		save: (@addCreateCommand)->
@@ -509,7 +518,8 @@ define [
 			return
 
 		replaceDrawing: ()->
-			if not @drawing?.parent? then return
+			if not @drawing? or not @drawingRelativePosition? then return
+			@raster?.remove()
 			@group.addChild(@drawing)
 			@drawing.position = @rectangle.center.add(@drawingRelativePosition)
 			@drawingRelativePosition = null
@@ -763,5 +773,70 @@ define [
 			return
 
 	g.RContent = RContent
+
+	# RSelectionRectangle is just a helper to define a selection rectangle, it is used in {ScreenshotTool}
+	class RSelectionRectangle extends RItem
+
+		constructor: (@rectangle, extractImage) ->
+			super()
+
+			@drawing = new Path.Rectangle(@rectangle)
+			@drawing.name = 'selection rectangle background'
+			@drawing.strokeWidth = 1
+			@drawing.strokeColor = g.selectionBlue
+			@drawing.controller = @
+
+			@group.addChild(@drawing)
+
+			separatorJ = g.stageJ.find(".text-separator")
+			@buttonJ = g.templatesJ.find(".screenshot-btn").clone().insertAfter(separatorJ)
+
+			@buttonJ.find('.extract-btn').click (event)->
+				redraw = $(this).attr('data-click') == 'redraw-snapshot'
+				extractImage(redraw)
+				return
+
+			@updateTransform()
+
+			@select()
+
+			g.tools['Select'].select()
+
+			return
+
+		remove: ()->
+			@removing = true
+			super()
+			@buttonJ.remove()
+			g.tools['Screenshot'].selectionRectangle = null
+			return
+
+		deselect: ()->
+			if not super() then return false
+			if not @removing then @remove()
+			return true
+
+		setRectangle: (rectangle, update)->
+			super(rectangle, update)
+			g.updatePathRectangle(@drawing, rectangle)
+			@updateTransform()
+			return
+
+		moveTo: (position, update)->
+			super(position, update)
+			@updateTransform()
+			return
+
+		updateTransform: ()->
+			viewPos = view.projectToView(@rectangle.center)
+			transfrom = 'translate(' + viewPos.x + 'px,' + viewPos.y + 'px)'
+			transfrom += 'translate(-50%, -50%)'
+			@buttonJ.css( 'position': 'absolute', 'transform': transfrom, 'top': 0, 'left': 0, 'transform-origin': '50% 50%', 'z-index': 999 )
+			return
+
+		update: ()->
+			return
+
+	g.RSelectionRectangle = RSelectionRectangle
 
 	return

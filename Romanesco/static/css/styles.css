@@ -171,11 +171,8 @@ body {
   left: 0;
   z-index: 0;
 }
-#stage.main #selection-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
+#stage.main #canvas .pointer {
+  cursor: pointer;
 }
 #stage.main #rasters {
   position: absolute;
@@ -601,7 +598,7 @@ li.tool-btn.selected .favorite-btn {
 .mCustomScrollbar.tree li ul {
   padding-left: 5px;
 }
-.mCustomScrollbar.tree li ul.rDiv-list li:last-child {
+.mCustomScrollbar.tree li ul.rPath-list li:last-child {
   border-bottom: solid 1px white;
 }
 .mCustomScrollbar.tree li.closed .title {

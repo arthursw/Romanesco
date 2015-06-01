@@ -121,7 +121,6 @@ define [
 			g.selectedTool?.deselect()
 			g.selectedTool = @
 
-
 			if @cursorName?
 				g.stageJ.css('cursor', 'url(static/images/cursors/'+@cursorName+'.png) '+@cursorPosition.x+' '+@cursorPosition.y+','+@cursorDefault)
 			else
@@ -152,6 +151,9 @@ define [
 
 		# End tool action (usually called on mouse up event)
 		end: (event) ->
+			return
+
+		keyUp: (event)->
 			return
 
 		# @return [Boolean] whether snap should be disabled when this tool is  selected or not
@@ -387,6 +389,13 @@ define [
 			#project.view.center = @car.position
 			return
 
+		keyUp: (event)->
+			switch event.key
+				when 'escape'
+					g.tools['Move'].select()
+
+			return
+
 	g.CarTool = CarTool
 
 	# Enables to select RItems
@@ -408,7 +417,7 @@ define [
 			return
 
 		select: ()->
-			g.rasterizer.drawItems()
+			# g.rasterizer.drawItems() 		# must not draw all items here since user can just wish to use an RMedia
 			@selectedItem = g.selectedItems.first()
 			super(@selectedItem?.constructor or @constructor, @selectedItem, false)
 			return
@@ -462,11 +471,12 @@ define [
 			console.log 'begin select'
 			g.logElapsedTime()
 
+			# project = if g.selectionLayer.children.length == 0 then g.project else g.selectionProject
+
 			# perform hit test to see if there is any item under the mouse
 			path.prepareHitTest() for name, path of g.paths
 			hitResult = g.project.hitTest(event.point, hitOptions)
 			path.finishHitTest() for name, path of g.paths
-
 
 			if hitResult and hitResult.item.controller? 		# if user hits a path: select it
 				@selectedItem = hitResult.item.controller
@@ -477,6 +487,8 @@ define [
 							g.commandManager.add(new g.DeselectCommand(), true)
 					# else
 					# 	if g.selectedDivs.length>0 then g.deselectAll()
+				else
+					g.tools['Screenshot'].checkRemoveScreenshotRectangle(hitResult.item.controller)
 
 				hitResult.item.controller.beginSelect?(event)
 			else 												# otherwise: remove selection group and create selection rectangle
@@ -601,6 +613,35 @@ define [
 		# Disable snap while drawnig a selection rectangle
 		disableSnap: ()->
 			return g.currentPaths[g.me]?
+
+		keyUp: (event)->
+			# - move selected RItem by delta if an arrow key was pressed (delta is function of special keys press)
+			# - finish current path (if in polygon mode) if 'enter' or 'escape' was pressed
+			# - select previous tool on space key up
+			# - select 'Select' tool if key == 'v'
+			# - delete selected item on 'delete' or 'backspace'
+			if event.key in ['left', 'right', 'up', 'down']
+				delta = if event.modifiers.shift then 50 else if event.modifiers.option then 5 else 1
+			switch event.key
+				when 'right'
+					item.moveBy(new Point(delta,0), true) for item in g.selectedItems
+				when 'left'
+					item.moveBy(new Point(-delta,0), true) for item in g.selectedItems
+				when 'up'
+					item.moveBy(new Point(0,-delta), true) for item in g.selectedItems
+				when 'down'
+					item.moveBy(new Point(0,delta), true) for item in g.selectedItems
+				when 'escape'
+					g.deselectAll()
+				when 'delete', 'backspace'
+					selectedItems = g.selectedItems.slice()
+					for item in selectedItems
+						if item.selectionState?.segment?
+							item.deletePointCommand()
+						else
+							item.deleteCommand()
+
+			return
 
 	g.SelectTool = SelectTool
 
@@ -790,6 +831,16 @@ define [
 			g.currentPaths[from].finish()
 			@createPath(event, from)
 			return true
+
+		keyUp: (event)->
+			switch event.key
+				when 'enter'
+					@finish?()
+				when 'escape'
+					finishingPath = @finish?()
+					if not finishingPath
+						g.deselectAll()
+			return
 
 	g.PathTool = PathTool
 
@@ -1037,21 +1088,17 @@ define [
 
 			ZeroClipboard.config( swfPath: g.romanescoURL + "static/libs/ZeroClipboard/ZeroClipboard.swf" )
 			# ZeroClipboard.destroy()
+			@selectionRectangle = null
+
 			return
 
 		# Get description input value, or default description: "Artwork made with Romanesco: http://romanesc.co/#0.0,0.0"
 		getDescription: ()->
 			return if @descriptionJ.val().length>0 then @descriptionJ.val() else "Artwork made with Romanesco: " + @locationURL
 
-		select: ()->
-			super()
-			g.rasterizer.drawItems()
-			g.rasterizer.clearRasters()
-			return
-
-		deselect: ()->
-			super()
-			g.rasterizer.rasterizeView()
+		checkRemoveScreenshotRectangle: (item)->
+			if @selectionRectangle? and item != @selectionRectangle
+				@selectionRectangle.remove()
 			return
 
 		# create selection rectangle
@@ -1081,25 +1128,24 @@ define [
 			# remove selection rectangle
 			g.currentPaths[from].remove()
 			delete g.currentPaths[from]
-			g.view.update()
+			# view.update()
 
 			# return if rectangle is too small
 			r = new Rectangle(event.downPoint, event.point)
 			if r.area<100
 				return
 
-			@div = new g.RSelectionRectangle(new Rectangle(event.downPoint, event.point), @extractImage)
+			@selectionRectangle = new g.RSelectionRectangle(new Rectangle(event.downPoint, event.point), @extractImage)
 
 			return
 
 		# Extract image and initialize & display modal (so that the user can choose what to do with it)
 		# todo: use something like [rasterizeHTML.js](http://cburgmer.github.io/rasterizeHTML.js/) to render RDivs in the image
-		extractImage: ()=>
-			# extract the image (create a temporaty canvas, html5 only, no paper.js)
-			@rectangle = @div.getBounds()
-			@dataURL = g.areaToImageDataUrl(@rectangle)
+		extractImage: (redraw)=>
+			@rectangle = @selectionRectangle.getBounds()
+			@selectionRectangle.remove()
 
-			@div.remove()
+			@dataURL = g.rasterizer.extractImage(@rectangle, redraw)
 
 			@locationURL = g.romanescoURL + location.hash
 
@@ -1377,5 +1423,97 @@ define [
 			return
 
 	g.ScreenshotTool = ScreenshotTool
+
+	class GradientTool extends RTool
+
+		@handleSize = 5
+
+		constructor: ()->
+			@group = new Group()
+
+			handleSize = @constructor.handleSize
+
+			@createHandle(view.bounds.scale(0.5).topLeft, 0, 'red')
+			@createHandle(view.bounds.scale(0.5).bottomRight, 0, 'blue')
+
+			@line = new Path()
+			@line.add(@startHandle.position)
+			@line.add(@endHandle.position)
+
+			@group.addChild(@line)
+
+			@line.strokeColor = g.selectionBlue
+			@line.strokeWidth = 1
+
+			@handles = { 0: @startHandle, 1: @endHandle }
+			g.selectionLayer.addChild(@group)
+			return
+
+		select: ()->
+			# check if new tool is defferent from previous
+			differentTool = g.previousTool != g.selectedTool
+
+			if @ != g.selectedTool
+				g.previousTool = g.selectedTool
+
+			g.selectedTool?.deselect()
+			g.selectedTool = @
+			return
+
+		updateGradient: ()->
+			stops = []
+			for location, handle of @handles
+				stops.push([handle.fillColor, location])
+			return stops
+
+		createHandle: (position, location, color)->
+			handle = new Path.Circle(position, @constructor.handleSize)
+			handle.name = 'handle'
+
+			@group.addChild(handle)
+
+			handle.strokeColor = g.selectionBlue
+			handle.strokeWidth = 1
+
+			@handles[location] = handle
+			@updateGradient()
+			return handle
+
+		addHandle: (event)->
+			location = @line.hitTest(event.point).location
+			@createHandle(location.position, location.location, g.selectedColor)
+			return
+
+		doubleClick: (event) ->
+			point = view.viewToProject(new Point(event.pageX, event.pageY))
+			hitResult = @group.hitTest()
+			if hitResult
+				if hitResult.item == @line
+					@addHandle(event)
+				else if hitResult.item.name == 'handle'
+					hitResult.item.remove()
+					@updateGradient()
+			return
+
+		begin: (event)->
+			hitResult = @group.hitTest(event.point)
+			if hitResult
+				if hitResult.item.name == 'handle'
+					@selectedHandle = hitResult.item
+					@dragging = true
+			return
+
+		update: (event)->
+			if @dragging
+				if @selectedHandle == @handles[0] or @selectedHandle == @handles[1]
+					@selectedHandle.position.x += event.delta.x
+					@selectedHandle.position.y += event.delta.y
+				else
+					@selectedHandle.position = @line.getNearestPoint(event.point)
+			return
+
+		end: (event)->
+			@dragging = false
+			return
 
 	return

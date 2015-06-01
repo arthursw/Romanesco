@@ -278,7 +278,7 @@ define [
 					if item? and not item.currentCommand?
 						allowedFunctions =
 							['setRectangle', 'setRotation', 'moveTo', 'setParameter', 'modifyPoint', 'modifyPointType',
-							'modifySpeed', 'setPK', 'delete', 'create', 'addPoint', 'deletePoint']
+							'modifySpeed', 'setPK', 'delete', 'create', 'addPoint', 'deletePoint', 'modifyControlPath', 'setText']
 						if data.function not in allowedFunctions
 							console.log 'Error: not authorized to call: ' + data.function
 							return

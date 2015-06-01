@@ -6,7 +6,7 @@
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['utils', 'item', 'jquery', 'oembed', 'paper'], function(utils) {
-    var RDiv, RMedia, RSelectionRectangle, RText, g;
+    var RDiv, RMedia, RText, g;
     g = utils.g();
     RDiv = (function(_super) {
       __extends(RDiv, _super);
@@ -25,6 +25,27 @@
         parameters['Style'].strokeWidth = strokeWidth;
         parameters['Style'].strokeColor = strokeColor;
         return parameters;
+      };
+
+      RDiv.updateHiddenDivs = function(event) {
+        var div, point, projectPoint, _i, _len, _ref;
+        if (g.hiddenDivs.length > 0) {
+          point = new Point(event.pageX, event.pageY);
+          projectPoint = view.viewToProject(point);
+          _ref = g.hiddenDivs;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            div = _ref[_i];
+            if (!div.getBounds().contains(projectPoint)) {
+              div.show();
+            }
+          }
+        }
+      };
+
+      RDiv.showDivs = function() {
+        while (g.hiddenDivs.length > 0) {
+          g.hiddenDivs.first().show();
+        }
       };
 
       RDiv.updateZIndex = function(sortedDivs) {
@@ -54,6 +75,19 @@
         this.object_type = this.constructor.object_type;
         separatorJ = g.stageJ.find("." + this.object_type + "-separator");
         this.divJ = g.templatesJ.find(".custom-div").clone().insertAfter(separatorJ);
+        this.divJ.mouseenter((function(_this) {
+          return function(event) {
+            var item, _i, _len, _ref1;
+            _ref1 = g.selectedItems;
+            for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+              item = _ref1[_i];
+              if (item !== _this && item.getBounds().intersects(_this.getBounds())) {
+                _this.hide();
+                break;
+              }
+            }
+          };
+        })(this));
         if (!this.lock) {
           RDiv.__super__.constructor.call(this, this.data, this.pk, this.date, g.divList, g.sortedDivs);
         } else {
@@ -77,6 +111,9 @@
         }
         this.divJ.click((function(_this) {
           return function(event) {
+            if (_this.selectionRectangle != null) {
+              return;
+            }
             if (!event.shiftKey) {
               g.deselectAll();
             }
@@ -89,6 +126,22 @@
         }
         return;
       }
+
+      RDiv.prototype.hide = function() {
+        this.divJ.css({
+          opacity: 0.5,
+          'pointer-events': 'none'
+        });
+        g.hiddenDivs.push(this);
+      };
+
+      RDiv.prototype.show = function() {
+        this.divJ.css({
+          opacity: 1,
+          'pointer-events': 'auto'
+        });
+        g.hiddenDivs.remove(this);
+      };
 
       RDiv.prototype.save = function(addCreateCommand) {
         var args;
@@ -578,6 +631,15 @@
           return $(this).removeClass("selected form-control");
         });
         this.contentJ.focus();
+        this.contentJ.keydown((function(_this) {
+          return function(event) {
+            if (event.metaKey || event.ctrlKey) {
+              _this.deselect();
+              event.stopImmediatePropagation();
+              return false;
+            }
+          };
+        })(this));
         if (!lockedForMe) {
           this.contentJ.bind('input propertychange', (function(_this) {
             return function(event) {
@@ -591,8 +653,36 @@
         return;
       }
 
+      RText.prototype.deselect = function() {
+        if (!RText.__super__.deselect.call(this)) {
+          return false;
+        }
+        this.contentJ.blur();
+        return true;
+      };
+
       RText.prototype.textChanged = function(event) {
-        this.data.message = this.contentJ.val();
+        var newText;
+        newText = this.contentJ.val();
+        this.deferredAction(g.ModifyTextCommand, newText);
+      };
+
+      RText.prototype.setText = function(newText, update) {
+        if (update == null) {
+          update = false;
+        }
+        this.data.message = newText;
+        this.contentJ.val(newText);
+        if (!this.socketAction) {
+          if (update) {
+            this.update('text');
+          }
+          g.chatSocket.emit("bounce", {
+            itemPk: this.pk,
+            "function": "setText",
+            "arguments": [newText, false]
+          });
+        }
       };
 
       RText.prototype.setFontFamily = function(fontFamily, update) {
@@ -1061,46 +1151,6 @@
 
     })(RDiv);
     g.RMedia = RMedia;
-    RSelectionRectangle = (function(_super) {
-      __extends(RSelectionRectangle, _super);
-
-      RSelectionRectangle.rname = 'Selection rectangle';
-
-      RSelectionRectangle.object_type = 'lock';
-
-      function RSelectionRectangle(rectangle, handler) {
-        this.rectangle = rectangle;
-        g.tools['Select'].select();
-        RSelectionRectangle.__super__.constructor.call(this, rectangle);
-        this.divJ.addClass("selection-rectangle");
-        this.buttonJ = $("<button>");
-        this.buttonJ.text("Take snapshot");
-        this.buttonJ.click(function(event) {
-          return handler();
-        });
-        this.divJ.append(this.buttonJ);
-        this.select();
-        return;
-      }
-
-      RSelectionRectangle.prototype.deselect = function() {
-        if (!RSelectionRectangle.__super__.deselect.call(this)) {
-          return false;
-        }
-        if (this.deselected) {
-          return;
-        }
-        this.deselected = true;
-        this.remove();
-        return true;
-      };
-
-      RSelectionRectangle.prototype.update = function() {};
-
-      return RSelectionRectangle;
-
-    })(RDiv);
-    g.RSelectionRectangle = RSelectionRectangle;
   });
 
 }).call(this);
