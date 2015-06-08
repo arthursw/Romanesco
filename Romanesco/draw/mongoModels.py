@@ -1,6 +1,7 @@
 from mongoengine import *
 import datetime
 
+
 class Path(Document):
     city = StringField(required=True)
     planetX = DecimalField(required=True)
@@ -117,7 +118,7 @@ class Module(Document):
     source = StringField()
     compiledSource = StringField()
     local = BooleanField()
-    lock = ReferenceField('Box', required=False)
+    # lock = ReferenceField('Box', required=False)
     lastUpdate = DateTimeField(default=datetime.datetime.now)
 
     accepted = BooleanField(default=False)

@@ -36,12 +36,6 @@
           return;
         }
         module = JSON.parse(result.module);
-        if (module.lock != null) {
-          module.lock = g.items[module.lock.$oid];
-        }
-        if (module.lock == null) {
-          g.romanesco_alert("The module is linked with a lock, but the lock is not loaded.", "warning");
-        }
         ce.setSource(module);
       };
       ce.setSource = function(module) {
@@ -49,32 +43,27 @@
         ce.module = module;
         g.codeEditor.pushRequestBtnJ.text('Push request (update "' + module.name + '" module)');
       };
-      ce.initializeNewModuleFromName = function(moduleName, lock) {
+      ce.initializeNewModuleFromName = function(moduleName, defaultSource) {
         var source;
         if (moduleName == null) {
           moduleName = 'NewPath';
         }
-        if (lock == null) {
-          lock = null;
+        if (defaultSource == null) {
+          defaultSource = null;
         }
-        if (lock == null) {
+        if (defaultSource != null) {
+          source = defaultSource;
+        } else {
           source = "class " + moduleName + " extends g.PrecisePath\n";
           source += "\t@rname = '" + moduleName + "'\n";
           source += "\t@rdescription = '" + moduleName + "'\n";
           source += "\t\n	drawBegin: ()->\n\n		@initializeDrawing(false)\n\n		@path = @addPath()\n		return\n\n	drawUpdateStep: (length)->\n\n		point = @controlPath.getPointAt(length)\n		@path.add(point)\n		return\n\n	drawEnd: ()->\n		return\n\n";
           source += "tool = new g.PathTool(" + moduleName + ", true)";
-        } else {
-          source = "";
         }
         ce.editor.getSession().setValue(source);
-        ce.module = null;
-        if (lock != null) {
-          ce.module = {
-            type: 'lock',
-            lock: lock,
-            newModule: true
-          };
-        }
+        ce.module = {
+          newModule: true
+        };
         g.codeEditor.pushRequestBtnJ.text('Push request (create new module)');
       };
       input.keyup(function(event) {
@@ -137,8 +126,11 @@
       }
       g.RModal.hide();
     };
-    ce.createModuleEditorModal = function(result) {
+    ce.createModuleEditorModal = function(result, actionOnClick) {
       var acceptedGithubURLs, jqxhr, module, modules, _i, _len;
+      if (actionOnClick == null) {
+        actionOnClick = ce.loadModule;
+      }
       if (!g.checkError(result)) {
         return;
       }
@@ -149,7 +141,7 @@
         g.modules[module.name] = module;
         acceptedGithubURLs.push(module.githubURL);
       }
-      g.createModuleModal("Romanesco modules", ce.loadModule);
+      g.createModuleModal("Romanesco modules", actionOnClick);
       jqxhr = $.get("https://api.github.com/search/repositories?q=romanesco+module", function(data) {
         var item, _j, _len1, _ref, _ref1;
         console.log("success");
@@ -166,7 +158,7 @@
             githubURL: item.html_url,
             accepted: false
           };
-          g.addModuleToModal(item.name, module, g.RModal.modalJ.find('tbody'), ce.loadModule);
+          g.addModuleToModal(item.name, module, g.RModal.modalJ.find('tbody'), actionOnClick);
         }
       });
     };
@@ -184,9 +176,42 @@
       ce.consoleCloseBtnJ = ce.consoleHandleJ.find(".close");
       ce.footerJ = ce.editorJ.find(".footer");
       ce.openModalBtnJ = ce.editorJ.find(".open-modal");
+      ce.linkFileInputJ = ce.editorJ.find("input.link-file");
       ce.openModalBtnJ.click(function(event) {
         Dajaxice.draw.getModuleList(ce.createModuleEditorModal);
       });
+      ce.linkFile = function(evt) {
+        var files, _ref, _ref1;
+        evt.stopPropagation();
+        evt.preventDefault();
+        ce = g.codeEditor;
+        if (ce.linkFileInputJ.hasClass('link-file')) {
+          ce.linkFileInputJ.removeClass('link-file').addClass('unlink-file');
+          ce.editorJ.find('span.glyphicon-floppy-open').removeClass('glyphicon-floppy-open').addClass('glyphicon-floppy-remove');
+          ce.linkFileInputJ.hide();
+          ce.editorJ.find('button.link-file').on('click', ce.linkFile);
+          files = ((_ref = evt.dataTransfer) != null ? _ref.files : void 0) || ((_ref1 = evt.target) != null ? _ref1.files : void 0);
+          ce.linkedFile = files[0];
+          ce.fileReader = new FileReader();
+          ce.fileReader.onload = function(event) {
+            ce.editor.getSession().setValue(event.target.result);
+          };
+          ce.readFile = function() {
+            g.codeEditor.fileReader.readAsText(ce.linkedFile);
+          };
+          ce.lookForChangesInterval = setInterval(ce.readFile, 1000);
+        } else if (ce.linkFileInputJ.hasClass('unlink-file')) {
+          ce.linkFileInputJ.removeClass('unlink-file').addClass('link-file');
+          ce.editorJ.find('span.glyphicon-floppy-remove').removeClass('glyphicon-floppy-remove').addClass('glyphicon-floppy-open');
+          ce.linkFileInputJ.show();
+          ce.editorJ.find('button.link-file').off('click', ce.linkFile);
+          clearInterval(ce.lookForChangesInterval);
+          ce.fileReader = null;
+          ce.linkedFile = null;
+          ce.readFile = null;
+        }
+      };
+      ce.linkFileInputJ.change(ce.linkFile);
       ce.editor = ace.edit(ce.codeJ[0]);
       ce.editor.$blockScrolling = Infinity;
       ce.editor.setOptions({
@@ -397,7 +422,7 @@
           romanescoCode = JSON.parse(localStorage.romanescoCode);
         }
         source = ce.editor.getValue();
-        className = '';
+        className = 'unnamed';
         firstLineRegExp = /class {1}([A-Z]\w+) extends g.{1}(PrecisePath|SpeedPath|RShape){1}\n/;
         firstLineResult = firstLineRegExp.exec(source);
         if ((firstLineResult != null) && firstLineResult.length >= 2) {
@@ -407,12 +432,7 @@
           firstLineResult = firstLineRegExp.exec(source);
           if ((firstLineResult != null) && firstLineResult.length >= 1) {
             className = firstLineResult[1];
-          } else {
-            return;
           }
-        }
-        if ((g[className] == null) || source === g[className].source) {
-          return;
         }
         romanescoCode[className] = source;
         localStorage.romanescoCode = JSON.stringify(romanescoCode);
@@ -435,7 +455,7 @@
           hasName = (module.name != null) && module.name !== '';
           hasDescription = (module.description != null) && module.description !== '';
           callback = function(results) {
-            var textInputJ;
+            var textInputJ, _ref3;
             if (!g.checkError(results)) {
               return;
             }
@@ -446,7 +466,9 @@
             textInputJ = g.RModal.addTextInput('githubURL', null, null, null, 'Github repository URL');
             textInputJ.find('input').val(results.githubURL).select().focus();
             g.RModal.show();
-            ce.module.lock.addModule(results.modulePk);
+            if ((_ref3 = ce.module.lock) != null) {
+              _ref3.addModule(results.modulePk);
+            }
           };
           submit = function(data) {
             var args, _ref3;
@@ -459,15 +481,14 @@
               commitDescription: data != null ? data.commitDescription : void 0,
               githubURL: ce.module.githubURL,
               category: data.category,
-              type: ce.module.type,
-              lockPk: ce.module.lock.pk
+              type: ce.module.type
             };
             Dajaxice.draw.addOrUpdateModule(callback, args);
             g.RModal.initialize("Loading");
             g.RModal.addText("Your request is being processed...");
             g.RModal.modalJ.find(".modal-footer").hide();
           };
-          newModule = (ce.module == null) || ce.module.newModule;
+          newModule = ce.module.newModule;
           if ((newModule && (!hasName || !hasDescription)) || !newModule) {
             title = newModule ? 'Push new module' : 'Commit changes';
             g.RModal.initialize(title, submit, null, false);
@@ -608,21 +629,6 @@
     g.compileAndRunModule = function(module) {
       g.runModule(g.compileSource(module.source, module.name));
     };
-    g.runModule = function(module) {
-      var error;
-      try {
-        console.log(eval(module.compiledSource));
-        if (g.lastPathCreated != null) {
-          g.lastPathCreated.source = module.source;
-          g.lastPathCreated = null;
-        }
-      } catch (_error) {
-        error = _error;
-        console.error(error);
-        throw error;
-        return null;
-      }
-    };
     g.initializeEditor = function() {
       ce.editorJ.show();
       ce.editorJ.addClass('visible');
@@ -641,17 +647,6 @@
       if (!ce.editorJ.hasClass('visible')) {
         g.initializeEditor();
       }
-    };
-    ce.setLockModule = function(lock) {
-      ce = g.codeEditor;
-      if (lock.modulePk != null) {
-        Dajaxice.draw.getModuleSource(ce.setSourceFromServer, {
-          pk: lock.modulePk
-        });
-      } else {
-        ce.initializeNewModuleFromName("MyLockModule", lock);
-      }
-      g.initializeEditor();
     };
   });
 

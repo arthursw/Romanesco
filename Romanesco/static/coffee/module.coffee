@@ -19,10 +19,6 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 		if not g.checkError(result) then return
 		module = JSON.parse(result.module)
 
-		if module.type? == 'lock'
-			g.runModule(module)
-			return
-
 		g.modules[module.name] = module
 		# replace click handler: now we only run the module on click
 		btnJ = g.sidebarJ.find('.module-list').find('li[data-name="' + module.name + '"]')
@@ -38,7 +34,23 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 
 	g.getModule = (moduleName)->
 		moduleName ?= $(this).attr('data-name')
-		Dajaxice.draw.getModuleSource(g.initializeModule, name: moduleName)
+		Dajaxice.draw.getModuleSource(g.initializeModule, { name: moduleName, accepted: true } )
+		return
+
+	g.runModule = (module)->
+		try
+			console.log eval module.compiledSource
+
+			if g.lastPathCreated?
+				g.lastPathCreated.source = module.source
+				g.lastPathCreated = null
+
+		catch error
+
+			console.error error
+			throw error
+			return null
+
 		return
 
 	g.deleteModule = (moduleName, repoName, pk)->
@@ -133,7 +145,7 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 			return
 		return
 
-	g.initializeModules = (moduleValues) ->
+	g.initializeModules = () ->
 
 		if not g.rasterizerMode
 			g.allModulesJ = g.allToolsContainerJ.find(".all-tool-list")
@@ -171,7 +183,7 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 
 	g.addModuleToModal = (name, module, tbodyJ, actionOnClick, prepend=false)->
 		rowJ = $('<tr>').addClass('module')
-		rowJ.attr("data-name", name).attr("data-owner", module.owner).attr("data-name", name)
+		rowJ.attr("data-name", name).attr("data-owner", module.owner).attr("data-pk", module.pk)
 		rowJ.css( cursor: 'pointer' )
 		rowJ.click(actionOnClick)
 		td1J = $('<td>')
@@ -247,6 +259,22 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 			console.log results.message
 			return
 		Dajaxice.draw.acceptModule( g.checkError, module )
+		return
+
+	g.setAdminMode = ()->
+		ce = g.codeEditor
+
+		ce.acceptBtnJ = ce.editorJ.find("button.accept")
+		ce.acceptBtnJ.removeClass('hidden')
+
+		ce.acceptBtnJ.click (event)->
+			if ce.module? and ce.module.source? and ce.module.name?
+				g.acceptModule(ce.module)
+			else
+				g.romanesco_alert 'The module does not have a name or a source.', 'error'
+				# module = g.compileSource()
+				# g.acceptModule(module)
+			return
 		return
 
 	# get modules which are not accepted yet, and put them in g.waitingModules

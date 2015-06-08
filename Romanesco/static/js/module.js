@@ -20,10 +20,6 @@
         return;
       }
       module = JSON.parse(result.module);
-      if ((module.type != null) === 'lock') {
-        g.runModule(module);
-        return;
-      }
       g.modules[module.name] = module;
       btnJ = g.sidebarJ.find('.module-list').find('li[data-name="' + module.name + '"]');
       if (btnJ.length === 0) {
@@ -39,8 +35,24 @@
         moduleName = $(this).attr('data-name');
       }
       Dajaxice.draw.getModuleSource(g.initializeModule, {
-        name: moduleName
+        name: moduleName,
+        accepted: true 
       });
+    };
+    g.runModule = function(module) {
+      var error;
+      try {
+        console.log(eval(module.compiledSource));
+        if (g.lastPathCreated != null) {
+          g.lastPathCreated.source = module.source;
+          g.lastPathCreated = null;
+        }
+      } catch (_error) {
+        error = _error;
+        console.error(error);
+        throw error;
+        return null;
+      }
     };
     g.deleteModule = function(moduleName, repoName, pk) {
       Dajaxice.draw.deleteModule(g.checkError, {
@@ -144,7 +156,7 @@
         }
       });
     };
-    g.initializeModules = function(moduleValues) {
+    g.initializeModules = function() {
       var searchToolsJ;
       if (!g.rasterizerMode) {
         g.allModulesJ = g.allToolsContainerJ.find(".all-tool-list");
@@ -155,7 +167,7 @@
         g.searchModuleBtnJ.click(g.createToolModal);
       }
       Dajaxice.draw.getModules(function(result) {
-        var btnJ, favorite, i, module, modules, name, _i, _len, _ref;
+        var btnJ, favorite, i, module, moduleValues, modules, name, _i, _len, _ref;
         modules = JSON.parse(result.modules);
         for (i = _i = 0, _len = modules.length; _i < _len; i = ++_i) {
           module = modules[i];
@@ -191,7 +203,7 @@
         prepend = false;
       }
       rowJ = $('<tr>').addClass('module');
-      rowJ.attr("data-name", name).attr("data-owner", module.owner).attr("data-name", name);
+      rowJ.attr("data-name", name).attr("data-owner", module.owner).attr("data-pk", module.pk);
       rowJ.css({
         cursor: 'pointer'
       });
@@ -269,6 +281,19 @@
         console.log(results.message);
       };
       Dajaxice.draw.acceptModule(g.checkError, module);
+    };
+    g.setAdminMode = function() {
+      var ce;
+      ce = g.codeEditor;
+      ce.acceptBtnJ = ce.editorJ.find("button.accept");
+      ce.acceptBtnJ.removeClass('hidden');
+      ce.acceptBtnJ.click(function(event) {
+        if ((ce.module != null) && (ce.module.source != null) && (ce.module.name != null)) {
+          g.acceptModule(ce.module);
+        } else {
+          g.romanesco_alert('The module does not have a name or a source.', 'error');
+        }
+      });
     };
     g.getWaitingModules = function(value) {
       var getWaitingModulesCallback;

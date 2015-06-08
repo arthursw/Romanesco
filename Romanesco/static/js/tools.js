@@ -18,7 +18,6 @@
       																	 * the default onChange callback will be called on onFinishChange since we often want to update only when the change is finished
       																	 * to override this behaviour, 'fireOnEveryChange' can be set to true or onChange and onFinishChange can be defined
       					label: 'Name of the parameter'					# label of the controller (name displayed in the gui)
-      					value: 0										# value (deprecated)
       					default: 0 										# default value
       					step: 5 										# values will be incremented/decremented by step
       					min: 0 											# minimum value
@@ -28,10 +27,10 @@
       					addController: true 							# if true: adds the dat.gui controller to the item or the selected tool
       					onChange: (value)->  							# called when controller changes
       					onFinishChange: (value)-> 						# called when controller finishes change
-      					setValue: (value, item)-> 						# called on set value of controller
+      					setValue: (value)-> 							# called on set value of controller
       					permanent: true									# if true: the controller is never removed (always says in dat.gui)
       					defaultCheck: true 								# checked/activated by default or not
-      					initializeController: (controller, item)->		# called just after controller is added to dat.gui, enables to customize the gui and add functionalities
+      					initializeController: (controller)->			# called just after controller is added to dat.gui, enables to customize the gui and add functionalities
       					fireOnEveryChange: false 						# if true and *type* is input: the default onChange callback will be called on everychange
       				secondParameter:
       					type: 'slider'
@@ -93,18 +92,11 @@
         return null;
       };
 
-      RTool.prototype.select = function(constructor, selectedItem, deselectItems) {
-        var differentTool, _ref;
-        if (constructor == null) {
-          constructor = this.constructor;
-        }
-        if (selectedItem == null) {
-          selectedItem = null;
-        }
+      RTool.prototype.select = function(deselectItems) {
+        var _ref;
         if (deselectItems == null) {
           deselectItems = true;
         }
-        differentTool = g.previousTool !== g.selectedTool;
         if (this !== g.selectedTool) {
           g.previousTool = g.selectedTool;
         }
@@ -112,19 +104,23 @@
           _ref.deselect();
         }
         g.selectedTool = this;
+        this.updateCursor();
+        if (deselectItems) {
+          g.deselectAll();
+        }
+        this.updateParameters();
+      };
+
+      RTool.prototype.updateParameters = function() {
+        g.controllerManager.setSelectedTool(this);
+      };
+
+      RTool.prototype.updateCursor = function() {
         if (this.cursorName != null) {
           g.stageJ.css('cursor', 'url(static/images/cursors/' + this.cursorName + '.png) ' + this.cursorPosition.x + ' ' + this.cursorPosition.y + ',' + this.cursorDefault);
         } else {
           g.stageJ.css('cursor', this.cursorDefault);
         }
-        if (deselectItems) {
-          g.deselectAll();
-        }
-        g.cancelCallNextFrame('updateParametersForSelectedItems');
-        g.updateParameters({
-          tool: constructor,
-          item: selectedItem
-        }, differentTool);
       };
 
       RTool.prototype.deselect = function() {};
@@ -182,7 +178,7 @@
 
       MoveTool.prototype.select = function() {
         var div, _i, _len, _ref;
-        MoveTool.__super__.select.call(this, this.constructor, null, false);
+        MoveTool.__super__.select.call(this, false);
         g.stageJ.addClass("moveTool");
         _ref = g.divs;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -251,14 +247,14 @@
             speed: {
               type: 'string',
               label: 'Speed',
-              value: '0',
+              "default": '0',
               addController: true,
               onChange: function() {}
             },
             volume: {
               type: 'slider',
               label: 'Volume',
-              value: 1,
+              "default": 1,
               min: 0,
               max: 10,
               onChange: function(value) {
@@ -291,12 +287,12 @@
         this.car = new Raster("/static/images/car.png");
         g.carLayer.addChild(this.car);
         this.car.position = view.center;
-        this.speed = 0;
-        this.direction = new Point(0, -1);
+        this.car.speed = 0;
+        this.car.direction = new Point(0, -1);
         this.car.onLoad = function() {
           console.log('car loaded');
         };
-        this.previousSpeed = 0;
+        this.car.previousSpeed = 0;
         g.sound.setVolume(0.1);
         g.sound.play(0);
         g.sound.setLoopStart(3.26);
@@ -319,38 +315,38 @@
         minSpeed = 0.05;
         maxSpeed = 100;
         if (Key.isDown('right')) {
-          this.direction.angle += 5;
+          this.car.direction.angle += 5;
         }
         if (Key.isDown('left')) {
-          this.direction.angle -= 5;
+          this.car.direction.angle -= 5;
         }
         if (Key.isDown('up')) {
-          if (this.speed < maxSpeed) {
-            this.speed++;
+          if (this.car.speed < maxSpeed) {
+            this.car.speed++;
           }
         } else if (Key.isDown('down')) {
-          if (this.speed > -maxSpeed) {
-            this.speed--;
+          if (this.car.speed > -maxSpeed) {
+            this.car.speed--;
           }
         } else {
-          this.speed *= 0.9;
-          if (Math.abs(this.speed) < minSpeed) {
-            this.speed = 0;
+          this.car.speed *= 0.9;
+          if (Math.abs(this.car.speed) < minSpeed) {
+            this.car.speed = 0;
           }
         }
         minRate = 0.25;
         maxRate = 3;
-        rate = minRate + Math.abs(this.speed) / maxSpeed * (maxRate - minRate);
+        rate = minRate + Math.abs(this.car.speed) / maxSpeed * (maxRate - minRate);
         g.sound.setRate(rate);
-        this.previousSpeed = this.speed;
+        this.car.previousSpeed = this.car.speed;
         if ((_ref = this.parameterControllers) != null) {
           if ((_ref1 = _ref['speed']) != null) {
-            _ref1.setValue(this.speed.toFixed(2));
+            _ref1.setValue(this.car.speed.toFixed(2));
           }
         }
-        this.car.rotation = this.direction.angle + 90;
-        if (Math.abs(this.speed) > minSpeed) {
-          this.car.position = this.car.position.add(this.direction.multiply(this.speed));
+        this.car.rotation = this.car.direction.angle + 90;
+        if (Math.abs(this.car.speed) > minSpeed) {
+          this.car.position = this.car.position.add(this.car.direction.multiply(this.car.speed));
           g.RMoveTo(this.car.position);
         }
         if ((_ref2 = g.gameAt(this.car.position)) != null) {
@@ -358,7 +354,7 @@
         }
         if (Date.now() - this.lastUpdate > 150) {
           if (g.me != null) {
-            g.chatSocket.emit("car move", g.me, this.car.position, this.car.rotation, this.speed);
+            g.chatSocket.emit("car move", g.me, this.car.position, this.car.rotation, this.car.speed);
           }
           this.lastUpdate = Date.now();
         }
@@ -397,9 +393,11 @@
       }
 
       SelectTool.prototype.select = function() {
-        var _ref;
-        this.selectedItem = g.selectedItems.first();
-        SelectTool.__super__.select.call(this, ((_ref = this.selectedItem) != null ? _ref.constructor : void 0) || this.constructor, this.selectedItem, false);
+        SelectTool.__super__.select.call(this, false);
+      };
+
+      SelectTool.prototype.updateParameters = function() {
+        g.controllerManager.updateParametersForSelectedItems();
       };
 
       SelectTool.prototype.createSelectionRectangle = function(event) {
@@ -661,11 +659,8 @@
 
       PathTool.prototype.select = function() {
         g.rasterizer.drawItems();
-        PathTool.__super__.select.call(this, this.RPath);
-        g.tool.onMouseMove = function(event) {
-          event = g.snap(event);
-          g.selectedTool.move(event);
-        };
+        PathTool.__super__.select.call(this);
+        g.tool.onMouseMove = this.move;
       };
 
       PathTool.prototype.deselect = function() {
@@ -729,35 +724,12 @@
       };
 
       PathTool.prototype.createPath = function(event, from) {
-        var bounds, lock, locks, path, _i, _len;
+        var path;
         path = g.currentPaths[from];
+        if (!path.group) {
+          return;
+        }
         if ((g.me != null) && from === g.me) {
-          if (path.rectangle.area === 0) {
-            path.remove();
-            delete g.currentPaths[from];
-            return;
-          }
-          bounds = path.getBounds();
-          locks = g.RLock.getLocksWhichIntersect(bounds);
-          for (_i = 0, _len = locks.length; _i < _len; _i++) {
-            lock = locks[_i];
-            if (lock.rectangle.contains(bounds)) {
-              if (lock.owner === g.me) {
-                lock.addItem(path);
-              } else {
-                g.romanesco_alert("The path intersects with a lock", "Warning");
-                path.remove();
-                delete g.currentPaths[from];
-                return;
-              }
-            }
-          }
-          if (path.getDrawingBounds().area > g.rasterizer.maxArea()) {
-            g.romanesco_alert("The path is too big", "Warning");
-            path.remove();
-            delete g.currentPaths[from];
-            return;
-          }
           if ((g.me != null) && from === g.me) {
             g.chatSocket.emit("bounce", {
               tool: this.name,
@@ -779,11 +751,9 @@
           from = g.me;
         }
         path = g.currentPaths[from];
+        path.endCreate(event.point, event, false);
         if (!((_ref = path.data) != null ? _ref.polygonMode : void 0)) {
-          path.endCreate(event.point, event, false);
           this.createPath(event, from);
-        } else {
-          path.endCreate(event.point, event, false);
         }
       };
 
@@ -835,7 +805,7 @@
 
       ItemTool.prototype.select = function() {
         g.rasterizer.drawItems();
-        ItemTool.__super__.select.call(this, this.RItem);
+        ItemTool.__super__.select.call(this);
       };
 
       ItemTool.prototype.begin = function(event, from) {
@@ -991,7 +961,10 @@
         }
         if (TextTool.__super__.end.call(this, event, from)) {
           text = new g.RText(g.currentPaths[from].bounds);
-          text.addToParent();
+          text.finish();
+          if (!text.group) {
+            return;
+          }
           text.select();
           text.save(true);
           delete g.currentPaths[from];
@@ -1330,27 +1303,74 @@
       GradientTool.handleSize = 5;
 
       function GradientTool() {
-        var handleSize;
+        this.name = 'Gradient';
+        g.tools[this.name] = this;
+        this.handles = [];
+        this.radial = false;
+        return;
+      }
+
+      GradientTool.prototype.initialize = function() {
+        var bounds, color, delta, destination, handle, location, origin, position, stop, value, _i, _len, _ref;
+        value = this.controller.getValue();
+        this.remove();
+        bounds = view.bounds.scale(0.25);
+        if (value == null) {
+          value = {
+            origin: bounds.topLeft,
+            destination: bounds.bottomRight,
+            gradient: {
+              stops: [
+                {
+                  color: 'red',
+                  rampPoint: 0
+                }, {
+                  color: 'blue',
+                  rampPoint: 1
+                }
+              ],
+              radial: false
+            }
+          };
+        }
         this.group = new Group();
-        handleSize = this.constructor.handleSize;
-        this.createHandle(view.bounds.scale(0.5).topLeft, 0, 'red');
-        this.createHandle(view.bounds.scale(0.5).bottomRight, 0, 'blue');
+        origin = new Point(value.origin);
+        destination = new Point(value.destination);
+        delta = destination.subtract(origin);
+        _ref = value.gradient.stops;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          stop = _ref[_i];
+          color = new Color(stop.color);
+          location = parseInt(stop.rampPoint);
+          position = origin.add(delta.multiply(location));
+          handle = this.createHandle(position, location, color);
+          if (location === 0) {
+            this.startHandle = handle;
+          }
+          if (location === 1) {
+            this.endHandle = handle;
+          }
+        }
+        if (this.startHandle == null) {
+          this.startHandle = this.createHandle(origin, 0, 'red');
+        }
+        if (this.endHandle == null) {
+          this.endHandle = this.createHandle(destination, 1, 'blue');
+        }
         this.line = new Path();
         this.line.add(this.startHandle.position);
         this.line.add(this.endHandle.position);
         this.group.addChild(this.line);
+        this.line.sendToBack();
         this.line.strokeColor = g.selectionBlue;
         this.line.strokeWidth = 1;
-        this.handles = {
-          0: this.startHandle,
-          1: this.endHandle
-        };
         g.selectionLayer.addChild(this.group);
-        return;
-      }
+        this.selectHandle(this.startHandle);
+      };
 
-      GradientTool.prototype.select = function() {
+      GradientTool.prototype.select = function(controller) {
         var differentTool, _ref;
+        this.controller = controller;
         differentTool = g.previousTool !== g.selectedTool;
         if (this !== g.selectedTool) {
           g.previousTool = g.selectedTool;
@@ -1359,17 +1379,70 @@
           _ref.deselect();
         }
         g.selectedTool = this;
+        this.initialize();
+      };
+
+      GradientTool.prototype.remove = function() {
+        var _ref;
+        if ((_ref = this.group) != null) {
+          _ref.remove();
+        }
+        this.handles = [];
+        this.startHandle = null;
+        this.endHandle = null;
+        this.line = null;
+        this.controller = null;
+      };
+
+      GradientTool.prototype.deselect = function() {
+        this.remove();
+      };
+
+      GradientTool.prototype.selectHandle = function(handle) {
+        var _ref;
+        if ((_ref = this.selectedHandle) != null) {
+          _ref.selected = false;
+        }
+        handle.selected = true;
+        this.selectedHandle = handle;
+      };
+
+      GradientTool.prototype.colorChange = function(color, controller) {
+        if (controller !== this.controller) {
+          this.controller = controller;
+          this.initialize();
+        }
+        this.selectedHandle.fillColor = color;
+        this.updateGradient();
       };
 
       GradientTool.prototype.updateGradient = function() {
-        var handle, location, stops, _ref;
+        var gradient, handle, item, stops, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+        if ((this.startHandle == null) || (this.endHandle == null)) {
+          return;
+        }
         stops = [];
         _ref = this.handles;
-        for (location in _ref) {
-          handle = _ref[location];
-          stops.push([handle.fillColor, location]);
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          handle = _ref[_i];
+          stops.push([handle.fillColor, handle.location]);
         }
-        return stops;
+        gradient = {
+          origin: this.startHandle.position,
+          destination: this.endHandle.position,
+          gradient: {
+            stops: stops,
+            radial: this.radial
+          }
+        };
+        console.log(JSON.stringify(gradient));
+        _ref1 = g.selectedItems;
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          item = _ref1[_j];
+          if (typeof ((_ref2 = item.data) != null ? _ref2[this.parameterName] : void 0) !== 'undefined') {
+            item.setParameterCommand(this.parameterName, gradient);
+          }
+        }
       };
 
       GradientTool.prototype.createHandle = function(position, location, color) {
@@ -1379,27 +1452,39 @@
         this.group.addChild(handle);
         handle.strokeColor = g.selectionBlue;
         handle.strokeWidth = 1;
-        this.handles[location] = handle;
+        handle.fillColor = color;
+        handle.location = location;
+        this.handles.push(handle);
+        this.selectHandle(handle);
         this.updateGradient();
         return handle;
       };
 
-      GradientTool.prototype.addHandle = function(event) {
-        var location;
-        location = this.line.hitTest(event.point).location;
-        this.createHandle(location.position, location.location, g.selectedColor);
+      GradientTool.prototype.addHandle = function(event, hitResult) {
+        var offset, point;
+        offset = hitResult.location.offset;
+        point = this.line.getPointAt(offset);
+        this.createHandle(point, offset / this.line.length, this.colorInputJ.val());
+      };
+
+      GradientTool.prototype.removeHandle = function(handle) {
+        if (handle === this.startHandle || handle === this.endHandle) {
+          return;
+        }
+        this.handles.remove(handle);
+        handle.remove();
+        this.updateGradient();
       };
 
       GradientTool.prototype.doubleClick = function(event) {
         var hitResult, point;
         point = view.viewToProject(new Point(event.pageX, event.pageY));
-        hitResult = this.group.hitTest();
+        hitResult = this.group.hitTest(point);
         if (hitResult) {
           if (hitResult.item === this.line) {
-            this.addHandle(event);
+            this.addHandle(event, hitResult);
           } else if (hitResult.item.name === 'handle') {
-            hitResult.item.remove();
-            this.updateGradient();
+            this.removeHandle(hitResult.item);
           }
         }
       };
@@ -1409,20 +1494,31 @@
         hitResult = this.group.hitTest(event.point);
         if (hitResult) {
           if (hitResult.item.name === 'handle') {
-            this.selectedHandle = hitResult.item;
+            this.selectHandle(hitResult.item);
             this.dragging = true;
           }
         }
       };
 
       GradientTool.prototype.update = function(event) {
+        var handle, lineLength, _i, _len, _ref;
         if (this.dragging) {
-          if (this.selectedHandle === this.handles[0] || this.selectedHandle === this.handles[1]) {
+          if (this.selectedHandle === this.startHandle || this.selectedHandle === this.endHandle) {
             this.selectedHandle.position.x += event.delta.x;
             this.selectedHandle.position.y += event.delta.y;
+            this.line.firstSegment.point = this.startHandle.position;
+            this.line.lastSegment.point = this.endHandle.position;
+            lineLength = this.line.length;
+            _ref = this.handles;
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              handle = _ref[_i];
+              handle.position = this.line.getPointAt(handle.location * lineLength);
+            }
           } else {
             this.selectedHandle.position = this.line.getNearestPoint(event.point);
+            this.selectedHandle.location = this.line.getOffsetOf(this.selectedHandle.position) / this.line.length;
           }
+          this.updateGradient();
         }
       };
 
@@ -1433,6 +1529,7 @@
       return GradientTool;
 
     })(RTool);
+    g.GradientTool = GradientTool;
   });
 
 }).call(this);

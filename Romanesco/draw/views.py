@@ -5,17 +5,26 @@ from django.template import RequestContext
 from draw import ajax
 from math import floor
 from django.views.decorators.csrf import csrf_exempt
+from models import *
 
 # from socketio.namespace import BaseNamespace
 # from sockets import ChatNamespace, DrawNamespace
 # from socketio import socketio_manage
 
 def index(request, site=None, owner=None, city=None, x=0, y=0):
+
+	profileImageURL = ''
+	try:
+		profileImageURL = UserProfile.objects.get(username=request.user.username).profile_image_url
+	except UserProfile.DoesNotExist:
+		print 'user profile does not exist.'
+
 	if site:
 		result = loadSite(request, site)
+		result['profileImageURL'] = profileImageURL
 		return render_to_response(	"index.html", result, RequestContext(request) )
 	else:
-		return render_to_response(	"index.html", RequestContext(request) )
+		return render_to_response(	"index.html", { 'profileImageURL': profileImageURL }, RequestContext(request) )
 
 def rasterizer(request, sitename=None):
 	if sitename:
@@ -44,8 +53,6 @@ def romanescoinsReturn(request):
 @csrf_exempt
 def romanescoinsCancel(request):
 	return render_to_response(	"romanescoin/cancel.html", RequestContext(request) )
-
-
 
 
 # # from ajax.py

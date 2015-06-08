@@ -299,6 +299,12 @@
       lockToolSelected = g.LockTool.prototype.isPrototypeOf(g.selectedTool);
       return g.selectedTool === g.tools['Select'] || g.selectedTool === g.tools['Screenshot'] || pathToolSelected || lockToolSelected;
     };
+    g.registerAnimation = function(item) {
+      g.animatedItems.pushIfAbsent(item);
+    };
+    g.deregisterAnimation = function(item) {
+      g.animatedItems.remove(item);
+    };
     g.gameAt = function(point) {
       var div, _i, _len, _ref;
       _ref = g.divs;
@@ -386,7 +392,7 @@
         };
         g.deferredExecution(addMoveCommand, 'add move command');
       }
-      g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2));
+      g.controllerManager.folders['General'].controllers['location'].setValue('' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2));
       return somethingToLoad;
     };
     g.updateHash = function() {

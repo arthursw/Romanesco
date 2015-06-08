@@ -59,7 +59,7 @@ define [
 		# The following parameters are reserved for romanesco: id, polygonMode, points, planet, step, smooth, speeds, showSpeeds
 		@parameters: ()->
 			return parameters =
-				'General':
+				'Items':
 					# zoom: g.parameters.zoom
 					# displayGrid: g.parameters.displayGrid
 					# snap: g.parameters.snap
@@ -276,6 +276,18 @@ define [
 			@draw()		# if draw in simple mode, then how to see the change of simplified parameters?
 			return
 
+		applyStylesToPath: (path)->
+			path.strokeColor = @data.strokeColor
+			path.strokeWidth = @data.strokeWidth
+			path.fillColor = @data.fillColor
+			if @data.shadowOffsetY?
+				path.shadowOffset = new Point(@data.shadowOffsetX, @data.shadowOffsetY)
+			if @data.shadowBlur?
+				path.shadowBlur = @data.shadowBlur
+			if @data.shadowColor?
+				path.shadowColor = @data.shadowColor
+			return
+
 		# add a path to the drawing group:
 		# - create the path
 		# - initilize it (stroke width, and colors) with @data
@@ -286,16 +298,7 @@ define [
 			path ?= new Path()
 			# path.name = 'group path'
 			path.controller = @
-			if applyStyles
-				path.strokeColor = @data.strokeColor
-				path.strokeWidth = @data.strokeWidth
-				path.fillColor = @data.fillColor
-				if @data.shadowOffsetY?
-					path.shadowOffset = new Point(@data.shadowOffsetX, @data.shadowOffsetY)
-				if @data.shadowBlur?
-					path.shadowBlur = @data.shadowBlur
-				if @data.shadowColor?
-					path.shadowColor = @data.shadowColor
+			if applyStyles then @applyStylesToPath(path)
 			@drawing.addChild(path)
 			return path
 
@@ -379,21 +382,9 @@ define [
 		# @param animated [Boolean] whether to set the path as animated or not animated
 		setAnimated: (animated)->
 			if animated
-				@registerAnimation()
+				g.registerAnimation(@)
 			else
-				@deregisterAnimation()
-			return
-
-		# register animation: push RPath to g.animatedItems
-		registerAnimation: ()->
-			i = g.animatedItems.indexOf(@)
-			if i<0 then g.animatedItems.push(@)
-			return
-
-		# deregister animation: remove RPath from g.animatedItems
-		deregisterAnimation: ()->
-			i = g.animatedItems.indexOf(@)
-			if i>=0 then g.animatedItems.splice(i, 1)
+				g.deregisterAnimation(@)
 			return
 
 		# update the appearance of the path (the drawing group)
@@ -571,7 +562,7 @@ define [
 		# @remove() just removes visually
 		remove: ()->
 			if not @group then return
-			@deregisterAnimation()
+			g.deregisterAnimation()
 			@controlPath = null
 			@drawing = null
 			@raster ?= null
@@ -675,12 +666,14 @@ define [
 		@secureStep = 25
 		@polygonMode = true
 
+		@renderType = 'simple'
+
 		@parameters: ()->
 
 			parameters = super()
 
 			if @polygonMode
-				parameters['General'].polygonMode =
+				parameters['Items'].polygonMode =
 					type: 'checkbox'
 					label: 'Polygon mode'
 					default: g.polygonMode
@@ -711,7 +704,7 @@ define [
 				showSelectionRectangle:
 					type: 'checkbox'
 					label: 'Selection box'
-					value: true
+					default: true
 
 			return parameters
 
@@ -738,10 +731,9 @@ define [
 
 			@addControlPath()
 			@setControlPath(@data.points, @data.planet)
-
 			@rectangle = @controlPath.bounds
 
-			@finish(true)
+			if @data.smooth then @controlPath.smooth()
 
 			g.rasterizer.loadItem(@)
 
@@ -801,9 +793,10 @@ define [
 		# default updateDraw function, will be redefined by children PrecisePath
 		# @param offset [Number] the offset along the control path to begin drawing
 		# @param step [Boolean] whether it is a key step or not (we must draw something special or not)
-		updateDraw: (offset, step)->
+		updateDraw: (offset, step, redrawing)->
 			@path.segments = @controlPath.segments
 			@path.selected = false
+			@applyStylesToPath(@path)
 			return
 
 		# default endDraw function, will be redefined by children PrecisePath
@@ -929,28 +922,31 @@ define [
 
 		# finish path creation:
 		# @param loading [Boolean] (optional) whether the path is being loaded or being created by user
-		finish: (loading=false)->
-			if @data.polygonMode and not loading
+		finish: ()->
+			if @data.polygonMode
 				@controlPath.lastSegment.remove()
 				@controlPath.lastSegment.handleOut = null
 
 			if @controlPath.segments.length<2
 				@remove()
-				return
+				return false
 
 			if @data.smooth then @controlPath.smooth()
 
-			if not loading
-				@endDraw(loading)
-				@drawingOffset = 0
+			@endDraw()
+
+			@drawingOffset = 0
 
 			@rectangle = @controlPath.bounds
 
-			if loading and @canvasRaster
-				@draw(false, true) 	# enable to have the correct @canvasRaster size and to have the exact same result after a load or a change
+			# if loading and @canvasRaster
+			# 	@draw(false, true) 	# enable to have the correct @canvasRaster size and to have the exact same result after a load or a change
+
+			if not super() then return false
 
 			@initialize()
-			return
+
+			return true
 
 		# in simplified mode, the path is drawn quickly, with less details
 		# all parameters which are critical in terms of drawing time are set to *parameter.simplified*
@@ -1003,25 +999,31 @@ define [
 
 			@drawingOffset = 0
 
-			process = ()=>
-				@beginDraw(redrawing)
+			if @constructor.renderType == 'simple'
+				process = ()=>
+					@beginDraw()
+					@updateDraw()
+					@endDraw()
+			else
+				process = ()=>
+					@beginDraw(redrawing)
 
-				# # update drawing (@updateDraw()) every *step* along the control path
-				# # n=0
-				# while offset<controlPathLength
+					# # update drawing (@updateDraw()) every *step* along the control path
+					# # n=0
+					# while offset<controlPathLength
 
-				# 	@updateDraw(offset)
-				# 	offset += step
+					# 	@updateDraw(offset)
+					# 	offset += step
 
-				# 	# if n%10==0 then g.updateLoadingBar(offset/controlPathLength)
-				# 	# n++
+					# 	# if n%10==0 then g.updateLoadingBar(offset/controlPathLength)
+					# 	# n++
 
-				for segment, i in @controlPath.segments
-					if i==0 then continue
-					@checkUpdateDrawing(segment, redrawing)
+					for segment, i in @controlPath.segments
+						if i==0 then continue
+						@checkUpdateDrawing(segment, redrawing)
 
-				@endDraw(redrawing)
-				return
+					@endDraw(redrawing)
+					return
 
 			if not g.catchErrors
 				# g.rasterizer.hideOthers(@)
@@ -1114,7 +1116,7 @@ define [
 			@selectionHighlight.strokeColor = g.selectionBlue
 			@selectionHighlight.strokeWidth = 1
 			g.selectionLayer.addChild(@selectionHighlight)
-			if @parameterControllers?.pointType? then g.setControllerValue(@parameterControllers.pointType, null, @selectionState.segment.rtype, @)
+			@parameterControllers?.pointType?.setValue(@selectionState.segment.rtype)
 			return
 
 		# redefine {RPath#initializeSelection}
@@ -1537,13 +1539,13 @@ define [
 			parameters['Edit curve'].showSpeed =
 				type: 'checkbox'
 				label: 'Show speed'
-				value: false
+				default: false
 
 			if g.wacomPenAPI?
 				parameters['Edit curve'].usePenPressure =
 					type: 'checkbox'
 					label: 'Pen pressure'
-					value: true
+					default: true
 
 			return parameters
 
@@ -2471,7 +2473,7 @@ define [
 		@parameters: ()->
 			parameters = super()
 			delete parameters['Style'].fillColor 	# remove the fill color, we do not need it
-			parameters['Edit curve'].showSpeed.value = false
+			parameters['Edit curve'].showSpeed.default = false
 
 			parameters['Parameters'] ?= {}
 			parameters['Parameters'].step =
@@ -2604,7 +2606,7 @@ define [
 		@parameters: ()->
 			parameters = super()
 			delete parameters['Style'].fillColor 	# remove the fill color, we do not need it
-			parameters['Edit curve'].showSpeed.value = false
+			parameters['Edit curve'].showSpeed.default = false
 
 			parameters['Parameters'] ?= {}
 			parameters['Parameters'].step =
@@ -3550,8 +3552,10 @@ define [
 	class Checkpoint extends g.RShape
 		@Shape = paper.Path.Rectangle
 		@rname = 'Checkpoint'
-		@rdescription = """Draw checkpoints on a video game area to create a race
+		@rdescription = """Draw checkpoints on a lock with a Racer to create a race
 		(the players must go through each checkpoint as fast as possible, with the car tool)."""
+
+		@category = 'Video game/Racer'
 		@squareByDefault = false
 
 		@parameters: ()->
@@ -3559,10 +3563,14 @@ define [
 
 		# register the checkpoint if we are on a video game
 		initialize: ()->
-			@game = g.gameAt(@rectangle.center)
-			if @game?
-				if @game.checkpoints.indexOf(@)<0 then @game.checkpoints.push(@)
+			@data.type = 'checkpoint'
+
+			if @lock?
+				if @lock.checkpoints.indexOf(@)<0 then @lock.checkpoints.push(@)
 				@data.checkpointNumber ?= @game.checkpoints.indexOf(@)
+			else
+				g.romanesco_alert 'A checkpoint must be placed on a lock', 'error'
+				@remove()
 			return
 
 		# just draw a red rectangle with the text 'Checkpoint N' N being the number of the checkpoint in the videogame
@@ -3584,7 +3592,7 @@ define [
 
 		# we must unregister the checkpoint before removing it
 		remove: ()->
-			@game?.checkpoints.remove(@)
+			@lock?.checkpoints.remove(@)
 			super()
 			return
 

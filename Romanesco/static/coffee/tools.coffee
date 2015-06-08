@@ -34,7 +34,6 @@ define [
 																	# the default onChange callback will be called on onFinishChange since we often want to update only when the change is finished
 																	# to override this behaviour, 'fireOnEveryChange' can be set to true or onChange and onFinishChange can be defined
 					label: 'Name of the parameter'					# label of the controller (name displayed in the gui)
-					value: 0										# value (deprecated)
 					default: 0 										# default value
 					step: 5 										# values will be incremented/decremented by step
 					min: 0 											# minimum value
@@ -44,10 +43,10 @@ define [
 					addController: true 							# if true: adds the dat.gui controller to the item or the selected tool
 					onChange: (value)->  							# called when controller changes
 					onFinishChange: (value)-> 						# called when controller finishes change
-					setValue: (value, item)-> 						# called on set value of controller
+					setValue: (value)-> 							# called on set value of controller
 					permanent: true									# if true: the controller is never removed (always says in dat.gui)
 					defaultCheck: true 								# checked/activated by default or not
-					initializeController: (controller, item)->		# called just after controller is added to dat.gui, enables to customize the gui and add functionalities
+					initializeController: (controller)->			# called just after controller is added to dat.gui, enables to customize the gui and add functionalities
 					fireOnEveryChange: false 						# if true and *type* is input: the default onChange callback will be called on everychange
 				secondParameter:
 					type: 'slider'
@@ -111,26 +110,30 @@ define [
 		# @param [RTool constructor] the constructor used to update gui parameters (@constructor.parameters)
 		# @param [RItem] selected item to update gui parameters
 		# @param [Boolean] deselected selected items (false when selecting MoveTool or SelectTool)
-		select: (constructor=@constructor, selectedItem=null, deselectItems=true)->
-			# check if new tool is defferent from previous
-			differentTool = g.previousTool != g.selectedTool
-
+		select: (deselectItems=true)->
 			if @ != g.selectedTool
 				g.previousTool = g.selectedTool
 
 			g.selectedTool?.deselect()
 			g.selectedTool = @
 
-			if @cursorName?
-				g.stageJ.css('cursor', 'url(static/images/cursors/'+@cursorName+'.png) '+@cursorPosition.x+' '+@cursorPosition.y+','+@cursorDefault)
-			else
-				g.stageJ.css('cursor', @cursorDefault)
+			@updateCursor()
 
 			if deselectItems
 				g.deselectAll()
 
-			g.cancelCallNextFrame('updateParametersForSelectedItems')
-			g.updateParameters({ tool: constructor, item: selectedItem }, differentTool)
+			@updateParameters()
+			return
+
+		updateParameters: ()->
+			g.controllerManager.setSelectedTool(@)
+			return
+
+		updateCursor: ()->
+			if @cursorName?
+				g.stageJ.css('cursor', 'url(static/images/cursors/'+@cursorName+'.png) '+@cursorPosition.x+' '+@cursorPosition.y+','+@cursorDefault)
+			else
+				g.stageJ.css('cursor', @cursorDefault)
 			return
 
 		# Deselect current tool
@@ -190,7 +193,7 @@ define [
 
 		# Select tool and disable RDiv interactions (to be able to scroll even when user clicks on them, for exmaple disable textarea default behaviour)
 		select: ()->
-			super(@constructor, null, false)
+			super(false)
 			g.stageJ.addClass("moveTool")
 			for div in g.divs
 				div.disableInteraction()
@@ -252,13 +255,13 @@ define [
 					speed: 							# the speed of the car, just used as an indicator. Updated in @onFrame
 						type: 'string'
 						label: 'Speed'
-						value: '0'
+						default: '0'
 						addController: true
 						onChange: ()-> return 		# disable the default callback
 					volume: 						# volume of the car sound
 						type: 'slider'
 						label: 'Volume'
-						value: 1
+						default: 1
 						min: 0
 						max: 10
 						onChange: (value)-> 		# set volume of the car, stop the sound if volume==0 and restart otherwise
@@ -287,13 +290,13 @@ define [
 			@car = new Raster("/static/images/car.png")
 			g.carLayer.addChild(@car)
 			@car.position = view.center
-			@speed = 0
-			@direction = new Point(0, -1)
+			@car.speed = 0
+			@car.direction = new Point(0, -1)
 			@car.onLoad = ()->
 				console.log 'car loaded'
 				return
 
-			@previousSpeed = 0
+			@car.previousSpeed = 0
 
 			# initialize sound
 			g.sound.setVolume(0.1)
@@ -324,22 +327,22 @@ define [
 			maxSpeed = 100
 
 			if Key.isDown('right')
-				@direction.angle += 5
+				@car.direction.angle += 5
 			if Key.isDown('left')
-				@direction.angle -= 5
+				@car.direction.angle -= 5
 			if Key.isDown('up')
-				if @speed<maxSpeed then @speed++
+				if @car.speed<maxSpeed then @car.speed++
 			else if Key.isDown('down')
-				if @speed>-maxSpeed then @speed--
+				if @car.speed>-maxSpeed then @car.speed--
 			else
-				@speed *= 0.9
-				if Math.abs(@speed) < minSpeed
-					@speed = 0
+				@car.speed *= 0.9
+				if Math.abs(@car.speed) < minSpeed
+					@car.speed = 0
 
 			# update sound rate
 			minRate = 0.25
 			maxRate = 3
-			rate = minRate+Math.abs(@speed)/maxSpeed*(maxRate-minRate)
+			rate = minRate+Math.abs(@car.speed)/maxSpeed*(maxRate-minRate)
 			# console.log rate
 			g.sound.setRate(rate)
 
@@ -370,20 +373,20 @@ define [
 			# 		console.log '-dec'
 			# 		g.sound.playAt('dec', 1.0-Math.abs(@speed/maxSpeed))
 
-			@previousSpeed = @speed
+			@car.previousSpeed = @car.speed
 
-			@parameterControllers?['speed']?.setValue(@speed.toFixed(2))
+			@parameterControllers?['speed']?.setValue(@car.speed.toFixed(2))
 
-			@car.rotation = @direction.angle+90
+			@car.rotation = @car.direction.angle+90
 
-			if Math.abs(@speed) > minSpeed
-				@car.position = @car.position.add(@direction.multiply(@speed))
+			if Math.abs(@car.speed) > minSpeed
+				@car.position = @car.position.add(@car.direction.multiply(@car.speed))
 				g.RMoveTo(@car.position)
 
 			g.gameAt(@car.position)?.updateGame(@)
 
 			if Date.now()-@lastUpdate>150 			# emit car position every 150 milliseconds
-				if g.me? then g.chatSocket.emit "car move", g.me, @car.position, @car.rotation, @speed
+				if g.me? then g.chatSocket.emit "car move", g.me, @car.position, @car.rotation, @car.speed
 				@lastUpdate = Date.now()
 
 			#project.view.center = @car.position
@@ -418,8 +421,11 @@ define [
 
 		select: ()->
 			# g.rasterizer.drawItems() 		# must not draw all items here since user can just wish to use an RMedia
-			@selectedItem = g.selectedItems.first()
-			super(@selectedItem?.constructor or @constructor, @selectedItem, false)
+			super(false)
+			return
+
+		updateParameters: ()->
+			g.controllerManager.updateParametersForSelectedItems()
 			return
 
 		# Create selection rectangle path (remove if existed)
@@ -707,12 +713,9 @@ define [
 
 			g.rasterizer.drawItems()
 
-			super(@RPath)
+			super()
 
-			g.tool.onMouseMove = (event) ->
-				event = g.snap(event)
-				g.selectedTool.move(event)
-				return
+			g.tool.onMouseMove = @move
 			return
 
 		# Deselect: remove the mouse move listener
@@ -772,30 +775,31 @@ define [
 
 		createPath: (event, from)->
 			path = g.currentPaths[from]
+			if not path.group then return
 
 			if g.me? and from==g.me 						# if user is the author of the event: select and save path and emit event on websocket
 
-				if path.rectangle.area == 0
-					path.remove()
-					delete g.currentPaths[from]
-					return
+				# if path.rectangle.area == 0
+				# 	path.remove()
+				# 	delete g.currentPaths[from]
+				# 	return
 
-				bounds = path.getBounds()
-				locks = g.RLock.getLocksWhichIntersect(bounds)
-				for lock in locks
-					if lock.rectangle.contains(bounds)
-						if lock.owner == g.me
-							lock.addItem(path)
-						else
-							g.romanesco_alert("The path intersects with a lock", "Warning")
-							path.remove()
-							delete g.currentPaths[from]
-							return
-				if path.getDrawingBounds().area > g.rasterizer.maxArea()
-					g.romanesco_alert("The path is too big", "Warning")
-					path.remove()
-					delete g.currentPaths[from]
-					return
+				# bounds = path.getBounds()
+				# locks = g.RLock.getLocksWhichIntersect(bounds)
+				# for lock in locks
+				# 	if lock.rectangle.contains(bounds)
+				# 		if lock.owner == g.me
+				# 			lock.addItem(path)
+				# 		else
+				# 			g.romanesco_alert("The path intersects with a lock", "Warning")
+				# 			path.remove()
+				# 			delete g.currentPaths[from]
+				# 			return
+				# if path.getDrawingBounds().area > g.rasterizer.maxArea()
+				# 	g.romanesco_alert("The path is too big", "Warning")
+				# 	path.remove()
+				# 	delete g.currentPaths[from]
+				# 	return
 
 				if g.me? and from==g.me then g.chatSocket.emit "bounce", tool: @name, function: "createPath", arguments: [event, g.me]
 
@@ -814,11 +818,11 @@ define [
 		end: (event, from=g.me) ->
 			path = g.currentPaths[from]
 
+			path.endCreate(event.point, event, false)
+
 			if not path.data?.polygonMode
-				path.endCreate(event.point, event, false)
 				@createPath(event, from)
-			else
-				path.endCreate(event.point, event, false)
+
 			return
 
 		# Finish path action (necessary in polygon mode):
@@ -864,7 +868,7 @@ define [
 
 		select: ()->
 			g.rasterizer.drawItems()
-			super(@RItem)
+			super()
 			return
 
 		# Begin div action:
@@ -1035,7 +1039,8 @@ define [
 		end: (event, from=g.me) ->
 			if super(event, from)
 				text = new g.RText(g.currentPaths[from].bounds)
-				text.addToParent()
+				text.finish()
+				if not text.group then return
 				text.select()
 				text.save(true)
 				delete g.currentPaths[from]
@@ -1429,27 +1434,58 @@ define [
 		@handleSize = 5
 
 		constructor: ()->
+			@name = 'Gradient'
+			g.tools[@name] = @
+			@handles = []
+			@radial = false
+			return
+
+		initialize: ()->
+			value = @controller.getValue()
+
+			@remove()
+
+			bounds = view.bounds.scale(0.25)
+			value ?=
+				origin: bounds.topLeft
+				destination: bounds.bottomRight
+				gradient:
+					stops: [ { color: 'red', rampPoint: 0 } , { color: 'blue', rampPoint: 1 } ]
+					radial: false
+
 			@group = new Group()
 
-			handleSize = @constructor.handleSize
+			origin = new Point(value.origin)
+			destination = new Point(value.destination)
+			delta = destination.subtract(origin)
 
-			@createHandle(view.bounds.scale(0.5).topLeft, 0, 'red')
-			@createHandle(view.bounds.scale(0.5).bottomRight, 0, 'blue')
+			for stop in value.gradient.stops
+				color = new Color(stop.color)
+				location = parseInt(stop.rampPoint)
+				position = origin.add(delta.multiply(location))
+
+				handle = @createHandle(position, location, color)
+				if location == 0 then @startHandle = handle
+				if location == 1 then @endHandle = handle
+
+			@startHandle ?= @createHandle(origin, 0, 'red')
+			@endHandle ?= @createHandle(destination, 1, 'blue')
 
 			@line = new Path()
 			@line.add(@startHandle.position)
 			@line.add(@endHandle.position)
 
 			@group.addChild(@line)
-
+			@line.sendToBack()
 			@line.strokeColor = g.selectionBlue
 			@line.strokeWidth = 1
 
-			@handles = { 0: @startHandle, 1: @endHandle }
 			g.selectionLayer.addChild(@group)
+
+			@selectHandle(@startHandle)
 			return
 
-		select: ()->
+		select: (@controller)->
 			# check if new tool is defferent from previous
 			differentTool = g.previousTool != g.selectedTool
 
@@ -1458,13 +1494,57 @@ define [
 
 			g.selectedTool?.deselect()
 			g.selectedTool = @
+
+			@initialize()
+			return
+
+		remove: ()->
+			@group?.remove()
+			@handles = []
+			@startHandle = null
+			@endHandle = null
+			@line = null
+			@controller = null
+			return
+
+		deselect: ()->
+			@remove()
+			return
+
+		selectHandle: (handle)->
+			@selectedHandle?.selected = false
+			handle.selected = true
+			@selectedHandle = handle
+			return
+
+		colorChange: (color, controller)->
+			if controller != @controller
+				@controller = controller
+				@initialize()
+			@selectedHandle.fillColor = color
+			@updateGradient()
 			return
 
 		updateGradient: ()->
+			if not @startHandle? or not @endHandle? then return
 			stops = []
-			for location, handle of @handles
-				stops.push([handle.fillColor, location])
-			return stops
+			for handle in @handles
+				stops.push([handle.fillColor, handle.location])
+
+			gradient =
+				origin: @startHandle.position
+				destination: @endHandle.position
+				gradient:
+					stops: stops
+					radial: @radial
+
+			console.log JSON.stringify(gradient)
+
+			for item in g.selectedItems
+				# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
+				if typeof item.data?[@parameterName] isnt 'undefined'
+					item.setParameterCommand(@parameterName, gradient)
+			return
 
 		createHandle: (position, location, color)->
 			handle = new Path.Circle(position, @constructor.handleSize)
@@ -1474,46 +1554,68 @@ define [
 
 			handle.strokeColor = g.selectionBlue
 			handle.strokeWidth = 1
+			handle.fillColor = color
 
-			@handles[location] = handle
+			handle.location = location
+			@handles.push(handle)
+			@selectHandle(handle)
+
 			@updateGradient()
+
 			return handle
 
-		addHandle: (event)->
-			location = @line.hitTest(event.point).location
-			@createHandle(location.position, location.location, g.selectedColor)
+		addHandle: (event, hitResult)->
+			offset = hitResult.location.offset
+			point = @line.getPointAt(offset)
+			@createHandle(point, offset / @line.length, @colorInputJ.val())
+			return
+
+		removeHandle: (handle)->
+			if handle == @startHandle or handle == @endHandle then return
+			@handles.remove(handle)
+			handle.remove()
+			@updateGradient()
 			return
 
 		doubleClick: (event) ->
 			point = view.viewToProject(new Point(event.pageX, event.pageY))
-			hitResult = @group.hitTest()
+			hitResult = @group.hitTest(point)
 			if hitResult
 				if hitResult.item == @line
-					@addHandle(event)
+					@addHandle(event, hitResult)
 				else if hitResult.item.name == 'handle'
-					hitResult.item.remove()
-					@updateGradient()
+					@removeHandle(hitResult.item)
 			return
 
 		begin: (event)->
 			hitResult = @group.hitTest(event.point)
 			if hitResult
 				if hitResult.item.name == 'handle'
-					@selectedHandle = hitResult.item
+					@selectHandle(hitResult.item)
 					@dragging = true
 			return
 
 		update: (event)->
 			if @dragging
-				if @selectedHandle == @handles[0] or @selectedHandle == @handles[1]
+				if @selectedHandle == @startHandle or @selectedHandle == @endHandle
 					@selectedHandle.position.x += event.delta.x
 					@selectedHandle.position.y += event.delta.y
+					@line.firstSegment.point = @startHandle.position
+					@line.lastSegment.point = @endHandle.position
+					lineLength = @line.length
+					for handle in @handles
+						handle.position = @line.getPointAt(handle.location*lineLength)
 				else
 					@selectedHandle.position = @line.getNearestPoint(event.point)
+					@selectedHandle.location = @line.getOffsetOf(@selectedHandle.position) / @line.length
+
+				@updateGradient()
 			return
 
 		end: (event)->
 			@dragging = false
 			return
+
+	g.GradientTool = GradientTool
 
 	return

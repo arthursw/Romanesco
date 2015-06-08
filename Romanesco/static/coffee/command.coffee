@@ -276,12 +276,12 @@ define [
 			return
 
 		do: ()->
-			@item.setParameter(@parameterName, @value, true, true)
+			@item.setParameter(@parameterName, @value, true)
 			super()
 			return
 
 		undo: ()->
-			@item.setParameter(@parameterName, @previousValue, true, true)
+			@item.setParameter(@parameterName, @previousValue, true)
 			super()
 			return
 
@@ -467,13 +467,13 @@ define [
 		selectItems: ()->
 			for item in @items
 				item.select()
-			g.updateParametersForSelectedItems()
+			g.controllerManager.updateParametersForSelectedItems()
 			return
 
 		deselectItems: ()->
 			for item in @items
 				item.deselect()
-			g.updateParametersForSelectedItems()
+			g.controllerManager.updateParametersForSelectedItems()
 			return
 
 		do: ()->

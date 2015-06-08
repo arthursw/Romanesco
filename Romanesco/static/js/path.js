@@ -26,7 +26,7 @@
       RPath.parameters = function() {
         var parameters;
         return parameters = {
-          'General': {
+          'Items': {
             align: g.parameters.align,
             distribute: g.parameters.distribute,
             duplicate: g.parameters.duplicate,
@@ -232,6 +232,21 @@
         this.draw();
       };
 
+      RPath.prototype.applyStylesToPath = function(path) {
+        path.strokeColor = this.data.strokeColor;
+        path.strokeWidth = this.data.strokeWidth;
+        path.fillColor = this.data.fillColor;
+        if (this.data.shadowOffsetY != null) {
+          path.shadowOffset = new Point(this.data.shadowOffsetX, this.data.shadowOffsetY);
+        }
+        if (this.data.shadowBlur != null) {
+          path.shadowBlur = this.data.shadowBlur;
+        }
+        if (this.data.shadowColor != null) {
+          path.shadowColor = this.data.shadowColor;
+        }
+      };
+
       RPath.prototype.addPath = function(path, applyStyles) {
         if (applyStyles == null) {
           applyStyles = true;
@@ -241,18 +256,7 @@
         }
         path.controller = this;
         if (applyStyles) {
-          path.strokeColor = this.data.strokeColor;
-          path.strokeWidth = this.data.strokeWidth;
-          path.fillColor = this.data.fillColor;
-          if (this.data.shadowOffsetY != null) {
-            path.shadowOffset = new Point(this.data.shadowOffsetX, this.data.shadowOffsetY);
-          }
-          if (this.data.shadowBlur != null) {
-            path.shadowBlur = this.data.shadowBlur;
-          }
-          if (this.data.shadowColor != null) {
-            path.shadowColor = this.data.shadowColor;
-          }
+          this.applyStylesToPath(path);
         }
         this.drawing.addChild(path);
         return path;
@@ -324,25 +328,9 @@
 
       RPath.prototype.setAnimated = function(animated) {
         if (animated) {
-          this.registerAnimation();
+          g.registerAnimation(this);
         } else {
-          this.deregisterAnimation();
-        }
-      };
-
-      RPath.prototype.registerAnimation = function() {
-        var i;
-        i = g.animatedItems.indexOf(this);
-        if (i < 0) {
-          g.animatedItems.push(this);
-        }
-      };
-
-      RPath.prototype.deregisterAnimation = function() {
-        var i;
-        i = g.animatedItems.indexOf(this);
-        if (i >= 0) {
-          g.animatedItems.splice(i, 1);
+          g.deregisterAnimation(this);
         }
       };
 
@@ -474,7 +462,7 @@
         if (!this.group) {
           return;
         }
-        this.deregisterAnimation();
+        g.deregisterAnimation();
         this.controlPath = null;
         this.drawing = null;
         if (this.raster == null) {
@@ -553,11 +541,13 @@
 
       PrecisePath.polygonMode = true;
 
+      PrecisePath.renderType = 'simple';
+
       PrecisePath.parameters = function() {
         var parameters;
         parameters = PrecisePath.__super__.constructor.parameters.call(this);
         if (this.polygonMode) {
-          parameters['General'].polygonMode = {
+          parameters['Items'].polygonMode = {
             type: 'checkbox',
             label: 'Polygon mode',
             "default": g.polygonMode,
@@ -631,7 +621,7 @@
           showSelectionRectangle: {
             type: 'checkbox',
             label: 'Selection box',
-            value: true
+            "default": true
           }
         };
         return parameters;
@@ -669,7 +659,9 @@
         this.addControlPath();
         this.setControlPath(this.data.points, this.data.planet);
         this.rectangle = this.controlPath.bounds;
-        this.finish(true);
+        if (this.data.smooth) {
+          this.controlPath.smooth();
+        }
         g.rasterizer.loadItem(this);
         time = Date.now();
         flattenedPath = this.controlPath.copyTo(project);
@@ -727,9 +719,10 @@
         this.path.strokeCap = 'round';
       };
 
-      PrecisePath.prototype.updateDraw = function(offset, step) {
+      PrecisePath.prototype.updateDraw = function(offset, step, redrawing) {
         this.path.segments = this.controlPath.segments;
         this.path.selected = false;
+        this.applyStylesToPath(this.path);
       };
 
       PrecisePath.prototype.endDraw = function(redrawing) {
@@ -827,30 +820,26 @@
         PrecisePath.__super__.endCreate.call(this);
       };
 
-      PrecisePath.prototype.finish = function(loading) {
-        if (loading == null) {
-          loading = false;
-        }
-        if (this.data.polygonMode && !loading) {
+      PrecisePath.prototype.finish = function() {
+        if (this.data.polygonMode) {
           this.controlPath.lastSegment.remove();
           this.controlPath.lastSegment.handleOut = null;
         }
         if (this.controlPath.segments.length < 2) {
           this.remove();
-          return;
+          return false;
         }
         if (this.data.smooth) {
           this.controlPath.smooth();
         }
-        if (!loading) {
-          this.endDraw(loading);
-          this.drawingOffset = 0;
-        }
+        this.endDraw();
+        this.drawingOffset = 0;
         this.rectangle = this.controlPath.bounds;
-        if (loading && this.canvasRaster) {
-          this.draw(false, true);
+        if (!PrecisePath.__super__.finish.call(this)) {
+          return false;
         }
         this.initialize();
+        return true;
       };
 
       PrecisePath.prototype.simplifiedModeOn = function() {
@@ -909,21 +898,31 @@
         reminder = nf - nIteration;
         offset = reminder * step / 2;
         this.drawingOffset = 0;
-        process = (function(_this) {
-          return function() {
-            var i, segment, _i, _len, _ref;
-            _this.beginDraw(redrawing);
-            _ref = _this.controlPath.segments;
-            for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-              segment = _ref[i];
-              if (i === 0) {
-                continue;
+        if (this.constructor.renderType === 'simple') {
+          process = (function(_this) {
+            return function() {
+              _this.beginDraw();
+              _this.updateDraw();
+              return _this.endDraw();
+            };
+          })(this);
+        } else {
+          process = (function(_this) {
+            return function() {
+              var i, segment, _i, _len, _ref;
+              _this.beginDraw(redrawing);
+              _ref = _this.controlPath.segments;
+              for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+                segment = _ref[i];
+                if (i === 0) {
+                  continue;
+                }
+                _this.checkUpdateDrawing(segment, redrawing);
               }
-              _this.checkUpdateDrawing(segment, redrawing);
-            }
-            _this.endDraw(redrawing);
-          };
-        })(this);
+              _this.endDraw(redrawing);
+            };
+          })(this);
+        }
         if (!g.catchErrors) {
           process();
         } else {
@@ -1004,7 +1003,7 @@
       };
 
       PrecisePath.prototype.highlightSelectedPoint = function() {
-        var offset, point, _base, _ref, _ref1;
+        var offset, point, _base, _ref, _ref1, _ref2;
         if (!this.controlPath.selected) {
           return;
         }
@@ -1035,8 +1034,10 @@
         this.selectionHighlight.strokeColor = g.selectionBlue;
         this.selectionHighlight.strokeWidth = 1;
         g.selectionLayer.addChild(this.selectionHighlight);
-        if (((_ref1 = this.parameterControllers) != null ? _ref1.pointType : void 0) != null) {
-          g.setControllerValue(this.parameterControllers.pointType, null, this.selectionState.segment.rtype, this);
+        if ((_ref1 = this.parameterControllers) != null) {
+          if ((_ref2 = _ref1.pointType) != null) {
+            _ref2.setValue(this.selectionState.segment.rtype);
+          }
         }
       };
 
@@ -1538,13 +1539,13 @@
         parameters['Edit curve'].showSpeed = {
           type: 'checkbox',
           label: 'Show speed',
-          value: false
+          "default": false
         };
         if (g.wacomPenAPI != null) {
           parameters['Edit curve'].usePenPressure = {
             type: 'checkbox',
             label: 'Pen pressure',
-            value: true
+            "default": true
           };
         }
         return parameters;
@@ -2513,7 +2514,7 @@
         var parameters;
         parameters = PaintGun.__super__.constructor.parameters.call(this);
         delete parameters['Style'].fillColor;
-        parameters['Edit curve'].showSpeed.value = false;
+        parameters['Edit curve'].showSpeed["default"] = false;
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
         }
@@ -2650,7 +2651,7 @@
         var parameters;
         parameters = DynamicBrush.__super__.constructor.parameters.call(this);
         delete parameters['Style'].fillColor;
-        parameters['Edit curve'].showSpeed.value = false;
+        parameters['Edit curve'].showSpeed["default"] = false;
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
         }
@@ -3470,7 +3471,9 @@
 
       Checkpoint.rname = 'Checkpoint';
 
-      Checkpoint.rdescription = "Draw checkpoints on a video game area to create a race\n(the players must go through each checkpoint as fast as possible, with the car tool).";
+      Checkpoint.rdescription = "Draw checkpoints on a lock with a Racer to create a race\n(the players must go through each checkpoint as fast as possible, with the car tool).";
+
+      Checkpoint.category = 'Video game/Racer';
 
       Checkpoint.squareByDefault = false;
 
@@ -3480,14 +3483,17 @@
 
       Checkpoint.prototype.initialize = function() {
         var _base;
-        this.game = g.gameAt(this.rectangle.center);
-        if (this.game != null) {
-          if (this.game.checkpoints.indexOf(this) < 0) {
-            this.game.checkpoints.push(this);
+        this.data.type = 'checkpoint';
+        if (this.lock != null) {
+          if (this.lock.checkpoints.indexOf(this) < 0) {
+            this.lock.checkpoints.push(this);
           }
           if ((_base = this.data).checkpointNumber == null) {
             _base.checkpointNumber = this.game.checkpoints.indexOf(this);
           }
+        } else {
+          g.romanesco_alert('A checkpoint must be placed on a lock', 'error');
+          this.remove();
         }
       };
 
@@ -3509,7 +3515,7 @@
 
       Checkpoint.prototype.remove = function() {
         var _ref;
-        if ((_ref = this.game) != null) {
+        if ((_ref = this.lock) != null) {
           _ref.checkpoints.remove(this);
         }
         Checkpoint.__super__.remove.call(this);

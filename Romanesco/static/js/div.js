@@ -17,6 +17,9 @@
 
       RDiv.parameters = function() {
         var parameters, strokeColor, strokeWidth;
+        if (this.parameters) {
+          return this.parameters;
+        }
         parameters = RDiv.__super__.constructor.parameters.call(this);
         strokeWidth = $.extend(true, {}, g.parameters.strokeWidth);
         strokeWidth["default"] = 1;
@@ -24,8 +27,27 @@
         strokeColor["default"] = 'black';
         parameters['Style'].strokeWidth = strokeWidth;
         parameters['Style'].strokeColor = strokeColor;
+        this.parameters = parameters;
         return parameters;
       };
+
+      RDiv.initializeParameters = function() {
+        var parameters, strokeColor, strokeWidth;
+        strokeWidth = $.extend(true, {}, g.parameters.strokeWidth);
+        strokeWidth["default"] = 1;
+        strokeColor = $.extend(true, {}, g.parameters.strokeColor);
+        strokeColor["default"] = 'black';
+        parameters = {};
+        if (parameters['Style'] == null) {
+          parameters['Style'] = {};
+        }
+        parameters['Style'].strokeWidth = strokeWidth;
+        parameters['Style'].strokeColor = strokeColor;
+        this.parameters = parameters;
+        return parameters;
+      };
+
+      RDiv.initializeParameters();
 
       RDiv.updateHiddenDivs = function(event) {
         var div, point, projectPoint, _i, _len, _ref;
@@ -437,9 +459,9 @@
             type: 'input-typeahead',
             label: 'Font name',
             "default": '',
-            initializeController: function(controller, item) {
-              var input, inputValue, typeaheadJ;
-              typeaheadJ = $(controller.domElement);
+            initializeController: function(controller) {
+              var firstItem, input, inputValue, typeaheadJ, _ref;
+              typeaheadJ = $(controller.datController.domElement);
               input = typeaheadJ.find("input");
               inputValue = null;
               input.typeahead({
@@ -462,7 +484,7 @@
                 });
               });
               input.on('typeahead:closed', function() {
-                var _i, _len, _ref;
+                var item, _i, _len, _ref;
                 if (inputValue != null) {
                   input.val(inputValue);
                 } else {
@@ -485,8 +507,9 @@
               input.on('typeahead:autocompleted', function() {
                 inputValue = input.val();
               });
-              if ((item != null ? item.data.fontFamily : void 0) != null) {
-                input.val(item.data.fontFamily);
+              firstItem = g.selectedItems.first();
+              if ((firstItem != null ? (_ref = firstItem.data) != null ? _ref.fontFamily : void 0 : void 0) != null) {
+                input.val(firstItem.data.fontFamily);
               }
             }
           },
@@ -499,33 +522,44 @@
           styles: {
             type: 'button-group',
             label: 'Styles',
-            value: '',
-            setValue: function(value, item) {
-              var fontStyleJ, _ref, _ref1, _ref2;
+            "default": '',
+            setValue: function(value) {
+              var fontStyleJ, item, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _results;
               fontStyleJ = $("#fontStyle:first");
-              if ((item != null ? item.data.fontStyle : void 0) != null) {
-                if (item.data.fontStyle.italic) {
-                  fontStyleJ.find("[name='italic']").addClass("active");
-                }
-                if (item.data.fontStyle.bold) {
-                  fontStyleJ.find("[name='bold']").addClass("active");
-                }
-                if (((_ref = item.data.fontStyle.decoration) != null ? _ref.indexOf('underline') : void 0) >= 0) {
-                  fontStyleJ.find("[name='underline']").addClass("active");
-                }
-                if (((_ref1 = item.data.fontStyle.decoration) != null ? _ref1.indexOf('overline') : void 0) >= 0) {
-                  fontStyleJ.find("[name='overline']").addClass("active");
-                }
-                if (((_ref2 = item.data.fontStyle.decoration) != null ? _ref2.indexOf('line-through') : void 0) >= 0) {
-                  return fontStyleJ.find("[name='line-through']").addClass("active");
+              _ref = g.selectedItems;
+              _results = [];
+              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                item = _ref[_i];
+                if (((_ref1 = item.data) != null ? _ref1.fontStyle : void 0) != null) {
+                  if (item.data.fontStyle.italic) {
+                    fontStyleJ.find("[name='italic']").addClass("active");
+                  }
+                  if (item.data.fontStyle.bold) {
+                    fontStyleJ.find("[name='bold']").addClass("active");
+                  }
+                  if (((_ref2 = item.data.fontStyle.decoration) != null ? _ref2.indexOf('underline') : void 0) >= 0) {
+                    fontStyleJ.find("[name='underline']").addClass("active");
+                  }
+                  if (((_ref3 = item.data.fontStyle.decoration) != null ? _ref3.indexOf('overline') : void 0) >= 0) {
+                    fontStyleJ.find("[name='overline']").addClass("active");
+                  }
+                  if (((_ref4 = item.data.fontStyle.decoration) != null ? _ref4.indexOf('line-through') : void 0) >= 0) {
+                    _results.push(fontStyleJ.find("[name='line-through']").addClass("active"));
+                  } else {
+                    _results.push(void 0);
+                  }
+                } else {
+                  _results.push(void 0);
                 }
               }
+              return _results;
             },
-            initializeController: function(controller, item) {
-              var fontStyleJ, setStyles;
-              $(controller.domElement).find('input').remove();
+            initializeController: function(controller) {
+              var domElement, fontStyleJ, setStyles;
+              domElement = controller.datController.domElement;
+              $(domElement).find('input').remove();
               setStyles = function(value) {
-                var _i, _len, _ref;
+                var item, _i, _len, _ref;
                 _ref = g.selectedItems;
                 for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                   item = _ref[_i];
@@ -534,7 +568,7 @@
                   }
                 }
               };
-              g.templatesJ.find("#fontStyle").clone().appendTo(controller.domElement);
+              g.templatesJ.find("#fontStyle").clone().appendTo(domElement);
               fontStyleJ = $("#fontStyle:first");
               fontStyleJ.find("[name='italic']").click(function(event) {
                 return setStyles('italic');
@@ -551,18 +585,19 @@
               fontStyleJ.find("[name='line-through']").click(function(event) {
                 return setStyles('line-through');
               });
-              controller.rSetValue(item);
+              controller.setValue();
             }
           },
           align: {
             type: 'radio-button-group',
             label: 'Align',
-            value: '',
-            initializeController: function(controller, item) {
-              var setStyles, textAlignJ;
-              $(controller.domElement).find('input').remove();
+            "default": '',
+            initializeController: function(controller) {
+              var domElement, setStyles, textAlignJ;
+              domElement = controller.datController.domElement;
+              $(domElement).find('input').remove();
               setStyles = function(value) {
-                var _i, _len, _ref;
+                var item, _i, _len, _ref;
                 _ref = g.selectedItems;
                 for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                   item = _ref[_i];
@@ -571,7 +606,7 @@
                   }
                 }
               };
-              g.templatesJ.find("#textAlign").clone().appendTo(controller.domElement);
+              g.templatesJ.find("#textAlign").clone().appendTo(domElement);
               textAlignJ = $("#textAlign:first");
               textAlignJ.find(".justify").click(function(event) {
                 return setStyles('justify');
@@ -899,7 +934,10 @@
         submit = function(data) {
           var div;
           div = new g.RMedia(rectangle, data);
-          div.addToParent();
+          div.finish();
+          if (!div.group) {
+            return;
+          }
           div.save();
           div.select();
         };

@@ -26,7 +26,32 @@ requirejs.config
 		'pinit': ['//assets.pinterest.com/js/pinit', '../libs/pinit']
 
 		'zeroClipboard': ['//cdnjs.cloudflare.com/ajax/libs/zeroclipboard/2.2.0/ZeroClipboard.min', '../libs/ZeroClipboard.min']
-		'pixijs': ['//cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.2/pixi.min']
+		# 'pixijs': ['//cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.2/pixi.min']
+
+
+		# 'ace': ['../libs/ace']
+		# 'aceTools': ['../libs/ace/ext-language_tools']
+		# 'underscore': ['../libs/underscore-min']
+		# 'jquery': ['../libs/jquery-2.1.3.min']
+		# 'jqueryUi': ['../libs/jquery-ui.min']
+		# 'mousewheel': ['../libs/jquery.mousewheel.min']
+		# 'scrollbar': ['../libs/jquery.mCustomScrollbar.min']
+		# 'tinycolor': ['../libs/tinycolor.min']
+		# # 'socketio': '//cdn.socket.io/socket.io-1.3.4'
+		# # 'socketio': '//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io'
+		# # 'prefix': ['//cdnjs.cloudflare.com/ajax/libs/prefixfree/1.0.7/prefixfree.min']
+		# 'bootstrap': ['../libs/bootstrap.min']
+		# # 'modal': ['//cdnjs.cloudflare.com/ajax/libs/bootstrap-modal/2.2.5/js/bootstrap-modal.min', '../libs/bootstrap-modal.min']
+		# # 'modalManager': ['//cdnjs.cloudflare.com/ajax/libs/bootstrap-modal/2.2.5/js/bootstrap-modalmanager.min', '../libs/bootstrap-modalmanager.min']
+		# # 'paper': ['//cdnjs.cloudflare.com/ajax/libs/paper.js/0.9.22/paper-full.min', '../libs/paper-full.min']
+		# 'paper': ['../libs/paper-full']
+		# 'gui': ['../libs/dat.gui.min']
+		# 'typeahead': ['../libs/typeahead.bundle.min']
+		# 'pinit': ['../libs/pinit']
+
+		# 'zeroClipboard': ['../libs/ZeroClipboard.min']
+
+
 
 		'colorpickersliders': '../libs/bootstrap-colorpickersliders/bootstrap.colorpickersliders.nocielch'
 		'requestAnimationFrame': '../libs/RequestAnimationFrame'

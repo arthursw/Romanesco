@@ -958,73 +958,87 @@
       g.rasterizer = new g.PaperTileRasterizer();
     };
     g.addRasterizerParameters = function() {
-      var divJ, rasterizeImmediately, rasterizer, type, values, _ref;
-      values = [];
+      var divJ, name, parameter, parameters, rasterizer, renderingModes, type, _ref;
+      renderingModes = [];
       _ref = g.rasterizers;
       for (type in _ref) {
         rasterizer = _ref[type];
-        values.push(type);
+        renderingModes.push(type);
       }
-      g.rasterizerFolder = g.generalFolder.addFolder('Rasterizer');
+      g.rasterizerFolder = new g.Folder('Rasterizer', true, g.controllerManager.folders['General']);
       divJ = $('<div>');
       divJ.addClass('loadingBar');
-      $(g.rasterizerFolder.__ul).find('li.title').append(divJ);
+      $(g.rasterizerFolder.datFolder.__ul).find('li.title').append(divJ);
       g.TileRasterizer.loadingBarJ = divJ;
-      g.rasterizerFolder.add({
-        renderingMode: g.rasterizer.constructor.TYPE,
-        permanent: true
-      }, 'renderingMode', values).name('Render mode').onFinishChange(g.setRasterizerType);
-      g.rasterizerFolder.add({
-        rasterizeItems: true,
-        permanent: true
-      }, 'rasterizeItems').name('Rasterize items').onFinishChange(function(value) {
-        var controller, _i, _len, _ref1;
-        g.rasterizer.rasterizeItems = value;
-        if (!value) {
-          g.rasterizer.renderInView = true;
-        }
-        _ref1 = g.rasterizerFolder.__controllers;
-        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-          controller = _ref1[_i];
-          if (controller.property === 'renderInView') {
-            if (value) {
-              $(controller.__li).show();
-            } else {
-              $(controller.__li).hide();
+      parameters = {
+        renderingMode: {
+          "default": g.rasterizer.constructor.TYPE,
+          values: renderingModes,
+          label: 'Render mode',
+          onFinishChange: g.setRasterizerType
+        },
+        rasterizeItems: {
+          "default": true,
+          label: 'Rasterize items',
+          onFinishChange: function(value) {
+            var controller, _i, _len, _ref1;
+            g.rasterizer.rasterizeItems = value;
+            if (!value) {
+              g.rasterizer.renderInView = true;
+            }
+            _ref1 = g.rasterizerFolder.datFolder.__controllers;
+            for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+              controller = _ref1[_i];
+              if (controller.property === 'renderInView') {
+                if (value) {
+                  $(controller.__li).show();
+                } else {
+                  $(controller.__li).hide();
+                }
+              }
             }
           }
+        },
+        renderInView: {
+          "default": false,
+          label: 'Render in view',
+          onFinishChange: function(value) {
+            g.rasterizer.renderInView = value;
+          }
+        },
+        autoRasterization: {
+          "default": 'deferred',
+          values: ['immediate', 'deferred', 'disabled'],
+          label: 'Auto rasterization',
+          onFinishChange: function(value) {
+            g.rasterizer.autoRasterization = value;
+          }
+        },
+        rasterizationDelay: {
+          "default": 800,
+          min: 0,
+          max: 10000,
+          lable: 'Delay',
+          onFinishChange: function(value) {
+            g.rasterizer.rasterizationDelay = value;
+          }
+        },
+        rasterizeImmediately: {
+          "default": function() {
+            g.rasterizer.rasterizeImmediately();
+          },
+          label: 'Rasterize'
         }
-      });
-      g.rasterizerFolder.add({
-        renderInView: false,
-        permanent: true
-      }, 'renderInView').name('Render in view').onFinishChange(function(value) {
-        g.rasterizer.renderInView = value;
-      });
-      g.rasterizerFolder.add({
-        autoRasterization: 'deferred',
-        permanent: true
-      }, 'autoRasterization', ['immediate', 'deferred', 'disabled']).name('Auto rasterization').onFinishChange(function(value) {
-        g.rasterizer.autoRasterization = value;
-      });
-      g.rasterizerFolder.add({
-        rasterizationDelay: 800,
-        permanent: true
-      }, 'rasterizationDelay', 0, 10000).name('Delay').onFinishChange(function(value) {
-        g.rasterizer.rasterizationDelay = value;
-      });
-      rasterizeImmediately = function() {
-        g.rasterizer.rasterizeImmediately();
       };
-      g.rasterizerFolder.add({
-        rasterizeImmediately: rasterizeImmediately,
-        permanent: true
-      }, 'rasterizeImmediately').name('Rasterize');
+      for (name in parameters) {
+        parameter = parameters[name];
+        g.controllerManager.createController(name, parameter, g.rasterizerFolder);
+      }
     };
     g.setRasterizerType = function(type) {
       var controller, onFinishChange, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3;
       if (type === g.Rasterizer.TYPE) {
-        _ref = g.rasterizerFolder.__controllers;
+        _ref = g.rasterizerFolder.datFolder.__controllers;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           controller = _ref[_i];
           if ((_ref1 = controller.property) === 'renderInView' || _ref1 === 'autoRasterization' || _ref1 === 'rasterizationDelay' || _ref1 === 'rasterizeImmediately') {
@@ -1032,7 +1046,7 @@
           }
         }
       } else {
-        _ref2 = g.rasterizerFolder.__controllers;
+        _ref2 = g.rasterizerFolder.datFolder.__controllers;
         for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
           controller = _ref2[_j];
           $(controller.__li).show();
@@ -1040,7 +1054,7 @@
       }
       g.unload();
       g.rasterizer = g.rasterizers[type];
-      _ref3 = g.rasterizerFolder.__controllers;
+      _ref3 = g.rasterizerFolder.datFolder.__controllers;
       for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
         controller = _ref3[_k];
         if (g.rasterizer[controller.property] != null) {
@@ -1063,14 +1077,10 @@
       });
     };
     g.hideRasters = function() {
-      $("#rasters").css({
-        opacity: 0
-      });
+      g.rasterizer.hideRasters();
     };
     g.showRasters = function() {
-      $("#rasters").css({
-        opacity: 1
-      });
+      g.rasterizer.showRasters();
     };
   });
 

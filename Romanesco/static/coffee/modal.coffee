@@ -31,11 +31,10 @@ define [
 			return
 
 		@addText: (text)->
-			@modalBodyJ.append("<p>#{text}</p>")
-			return
+			return @modalBodyJ.append("<p>#{text}</p>")
 
 		@addTextInput: (name, placeholder=null, type=null, className=null, label=null, submitShortcut=false, id=null, required=false, errorMessage)->
-			@addTextInputA( { name: name,
+			inputJ = @addTextInputA( { name: name,
 			placeholder: placeholder,
 			type: type,
 			className: className,
@@ -44,7 +43,7 @@ define [
 			id: id,
 			required: required,
 			errorMessage: errorMessage} )
-			return
+			return inputJ
 
 		@addTextInputA: (args)->
 			name = args.name
@@ -129,7 +128,7 @@ define [
 			div.attr('id', 'modal-' + name)
 			@modalBodyJ.append(div)
 			@extractors[name] = { extractor: extractor, args: args, div: div, required: required }
-			return
+			return div
 
 		@show: ()->
 			@modalJ.find('.submit-shortcut').keypress (event) => 		# submit modal when enter is pressed

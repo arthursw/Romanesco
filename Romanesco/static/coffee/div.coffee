@@ -23,6 +23,8 @@ define [
 
 		# parameters are defined as in {RTool}
 		@parameters: ()->
+			if @parameters then return @parameters
+
 			parameters = super()
 
 			strokeWidth = $.extend(true, {}, g.parameters.strokeWidth)
@@ -33,7 +35,26 @@ define [
 			parameters['Style'].strokeWidth = strokeWidth
 			parameters['Style'].strokeColor = strokeColor
 
+			@parameters = parameters
 			return parameters
+
+		@initializeParameters: ()->
+			# parameters = super()
+
+			strokeWidth = $.extend(true, {}, g.parameters.strokeWidth)
+			strokeWidth.default = 1
+			strokeColor = $.extend(true, {}, g.parameters.strokeColor)
+			strokeColor.default = 'black'
+
+			parameters = {}
+			parameters['Style'] ?= {}
+			parameters['Style'].strokeWidth = strokeWidth
+			parameters['Style'].strokeColor = strokeColor
+
+			@parameters = parameters
+			return parameters
+
+		@initializeParameters()
 
 		@updateHiddenDivs: (event)->
 			if g.hiddenDivs.length > 0
@@ -368,8 +389,8 @@ define [
 					type: 'input-typeahead'
 					label: 'Font name'
 					default: ''
-					initializeController: (controller, item)->
-						typeaheadJ = $(controller.domElement)
+					initializeController: (controller)->
+						typeaheadJ = $(controller.datController.domElement)
 						input = typeaheadJ.find("input")
 						inputValue = null
 
@@ -405,8 +426,9 @@ define [
 							inputValue = input.val()
 							return
 
-						if item?.data.fontFamily?
-							input.val(item.data.fontFamily)
+						firstItem = g.selectedItems.first()
+						if firstItem?.data?.fontFamily?
+							input.val(firstItem.data.fontFamily)
 
 						return
 				effect:
@@ -420,20 +442,23 @@ define [
 				styles:
 					type: 'button-group'
 					label: 'Styles'
-					value: ''
-					setValue: (value, item)->
+					default: ''
+					setValue: (value)->
 						fontStyleJ = $("#fontStyle:first")
-						if item?.data.fontStyle?
-							if item.data.fontStyle.italic then fontStyleJ.find("[name='italic']").addClass("active")
-							if item.data.fontStyle.bold then fontStyleJ.find("[name='bold']").addClass("active")
-							if item.data.fontStyle.decoration?.indexOf('underline')>=0
-								fontStyleJ.find("[name='underline']").addClass("active")
-							if item.data.fontStyle.decoration?.indexOf('overline')>=0
-								fontStyleJ.find("[name='overline']").addClass("active")
-							if item.data.fontStyle.decoration?.indexOf('line-through')>=0
-								fontStyleJ.find("[name='line-through']").addClass("active")
-					initializeController: (controller, item)->
-						$(controller.domElement).find('input').remove()
+
+						for item in g.selectedItems
+							if item.data?.fontStyle?
+								if item.data.fontStyle.italic then fontStyleJ.find("[name='italic']").addClass("active")
+								if item.data.fontStyle.bold then fontStyleJ.find("[name='bold']").addClass("active")
+								if item.data.fontStyle.decoration?.indexOf('underline')>=0
+									fontStyleJ.find("[name='underline']").addClass("active")
+								if item.data.fontStyle.decoration?.indexOf('overline')>=0
+									fontStyleJ.find("[name='overline']").addClass("active")
+								if item.data.fontStyle.decoration?.indexOf('line-through')>=0
+									fontStyleJ.find("[name='line-through']").addClass("active")
+					initializeController: (controller)->
+						domElement = controller.datController.domElement
+						$(domElement).find('input').remove()
 
 						setStyles = (value)->
 							for item in g.selectedItems
@@ -441,7 +466,7 @@ define [
 							return
 
 						# todo: change fontStyle id to class
-						g.templatesJ.find("#fontStyle").clone().appendTo(controller.domElement)
+						g.templatesJ.find("#fontStyle").clone().appendTo(domElement)
 						fontStyleJ = $("#fontStyle:first")
 						fontStyleJ.find("[name='italic']").click( (event)-> setStyles('italic') )
 						fontStyleJ.find("[name='bold']").click( (event)-> setStyles('bold') )
@@ -449,21 +474,22 @@ define [
 						fontStyleJ.find("[name='overline']").click( (event)-> setStyles('overline') )
 						fontStyleJ.find("[name='line-through']").click( (event)-> setStyles('line-through') )
 
-						controller.rSetValue(item)
+						controller.setValue()
 						return
 				align:
 					type: 'radio-button-group'
 					label: 'Align'
-					value: ''
-					initializeController: (controller, item)->
-						$(controller.domElement).find('input').remove()
+					default: ''
+					initializeController: (controller)->
+						domElement = controller.datController.domElement
+						$(domElement).find('input').remove()
 
 						setStyles = (value)->
 							for item in g.selectedItems
 								item.changeFontStyle?(value)
 							return
 
-						g.templatesJ.find("#textAlign").clone().appendTo(controller.domElement)
+						g.templatesJ.find("#textAlign").clone().appendTo(domElement)
 						textAlignJ = $("#textAlign:first")
 						textAlignJ.find(".justify").click( (event)-> setStyles('justify') )
 						textAlignJ.find(".align-left").click( (event)-> setStyles('left') )
@@ -732,7 +758,8 @@ define [
 		@initialize: (rectangle)->
 			submit = (data)->
 				div = new g.RMedia(rectangle, data)
-				div.addToParent()
+				div.finish()
+				if not div.group then return
 				div.save()
 				div.select()
 				return

@@ -341,12 +341,12 @@
       }
 
       SetParameterCommand.prototype["do"] = function() {
-        this.item.setParameter(this.parameterName, this.value, true, true);
+        this.item.setParameter(this.parameterName, this.value, true);
         SetParameterCommand.__super__["do"].call(this);
       };
 
       SetParameterCommand.prototype.undo = function() {
-        this.item.setParameter(this.parameterName, this.previousValue, true, true);
+        this.item.setParameter(this.parameterName, this.previousValue, true);
         SetParameterCommand.__super__.undo.call(this);
       };
 
@@ -578,7 +578,7 @@
           item = _ref[_i];
           item.select();
         }
-        g.updateParametersForSelectedItems();
+        g.controllerManager.updateParametersForSelectedItems();
       };
 
       SelectCommand.prototype.deselectItems = function() {
@@ -588,7 +588,7 @@
           item = _ref[_i];
           item.deselect();
         }
-        g.updateParametersForSelectedItems();
+        g.controllerManager.updateParametersForSelectedItems();
       };
 
       SelectCommand.prototype["do"] = function() {

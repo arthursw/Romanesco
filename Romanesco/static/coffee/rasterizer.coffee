@@ -784,76 +784,84 @@ define [
 
 	g.addRasterizerParameters = ()->
 
-		values = []
+		renderingModes = []
 		for type, rasterizer of g.rasterizers
-			values.push(type)
+			renderingModes.push(type)
 
-		g.rasterizerFolder = g.generalFolder.addFolder('Rasterizer')
+		g.rasterizerFolder = new g.Folder('Rasterizer', true, g.controllerManager.folders['General'])
+
 		divJ = $('<div>')
 		divJ.addClass('loadingBar')
-		$(g.rasterizerFolder.__ul).find('li.title').append(divJ)
+		$(g.rasterizerFolder.datFolder.__ul).find('li.title').append(divJ)
 		g.TileRasterizer.loadingBarJ = divJ
 
-		g.rasterizerFolder.add({ renderingMode: g.rasterizer.constructor.TYPE, permanent: true }, 'renderingMode', values)
-		.name('Render mode')
-		.onFinishChange(g.setRasterizerType)
+		parameters =
+			renderingMode:
+				default: g.rasterizer.constructor.TYPE
+				values: renderingModes
+				label: 'Render mode'
+				onFinishChange: g.setRasterizerType
+			rasterizeItems:
+				default: true
+				label: 'Rasterize items'
+				onFinishChange: (value)->
+					g.rasterizer.rasterizeItems = value
 
-		g.rasterizerFolder.add({ rasterizeItems: true, permanent: true }, 'rasterizeItems')
-		.name('Rasterize items')
-		.onFinishChange (value)->
-			g.rasterizer.rasterizeItems = value
+					if not value
+						g.rasterizer.renderInView = true
 
-			if not value
-				g.rasterizer.renderInView = true
+					for controller in g.rasterizerFolder.datFolder.__controllers
+						if controller.property == 'renderInView'
+							if value
+								$(controller.__li).show()
+							else
+								$(controller.__li).hide()
+					return
+			renderInView:
+				default: false
+				label: 'Render in view'
+				onFinishChange: (value)->
+					g.rasterizer.renderInView = value
+					return
+			autoRasterization:
+				default: 'deferred'
+				values: ['immediate', 'deferred', 'disabled']
+				label: 'Auto rasterization'
+				onFinishChange: (value)->
+					g.rasterizer.autoRasterization = value
+					return
+			rasterizationDelay:
+				default: 800
+				min: 0
+				max: 10000
+				lable: 'Delay'
+				onFinishChange: (value)->
+					g.rasterizer.rasterizationDelay = value
+					return
+			rasterizeImmediately:
+				default: ()->
+					g.rasterizer.rasterizeImmediately()
+					return
+				label: 'Rasterize'
 
-			for controller in g.rasterizerFolder.__controllers
-				if controller.property == 'renderInView'
-					if value
-						$(controller.__li).show()
-					else
-						$(controller.__li).hide()
-			return
-
-		g.rasterizerFolder.add({ renderInView: false, permanent: true }, 'renderInView')
-		.name('Render in view')
-		.onFinishChange (value)->
-			g.rasterizer.renderInView = value
-			return
-
-		g.rasterizerFolder.add({ autoRasterization: 'deferred', permanent: true }, 'autoRasterization', ['immediate', 'deferred', 'disabled'])
-		.name('Auto rasterization')
-		.onFinishChange (value)->
-			g.rasterizer.autoRasterization = value
-			return
-
-		g.rasterizerFolder.add({ rasterizationDelay: 800, permanent: true }, 'rasterizationDelay', 0, 10000)
-		.name('Delay')
-		.onFinishChange (value)->
-			g.rasterizer.rasterizationDelay = value
-			return
-
-		rasterizeImmediately = ()->
-			g.rasterizer.rasterizeImmediately()
-			return
-
-		g.rasterizerFolder.add({ rasterizeImmediately: rasterizeImmediately, permanent: true }, 'rasterizeImmediately')
-		.name('Rasterize')
+		for name, parameter of parameters
+			g.controllerManager.createController(name, parameter, g.rasterizerFolder)
 
 		return
 
 	g.setRasterizerType = (type)->
 		if type == g.Rasterizer.TYPE
-			for controller in g.rasterizerFolder.__controllers
+			for controller in g.rasterizerFolder.datFolder.__controllers
 				if controller.property in [ 'renderInView', 'autoRasterization', 'rasterizationDelay', 'rasterizeImmediately' ]
 					$(controller.__li).hide()
 		else
-			for controller in g.rasterizerFolder.__controllers
+			for controller in g.rasterizerFolder.datFolder.__controllers
 				$(controller.__li).show()
 
 		g.unload()
 		g.rasterizer = g.rasterizers[type]
 
-		for controller in g.rasterizerFolder.__controllers
+		for controller in g.rasterizerFolder.datFolder.__controllers
 			if g.rasterizer[controller.property]?
 				onFinishChange = controller.__onFinishChange
 				controller.__onFinishChange = ()->return
@@ -872,11 +880,11 @@ define [
 		return
 
 	g.hideRasters = ()->
-		$("#rasters").css opacity: 0
+		g.rasterizer.hideRasters()
 		return
 
 	g.showRasters = ()->
-		$("#rasters").css opacity: 1
+		g.rasterizer.showRasters()
 		return
 
 

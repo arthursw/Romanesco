@@ -6,7 +6,7 @@
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  define(['utils', 'global', 'coordinateSystems', 'jquery', 'paper'], function(utils) {
+  define(['utils', 'global', 'coordinateSystems', 'options', 'jquery', 'paper'], function(utils) {
     var RContent, RItem, RSelectionRectangle, g;
     g = utils.g();
     RItem = (function() {
@@ -60,7 +60,7 @@
       RItem.parameters = function() {
         var parameters;
         parameters = {
-          'General': {
+          'Items': {
             align: g.parameters.align,
             distribute: g.parameters.distribute,
             "delete": g.parameters["delete"]
@@ -89,7 +89,7 @@
       };
 
       function RItem(data, pk) {
-        var controller, folder, name, _base, _i, _len, _name, _ref, _ref1, _ref2;
+        var _ref;
         this.data = data;
         this.pk = pk;
         this.endAction = __bind(this.endAction, this);
@@ -102,20 +102,7 @@
         if (this.data == null) {
           this.data = new Object();
         }
-        _ref1 = g.gui.__folders;
-        for (name in _ref1) {
-          folder = _ref1[name];
-          if (name === 'General') {
-            continue;
-          }
-          _ref2 = folder.__controllers;
-          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-            controller = _ref2[_i];
-            if ((_base = this.data)[_name = controller.property] == null) {
-              _base[_name] = controller.rValue();
-            }
-          }
-        }
+        g.controllerManager.updateItemData(this);
         if (this.rectangle == null) {
           this.rectangle = null;
         }
@@ -131,15 +118,12 @@
         this.deferredAction(g.SetParameterCommand, name, value);
       };
 
-      RItem.prototype.setParameter = function(name, value, updateGUI, update) {
+      RItem.prototype.setParameter = function(name, value, update) {
         this.data[name] = value;
         this.changed = name;
         if (!this.socketAction) {
           if (update) {
             this.update(name);
-          }
-          if (updateGUI) {
-            g.setControllerValueByName(name, value, this);
           }
           g.chatSocket.emit("bounce", {
             itemPk: this.pk,
@@ -503,7 +487,7 @@
         g.s = this;
         this.updateSelectionRectangle(true);
         g.selectedItems.push(this);
-        g.updateParametersForSelectedItems();
+        g.controllerManager.updateParametersForSelectedItems();
         g.rasterizer.selectItem(this);
         this.zindex = this.group.index;
         g.selectionLayer.addChild(this.group);
@@ -520,7 +504,7 @@
         }
         this.selectionRectangle = null;
         g.selectedItems.remove(this);
-        g.updateParametersForSelectedItems();
+        g.controllerManager.updateParametersForSelectedItems();
         if (this.group != null) {
           g.rasterizer.deselectItem(this);
           if (!this.lock) {
@@ -549,6 +533,14 @@
         } else {
           delete g.items[this.id];
         }
+      };
+
+      RItem.prototype.finish = function() {
+        if (this.rectangle.area === 0) {
+          this.remove();
+          return false;
+        }
+        return true;
       };
 
       RItem.prototype.save = function(addCreateCommand) {
@@ -614,6 +606,9 @@
         if ((this.raster != null) || (this.drawing == null)) {
           return;
         }
+        if (!g.rasterizer.rasterizeItems) {
+          return;
+        }
         this.raster = this.drawing.rasterize();
         this.group.addChild(this.raster);
         this.raster.sendToBack();
@@ -643,7 +638,7 @@
       RContent.parameters = function() {
         var parameters;
         parameters = RContent.__super__.constructor.parameters.call(this);
-        parameters['General'].duplicate = g.parameters.duplicate;
+        parameters['Items'].duplicate = g.parameters.duplicate;
         return parameters;
       };
 
@@ -681,20 +676,11 @@
         this.liJ.rItem = this;
         itemListJ.prepend(this.liJ);
         $("#RItems .mCustomScrollbar").mCustomScrollbar("scrollTo", "bottom");
-        this.updateZIndex();
+        if (this.pk != null) {
+          this.updateZIndex();
+        }
         return;
       }
-
-      RContent.prototype.addToParent = function() {
-        var bounds, lock;
-        bounds = this.getBounds();
-        lock = g.RLock.getLockWhichContains(bounds);
-        if ((lock != null) && lock.owner === g.me) {
-          lock.addItem(this);
-        } else {
-          g.addItemToStage(this);
-        }
-      };
 
       RContent.prototype.setZindexLabel = function() {
         var dateLabel, zindexLabel;
@@ -888,6 +874,33 @@
           return false;
         }
         this.liJ.removeClass('selected');
+        return true;
+      };
+
+      RContent.prototype.finish = function() {
+        var bounds, lock, locks, _i, _len;
+        if (!RContent.__super__.finish.call(this)) {
+          return false;
+        }
+        bounds = this.getBounds();
+        if (bounds.area > g.rasterizer.maxArea()) {
+          g.romanesco_alert("The item is too big", "Warning");
+          this.remove();
+          return false;
+        }
+        locks = g.RLock.getLocksWhichIntersect(bounds);
+        for (_i = 0, _len = locks.length; _i < _len; _i++) {
+          lock = locks[_i];
+          if (lock.rectangle.contains(bounds)) {
+            if (lock.owner === g.me) {
+              lock.addItem(this);
+            } else {
+              g.romanesco_alert("The item intersects with a lock", "Warning");
+              this.remove();
+              return false;
+            }
+          }
+        }
         return true;
       };
 

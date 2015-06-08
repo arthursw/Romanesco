@@ -36,12 +36,13 @@ define [
 			return
 
 		ce.setSourceFromServer = (result)->
-			if not g.checkError(result) then return
+			if not g.checkError(result)
+				return
 			module = JSON.parse(result.module)
-			if module.lock?
-				module.lock = g.items[module.lock.$oid]
-			if not module.lock?
-				g.romanesco_alert "The module is linked with a lock, but the lock is not loaded.", "warning"
+			# if module.lock?
+			# 	module.lock = g.items[module.lock.$oid]
+			# if not module.lock?
+			# 	g.romanesco_alert "The module is linked with a lock, but the lock is not loaded.", "warning"
 			ce.setSource(module)
 			return
 
@@ -51,8 +52,10 @@ define [
 			g.codeEditor.pushRequestBtnJ.text('Push request (update "' + module.name + '" module)')
 			return
 
-		ce.initializeNewModuleFromName = (moduleName='NewPath', lock=null)->
-			if not lock?
+		ce.initializeNewModuleFromName = (moduleName='NewPath', defaultSource=null)->
+			if defaultSource?
+				source = defaultSource
+			else
 				source = "class #{moduleName} extends g.PrecisePath\n"
 				source += "\t@rname = '#{moduleName}'\n"
 				source += "\t@rdescription = '#{moduleName}'\n"
@@ -77,12 +80,8 @@ define [
 
 				"""
 				source += "tool = new g.PathTool(#{moduleName}, true)"
-			else
-				source = ""
 			ce.editor.getSession().setValue( source )
-			ce.module = null
-			if lock?
-				ce.module = type: 'lock', lock: lock, newModule: true
+			ce.module = newModule: true
 			g.codeEditor.pushRequestBtnJ.text('Push request (create new module)')
 			return
 
@@ -99,7 +98,7 @@ define [
 				if g.modules[moduleName]?
 					ce.setSource(g.modules[moduleName])
 				else
-					Dajaxice.draw.getModuleSource(ce.setSourceFromServer, name: moduleName)
+					Dajaxice.draw.getModuleSource(ce.setSourceFromServer, { name: moduleName })
 			else 							# the module does not exist
 				ce.initializeNewModuleFromName(moduleName)
 			return
@@ -124,7 +123,7 @@ define [
 			if g.modules[moduleName].source?
 				g.codeEditor.setSource(g.modules[moduleName], false)
 			else
-				Dajaxice.draw.getModuleSource(ce.setSourceFromServer, name: moduleName)
+				Dajaxice.draw.getModuleSource(ce.setSourceFromServer, { name: moduleName } )
 		else
 			owner = $(this).attr("data-owner")
 			jqxhr = $.get "https://api.github.com/repos/" + owner + "/" + moduleName + "/contents/main.coffee", (data)->
@@ -135,7 +134,7 @@ define [
 		g.RModal.hide()
 		return
 
-	ce.createModuleEditorModal = (result)->
+	ce.createModuleEditorModal = (result, actionOnClick=ce.loadModule)->
 		if not g.checkError(result) then return
 
 		modules = JSON.parse(result.modules)
@@ -145,7 +144,7 @@ define [
 			g.modules[module.name] = module
 			acceptedGithubURLs.push(module.githubURL)
 
-		g.createModuleModal("Romanesco modules", ce.loadModule)
+		g.createModuleModal("Romanesco modules", actionOnClick)
 
 		# window.XMLHttpRequest = RXMLHttpRequest
 		jqxhr = $.get "https://api.github.com/search/repositories?q=romanesco+module", (data)->
@@ -158,7 +157,7 @@ define [
 					owner: item.owner.login
 					githubURL: item.html_url
 					accepted: no
-				g.addModuleToModal(item.name, module, g.RModal.modalJ.find('tbody'), ce.loadModule)
+				g.addModuleToModal(item.name, module, g.RModal.modalJ.find('tbody'), actionOnClick)
 			# window.XMLHttpRequest = g.DajaxiceXMLHttpRequest
 			return
 
@@ -180,10 +179,54 @@ define [
 		ce.consoleCloseBtnJ = ce.consoleHandleJ.find(".close")
 		ce.footerJ = ce.editorJ.find(".footer")
 		ce.openModalBtnJ = ce.editorJ.find(".open-modal")
+		ce.linkFileInputJ = ce.editorJ.find("input.link-file")
 
 		ce.openModalBtnJ.click (event)->
 			Dajaxice.draw.getModuleList(ce.createModuleEditorModal)
 			return
+
+		ce.linkFile = (evt) ->
+			evt.stopPropagation()
+			evt.preventDefault()
+
+			ce = g.codeEditor
+
+			if ce.linkFileInputJ.hasClass('link-file')
+				ce.linkFileInputJ.removeClass('link-file').addClass('unlink-file')
+				ce.editorJ.find('span.glyphicon-floppy-open').removeClass('glyphicon-floppy-open').addClass('glyphicon-floppy-remove')
+				ce.linkFileInputJ.hide()
+				ce.editorJ.find('button.link-file').on('click', ce.linkFile)
+
+				files = evt.dataTransfer?.files or evt.target?.files
+
+				ce.linkedFile = files[0]
+				ce.fileReader = new FileReader()
+
+				ce.fileReader.onload = (event)->
+					ce.editor.getSession().setValue( event.target.result )
+					return
+
+				ce.readFile = ()->
+					g.codeEditor.fileReader.readAsText(ce.linkedFile)
+					return
+
+				ce.lookForChangesInterval = setInterval(ce.readFile, 1000)
+
+			else if ce.linkFileInputJ.hasClass('unlink-file')
+				ce.linkFileInputJ.removeClass('unlink-file').addClass('link-file')
+				ce.editorJ.find('span.glyphicon-floppy-remove').removeClass('glyphicon-floppy-remove').addClass('glyphicon-floppy-open')
+				ce.linkFileInputJ.show()
+				ce.editorJ.find('button.link-file').off('click', ce.linkFile)
+
+				clearInterval(ce.lookForChangesInterval)
+				ce.fileReader = null
+				ce.linkedFile = null
+				ce.readFile = null
+
+			return
+
+		ce.linkFileInputJ.change(ce.linkFile)
+
 
 		# initialize ace editor
 		# ace.require("ace/ext/language_modules")
@@ -412,7 +455,7 @@ define [
 			source = ce.editor.getValue() 	# get source
 
 			# extract class name
-			className = ''
+			className = 'unnamed'
 
 			# try to extract className when the code is a class
 			firstLineRegExp = /class {1}([A-Z]\w+) extends g.{1}(PrecisePath|SpeedPath|RShape){1}\n/
@@ -425,11 +468,11 @@ define [
 				firstLineResult = firstLineRegExp.exec(source)
 				if firstLineResult? and firstLineResult.length>=1
 					className = firstLineResult[1]
-				else 	# if no className: return (we do not save)
-					return
+				# else 	# if no className: return (we do not save)
+					# return
 
 			# return if source did not change or if className is not known (do not save)
-			if not g[className]? or source == g[className].source then return
+			# if not g[className]? or source == g[className].source then return
 
 			# update romanescoCode
 			romanescoCode[className] = source
@@ -484,7 +527,7 @@ define [
 					textInputJ = g.RModal.addTextInput('githubURL', null, null, null, 'Github repository URL')
 					textInputJ.find('input').val(results.githubURL).select().focus()
 					g.RModal.show()
-					ce.module.lock.addModule(results.modulePk)
+					ce.module.lock?.addModule(results.modulePk)
 					return
 
 				submit = (data)->
@@ -498,7 +541,7 @@ define [
 						githubURL: ce.module.githubURL
 						category: data.category
 						type: ce.module.type
-						lockPk: ce.module.lock.pk
+						# lockPk: ce.module.lock.pk
 					Dajaxice.draw.addOrUpdateModule(callback, args)
 
 					g.RModal.initialize("Loading")
@@ -506,7 +549,7 @@ define [
 					g.RModal.modalJ.find(".modal-footer").hide()
 					return
 
-				newModule = not ce.module? or ce.module.newModule
+				newModule = ce.module.newModule
 				if ( newModule and ( not hasName or not hasDescription ) ) or not newModule
 					title = if newModule then 'Push new module' else 'Commit changes'
 					g.RModal.initialize(title, submit, null, false)
@@ -709,22 +752,6 @@ define [
 		g.runModule(g.compileSource(module.source, module.name))
 		return
 
-	g.runModule = (module)->
-		try
-			console.log eval module.compiledSource
-
-			if g.lastPathCreated?
-				g.lastPathCreated.source = module.source
-				g.lastPathCreated = null
-
-		catch error
-
-			console.error error
-			throw error
-			return null
-
-		return
-
 	g.initializeEditor = ()->
 		ce.editorJ.show()
 		ce.editorJ.addClass('visible')
@@ -743,15 +770,6 @@ define [
 				ce.initializeNewModuleFromName(g.codeExample)
 		if not ce.editorJ.hasClass('visible')
 			g.initializeEditor()
-		return
-
-	ce.setLockModule = (lock)->
-		ce = g.codeEditor
-		if lock.modulePk?
-			Dajaxice.draw.getModuleSource(ce.setSourceFromServer, pk: lock.modulePk)
-		else
-			ce.initializeNewModuleFromName("MyLockModule", lock)
-		g.initializeEditor()
 		return
 
 	return

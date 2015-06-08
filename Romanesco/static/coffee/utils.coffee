@@ -82,10 +82,13 @@ define [
 	# problem with array.splice(array.indexOf(item),1) :
 	# removes the last element if item is not in array
 	Array.prototype.remove = (itemToRemove) ->
-		for item,i in this
-			if item is itemToRemove
-				this.splice(i,1)
-				break
+		if not Array.prototype.isPrototypeOf(this) then return
+		i = this.indexOf(itemToRemove)
+		if i>=0 then this.splice(i, 1)
+		# for item,i in this
+		# 	if item is itemToRemove
+		# 		this.splice(i,1)
+		# 		break
 		return
 
 	# @return [Array item] first element of the array

@@ -115,23 +115,6 @@
         return locks;
       };
 
-      RLock.getSelectedLock = function(warnIfMultipleLocksSelected) {
-        var item, lock, _i, _len, _ref;
-        lock = null;
-        _ref = g.selectedItems;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          item = _ref[_i];
-          if (g.RLock.prototype.isPrototypeOf(item)) {
-            if (lock !== null && warnIfMultipleLocksSelected) {
-              g.romanesco_alert("Two locks are selected, please choose a single lock.", "Warning");
-              return null;
-            }
-            lock = item;
-          }
-        }
-        return lock;
-      };
-
       RLock.parameters = function() {
         var fillColor, parameters, strokeColor, strokeWidth;
         parameters = RLock.__super__.constructor.parameters.call(this);
@@ -149,19 +132,23 @@
         parameters['Options'] = {
           addModule: {
             type: 'button',
-            label: 'Add module',
+            label: 'Link module',
             "default": function() {
-              var lock;
-              lock = g.RLock.getSelectedLock(true);
-              if (lock != null) {
-                return g.codeEditor.setLockModule(lock);
+              var item, _i, _len, _ref;
+              _ref = g.selectedItems;
+              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                item = _ref[_i];
+                if (g.RLock.prototype.isPrototypeOf(item)) {
+                  item.askForModule();
+                }
               }
             },
-            initializeController: function(controller, item) {
-              var lock;
-              lock = g.RLock.getSelectedLock(true);
-              if ((lock != null) && (lock.modulePk != null)) {
-                $(controller.domElement).parent().find(".property-name").text('Update module');
+            initializeController: function(controller) {
+              var firstItem, spanJ, _ref;
+              spanJ = $(controller.domElement).find('.property-name');
+              firstItem = g.selectedItems.first();
+              if ((firstItem != null ? (_ref = firstItem.data) != null ? _ref.moduleName : void 0 : void 0) != null) {
+                spanJ.text('Change module (' + firstItem.data.moduleName + ')');
               }
             }
           }
@@ -240,11 +227,22 @@
         }
         if (this.modulePk != null) {
           Dajaxice.draw.getModuleSource(g.initializeModule, {
-            pk: modulePk
+            pk: this.modulePk,
+            accepted: true
           });
         }
         return;
       }
+
+      RLock.prototype.initializeModule = function() {
+        var module;
+        if (!g.checkError(result)) {
+          return;
+        }
+        module = JSON.parse(result.module);
+        g.parentLock = this;
+        g.runModule(module);
+      };
 
       RLock.prototype.draw = function() {
         if (this.drawing != null) {
@@ -395,11 +393,8 @@
       };
 
       RLock.prototype.setRectangle = function(rectangle, update) {
-        var p;
         RLock.__super__.setRectangle.call(this, rectangle, update);
-        p = new Path.Rectangle(rectangle);
-        this.drawing.segments = p.segments.slice();
-        p.remove();
+        g.updatePathRectangle(this.drawing, rectangle);
       };
 
       RLock.prototype.moveTo = function(position, update) {
@@ -476,10 +471,12 @@
 
       RLock.prototype.addItem = function(item) {
         g.addItemTo(item, this);
+        item.lock = this;
       };
 
       RLock.prototype.removeItem = function(item) {
         g.addItemToStage(item);
+        item.lock = null;
       };
 
       RLock.prototype.highlight = function(color) {
@@ -491,8 +488,20 @@
         }
       };
 
-      RLock.prototype.addModule = function(modulePk) {
-        this.modulePk = modulePk;
+      RLock.prototype.askForModule = function() {
+        Dajaxice.draw.getModuleList(this.createSelectModuleModal);
+      };
+
+      RLock.prototype.createSelectModuleModal = function(result) {
+        g.codeEditor.createModuleEditorModal(result, this.addModule);
+        g.RModal.modalJ.find("tr.module[data-pk='" + this.modulePk + "']").css({
+          'background-color': 'rgba(213, 18, 18, 0.54)'
+        });
+      };
+
+      RLock.prototype.addModule = function() {
+        this.modulePk = $(this).attr("data-pk");
+        this.data.moduleName = $(this).attr("data-name");
         Dajaxice.draw.updateBox(g.checkError, {
           pk: this.pk,
           modulePk: this.modulePk

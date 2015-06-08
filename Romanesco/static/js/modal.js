@@ -41,10 +41,11 @@
       };
 
       RModal.addText = function(text) {
-        this.modalBodyJ.append("<p>" + text + "</p>");
+        return this.modalBodyJ.append("<p>" + text + "</p>");
       };
 
       RModal.addTextInput = function(name, placeholder, type, className, label, submitShortcut, id, required, errorMessage) {
+        var inputJ;
         if (placeholder == null) {
           placeholder = null;
         }
@@ -66,7 +67,7 @@
         if (required == null) {
           required = false;
         }
-        this.addTextInputA({
+        inputJ = this.addTextInputA({
           name: name,
           placeholder: placeholder,
           type: type,
@@ -77,6 +78,7 @@
           required: required,
           errorMessage: errorMessage
         });
+        return inputJ;
       };
 
       RModal.addTextInputA = function(args) {
@@ -188,6 +190,7 @@
           div: div,
           required: required
         };
+        return div;
       };
 
       RModal.show = function() {

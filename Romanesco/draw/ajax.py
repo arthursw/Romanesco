@@ -36,6 +36,7 @@ from Romanesco import settings
 from github import Github
 from git import Repo
 
+
 # from wand.image import Image
 
 import functools
@@ -54,20 +55,27 @@ else:
 	def checkDebug(func):
 	    return func
 
+def isAdmin(user):
+	try:
+		profile = UserProfile.objects.get(username=user.username)
+		return profile.admin
+	except UserProfile.DoesNotExist:
+		return False
+	return False
+
 logger = logging.getLogger(__name__)
 
 with open('/data/secret_github.txt') as f:
 	PASSWORD = base64.b64decode(f.read().strip())
 
-github = Github("arthurpub.sw@gmail.com", PASSWORD)
-romanescoOrg = github.get_organization('RomanescoModules')
+#github = Github("arthurpub.sw@gmail.com", PASSWORD)
+#romanescoOrg = github.get_organization('RomanescoModules')
 
 try:
 	romanescoCity = City.objects.get(name='Romanesco', owner='RomanescoOrg', public=True)
 except City.DoesNotExist:
 	romanescoCity = City(name='Romanesco', owner='RomanescoOrg', public=True)
 	romanescoCity.save()
-
 
 # pprint(vars(object))
 # import pdb; pdb.set_trace()
@@ -955,8 +963,8 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None, modu
 		except Module.DoesNotExist:
 			return json.dumps({'state': 'error', 'message': 'The module does not exist.'})
 		b.module = module
-		module.lock = b
-		module.save()
+		# module.lock = b
+		# module.save()
 	b.lastUpdate = datetime.datetime.now()
 
 	try:
@@ -1974,7 +1982,7 @@ def createCommitAndPush(repoName, source, localRepository, commitDescription):
 
 	return
 
-def addModule(user, name, source, compiledSource, description, type=None, commitDescription=None, iconURL=None, category=None, lockPk=None):
+def addModule(user, name, source, compiledSource, description, type=None, commitDescription=None, iconURL=None, category=None):
 
 	if 'Romanesco module' not in description:
 		description = 'Romanesco module - ' + description
@@ -1989,15 +1997,15 @@ def addModule(user, name, source, compiledSource, description, type=None, commit
 
 	repoName = githubRepository.name
 
-	lock = None
-	if lockPk:
-		try:
-			lock = Box.objects.get(pk=lockPk)
-		except:
-			return json.dumps( { 'state': 'error', 'message': 'The lock could not be found.'})
+	# lock = None
+	# if lockPk:
+	# 	try:
+	# 		lock = Box.objects.get(pk=lockPk)
+	# 	except:
+	# 		return json.dumps( { 'state': 'error', 'message': 'The lock could not be found.'})
 
 	try:
-		module = Module(owner=user, name=name, repoName=repoName, description=description, source=source, compiledSource=compiledSource, iconURL=iconURL, local=True, category=category, githubURL=githubRepository.html_url, moduleType=type, lock=lock)
+		module = Module(owner=user, name=name, repoName=repoName, description=description, source=source, compiledSource=compiledSource, iconURL=iconURL, local=True, category=category, githubURL=githubRepository.html_url, moduleType=type)
 		module.save()
 	except Exception as e:
 		return json.dumps( { 'state': 'error', 'message': 'An error occured while creating the module.'})
@@ -2034,16 +2042,16 @@ def updateModule(user, module, name, repoName, source, compiledSource, commitDes
 		fork.create_pull('Pull request created by ' + str(user), description, 'master', 'master')
 		githubURL = fork.html_url
 
-	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.', 'githubURL': githubURL } )
+	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.', 'githubURL': githubURL, 'modulePk': str(module.pk) } )
 
 @dajaxice_register
 @checkDebug
-def addOrUpdateModule(request, name, source, compiledSource, type=None, description=None, commitDescription=None, githubURL=None, iconURL=None, category=None, lockPk=None):
+def addOrUpdateModule(request, name, source, compiledSource, type=None, description=None, commitDescription=None, githubURL=None, iconURL=None, category=None):
 	try:
 		module = Module.objects.get(name=name)
 		result = updateModule(request.user.username, module, name, module.repoName, source, compiledSource, commitDescription, githubURL, iconURL, category)
 	except Module.DoesNotExist:
-		result = addModule(request.user.username, name, source, compiledSource, type, description, commitDescription, iconURL, category, lockPk)
+		result = addModule(request.user.username, name, source, compiledSource, type, description, commitDescription, iconURL, category)
 
 	return result
 
@@ -2102,37 +2110,43 @@ def addOrUpdateModule(request, name, source, compiledSource, type=None, descript
 @dajaxice_register
 @checkDebug
 def getModules(request):
-	modules = Module.objects(accepted=True).only('name', 'iconURL', 'githubURL', 'category')
+	modules = Module.objects(accepted=True).only('name', 'iconURL', 'githubURL', 'category', 'pk')
 	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
 
 @dajaxice_register
 @checkDebug
 def getModuleList(request):
-	modules = Module.objects().only('name', 'iconURL', 'githubURL', 'thumbnailURL', 'description', 'owner', 'accepted', 'category', 'lastUpdate')
+	modules = Module.objects().only('name', 'iconURL', 'githubURL', 'thumbnailURL', 'description', 'owner', 'accepted', 'category', 'lastUpdate', 'pk')
 	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
 
 @dajaxice_register
 @checkDebug
-def getModuleSource(request, name=None, pk=None):
+def getModuleSource(request, name=None, pk=None, accepted=None):
 	if name:
 		try:
-			module = Module.objects.get(accepted=True, name=name)
+			module = Module.objects.get(name=name)
 		except Module.DoesNotExist:
-			return json.dumps( { 'state': 'error', 'message': 'Module ' + name + ' does not exist.' } )
+			return json.dumps( { 'state': 'error', 'type': 'DoesNotExist', 'message': 'Module ' + name + ' does not exist.' } )
 	elif pk:
 		try:
-			module = Module.objects.get(accepted=True, pk=pk)
+			module = Module.objects.get(pk=pk)
 		except Module.DoesNotExist:
-			return json.dumps( { 'state': 'error', 'message': 'Module ' + pk + ' does not exist.' } )
+			return json.dumps( { 'state': 'error', 'type': 'DoesNotExist', 'message': 'Module ' + pk + ' does not exist.' } )
 	else:
 		return json.dumps( { 'state': 'error', 'message': 'Module name and pk are null.' } )
+
+	if accepted is not None:
+		if accepted and not module.accepted:
+			return json.dumps( { 'state': 'error', 'message': 'Module ' + module.name + ' is not accepted.' } )
+		elif not accepted and module.accepted:
+			return json.dumps( { 'state': 'error', 'message': 'Module ' + module.name + ' is accepted.' } )
 
 	return json.dumps( { 'state': 'success', 'module': module.to_json() } )
 
 @dajaxice_register
 @checkDebug
 def getWaitingModules(request):
-	if not request.user.admin:
+	if not isAdmin(request.user):
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting modules.' } )
 
 	latestModules = []
@@ -2186,7 +2200,7 @@ def getWaitingModules(request):
 @dajaxice_register
 @checkDebug
 def acceptModule(request, name, repoName, source, compiledSource, description=None, owner=None, githubURL=None, iconURL=None):
-	if not request.user.admin:
+	if not isAdmin(request.user):
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting modules.' } )
 
 	try:
@@ -2268,7 +2282,7 @@ def getTools(request):
 @dajaxice_register
 @checkDebug
 def getWaitingTools(request):
-	if request.user.username != 'arthur.sw':
+	if not isAdmin(request.user):
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to get the waiting tools.' } )
 	tools = Tool.objects(accepted=False)
 	return json.dumps( { 'state': 'success', 'tools': tools.to_json() } )
@@ -2276,7 +2290,7 @@ def getWaitingTools(request):
 @dajaxice_register
 @checkDebug
 def acceptTool(request, name):
-	if request.user.username != 'arthur.sw':
+	if not isAdmin(request.user):
 		return json.dumps( { 'state': 'error', 'message': 'You must be administrator to accept tools.' } )
 	try:
 		tool = Tool.objects.get(name=name)

@@ -19,8 +19,6 @@ define ['utils'], (utils) ->
 			return
 
 		g.updateRoom = g.fakeFunction
-		g.setControllerValueByName = g.fakeFunction
-		g.setControllerValue = g.fakeFunction
 		g.deferredExecution = g.fakeFunction
 		g.romanesco_alert = g.fakeFunction
 		g.rasterizer =

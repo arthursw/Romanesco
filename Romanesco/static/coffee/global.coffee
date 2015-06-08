@@ -465,6 +465,16 @@ define [
 		lockToolSelected = g.LockTool.prototype.isPrototypeOf(g.selectedTool)
 		return g.selectedTool == g.tools['Select'] or g.selectedTool == g.tools['Screenshot'] or pathToolSelected or lockToolSelected
 
+	# register animation: push item to g.animatedItems
+	g.registerAnimation = (item)->
+		g.animatedItems.pushIfAbsent(item)
+		return
+
+	# deregister animation: remove item from g.animatedItems
+	g.deregisterAnimation = (item)->
+		g.animatedItems.remove(item)
+		return
+
 	# Get the game under *point*
 	# @param point [Point] point to test
 	# @return [RVideoGame] the video game at *point*
@@ -674,7 +684,8 @@ define [
 		# 		break
 
 		# update location in sidebar
-		g.setControllerValue(g.parameters.location.controller, null, '' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2))
+		g.controllerManager.folders['General'].controllers['location'].setValue('' + view.center.x.toFixed(2) + ',' + view.center.y.toFixed(2))
+
 		return somethingToLoad
 
 	## Hash
@@ -1562,7 +1573,6 @@ define [
 		return
 
 	return
-
 
 # sort items by z-index
 #

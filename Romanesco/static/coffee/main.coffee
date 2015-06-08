@@ -25,7 +25,6 @@ define [
 	'scrollbar'
 	'tween'
 	'typeahead'
-	'prefix'
 	'modal'
 	'ace'
 ], (utils, paper, CoffeeScript) ->
@@ -508,7 +507,7 @@ define [
 
 		return
 
-	paper.install(window)
+
 
 	# initialize Romanesco
 	# all global variables and functions are stored in *g* which is a synonym of *window*
@@ -715,20 +714,6 @@ define [
 			if event.middlePoint? then event.middlePoint = new Point(event.middlePoint)
 			return event
 
-		# g.defaultColors = ['#bfb7e6', '#7d86c1', '#403874', '#261c4e', '#1f0937', '#574331', '#9d9121', '#a49959', '#b6b37e', '#91a3f5' ]
-		# g.defaultColors = ['#d7dddb', '#4f8a83', '#e76278', '#fac699', '#712164']
-		# g.defaultColors = ['#395A8F', '#4A79B1', '#659ADF', '#A4D2F3', '#EBEEF3']
-
-		g.defaultColors = []
-
-		hueRange = g.random(10, 180)
-		minHue = g.random(0, 360-hueRange)
-		step = hueRange/10
-
-		for i in [0 .. 10]
-			g.defaultColors.push(Color.HSL( minHue + i * step, g.random(0.3, 0.9), g.random(0.5, 0.7) ).toCSS())
-			# g.defaultColors.push(Color.random().toCSS())
-
 		# initialize alerts
 		g.alertsContainer = $("#Romanesco_alerts")
 		g.alerts = []
@@ -855,7 +840,7 @@ define [
 		# 	return
 
 		g.initializeRasterizers()
-		g.initializeGlobalParameters()
+		# g.initializeGlobalParameters()
 
 		if not g.rasterizerMode
 			g.initParameters()

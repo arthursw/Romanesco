@@ -1,5 +1,5 @@
 define [
-	'utils', 'global', 'coordinateSystems', 'jquery', 'paper'
+	'utils', 'global', 'coordinateSystems', 'options', 'jquery', 'paper'
 ], (utils) ->
 
 	g = utils.g()
@@ -49,7 +49,7 @@ define [
 		@parameters: ()->
 
 			parameters =
-				'General':
+				'Items':
 					align: g.parameters.align
 					distribute: g.parameters.distribute
 					delete: g.parameters.delete
@@ -78,10 +78,7 @@ define [
 
 			# creation of a new object by the user: set @data to g.gui values
 			@data ?= new Object()
-			for name, folder of g.gui.__folders
-				if name=='General' then continue
-				for controller in folder.__controllers
-					@data[controller.property] ?= controller.rValue()
+			g.controllerManager.updateItemData(@)
 
 			@rectangle ?= null
 
@@ -104,13 +101,11 @@ define [
 
 		# @param name [String] the name of the value to change
 		# @param value [Anything] the new value
-		# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from SetParameterCommand
-		setParameter: (name, value, updateGUI, update)->
+		setParameter: (name, value, update)->
 			@data[name] = value
 			@changed = name
 			if not @socketAction
 				if update then @update(name)
-				if updateGUI then g.setControllerValueByName(name, value, @)
 				g.chatSocket.emit "bounce", itemPk: @pk, function: "setParameter", arguments: [name, value, false, false]
 			return
 
@@ -223,6 +218,7 @@ define [
 		endAction: ()=>
 
 			positionIsValid = if @currentCommand.constructor.needValidPosition then g.validatePosition(@) else true
+
 			commandChanged = @currentCommand.end(positionIsValid)
 			if positionIsValid
 				if commandChanged then g.commandManager.add(@currentCommand)
@@ -440,7 +436,7 @@ define [
 
 			@updateSelectionRectangle(true)
 			g.selectedItems.push(@)
-			g.updateParametersForSelectedItems()
+			g.controllerManager.updateParametersForSelectedItems()
 
 			g.rasterizer.selectItem(@)
 
@@ -455,7 +451,7 @@ define [
 			@selectionRectangle?.remove()
 			@selectionRectangle = null
 			g.selectedItems.remove(@)
-			g.updateParametersForSelectedItems()
+			g.controllerManager.updateParametersForSelectedItems()
 
 			if @group? 	# @group is null when item is removed (called from @remove())
 
@@ -485,6 +481,12 @@ define [
 			# @pk = null 	# pk is required to delete the path!!
 			# @id = null
 			return
+
+		finish: ()->
+			if @rectangle.area == 0
+				@remove()
+				return false
+			return true
 
 		save: (@addCreateCommand)->
 			return
@@ -527,6 +529,7 @@ define [
 
 		rasterize: ()->
 			if @raster? or not @drawing? then return
+			if not g.rasterizer.rasterizeItems then return
 			@raster = @drawing.rasterize()
 			@group.addChild(@raster)
 			@raster.sendToBack() 	# the raster (of a lock) must be send behind other items
@@ -551,7 +554,7 @@ define [
 
 		@parameters: ()->
 			parameters = super()
-			parameters['General'].duplicate = g.parameters.duplicate
+			parameters['Items'].duplicate = g.parameters.duplicate
 			return parameters
 
 		constructor: (@data, @pk, @date, itemListJ, @sortedItems)->
@@ -578,18 +581,19 @@ define [
 			itemListJ.prepend(@liJ)
 			$("#RItems .mCustomScrollbar").mCustomScrollbar("scrollTo", "bottom")
 
-			@updateZIndex()
+			if @pk?
+				@updateZIndex()
 
 			return
 
-		addToParent: ()->
-			bounds = @getBounds()
-			lock = g.RLock.getLockWhichContains(bounds)
-			if lock? and lock.owner == g.me
-				lock.addItem(@)
-			else
-				g.addItemToStage(@)
-			return
+		# addToParent: ()->
+		# 	bounds = @getBounds()
+		# 	lock = g.RLock.getLockWhichContains(bounds)
+		# 	if lock? and lock.owner == g.me
+		# 		lock.addItem(@)
+		# 	else
+		# 		g.addItemToStage(@)
+		# 	return
 
 		setZindexLabel: ()->
 			dateLabel = '' + @date
@@ -760,6 +764,28 @@ define [
 			# 		g.mainLayer.insertChild(@zindex, @group)
 			# 	else
 			# 		@lock.group.insertChild(@zindex, @group)
+
+			return true
+
+		finish: ()->
+			if not super() then return false
+
+			bounds = @getBounds()
+			if bounds.area > g.rasterizer.maxArea()
+				g.romanesco_alert("The item is too big", "Warning")
+				@remove()
+				return false
+
+			locks = g.RLock.getLocksWhichIntersect(bounds)
+
+			for lock in locks
+				if lock.rectangle.contains(bounds)
+					if lock.owner == g.me
+						lock.addItem(@)
+					else
+						g.romanesco_alert("The item intersects with a lock", "Warning")
+						@remove()
+						return false
 
 			return true
 

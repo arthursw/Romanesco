@@ -82,13 +82,13 @@
       return min + Math.random() * (max - min);
     };
     Array.prototype.remove = function(itemToRemove) {
-      var i, item, _i, _len;
-      for (i = _i = 0, _len = this.length; _i < _len; i = ++_i) {
-        item = this[i];
-        if (item === itemToRemove) {
-          this.splice(i, 1);
-          break;
-        }
+      var i;
+      if (!Array.prototype.isPrototypeOf(this)) {
+        return;
+      }
+      i = this.indexOf(itemToRemove);
+      if (i >= 0) {
+        this.splice(i, 1);
       }
     };
     Array.prototype.first = function() {

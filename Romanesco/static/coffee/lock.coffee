@@ -117,15 +117,15 @@ define [
 					locks.push(lock)
 			return locks
 
-		@getSelectedLock: (warnIfMultipleLocksSelected)->
-			lock = null
-			for item in g.selectedItems
-				if g.RLock.prototype.isPrototypeOf(item)
-					if lock != null and warnIfMultipleLocksSelected
-						g.romanesco_alert "Two locks are selected, please choose a single lock.", "Warning"
-						return null
-					lock = item
-			return lock
+		# @getSelectedLock: (warnIfMultipleLocksSelected)->
+		# 	lock = null
+		# 	for item in g.selectedItems
+		# 		if g.RLock.prototype.isPrototypeOf(item)
+		# 			if lock != null and warnIfMultipleLocksSelected
+		# 				g.romanesco_alert "Two locks are selected, please choose a single lock.", "Warning"
+		# 				return null
+		# 			lock = item
+		# 	return lock
 
 		@parameters: ()->
 			parameters = super()
@@ -145,14 +145,17 @@ define [
 			parameters['Options'] =
 				addModule:
 					type: 'button'
-					label: 'Add module'
+					label: 'Link module'
 					default: ()->
-						lock = g.RLock.getSelectedLock(true)
-						if lock? then g.codeEditor.setLockModule(lock)
-					initializeController: (controller, item)->
-						lock = g.RLock.getSelectedLock(true)
-						if lock? and lock.modulePk?
-							$(controller.domElement).parent().find(".property-name").text('Update module')
+						for item in g.selectedItems
+							if g.RLock.prototype.isPrototypeOf(item)
+								item.askForModule()
+						return
+					initializeController: (controller)->
+						spanJ = $(controller.domElement).find('.property-name')
+						firstItem = g.selectedItems.first()
+						if firstItem?.data?.moduleName?
+							spanJ.text('Change module (' + firstItem.data.moduleName + ')')
 						return
 
 			return parameters
@@ -210,8 +213,15 @@ define [
 				g.entireAreas.push(@)
 
 			if @modulePk?
-				Dajaxice.draw.getModuleSource(g.initializeModule, pk: modulePk)
+				Dajaxice.draw.getModuleSource(g.initializeModule, { pk: @modulePk, accepted: true })
 
+			return
+
+		initializeModule: ()->
+			if not g.checkError(result) then return
+			module = JSON.parse(result.module)
+			g.parentLock = @
+			g.runModule(module)
 			return
 
 		draw: ()->
@@ -341,9 +351,7 @@ define [
 
 		setRectangle: (rectangle, update)->
 			super(rectangle, update)
-			p = new Path.Rectangle(rectangle)
-			@drawing.segments = p.segments.slice()
-			p.remove()
+			g.updatePathRectangle(@drawing, rectangle)
 			return
 
 		moveTo: (position, update)->
@@ -391,10 +399,12 @@ define [
 
 		addItem: (item)->
 			g.addItemTo(item, @)
+			item.lock = @
 			return
 
 		removeItem: (item)->
 			g.addItemToStage(item)
+			item.lock = null
 			return
 
 		highlight: (color)->
@@ -405,7 +415,18 @@ define [
 				@highlightRectangle.dashArray = []
 			return
 
-		addModule: (@modulePk)->
+		askForModule: ()->
+			Dajaxice.draw.getModuleList(@createSelectModuleModal)
+			return
+
+		createSelectModuleModal: (result)->
+			g.codeEditor.createModuleEditorModal(result, @addModule)
+			g.RModal.modalJ.find("tr.module[data-pk='#{@modulePk}']").css('background-color': 'rgba(213, 18, 18, 0.54)')
+			return
+
+		addModule: ()->
+			@modulePk = $(this).attr("data-pk")
+			@data.moduleName = $(this).attr("data-name")
 			Dajaxice.draw.updateBox( g.checkError, { pk: @pk, modulePk: @modulePk } )
 			return
 
