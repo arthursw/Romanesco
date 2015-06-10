@@ -157,7 +157,7 @@
       return specialKey;
     };
     g.getSnap = function() {
-      return g.parameters.snap.snap;
+      return g.parameters.General.snap.value;
     };
     g.snap1D = function(value, snap) {
       if (snap == null) {
@@ -190,8 +190,7 @@
       if (g.selectedTool.disableSnap()) {
         return event;
       }
-      snap = g.parameters.snap.snap;
-      snap = snap - snap % g.parameters.snap.step;
+      snap = g.parameters.General.snap.value;
       if (snap !== 0) {
         snappedEvent = jQuery.extend({}, event);
         snappedEvent.modifiers = event.modifiers;
@@ -300,7 +299,7 @@
       return g.selectedTool === g.tools['Select'] || g.selectedTool === g.tools['Screenshot'] || pathToolSelected || lockToolSelected;
     };
     g.registerAnimation = function(item) {
-      g.animatedItems.pushIfAbsent(item);
+      g.pushIfAbsent(g.animatedItems, item);
     };
     g.deregisterAnimation = function(item) {
       g.animatedItems.remove(item);

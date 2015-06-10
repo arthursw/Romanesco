@@ -46,9 +46,11 @@
       					min: 0
       					max: 10
        */
-      RTool.parameters = function() {
+      RTool.initializeParameters = function() {
         return {};
       };
+
+      RTool.parameters = RTool.initializeParameters();
 
       function RTool(name, cursorPosition, cursorDefault) {
         var description, popoverOptions;
@@ -112,7 +114,7 @@
       };
 
       RTool.prototype.updateParameters = function() {
-        g.controllerManager.setSelectedTool(this);
+        g.controllerManager.setSelectedTool(this.constructor);
       };
 
       RTool.prototype.updateCursor = function() {
@@ -240,7 +242,7 @@
     CarTool = (function(_super) {
       __extends(CarTool, _super);
 
-      CarTool.parameters = function() {
+      CarTool.initializeParameters = function() {
         var parameters;
         parameters = {
           'Car': {
@@ -277,6 +279,8 @@
         return parameters;
       };
 
+      CarTool.parameters = CarTool.initializeParameters();
+
       function CarTool() {
         CarTool.__super__.constructor.call(this, "Car");
         return;
@@ -308,7 +312,7 @@
       };
 
       CarTool.prototype.onFrame = function() {
-        var maxRate, maxSpeed, minRate, minSpeed, rate, _ref, _ref1, _ref2;
+        var maxRate, maxSpeed, minRate, minSpeed, rate, _ref;
         if (this.car == null) {
           return;
         }
@@ -339,18 +343,14 @@
         rate = minRate + Math.abs(this.car.speed) / maxSpeed * (maxRate - minRate);
         g.sound.setRate(rate);
         this.car.previousSpeed = this.car.speed;
-        if ((_ref = this.parameterControllers) != null) {
-          if ((_ref1 = _ref['speed']) != null) {
-            _ref1.setValue(this.car.speed.toFixed(2));
-          }
-        }
+        this.constructor.parameters['Car'].speed.controller.setValue(this.car.speed.toFixed(2), false);
         this.car.rotation = this.car.direction.angle + 90;
         if (Math.abs(this.car.speed) > minSpeed) {
           this.car.position = this.car.position.add(this.car.direction.multiply(this.car.speed));
           g.RMoveTo(this.car.position);
         }
-        if ((_ref2 = g.gameAt(this.car.position)) != null) {
-          _ref2.updateGame(this);
+        if ((_ref = g.gameAt(this.car.position)) != null) {
+          _ref.updateGame(this);
         }
         if (Date.now() - this.lastUpdate > 150) {
           if (g.me != null) {
@@ -470,7 +470,7 @@
       };
 
       SelectTool.prototype.update = function(event) {
-        if (!g.currentPaths[g.me]) {
+        if (!g.currentPaths[g.me] && (this.selectedItem != null)) {
           this.selectedItem.updateSelect(event);
         } else {
           this.createSelectionRectangle(event);
@@ -661,6 +661,10 @@
         g.rasterizer.drawItems();
         PathTool.__super__.select.call(this);
         g.tool.onMouseMove = this.move;
+      };
+
+      PathTool.prototype.updateParameters = function() {
+        g.controllerManager.setSelectedTool(this.RPath);
       };
 
       PathTool.prototype.deselect = function() {
@@ -1310,40 +1314,62 @@
         return;
       }
 
-      GradientTool.prototype.initialize = function() {
-        var bounds, color, delta, destination, handle, location, origin, position, stop, value, _i, _len, _ref;
-        value = this.controller.getValue();
-        this.remove();
-        bounds = view.bounds.scale(0.25);
-        if (value == null) {
-          value = {
-            origin: bounds.topLeft,
-            destination: bounds.bottomRight,
-            gradient: {
-              stops: [
-                {
-                  color: 'red',
-                  rampPoint: 0
-                }, {
-                  color: 'blue',
-                  rampPoint: 1
-                }
-              ],
-              radial: false
-            }
-          };
+      GradientTool.prototype.getDefaultGradient = function(color) {
+        var bounds, firstColor, gradient, secondColor;
+        if (g.selectedItems.length === 1) {
+          bounds = g.selectedItems[0].getBounds();
+        } else {
+          bounds = view.bounds.scale(0.25);
         }
+        color = color != null ? new Color(color) : g.defaultColor.random();
+        firstColor = color.clone();
+        firstColor.alpha = 0.2;
+        secondColor = color.clone();
+        secondColor.alpha = 0.8;
+        gradient = {
+          origin: bounds.topLeft,
+          destination: bounds.bottomRight,
+          gradient: {
+            stops: [
+              {
+                color: 'red',
+                rampPoint: 0
+              }, {
+                color: 'blue',
+                rampPoint: 1
+              }
+            ],
+            radial: false
+          }
+        };
+        return gradient;
+      };
+
+      GradientTool.prototype.initialize = function(updateGradient) {
+        var color, delta, destination, handle, location, origin, position, stop, value, _i, _len, _ref, _ref1, _ref2;
+        if (updateGradient == null) {
+          updateGradient = true;
+        }
+        value = this.controller.getValue();
+        if ((value != null ? value.gradient : void 0) == null) {
+          value = this.getDefaultGradient(value);
+        }
+        if ((_ref = this.group) != null) {
+          _ref.remove();
+        }
+        this.handles = [];
+        this.radial = (_ref1 = value.gradient) != null ? _ref1.radial : void 0;
         this.group = new Group();
         origin = new Point(value.origin);
         destination = new Point(value.destination);
         delta = destination.subtract(origin);
-        _ref = value.gradient.stops;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          stop = _ref[_i];
-          color = new Color(stop.color);
-          location = parseInt(stop.rampPoint);
+        _ref2 = value.gradient.stops;
+        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+          stop = _ref2[_i];
+          color = new Color(stop.color != null ? stop.color : stop[0]);
+          location = parseFloat(stop.rampPoint != null ? stop.rampPoint : stop[1]);
           position = origin.add(delta.multiply(location));
-          handle = this.createHandle(position, location, color);
+          handle = this.createHandle(position, location, color, true);
           if (location === 0) {
             this.startHandle = handle;
           }
@@ -1366,11 +1392,16 @@
         this.line.strokeWidth = 1;
         g.selectionLayer.addChild(this.group);
         this.selectHandle(this.startHandle);
+        if (updateGradient) {
+          this.updateGradient();
+        }
       };
 
-      GradientTool.prototype.select = function(controller) {
+      GradientTool.prototype.select = function() {
         var differentTool, _ref;
-        this.controller = controller;
+        if (g.selectedTool === this) {
+          return;
+        }
         differentTool = g.previousTool !== g.selectedTool;
         if (this !== g.selectedTool) {
           g.previousTool = g.selectedTool;
@@ -1405,19 +1436,22 @@
         }
         handle.selected = true;
         this.selectedHandle = handle;
+        this.controller.setColor(handle.fillColor.toCSS());
       };
 
-      GradientTool.prototype.colorChange = function(color, controller) {
-        if (controller !== this.controller) {
-          this.controller = controller;
-          this.initialize();
-        }
+      GradientTool.prototype.colorChange = function(color) {
         this.selectedHandle.fillColor = color;
         this.updateGradient();
       };
 
+      GradientTool.prototype.setRadial = function(value) {
+        this.select();
+        this.radial = value;
+        this.updateGradient();
+      };
+
       GradientTool.prototype.updateGradient = function() {
-        var gradient, handle, item, stops, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+        var gradient, handle, stops, _i, _len, _ref;
         if ((this.startHandle == null) || (this.endHandle == null)) {
           return;
         }
@@ -1436,17 +1470,14 @@
           }
         };
         console.log(JSON.stringify(gradient));
-        _ref1 = g.selectedItems;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          item = _ref1[_j];
-          if (typeof ((_ref2 = item.data) != null ? _ref2[this.parameterName] : void 0) !== 'undefined') {
-            item.setParameterCommand(this.parameterName, gradient);
-          }
-        }
+        this.controller.onChange(gradient);
       };
 
-      GradientTool.prototype.createHandle = function(position, location, color) {
+      GradientTool.prototype.createHandle = function(position, location, color, initialization) {
         var handle;
+        if (initialization == null) {
+          initialization = false;
+        }
         handle = new Path.Circle(position, this.constructor.handleSize);
         handle.name = 'handle';
         this.group.addChild(handle);
@@ -1455,8 +1486,10 @@
         handle.fillColor = color;
         handle.location = location;
         this.handles.push(handle);
-        this.selectHandle(handle);
-        this.updateGradient();
+        if (!initialization) {
+          this.selectHandle(handle);
+          this.updateGradient();
+        }
         return handle;
       };
 
@@ -1464,7 +1497,7 @@
         var offset, point;
         offset = hitResult.location.offset;
         point = this.line.getPointAt(offset);
-        this.createHandle(point, offset / this.line.length, this.colorInputJ.val());
+        this.createHandle(point, offset / this.line.length, this.controller.colorInputJ.val());
       };
 
       GradientTool.prototype.removeHandle = function(handle) {

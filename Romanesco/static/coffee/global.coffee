@@ -180,7 +180,7 @@ define [
 	g.getSnap = ()->
 		# snap = g.parameters.snap.snap
 		# return snap-snap%g.parameters.snap.step
-		return g.parameters.snap.snap
+		return g.parameters.General.snap.value
 
 	# Returns snapped value
 	#
@@ -214,8 +214,8 @@ define [
 	g.snap = (event, from=g.me)->
 		if from!=g.me then return event
 		if g.selectedTool.disableSnap() then return event
-		snap = g.parameters.snap.snap
-		snap = snap-snap%g.parameters.snap.step
+		snap = g.parameters.General.snap.value
+		# snap = snap-snap%g.parameters.General.snap.step
 		if snap != 0
 			snappedEvent = jQuery.extend({}, event)
 			snappedEvent.modifiers = event.modifiers
@@ -467,7 +467,7 @@ define [
 
 	# register animation: push item to g.animatedItems
 	g.registerAnimation = (item)->
-		g.animatedItems.pushIfAbsent(item)
+		g.pushIfAbsent(g.animatedItems, item)
 		return
 
 	# deregister animation: remove item from g.animatedItems

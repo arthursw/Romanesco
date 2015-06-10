@@ -1216,6 +1216,10 @@ li.tool-btn.selected .favorite-btn {
 #templates .hidden {
   display: none;
 }
+.color-picker-slider .cp-container {
+  margin-top: 10px;
+  width: 244px;
+}
 .modal {
   overflow: hidden;
   margin-top: 10%;

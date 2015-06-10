@@ -6,6 +6,7 @@ define [
 	window.tinycolor = tinycolor
 
 	paper.install(window)
+	g.templatesJ = $("#templates")
 
 	# --- Options --- #
 
@@ -130,15 +131,19 @@ define [
 		g.parameters.delete =
 			type: 'button'
 			label: 'Delete items'
-			default: ()-> item.deleteCommand() for item in g.selectedItems
+			default: ()->
+				selectedItems = g.selectedItems.slice() # copy array because it will change; could be: while g.selectedItem.length>0: g.selectedItem.first().delete()
+				for item in selectedItems
+					item.deleteCommand()
+				return
 		g.parameters.duplicate =
 			type: 'button'
 			label: 'Duplicate items'
-			default: ()-> item.duplicateCommand() for item in g.selectedItems
+			default: ()-> item.duplicateCommand() for item in g.selectedItems; return
 		g.parameters.align =
 			type: 'button-group'
 			label: 'Align'
-			value: ''
+			default: ''
 			initializeController: (controller)->
 				domElement = controller.datController.domElement
 				$(domElement).find('input').remove()
@@ -214,7 +219,7 @@ define [
 		g.parameters.distribute =
 			type: 'button-group'
 			label: 'Distribute'
-			value: ''
+			default: ''
 			initializeController: (controller)->
 				domElement = controller.datController.domElement
 				$(domElement).find('input').remove()
@@ -846,20 +851,17 @@ define [
 
 		constructor: (@name, @parameter, @folder)->
 			@folder.controllers[@name] = @
-			@initialize(@parameter.value or @parameter.default)
+			@initialize()
 			return
 
-		initialize: (value)->
+		initialize: ()->
 
-			@parameter.onChange ?= @onChange
-
-			object = {}
-			object[@name] = value
+			@parameter.value ?= @parameter.default
 			firstOptionalParameter = if @parameter.min? then @parameter.min else @parameter.values
 
-			controllerBox = @folder.datFolder.add(object, @name, firstOptionalParameter, @parameter.max)
+			controllerBox = @folder.datFolder.add(@parameter, 'value', firstOptionalParameter, @parameter.max)
 			.name(@parameter.label)
-			.onChange(@parameter.onChange)
+			.onChange(@parameter.onChange or @onChange)
 			.onFinishChange(@parameter.onFinishChange)
 
 			@datController = @folder.datFolder.__controllers.last()
@@ -868,17 +870,16 @@ define [
 
 			return
 
-		onChange = (value) ->
+		onChange: (value) =>
 			g.c = @
 			for item in g.selectedItems
 				# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
-				if typeof item.data?[name] isnt 'undefined'
-					item.setParameterCommand(name, value)
+				if typeof item.data?[@name] isnt 'undefined'
+					item.setParameterCommand(@, value)
 			return
 
 		getValue: ()->
-			@datController.getValue()
-			return
+			return @datController.getValue()
 
 		setValue: (value)->
 			@datController.object[@datController.property] = value
@@ -886,18 +887,23 @@ define [
 			@parameter.setValue?(value)
 			return
 
-		addItems: (items)->
-			@items = @items.concat(items)
-			controlled = @items.first() or g.selectedTool
-			controlled.parameterControllers ?= {}
-			controlled.parameterControllers[@name] = @
-			return
+		# addItems: (items)->
+		# 	@items = @items.concat(items)
+		# 	controlled = @items.first() or g.selectedTool
+		# 	controlled.parameterControllers ?= {}
+		# 	controlled.parameterControllers[@name] = @
+		# 	return
 
-		reset: ()->
-			@items = []
-			return
+		# reset: ()->
+		# 	@items = []
+		# 	return
 
 		remove: ()->
+			@parameter.controller = null
+
+			if @defaultOnChange
+				@parameter.onChange = null
+
 			@folder.datFolder.remove(@datController)
 			@folder.datFolder.__controllers.remove(@datController)
 
@@ -911,39 +917,18 @@ define [
 
 	g.Controller = Controller
 
-	class ColorController
+	class ColorController extends g.Controller
 
-		constructor: (@name, @parameter, @folder)->
-			super(@name, @parameter, @folder)
-			return
+		@initialize: ()->
+			@containerJ = g.templatesJ.find('.color-picker')
+			@colorPickerJ = @containerJ.find('.color-picker-slider')
+			@colorTypeSelectorJ = @containerJ.find('[name="color-type"]')
 
-		initialize: (value)->
-
-			object = {}
-			object[@name] = value
-
-			controllerBox = @folder.datFolder.add(object, @name)
-			.name(@parameter.label)
-			.onChange(@parameter.onChange)
-			.onFinishChange(@parameter.onFinishChange)
-
-			@datController = @folder.datFolder.__controllers.last()
-
-			@colorInputJ = $(@datController.domElement).find('input')
-			@colorInputJ.addClass("color-input")
-			@enableCheckboxJ = $('<input type="checkbox">')
-			@enableCheckboxJ.insertBefore(@colorInputJ)
-			@enableCheckboxJ[0].checked = value or parameter.defaultCheck
-
-			if value.gradient?
-				@gradient = true
-				value = value.gradient.stops[0].color.toCSS()
-
-			@colorInputJ.ColorPickerSliders(
-				title: parameter.label
-				placement: 'auto'
+			@options =
+				title: 'Color picker'
+				flat: true
 				size: 'sm'
-				color: initialValue
+				color: 'blue'
 				order:
 					hsl: 1
 					rgb: 2
@@ -958,66 +943,189 @@ define [
 					hsllightness: 'Lightness'
 					preview: 'Preview'
 					opacity: 'Opacity'
-				customswatches: "different-swatches-groupname"
+				onchange: @onColorPickerChange
 				swatches: false
-				onchange: colorPickerChanged
+				getThis: ()->
+					return this
+				# customswatches: "swatches-group:" + @parameter.name
 				# swatches: g.defaultColors
 				# hsvpanel: true
 				# trigger: 'click'
 				# hsvpanel: true
-			)
+				# placement: 'auto'
 
-			@colorInputJ.on 'shown.bs.popover', @initializeColorPicker
+			@colorPickerJ = @colorPickerJ.ColorPickerSliders(@options)
+
+			@colorTypeSelectorJ.change @onColorTypeChange
+
+			return
+
+		@popoverContent: ()=>
+			return @containerJ
+
+		@onColorPickerChange: (container, color)=>
+			@controller?.onColorPickerChange(container, color)
+			return
+
+		@onColorTypeChange: (event)=>
+			@controller?.onColorTypeChange(event.target.value)
+			return
+
+		@initialize()
+
+		constructor: (@name, @parameter, @folder)->
+			super(@name, @parameter, @folder)
+			@gradientTool = g.tools['Gradient']
+			@selectTool = g.tools['Select']
+			return
+
+		initialize: ()->
+			if @parameter.value? and @parameter.value.gradient?
+				@gradient = @parameter.value
+				firstStop = @parameter.value.gradient.stops?[0]
+				if firstStop?
+					console.log(firstStop.color?)
+					color = firstStop.color or new Color(firstStop[0])
+					@parameter.value = color.toCSS()
+				else
+					@parameter.value = 'black'
+			else
+				@gradient = null
+
+			super()
+
+			@colorInputJ = $(@datController.domElement).find('input')
+			@colorInputJ.css 'background-color': @parameter.value
+			@colorInputJ.popover( title: @parameter.label, container: 'body', placement: 'auto', content: @constructor.popoverContent, html: true )
+
+			@colorInputJ.addClass("color-input")
+			@enableCheckboxJ = $('<input type="checkbox">')
+			@enableCheckboxJ.insertBefore(@colorInputJ)
+			@enableCheckboxJ[0].checked = @parameter.value or @parameter.defaultCheck
+
+			@colorInputJ.on 'show.bs.popover', @popoverOnShow
+			@colorInputJ.on 'shown.bs.popover', @popoverOnShown
+			@colorInputJ.on 'hide.bs.popover', @popoverOnHide
+			@colorInputJ.on 'hide.bs.popover', @popoverOnHidden
+			@setPopoverOnHide()
 
 			@enableCheckboxJ.change(@enableCheckboxChanged)
 
 			return
 
-		getValue: ()->
-			return if @enableCheckboxJ[0].checked then colorInputJ.val() else null
+		popoverOnShow: (event)=>
+			previousController = @constructor.controller
 
-		setValue: (value)->
+			if previousController and previousController != @
+				previousController.colorInputJ.popover('hide')
+			return
+
+		popoverOnShown: (event)=>
+			@constructor.controller = @
+			@gradientTool.controller = @
+
+			@setColor(@getValue())
+
+			if @gradient
+				@gradientTool.select()
+			return
+
+		popoverOnHide: ()=>
+			popoverJ = $('#'+$(this).attr('aria-describedby'))
+			size = new Size(popoverJ.width(), popoverJ.height())
+			popoverJ.find('.color-picker').appendTo(g.templatesJ.find(".color-picker-container"))
+			popoverJ.width(size.width).height(size.height)
+
+			@constructor.controller = null
+			@gradientTool.controller = null
+
+			if @gradient
+				@selectTool.select()
+			return
+
+		popoverOnHidden: ()->
+			return
+
+		setPopoverOnHide: (onHide=@popoverOnHide)->
+			@colorInputJ.on 'hide.bs.popover', onHide
+			return
+
+		onChange: (value) =>
+			if value.gradient?
+				@gradient = value
+			else
+				@gradient = null
 			super(value)
+			return
+
+		onColorPickerChange: (container, color)->
+			if @ignoreNextColorChange then return
+			color = color.tiny.toRgbString()
+
+			@colorInputJ.css 'background-color': color
+			@colorInputJ.val(color)
+
+			if @gradient?
+				@gradientTool.colorChange(color, @)
+			else
+				@onChange(color)
+
+			@enableCheckboxJ[0].checked = true
+			return
+
+		onColorTypeChange: (value)->
+			switch value
+				when 'flat-color'
+					@gradient = null
+					@onChange(@getValue())
+					@selectTool.select()
+				when 'linear-gradient'
+					@gradientTool.controller = @
+					@gradientTool.setRadial(false)
+				when 'radial-gradient'
+					@gradientTool.controller = @
+					@gradientTool.setRadial(true)
+			return
+
+		getValue: ()->
+			if @enableCheckboxJ[0].checked
+				return @gradient or @colorInputJ.val()
+			else
+				return null
+
+		setValue: (value, updateGradientTool=true)->
+			super(value)
+			if value?.gradient?
+				@gradient = value
+			else
+				@gradient = null
+			@setColor(value)
 			@enableCheckboxJ[0].checked = value?
-			@colorInputJ.trigger("colorpickersliders.updateColor", value)
+			if updateGradientTool
+				@gradientTool.controller = @
+				@gradientTool.initialize(false)
+			return
+
+		setColor: (color)->
+			if @gradient
+				if @gradient.gradient?.radial
+					@constructor.colorTypeSelectorJ.find('[value="radial-gradient"]').prop('selected', true)
+				else
+					@constructor.colorTypeSelectorJ.find('[value="linear-gradient"]').prop('selected', true)
+			else
+				@constructor.colorTypeSelectorJ.find('[value="flat-color"]').prop('selected', true)
+			@ignoreNextColorChange = true
+			@constructor.colorPickerJ.trigger("colorpickersliders.updateColor", color)
+			@ignoreNextColorChange = false
 			return
 
 		enableCheckboxChanged: (event)=>
-			@parameter.onChange(@getValue())
+			@onChange(@getValue())
 			return
 
-		gradientCheckboxChanged: (event)=>
-			@gradient = event.target.checked
-
-			if @gradient
-				g.tools['Gradient'].select(@)
-			else
-				g.tools['Select'].select()
-			return
-
-		initializeColorPicker: (event)=>
-			containerJ = $('#'+$(event.target).attr('aria-describedby'))
-			checkboxJ = $("<label><input type='checkbox' class='gradient-checkbox' form-control>Gradient</label>")
-			checkboxJ.insertBefore(containerJ.find('.cp-preview'))
-			checkboxJ.css( 'color': 'black' )
-
-			checkboxJ.find('input').click(@gradientCheckboxChanged)
-
-			if @gradient
-				checkboxJ.find('input').attr('checked', true)
-				g.tools['Gradient'].select(@)
-
-			return
-
-		colorPickerChanged: (container, color)=>
-			color = color.tiny.toRgbString()
-
-			if @gradient
-				g.tools['Gradient'].colorChange(color, @)
-			else
-				@parameter.onChange(color)
-
-			@enableCheckboxJ[0].checked = true
+		remove: ()->
+			@colorInputJ.popover('destroy')
+			super()
 			return
 
 	g.ColorController = ColorController
@@ -1040,10 +1148,17 @@ define [
 			return
 
 		remove: ()->
+			for name, controller of @controllers
+				controller.remove()
+				delete @controller[name]
+			for name, folder of @folders
+				folder.remove()
+				delete @folders[name]
 			@datFolder.close()
 			$(@datFolder.domElement).parent().remove()
 			delete @datFolder.parent.__folders[@datFolder.name]
 			g.gui.onResize()
+			delete g.controllerManager.folders[@name]
 			return
 
 	g.Folder = Folder
@@ -1116,11 +1231,11 @@ define [
 					controller.parameter.initializeController?(controller)
 			return
 
-		resetControllers: ()->
-			for folderName, folder of @folders
-				for name, controller of folder.controllers
-					controller.reset()
-			return
+		# resetControllers: ()->
+		# 	for folderName, folder of @folders
+		# 		for name, controller of folder.controllers
+		# 			controller.reset()
+		# 	return
 
 		initializeValue: (name, parameter, firstItem)->
 			value = null
@@ -1133,30 +1248,30 @@ define [
 			return value
 
 		updateControllers: (tools, resetValues=false)->
-			@resetControllers()
+			# @resetControllers()
 
-			for name, toolType in tools
+			for name, tool of tools
 
-				for folderName, folderParameters of toolTypes.parameters
+				for folderName, folderParameters of tool.parameters
 
 					if folderName == 'General' then continue
 
 					folder = @folders[folderName]
 					folder ?= new g.Folder(folderName, folderParameters.folderIsClosedByDefault)
-					delete folderParameters.folderIsClosedByDefault
 
 					for name, parameter of folderParameters  							# for all parameters of the folder
+						if name == 'folderIsClosedByDefault' then continue
 
 						controller = folder.controllers[name]
 
-						parameter.value = @initializeValue(name, parameter, toolType.items.first())
+						parameter.value = @initializeValue(name, parameter, tool.items.first())
 
 						if controller?
-							if resetValues then controller.setValue(parameter.value)
+							if resetValues then controller.setValue(parameter.value, false)
 						else
 							controller ?= @createController(name, parameter, folder)
 
-						if @parameter.addController then controller.addItems(toolType.items)
+						parameter.controller = controller
 
 						controller.used = true
 
@@ -1174,7 +1289,7 @@ define [
 
 			for item in g.selectedItems
 
-				tools[item.constructor.name] ?= parameters: item.constructor.parameters(), items: []
+				tools[item.constructor.name] ?= parameters: item.constructor.parameters, items: []
 				tools[item.constructor.name].items.push(item)
 
 			@updateControllers(tools, true)
@@ -1183,7 +1298,7 @@ define [
 		setSelectedTool: (tool)->
 			g.cancelCallNextFrame('updateParametersForSelectedItems')
 			tools = {}
-			tools[tool.constructor.name] = parameter: tool.constructor.parameters(), items: []
+			tools[tool.name] = parameters: tool.parameters, items: []
 			@updateControllers(tools, false)
 			return
 

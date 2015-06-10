@@ -537,7 +537,6 @@ define [
 		# g.backgroundCanvasJ.height(window.innerHeight)
 		# g.backgroundContext = g.backgroundCanvas.getContext('2d')
 
-		g.templatesJ = $("#templates")
 		g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
 		g.selectionLayer = null					# paper layer containing all selected paper items
 		g.polygonMode = false					# whether to draw in polygon mode or not (in polygon mode: each time the user clicks a point

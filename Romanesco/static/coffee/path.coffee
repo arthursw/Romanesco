@@ -57,7 +57,7 @@ define [
 
 		# parameters are defined as in {RTool}
 		# The following parameters are reserved for romanesco: id, polygonMode, points, planet, step, smooth, speeds, showSpeeds
-		@parameters: ()->
+		@initializeParameters: ()->
 			return parameters =
 				'Items':
 					# zoom: g.parameters.zoom
@@ -100,6 +100,8 @@ define [
 						label: 'Shadow color'
 						default: '#000'
 						defaultCheck: false
+
+		@parameters = @initializeParameters()
 
 		@create: (duplicateData)->
 			duplicateData ?= @getDuplicateData()
@@ -269,8 +271,8 @@ define [
 		# @param value [Anything] the new value
 		# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from SetParameterCommand
 
-		setParameter: (name, value, updateGUI, update)->
-			super(name, value, updateGUI, update)
+		setParameter: (controller, value, updateGUI, update)->
+			super(controller, value, updateGUI, update)
 			# if not @drawing then g.updateView() 	# update the view if it was rasterized
 			@previousBoundingBox ?= @getDrawingBounds()
 			@draw()		# if draw in simple mode, then how to see the change of simplified parameters?
@@ -668,7 +670,7 @@ define [
 
 		@renderType = 'simple'
 
-		@parameters: ()->
+		@initializeParameters: ()->
 
 			parameters = super()
 
@@ -707,6 +709,8 @@ define [
 					default: true
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		# overload {RPath#constructor}
 		constructor: (@date=null, @data=null, @pk=null, points=null, @lock) ->
@@ -1116,7 +1120,7 @@ define [
 			@selectionHighlight.strokeColor = g.selectionBlue
 			@selectionHighlight.strokeWidth = 1
 			g.selectionLayer.addChild(@selectionHighlight)
-			@parameterControllers?.pointType?.setValue(@selectionState.segment.rtype)
+			@constructor.parameters['Edit curve'].pointType.controller.setValue(@selectionState.segment.rtype)
 			return
 
 		# redefine {RPath#initializeSelection}
@@ -1496,9 +1500,9 @@ define [
 
 		# overload {RPath#parameterChanged}, but update the control path state if 'smooth' was changed
 		# called when a parameter is changed
-		setParameter: (name, value, updateGUI, update)->
-			super(name, value, updateGUI, update)
-			switch name
+		setParameter: (controller, value, updateGUI, update)->
+			super(controller, value, updateGUI, update)
+			switch controller.name
 				when 'showSelectionRectangle'
 					@selectionRectangle?.selected = @data.showSelectionRectangle
 					@selectionRectangle?.visible = @data.showSelectionRectangle
@@ -1532,7 +1536,7 @@ define [
 		@speedStep = 20
 		@secureStep = 25
 
-		@parameters: ()->
+		@initializeParameters: ()->
 
 			parameters = super()
 
@@ -1548,6 +1552,8 @@ define [
 					default: true
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		# overloads {PrecisePath#initializeDrawing}
 		initializeDrawing: (createCanvas=false)->
@@ -1958,7 +1964,7 @@ define [
 		# The thickness path adds two parameters in the options bar:
 		# step: a number which defines the size of the steps along the control path (@data.step is already defined in precise path, this will bind it to the options bar)
 		# trackWidth: a number to control the stroke width (factor of the speed)
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 
 			# override the default parameters, we do not need a stroke width, a stroke color and a fill color
@@ -1986,6 +1992,8 @@ define [
 				label: 'Use canvas'
 				default: false
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		beginDraw: ()->
 			@initializeDrawing(false)
@@ -2050,7 +2058,7 @@ define [
 		# rsmooth: whether the path is smoothed or not (not that @data.smooth is already used
 		# 			to define if one can edit the control path handles or if they are automatically set)
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 			parameters['Parameters'] ?= {}
 			parameters['Parameters'].step =
@@ -2074,6 +2082,8 @@ define [
 				default: false
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		beginDraw: ()->
 			@initializeDrawing(false)
@@ -2160,7 +2170,7 @@ define [
 		@rname = 'Grid path'
 		@rdescription = "Draws a grid along the path, the thickness of the grid being function of the speed of the drawing."
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 
 			parameters['Parameters'] ?= {}
@@ -2227,6 +2237,8 @@ define [
 				default: true
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		beginDraw: ()->
 			@initializeDrawing(false)
@@ -2325,7 +2337,7 @@ define [
 		@iconURL = 'static/images/icons/inverted/links.png'
 		@iconAlt = 'links'
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 			# override the default color function, since we get better results with a very transparent color
 			parameters['Style'].strokeColor.defaultFunction = null
@@ -2350,6 +2362,8 @@ define [
 				simplified: 100
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		beginDraw: ()->
 			@initializeDrawing(true)
@@ -2390,7 +2404,7 @@ define [
 		@iconURL = 'static/images/icons/inverted/brush.png'
 		@iconAlt = 'brush'
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 			delete parameters['Style'].fillColor 	# remove the fill color, we do not need it
 
@@ -2417,6 +2431,8 @@ define [
 				default: 20
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		getDrawingBounds: ()->
 			return @getBounds().expand(@data.size)
@@ -2470,7 +2486,7 @@ define [
 		# "http://thenounproject.com/term/spray-paint/18249/"
 		# "http://thenounproject.com/term/spray-paint/17918/"
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 			delete parameters['Style'].fillColor 	# remove the fill color, we do not need it
 			parameters['Edit curve'].showSpeed.default = false
@@ -2500,6 +2516,8 @@ define [
 				default: false
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		getDrawingBounds: ()->
 			width = 0
@@ -2603,7 +2621,7 @@ define [
 		# "http://thenounproject.com/term/spray-paint/18249/"
 		# "http://thenounproject.com/term/spray-paint/17918/"
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 			delete parameters['Style'].fillColor 	# remove the fill color, we do not need it
 			parameters['Edit curve'].showSpeed.default = false
@@ -2899,7 +2917,7 @@ define [
 		@rname = 'Shape path'
 		@rdescription = "Draws rectangles or ellipses along the path. The size of the shapes is function of the drawing speed."
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 
 			parameters['Parameters'] ?= {}
@@ -2945,6 +2963,8 @@ define [
 				default: 200
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		beginDraw: ()->
 			@initializeDrawing(false)
@@ -3167,7 +3187,7 @@ define [
 		@iconURL = 'static/images/icons/inverted/rectangle.png'
 		@iconAlt = 'rectangle'
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 			parameters['Style'] ?= {}
 			parameters['Style'].cornerRadius =
@@ -3177,6 +3197,8 @@ define [
 				max: 100
 				default: 0
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		createShape: ()->
 			@shape = @addPath(new @constructor.Shape(@rectangle, @data.cornerRadius)) 			# @constructor.Shape is a Path.Rectangle
@@ -3209,7 +3231,7 @@ define [
 		@iconURL = 'static/images/icons/inverted/star.png'
 		@iconAlt = 'star'
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 			parameters['Style'] ?= {}
 			parameters['Style'].nPoints =
@@ -3234,6 +3256,8 @@ define [
 				label: 'Animate'
 				default: false
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		# animted paths must be initialized
 		initialize: ()->
@@ -3276,7 +3300,7 @@ define [
 		@iconURL = 'static/images/icons/inverted/spiral.png'
 		@iconAlt = 'spiral'
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 
 			parameters['Parameters'] ?= {}
@@ -3310,6 +3334,8 @@ define [
 				default: 1
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		# animted paths must be initialized
 		initialize: ()->
@@ -3363,7 +3389,7 @@ define [
 	# 	# @iconAlt = 'spiral'
 	# 	@rdescription = "Face generator, inspired by weird faces study by Matthias Dörfelt aka mokafolio."
 
-	# 	@parameters: ()->
+	# 	parameters: ()->
 	# 		parameters = super()
 
 	# 		parameters['Parameters'] ?= {}
@@ -3465,7 +3491,7 @@ define [
 	#   @rname = 'Quantification path'
 	#   @rdescription = "Quantification path."
 
-	#   @parameters: ()->
+	#   parameters: ()->
 	#     parameters = super()
 
 	#     parameters['Parameters'] ?= {}
@@ -3509,7 +3535,7 @@ define [
 	# 	@rname = 'new Path'
 	# 	@rdescription = "New tool description."
 
-	# 	@parameters: ()->
+	# 	parameters: ()->
 	# 		parameters = super()
 	# 		###
 	# 		parameters['Parameters'] ?= {}
@@ -3558,8 +3584,10 @@ define [
 		@category = 'Video game/Racer'
 		@squareByDefault = false
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			return {} 		# we do not need any parameter
+
+		@parameters = @initializeParameters()
 
 		# register the checkpoint if we are on a video game
 		initialize: ()->
@@ -3606,7 +3634,7 @@ define [
 		@rdescription = "Creates a stripe animation from a set sequence of image."
 		@squareByDefault = false
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 
 			parameters['Parameters'] ?= {}
@@ -3630,6 +3658,8 @@ define [
 				default: 0.1
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		# animted paths must be initialized
 		initialize: ()->
@@ -3815,7 +3845,7 @@ define [
 		@rdescription = "Creates a bunch of aniamted Medusa."
 		@squareByDefault = true
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 
 			parameters['Parameters'] ?= {}
@@ -3839,6 +3869,8 @@ define [
 				default: 0.1
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		# animted paths must be initialized
 		initialize: ()->

@@ -270,30 +270,30 @@ define [
 	class SetParameterCommand extends Command
 
 		constructor: (@item, args)->
-			@parameterName = args[0]
-			@previousValue = @item.data[@parameterName]
-			super('Change item parameter "' + @parameterName + '"')
+			@controller = args[0]
+			@previousValue = @item.data[@controller.name]
+			super('Change item parameter "' + @controller.name + '"')
 			return
 
 		do: ()->
-			@item.setParameter(@parameterName, @value, true)
+			@item.setParameter(@controller, @value, true)
 			super()
 			return
 
 		undo: ()->
-			@item.setParameter(@parameterName, @previousValue, true)
+			@item.setParameter(@controller, @previousValue, true)
 			super()
 			return
 
-		update: (name, value)->
-			@item.setParameter(name, value)
+		update: (controller, value)->
+			@item.setParameter(controller, value)
 			return
 
 		end: (valid)->
-			@value = @item.data[@parameterName]
+			@value = @item.data[@controller.name]
 			if @value == @previousValue then return false
 			if not valid then return
-			@item.update(@parameterName)
+			@item.update(@controller.name)
 			super()
 			return true
 

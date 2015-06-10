@@ -115,9 +115,9 @@
         return locks;
       };
 
-      RLock.parameters = function() {
+      RLock.initializeParameters = function() {
         var fillColor, parameters, strokeColor, strokeWidth;
-        parameters = RLock.__super__.constructor.parameters.call(this);
+        parameters = RLock.__super__.constructor.initializeParameters.call(this);
         strokeWidth = $.extend(true, {}, g.parameters.strokeWidth);
         strokeWidth["default"] = 1;
         strokeColor = $.extend(true, {}, g.parameters.strokeColor);
@@ -155,6 +155,8 @@
         };
         return parameters;
       };
+
+      RLock.parameters = RLock.initializeParameters();
 
       function RLock(rectangle, data, pk, owner, date, modulePk) {
         var item, pkString, title, titleJ, _i, _len, _ref, _ref1;
@@ -261,9 +263,9 @@
         this.group.addChild(this.drawing);
       };
 
-      RLock.prototype.setParameter = function(name, value, updateGUI, update) {
-        RLock.__super__.setParameter.call(this, name, value, updateGUI, update);
-        switch (name) {
+      RLock.prototype.setParameter = function(controller, value, updateGUI, update) {
+        RLock.__super__.setParameter.call(this, controller, value, updateGUI, update);
+        switch (controller.name) {
           case 'strokeWidth':
           case 'strokeColor':
           case 'fillColor':
@@ -615,12 +617,14 @@
 
       RLink.object_type = 'link';
 
-      RLink.parameters = function() {
+      RLink.initializeParameters = function() {
         var parameters;
-        parameters = RLink.__super__.constructor.parameters.call(this);
+        parameters = RLink.__super__.constructor.initializeParameters.call(this);
         delete parameters['Lock'];
         return parameters;
       };
+
+      RLink.parameters = RLink.initializeParameters();
 
       function RLink(rectangle, data, pk, owner, date) {
         var _ref;

@@ -23,7 +23,7 @@
 
       RPath.constructor.secureDistance = 2;
 
-      RPath.parameters = function() {
+      RPath.initializeParameters = function() {
         var parameters;
         return parameters = {
           'Items': {
@@ -78,6 +78,8 @@
           }
         };
       };
+
+      RPath.parameters = RPath.initializeParameters();
 
       RPath.create = function(duplicateData) {
         var copy;
@@ -224,8 +226,8 @@
 
       RPath.prototype.loadPath = function(points) {};
 
-      RPath.prototype.setParameter = function(name, value, updateGUI, update) {
-        RPath.__super__.setParameter.call(this, name, value, updateGUI, update);
+      RPath.prototype.setParameter = function(controller, value, updateGUI, update) {
+        RPath.__super__.setParameter.call(this, controller, value, updateGUI, update);
         if (this.previousBoundingBox == null) {
           this.previousBoundingBox = this.getDrawingBounds();
         }
@@ -543,9 +545,9 @@
 
       PrecisePath.renderType = 'simple';
 
-      PrecisePath.parameters = function() {
+      PrecisePath.initializeParameters = function() {
         var parameters;
-        parameters = PrecisePath.__super__.constructor.parameters.call(this);
+        parameters = PrecisePath.__super__.constructor.initializeParameters.call(this);
         if (this.polygonMode) {
           parameters['Items'].polygonMode = {
             type: 'checkbox',
@@ -626,6 +628,8 @@
         };
         return parameters;
       };
+
+      PrecisePath.parameters = PrecisePath.initializeParameters();
 
       function PrecisePath(date, data, pk, points, lock) {
         this.date = date != null ? date : null;
@@ -1003,7 +1007,7 @@
       };
 
       PrecisePath.prototype.highlightSelectedPoint = function() {
-        var offset, point, _base, _ref, _ref1, _ref2;
+        var offset, point, _base, _ref;
         if (!this.controlPath.selected) {
           return;
         }
@@ -1034,11 +1038,7 @@
         this.selectionHighlight.strokeColor = g.selectionBlue;
         this.selectionHighlight.strokeWidth = 1;
         g.selectionLayer.addChild(this.selectionHighlight);
-        if ((_ref1 = this.parameterControllers) != null) {
-          if ((_ref2 = _ref1.pointType) != null) {
-            _ref2.setValue(this.selectionState.segment.rtype);
-          }
-        }
+        this.constructor.parameters['Edit curve'].pointType.controller.setValue(this.selectionState.segment.rtype);
       };
 
       PrecisePath.prototype.initializeSelection = function(event, hitResult) {
@@ -1483,10 +1483,10 @@
         this.modifyControlPathCommand(previousPointsAndPlanet, this.getPointsAndPlanet());
       };
 
-      PrecisePath.prototype.setParameter = function(name, value, updateGUI, update) {
+      PrecisePath.prototype.setParameter = function(controller, value, updateGUI, update) {
         var _ref, _ref1;
-        PrecisePath.__super__.setParameter.call(this, name, value, updateGUI, update);
-        switch (name) {
+        PrecisePath.__super__.setParameter.call(this, controller, value, updateGUI, update);
+        switch (controller.name) {
           case 'showSelectionRectangle':
             if ((_ref = this.selectionRectangle) != null) {
               _ref.selected = this.data.showSelectionRectangle;
@@ -1533,9 +1533,9 @@
 
       SpeedPath.secureStep = 25;
 
-      SpeedPath.parameters = function() {
+      SpeedPath.initializeParameters = function() {
         var parameters;
-        parameters = SpeedPath.__super__.constructor.parameters.call(this);
+        parameters = SpeedPath.__super__.constructor.initializeParameters.call(this);
         parameters['Edit curve'].showSpeed = {
           type: 'checkbox',
           label: 'Show speed',
@@ -1550,6 +1550,8 @@
         }
         return parameters;
       };
+
+      SpeedPath.parameters = SpeedPath.initializeParameters();
 
       SpeedPath.prototype.initializeDrawing = function(createCanvas) {
         if (createCanvas == null) {
@@ -1976,9 +1978,9 @@
 
       ThicknessPath.iconAlt = 'roller brush';
 
-      ThicknessPath.parameters = function() {
+      ThicknessPath.initializeParameters = function() {
         var parameters;
-        parameters = ThicknessPath.__super__.constructor.parameters.call(this);
+        parameters = ThicknessPath.__super__.constructor.initializeParameters.call(this);
         parameters['Style'].strokeWidth["default"] = 0;
         parameters['Style'].strokeColor.defaultCheck = false;
         parameters['Style'].fillColor.defaultCheck = true;
@@ -2008,6 +2010,8 @@
         };
         return parameters;
       };
+
+      ThicknessPath.parameters = ThicknessPath.initializeParameters();
 
       ThicknessPath.prototype.beginDraw = function() {
         this.initializeDrawing(false);
@@ -2065,9 +2069,9 @@
 
       Meander.iconAlt = 'square spiral';
 
-      Meander.parameters = function() {
+      Meander.initializeParameters = function() {
         var parameters;
-        parameters = Meander.__super__.constructor.parameters.call(this);
+        parameters = Meander.__super__.constructor.initializeParameters.call(this);
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
         }
@@ -2095,6 +2099,8 @@
         };
         return parameters;
       };
+
+      Meander.parameters = Meander.initializeParameters();
 
       Meander.prototype.beginDraw = function() {
         this.initializeDrawing(false);
@@ -2155,9 +2161,9 @@
 
       GridPath.rdescription = "Draws a grid along the path, the thickness of the grid being function of the speed of the drawing.";
 
-      GridPath.parameters = function() {
+      GridPath.initializeParameters = function() {
         var parameters;
-        parameters = GridPath.__super__.constructor.parameters.call(this);
+        parameters = GridPath.__super__.constructor.initializeParameters.call(this);
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
         }
@@ -2235,6 +2241,8 @@
         };
         return parameters;
       };
+
+      GridPath.parameters = GridPath.initializeParameters();
 
       GridPath.prototype.beginDraw = function() {
         var i, nLines, _i;
@@ -2347,9 +2355,9 @@
 
       GeometricLines.iconAlt = 'links';
 
-      GeometricLines.parameters = function() {
+      GeometricLines.initializeParameters = function() {
         var parameters;
-        parameters = GeometricLines.__super__.constructor.parameters.call(this);
+        parameters = GeometricLines.__super__.constructor.initializeParameters.call(this);
         parameters['Style'].strokeColor.defaultFunction = null;
         parameters['Style'].strokeColor["default"] = "rgba(39, 158, 224, 0.21)";
         delete parameters['Style'].fillColor;
@@ -2375,6 +2383,8 @@
         };
         return parameters;
       };
+
+      GeometricLines.parameters = GeometricLines.initializeParameters();
 
       GeometricLines.prototype.beginDraw = function() {
         this.initializeDrawing(true);
@@ -2425,9 +2435,9 @@
 
       PaintBrush.iconAlt = 'brush';
 
-      PaintBrush.parameters = function() {
+      PaintBrush.initializeParameters = function() {
         var parameters;
-        parameters = PaintBrush.__super__.constructor.parameters.call(this);
+        parameters = PaintBrush.__super__.constructor.initializeParameters.call(this);
         delete parameters['Style'].fillColor;
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
@@ -2457,6 +2467,8 @@
         };
         return parameters;
       };
+
+      PaintBrush.parameters = PaintBrush.initializeParameters();
 
       PaintBrush.prototype.getDrawingBounds = function() {
         return this.getBounds().expand(this.data.size);
@@ -2510,9 +2522,9 @@
 
       PaintGun.rdescription = "The stroke width is function of the drawing speed: the faster the wider.";
 
-      PaintGun.parameters = function() {
+      PaintGun.initializeParameters = function() {
         var parameters;
-        parameters = PaintGun.__super__.constructor.parameters.call(this);
+        parameters = PaintGun.__super__.constructor.initializeParameters.call(this);
         delete parameters['Style'].fillColor;
         parameters['Edit curve'].showSpeed["default"] = false;
         if (parameters['Parameters'] == null) {
@@ -2546,6 +2558,8 @@
         };
         return parameters;
       };
+
+      PaintGun.parameters = PaintGun.initializeParameters();
 
       PaintGun.prototype.getDrawingBounds = function() {
         var width;
@@ -2647,9 +2661,9 @@
 
       DynamicBrush.polygonMode = false;
 
-      DynamicBrush.parameters = function() {
+      DynamicBrush.initializeParameters = function() {
         var parameters;
-        parameters = DynamicBrush.__super__.constructor.parameters.call(this);
+        parameters = DynamicBrush.__super__.constructor.initializeParameters.call(this);
         delete parameters['Style'].fillColor;
         parameters['Edit curve'].showSpeed["default"] = false;
         if (parameters['Parameters'] == null) {
@@ -2930,9 +2944,9 @@
 
       ShapePath.rdescription = "Draws rectangles or ellipses along the path. The size of the shapes is function of the drawing speed.";
 
-      ShapePath.parameters = function() {
+      ShapePath.initializeParameters = function() {
         var parameters;
-        parameters = ShapePath.__super__.constructor.parameters.call(this);
+        parameters = ShapePath.__super__.constructor.initializeParameters.call(this);
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
         }
@@ -2985,6 +2999,8 @@
         };
         return parameters;
       };
+
+      ShapePath.parameters = ShapePath.initializeParameters();
 
       ShapePath.prototype.beginDraw = function() {
         this.initializeDrawing(false);
@@ -3222,9 +3238,9 @@
 
       RectangleShape.iconAlt = 'rectangle';
 
-      RectangleShape.parameters = function() {
+      RectangleShape.initializeParameters = function() {
         var parameters;
-        parameters = RectangleShape.__super__.constructor.parameters.call(this);
+        parameters = RectangleShape.__super__.constructor.initializeParameters.call(this);
         if (parameters['Style'] == null) {
           parameters['Style'] = {};
         }
@@ -3237,6 +3253,8 @@
         };
         return parameters;
       };
+
+      RectangleShape.parameters = RectangleShape.initializeParameters();
 
       RectangleShape.prototype.createShape = function() {
         this.shape = this.addPath(new this.constructor.Shape(this.rectangle, this.data.cornerRadius));
@@ -3295,9 +3313,9 @@
 
       StarShape.iconAlt = 'star';
 
-      StarShape.parameters = function() {
+      StarShape.initializeParameters = function() {
         var parameters;
-        parameters = StarShape.__super__.constructor.parameters.call(this);
+        parameters = StarShape.__super__.constructor.initializeParameters.call(this);
         if (parameters['Style'] == null) {
           parameters['Style'] = {};
         }
@@ -3328,6 +3346,8 @@
         };
         return parameters;
       };
+
+      StarShape.parameters = StarShape.initializeParameters();
 
       StarShape.prototype.initialize = function() {
         this.setAnimated(this.data.animate);
@@ -3379,9 +3399,9 @@
 
       SpiralShape.iconAlt = 'spiral';
 
-      SpiralShape.parameters = function() {
+      SpiralShape.initializeParameters = function() {
         var parameters;
-        parameters = SpiralShape.__super__.constructor.parameters.call(this);
+        parameters = SpiralShape.__super__.constructor.initializeParameters.call(this);
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
         }
@@ -3420,6 +3440,8 @@
         };
         return parameters;
       };
+
+      SpiralShape.parameters = SpiralShape.initializeParameters();
 
       SpiralShape.prototype.initialize = function() {
         this.setAnimated(this.data.animate);
@@ -3477,9 +3499,11 @@
 
       Checkpoint.squareByDefault = false;
 
-      Checkpoint.parameters = function() {
+      Checkpoint.initializeParameters = function() {
         return {};
       };
+
+      Checkpoint.parameters = Checkpoint.initializeParameters();
 
       Checkpoint.prototype.initialize = function() {
         var _base;
@@ -3543,9 +3567,9 @@
 
       StripeAnimation.squareByDefault = false;
 
-      StripeAnimation.parameters = function() {
+      StripeAnimation.initializeParameters = function() {
         var parameters;
-        parameters = StripeAnimation.__super__.constructor.parameters.call(this);
+        parameters = StripeAnimation.__super__.constructor.initializeParameters.call(this);
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
         }
@@ -3572,6 +3596,8 @@
         };
         return parameters;
       };
+
+      StripeAnimation.parameters = StripeAnimation.initializeParameters();
 
       StripeAnimation.prototype.initialize = function() {
         var dropZone, handleDragOver, handleFileSelect, modalBodyJ, modalContentJ;
@@ -3727,9 +3753,9 @@
 
       Medusa.squareByDefault = true;
 
-      Medusa.parameters = function() {
+      Medusa.initializeParameters = function() {
         var parameters;
-        parameters = Medusa.__super__.constructor.parameters.call(this);
+        parameters = Medusa.__super__.constructor.initializeParameters.call(this);
         if (parameters['Parameters'] == null) {
           parameters['Parameters'] = {};
         }
@@ -3756,6 +3782,8 @@
         };
         return parameters;
       };
+
+      Medusa.parameters = Medusa.initializeParameters();
 
       Medusa.prototype.initialize = function() {
         this.data.animate = true;

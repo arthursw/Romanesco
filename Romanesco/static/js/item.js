@@ -57,7 +57,7 @@
         tolerance: 5
       };
 
-      RItem.parameters = function() {
+      RItem.initializeParameters = function() {
         var parameters;
         parameters = {
           'Items': {
@@ -73,6 +73,8 @@
         };
         return parameters;
       };
+
+      RItem.parameters = RItem.initializeParameters();
 
       RItem.create = function(duplicateData) {
         var copy;
@@ -99,10 +101,12 @@
           this.id = ((_ref = this.data) != null ? _ref.id : void 0) != null ? this.data.id : Math.random();
           g.items[this.id] = this;
         }
-        if (this.data == null) {
+        if (this.data != null) {
+          this.secureData();
+        } else {
           this.data = new Object();
+          g.controllerManager.updateItemData(this);
         }
-        g.controllerManager.updateItemData(this);
         if (this.rectangle == null) {
           this.rectangle = null;
         }
@@ -114,16 +118,37 @@
         return;
       }
 
-      RItem.prototype.setParameterCommand = function(name, value) {
-        this.deferredAction(g.SetParameterCommand, name, value);
+      RItem.prototype.secureData = function() {
+        var name, parameter, value, _ref;
+        _ref = this.constructor.parameters;
+        for (name in _ref) {
+          parameter = _ref[name];
+          if (parameter.secure != null) {
+            this.data[name] = parameter.secure(this.data, parameter);
+          } else {
+            value = this.data[name];
+            if ((value != null) && (parameter.min != null) && (parameter.max != null)) {
+              if (value < parameter.min || value > parameter.max) {
+                this.data[name] = g.clamp(parameter.min, value, parameter.max);
+              }
+            }
+          }
+        }
       };
 
-      RItem.prototype.setParameter = function(name, value, update) {
+      RItem.prototype.setParameterCommand = function(controller, value) {
+        this.deferredAction(g.SetParameterCommand, controller, value);
+      };
+
+      RItem.prototype.setParameter = function(controller, value, update) {
+        var name;
+        name = controller.name;
         this.data[name] = value;
         this.changed = name;
         if (!this.socketAction) {
           if (update) {
             this.update(name);
+            controller.setValue(value);
           }
           g.chatSocket.emit("bounce", {
             itemPk: this.pk,
@@ -635,12 +660,15 @@
         9: 'bottom'
       };
 
-      RContent.parameters = function() {
+      RContent.initializeParameters = function() {
         var parameters;
-        parameters = RContent.__super__.constructor.parameters.call(this);
+        parameters = RContent.__super__.constructor.initializeParameters.call(this);
+        delete parameters['Items'].align;
         parameters['Items'].duplicate = g.parameters.duplicate;
         return parameters;
       };
+
+      RContent.parameters = RContent.initializeParameters();
 
       function RContent(data, pk, date, itemListJ, sortedItems) {
         this.data = data;

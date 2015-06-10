@@ -22,9 +22,7 @@ define [
 		@zIndexMax = 100000
 
 		# parameters are defined as in {RTool}
-		@parameters: ()->
-			if @parameters then return @parameters
-
+		@initializeParameters: ()->
 			parameters = super()
 
 			strokeWidth = $.extend(true, {}, g.parameters.strokeWidth)
@@ -35,26 +33,9 @@ define [
 			parameters['Style'].strokeWidth = strokeWidth
 			parameters['Style'].strokeColor = strokeColor
 
-			@parameters = parameters
 			return parameters
 
-		@initializeParameters: ()->
-			# parameters = super()
-
-			strokeWidth = $.extend(true, {}, g.parameters.strokeWidth)
-			strokeWidth.default = 1
-			strokeColor = $.extend(true, {}, g.parameters.strokeColor)
-			strokeColor.default = 'black'
-
-			parameters = {}
-			parameters['Style'] ?= {}
-			parameters['Style'].strokeWidth = strokeWidth
-			parameters['Style'].strokeColor = strokeColor
-
-			@parameters = parameters
-			return parameters
-
-		@initializeParameters()
+		@parameters = @initializeParameters()
 
 		@updateHiddenDivs: (event)->
 			if g.hiddenDivs.length > 0
@@ -266,9 +247,9 @@ define [
 		# - from user action (parameter.onChange)
 		# @param name [String] the name of the value to change
 		# @param value [Anything] the new value
-		setParameter: (name, value)->
-			super(name, value)
-			switch name
+		setParameter: (controller, value)->
+			super(controller, value)
+			switch controller.name
 				when 'strokeWidth', 'strokeColor', 'fillColor'
 					@setCss()
 			return
@@ -380,7 +361,7 @@ define [
 		@object_type = 'text'
 
 		# parameters of the RText highly customize the gui (add functionnalities like font selector, etc.)
-		@parameters: ()->
+		@initializeParameters: ()->
 
 			parameters = super()
 
@@ -509,6 +490,8 @@ define [
 					defaultCheck: true 					# checked/activated by default or not
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		# overload {RDiv#constructor}
 		# initialize mouse event listeners to be able to select and edit text, bind key event listener to @textChanged
@@ -719,9 +702,9 @@ define [
 		# update = false when called by parameter.onChange from websocket
 		# overload {RDiv#setParameter}
 		# update text content and font styles, effects and colors
-		setParameter: (name, value)->
-			super(name, value)
-			switch name
+		setParameter: (controller, value)->
+			super(controller, value)
+			switch controller.name
 				when 'fontStyle', 'fontFamily', 'fontSize', 'effect', 'fontColor'
 					@setFont(false)
 				else
@@ -768,7 +751,7 @@ define [
 			g.RModal.show()
 			return
 
-		@parameters: ()->
+		@initializeParameters: ()->
 
 			parameters = super()
 
@@ -783,6 +766,8 @@ define [
 					default: false
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		constructor: (bounds, @data=null, @pk=null, @date, @lock=null) ->
 			super(bounds, @data, @pk, @date, @lock)
@@ -840,9 +825,9 @@ define [
 		# overload {RDiv#setParameter}
 		# update = false when called by parameter.onChange from websocket
 		# toggle fit image if required
-		setParameter: (name, value)->
-			super(name, value)
-			switch name
+		setParameter: (controller, value)->
+			super(controller, value)
+			switch controller.name
 				when 'fitImage'
 					@toggleFitImage()
 				when 'url'

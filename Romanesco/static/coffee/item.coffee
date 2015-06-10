@@ -46,7 +46,7 @@ define [
 			selected: true
 			tolerance: 5
 
-		@parameters: ()->
+		@initializeParameters: ()->
 
 			parameters =
 				'Items':
@@ -59,6 +59,8 @@ define [
 					fillColor: g.parameters.fillColor
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		@create: (duplicateData)->
 			copy = new @(duplicateData.rectangle, duplicateData.data)
@@ -77,8 +79,11 @@ define [
 				g.items[@id] = @
 
 			# creation of a new object by the user: set @data to g.gui values
-			@data ?= new Object()
-			g.controllerManager.updateItemData(@)
+			if @data?
+				@secureData()
+			else
+				@data = new Object()
+				g.controllerManager.updateItemData(@)
 
 			@rectangle ?= null
 
@@ -91,8 +96,19 @@ define [
 
 			return
 
-		setParameterCommand: (name, value)->
-			@deferredAction(g.SetParameterCommand, name, value)
+		secureData: ()->
+			for name, parameter of @constructor.parameters
+				if parameter.secure?
+					@data[name] = parameter.secure(@data, parameter)
+				else
+					value = @data[name]
+					if value? and parameter.min? and parameter.max?
+						if value < parameter.min or value > parameter.max
+							@data[name] = g.clamp(parameter.min, value, parameter.max)
+			return
+
+		setParameterCommand: (controller, value)->
+			@deferredAction(g.SetParameterCommand, controller, value)
 			# if @data[name] == value then return
 			# @setCurrentCommand(new SetParameterCommand(@, name))
 			# @setParameter(name, value)
@@ -101,11 +117,14 @@ define [
 
 		# @param name [String] the name of the value to change
 		# @param value [Anything] the new value
-		setParameter: (name, value, update)->
+		setParameter: (controller, value, update)->
+			name = controller.name
 			@data[name] = value
 			@changed = name
 			if not @socketAction
-				if update then @update(name)
+				if update
+					@update(name)
+					controller.setValue(value)
 				g.chatSocket.emit "bounce", itemPk: @pk, function: "setParameter", arguments: [name, value, false, false]
 			return
 
@@ -552,10 +571,13 @@ define [
 			8: 'bottomRight'
 			9: 'bottom'
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
+			delete parameters['Items'].align
 			parameters['Items'].duplicate = g.parameters.duplicate
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		constructor: (@data, @pk, @date, itemListJ, @sortedItems)->
 			super(@data, @pk)

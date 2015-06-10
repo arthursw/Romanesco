@@ -127,7 +127,7 @@ define [
 		# 			lock = item
 		# 	return lock
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 
 			strokeWidth = $.extend(true, {}, g.parameters.strokeWidth)
@@ -159,6 +159,8 @@ define [
 						return
 
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		constructor: (@rectangle, @data=null, @pk=null, @owner=null, @date, @modulePk) ->
 			super(@data, @pk)
@@ -240,9 +242,9 @@ define [
 		# @param name [String] the name of the value to change
 		# @param value [Anything] the new value
 		# @param updateGUI [Boolean] (optional, default is false) whether to update the GUI (parameters bar), true when called from SetParameterCommand
-		setParameter: (name, value, updateGUI, update)->
-			super(name, value, updateGUI, update)
-			switch name
+		setParameter: (controller, value, updateGUI, update)->
+			super(controller, value, updateGUI, update)
+			switch controller.name
 				when 'strokeWidth', 'strokeColor', 'fillColor'
 					if not @raster?
 						@drawing[name] = @data[name]
@@ -520,10 +522,12 @@ define [
 		@modalTitleUpdate = "Modify your link"
 		@object_type = 'link'
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters = super()
 			delete parameters['Lock']
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		constructor: (@rectangle, @data=null, @pk=null, @owner=null, date=null) ->
 			super(@rectangle, @data, @pk, @owner, date)

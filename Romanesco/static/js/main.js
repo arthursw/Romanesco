@@ -333,7 +333,6 @@
       g.canvas.width = window.innerWidth;
       g.canvas.height = window.innerHeight;
       g.context = g.canvas.getContext('2d');
-      g.templatesJ = $("#templates");
       g.me = null;
       g.selectionLayer = null;
       g.polygonMode = false;

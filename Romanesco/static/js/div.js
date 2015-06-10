@@ -15,39 +15,19 @@
 
       RDiv.zIndexMax = 100000;
 
-      RDiv.parameters = function() {
-        var parameters, strokeColor, strokeWidth;
-        if (this.parameters) {
-          return this.parameters;
-        }
-        parameters = RDiv.__super__.constructor.parameters.call(this);
-        strokeWidth = $.extend(true, {}, g.parameters.strokeWidth);
-        strokeWidth["default"] = 1;
-        strokeColor = $.extend(true, {}, g.parameters.strokeColor);
-        strokeColor["default"] = 'black';
-        parameters['Style'].strokeWidth = strokeWidth;
-        parameters['Style'].strokeColor = strokeColor;
-        this.parameters = parameters;
-        return parameters;
-      };
-
       RDiv.initializeParameters = function() {
         var parameters, strokeColor, strokeWidth;
+        parameters = RDiv.__super__.constructor.initializeParameters.call(this);
         strokeWidth = $.extend(true, {}, g.parameters.strokeWidth);
         strokeWidth["default"] = 1;
         strokeColor = $.extend(true, {}, g.parameters.strokeColor);
         strokeColor["default"] = 'black';
-        parameters = {};
-        if (parameters['Style'] == null) {
-          parameters['Style'] = {};
-        }
         parameters['Style'].strokeWidth = strokeWidth;
         parameters['Style'].strokeColor = strokeColor;
-        this.parameters = parameters;
         return parameters;
       };
 
-      RDiv.initializeParameters();
+      RDiv.parameters = RDiv.initializeParameters();
 
       RDiv.updateHiddenDivs = function(event) {
         var div, point, projectPoint, _i, _len, _ref;
@@ -295,9 +275,9 @@
         this.maskJ.hide();
       };
 
-      RDiv.prototype.setParameter = function(name, value) {
-        RDiv.__super__.setParameter.call(this, name, value);
-        switch (name) {
+      RDiv.prototype.setParameter = function(controller, value) {
+        RDiv.__super__.setParameter.call(this, controller, value);
+        switch (controller.name) {
           case 'strokeWidth':
           case 'strokeColor':
           case 'fillColor':
@@ -451,9 +431,9 @@
 
       RText.object_type = 'text';
 
-      RText.parameters = function() {
+      RText.initializeParameters = function() {
         var parameters;
-        parameters = RText.__super__.constructor.parameters.call(this);
+        parameters = RText.__super__.constructor.initializeParameters.call(this);
         parameters['Font'] = {
           fontName: {
             type: 'input-typeahead',
@@ -638,6 +618,8 @@
         };
         return parameters;
       };
+
+      RText.parameters = RText.initializeParameters();
 
       function RText(bounds, data, pk, date, lock) {
         var lockedForMe, message;
@@ -892,9 +874,9 @@
         this.setFontColor(this.data.fontColor, update);
       };
 
-      RText.prototype.setParameter = function(name, value) {
-        RText.__super__.setParameter.call(this, name, value);
-        switch (name) {
+      RText.prototype.setParameter = function(controller, value) {
+        RText.__super__.setParameter.call(this, controller, value);
+        switch (controller.name) {
           case 'fontStyle':
           case 'fontFamily':
           case 'fontSize':
@@ -946,9 +928,9 @@
         g.RModal.show();
       };
 
-      RMedia.parameters = function() {
+      RMedia.initializeParameters = function() {
         var parameters;
-        parameters = RMedia.__super__.constructor.parameters.call(this);
+        parameters = RMedia.__super__.constructor.initializeParameters.call(this);
         parameters['Media'] = {
           url: {
             type: 'string',
@@ -963,6 +945,8 @@
         };
         return parameters;
       };
+
+      RMedia.parameters = RMedia.initializeParameters();
 
       function RMedia(bounds, data, pk, date, lock) {
         this.data = data != null ? data : null;
@@ -1057,9 +1041,9 @@
         }
       };
 
-      RMedia.prototype.setParameter = function(name, value) {
-        RMedia.__super__.setParameter.call(this, name, value);
-        switch (name) {
+      RMedia.prototype.setParameter = function(controller, value) {
+        RMedia.__super__.setParameter.call(this, controller, value);
+        switch (controller.name) {
           case 'fitImage':
             this.toggleFitImage();
             break;

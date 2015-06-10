@@ -334,35 +334,35 @@
 
       function SetParameterCommand(item, args) {
         this.item = item;
-        this.parameterName = args[0];
-        this.previousValue = this.item.data[this.parameterName];
-        SetParameterCommand.__super__.constructor.call(this, 'Change item parameter "' + this.parameterName + '"');
+        this.controller = args[0];
+        this.previousValue = this.item.data[this.controller.name];
+        SetParameterCommand.__super__.constructor.call(this, 'Change item parameter "' + this.controller.name + '"');
         return;
       }
 
       SetParameterCommand.prototype["do"] = function() {
-        this.item.setParameter(this.parameterName, this.value, true);
+        this.item.setParameter(this.controller, this.value, true);
         SetParameterCommand.__super__["do"].call(this);
       };
 
       SetParameterCommand.prototype.undo = function() {
-        this.item.setParameter(this.parameterName, this.previousValue, true);
+        this.item.setParameter(this.controller, this.previousValue, true);
         SetParameterCommand.__super__.undo.call(this);
       };
 
-      SetParameterCommand.prototype.update = function(name, value) {
-        this.item.setParameter(name, value);
+      SetParameterCommand.prototype.update = function(controller, value) {
+        this.item.setParameter(controller, value);
       };
 
       SetParameterCommand.prototype.end = function(valid) {
-        this.value = this.item.data[this.parameterName];
+        this.value = this.item.data[this.controller.name];
         if (this.value === this.previousValue) {
           return false;
         }
         if (!valid) {
           return;
         }
-        this.item.update(this.parameterName);
+        this.item.update(this.controller.name);
         SetParameterCommand.__super__.end.call(this);
         return true;
       };

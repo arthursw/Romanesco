@@ -63,8 +63,10 @@ define [
 					max: 10
 		###
 		# to be overloaded by children classes, must return the parameters to display when the tool is selected
-		@parameters: ()->
+		@initializeParameters: ()->
 			return {}
+
+		@parameters = @initializeParameters()
 
 		# RTool constructor:
 		# - find the corresponding button in the sidebar: look for a <li> tag with an attribute 'data-name' equal to @name
@@ -126,7 +128,7 @@ define [
 			return
 
 		updateParameters: ()->
-			g.controllerManager.setSelectedTool(@)
+			g.controllerManager.setSelectedTool(@constructor)
 			return
 
 		updateCursor: ()->
@@ -249,7 +251,7 @@ define [
 	# CarTool gives a car to travel in the world with arrow key (and play video games)
 	class CarTool extends RTool
 
-		@parameters: ()->
+		@initializeParameters: ()->
 			parameters =
 				'Car':
 					speed: 							# the speed of the car, just used as an indicator. Updated in @onFrame
@@ -276,6 +278,8 @@ define [
 									g.sound.stop()
 							return
 			return parameters
+
+		@parameters = @initializeParameters()
 
 		constructor: () ->
 			super("Car") 		# no cursor when car is selected (might change)
@@ -375,7 +379,7 @@ define [
 
 			@car.previousSpeed = @car.speed
 
-			@parameterControllers?['speed']?.setValue(@car.speed.toFixed(2))
+			@constructor.parameters['Car'].speed.controller.setValue(@car.speed.toFixed(2), false)
 
 			@car.rotation = @car.direction.angle+90
 
@@ -509,7 +513,7 @@ define [
 		# - update selected RItems if there is no selection rectangle
 		# - update selection rectangle if there is one
 		update: (event) ->
-			if not g.currentPaths[g.me] 			# update selected RItems if there is no selection rectangle
+			if not g.currentPaths[g.me] and @selectedItem? 			# update selected RItems if there is no selection rectangle
 				@selectedItem.updateSelect(event)
 				# selectedItems = g.selectedItems
 				# if selectedItems.length == 1
@@ -716,6 +720,10 @@ define [
 			super()
 
 			g.tool.onMouseMove = @move
+			return
+
+		updateParameters: ()->
+			g.controllerManager.setSelectedTool(@RPath)
 			return
 
 		# Deselect: remove the mouse move listener
@@ -1440,18 +1448,34 @@ define [
 			@radial = false
 			return
 
-		initialize: ()->
-			value = @controller.getValue()
-
-			@remove()
-
-			bounds = view.bounds.scale(0.25)
-			value ?=
+		getDefaultGradient: (color)->
+			if g.selectedItems.length==1
+				bounds = g.selectedItems[0].getBounds()
+			else
+				bounds = view.bounds.scale(0.25)
+			color = if color? then new Color(color) else g.defaultColor.random()
+			firstColor = color.clone()
+			firstColor.alpha = 0.2
+			secondColor = color.clone()
+			secondColor.alpha = 0.8
+			gradient =
 				origin: bounds.topLeft
 				destination: bounds.bottomRight
 				gradient:
 					stops: [ { color: 'red', rampPoint: 0 } , { color: 'blue', rampPoint: 1 } ]
 					radial: false
+			return gradient
+
+		initialize: (updateGradient=true)->
+			value = @controller.getValue()
+
+			if not value?.gradient?
+				value = @getDefaultGradient(value)
+
+			@group?.remove()
+			@handles = []
+
+			@radial = value.gradient?.radial
 
 			@group = new Group()
 
@@ -1460,11 +1484,11 @@ define [
 			delta = destination.subtract(origin)
 
 			for stop in value.gradient.stops
-				color = new Color(stop.color)
-				location = parseInt(stop.rampPoint)
+				color = new Color(if stop.color? then stop.color else stop[0])
+				location = parseFloat(if stop.rampPoint? then stop.rampPoint else stop[1])
 				position = origin.add(delta.multiply(location))
 
-				handle = @createHandle(position, location, color)
+				handle = @createHandle(position, location, color, true)
 				if location == 0 then @startHandle = handle
 				if location == 1 then @endHandle = handle
 
@@ -1483,9 +1507,13 @@ define [
 			g.selectionLayer.addChild(@group)
 
 			@selectHandle(@startHandle)
+			if updateGradient
+				@updateGradient()
 			return
 
-		select: (@controller)->
+		select: ()->
+			if g.selectedTool == @ then return
+
 			# check if new tool is defferent from previous
 			differentTool = g.previousTool != g.selectedTool
 
@@ -1515,13 +1543,17 @@ define [
 			@selectedHandle?.selected = false
 			handle.selected = true
 			@selectedHandle = handle
+			@controller.setColor(handle.fillColor.toCSS())
 			return
 
-		colorChange: (color, controller)->
-			if controller != @controller
-				@controller = controller
-				@initialize()
+		colorChange: (color)->
 			@selectedHandle.fillColor = color
+			@updateGradient()
+			return
+
+		setRadial: (value)->
+			@select()
+			@radial = value
 			@updateGradient()
 			return
 
@@ -1540,13 +1572,17 @@ define [
 
 			console.log JSON.stringify(gradient)
 
-			for item in g.selectedItems
-				# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
-				if typeof item.data?[@parameterName] isnt 'undefined'
-					item.setParameterCommand(@parameterName, gradient)
+			@controller.onChange(gradient)
+
+			# @controller.setGradient(gradient)
+
+			# for item in g.selectedItems
+			# 	# do not update if the value was never set (not even to null), update if it was set (even to null, for colors)
+			# 	if typeof item.data?[@controller.name] isnt 'undefined'
+			# 		item.setParameterCommand(@controller.name, gradient, @controller)
 			return
 
-		createHandle: (position, location, color)->
+		createHandle: (position, location, color, initialization=false)->
 			handle = new Path.Circle(position, @constructor.handleSize)
 			handle.name = 'handle'
 
@@ -1558,16 +1594,17 @@ define [
 
 			handle.location = location
 			@handles.push(handle)
-			@selectHandle(handle)
 
-			@updateGradient()
+			if not initialization
+				@selectHandle(handle)
+				@updateGradient()
 
 			return handle
 
 		addHandle: (event, hitResult)->
 			offset = hitResult.location.offset
 			point = @line.getPointAt(offset)
-			@createHandle(point, offset / @line.length, @colorInputJ.val())
+			@createHandle(point, offset / @line.length, @controller.colorInputJ.val())
 			return
 
 		removeHandle: (handle)->
