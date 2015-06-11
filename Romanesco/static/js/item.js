@@ -675,6 +675,7 @@
         this.pk = pk;
         this.date = date;
         this.sortedItems = sortedItems;
+        this.onLiClick = __bind(this.onLiClick, this);
         RContent.__super__.constructor.call(this, this.data, this.pk);
         if (this.date == null) {
           this.date = Date.now();
@@ -683,14 +684,7 @@
         this.liJ = $("<li>");
         this.setZindexLabel();
         this.liJ.attr("data-pk", this.pk);
-        this.liJ.click((function(_this) {
-          return function(event) {
-            if (!event.shiftKey) {
-              g.deselectAll();
-            }
-            _this.select();
-          };
-        })(this));
+        this.liJ.click(this.onLiClick);
         this.liJ.mouseover((function(_this) {
           return function(event) {
             _this.highlight();
@@ -709,6 +703,18 @@
         }
         return;
       }
+
+      RContent.prototype.onLiClick = function(event) {
+        var bounds;
+        if (!event.shiftKey) {
+          g.deselectAll();
+          bounds = this.getBounds();
+          if (!view.bounds.intersects(bounds)) {
+            g.RMoveTo(bounds.center, 1000);
+          }
+        }
+        this.select();
+      };
 
       RContent.prototype.setZindexLabel = function() {
         var dateLabel, zindexLabel;

@@ -39,6 +39,10 @@ define [
 
 		g.defaultColors = []
 
+		g.polygonMode = false					# whether to draw in polygon mode or not (in polygon mode: each time the user clicks a point
+												# will be created, in default mode: each time the user moves the mouse a point will be created)
+		g.selectionBlue = '#2fa1d6'
+
 		hueRange = g.random(10, 180)
 		minHue = g.random(0, 360-hueRange)
 		step = hueRange/10
@@ -945,8 +949,6 @@ define [
 					opacity: 'Opacity'
 				onchange: @onColorPickerChange
 				swatches: false
-				getThis: ()->
-					return this
 				# customswatches: "swatches-group:" + @parameter.name
 				# swatches: g.defaultColors
 				# hsvpanel: true
@@ -974,43 +976,34 @@ define [
 		@initialize()
 
 		constructor: (@name, @parameter, @folder)->
-			super(@name, @parameter, @folder)
 			@gradientTool = g.tools['Gradient']
 			@selectTool = g.tools['Select']
+			# @ignoreNextColorCounter = 0
+			super(@name, @parameter, @folder)
 			return
 
 		initialize: ()->
-			if @parameter.value? and @parameter.value.gradient?
-				@gradient = @parameter.value
-				firstStop = @parameter.value.gradient.stops?[0]
-				if firstStop?
-					console.log(firstStop.color?)
-					color = firstStop.color or new Color(firstStop[0])
-					@parameter.value = color.toCSS()
-				else
-					@parameter.value = 'black'
-			else
-				@gradient = null
-
+			value = @parameter.value
+			if value?.gradient?
+				@gradient = value
+				@parameter.value = 'black' 	# dat.gui does not like when value is a gradient...
 			super()
 
 			@colorInputJ = $(@datController.domElement).find('input')
-			@colorInputJ.css 'background-color': @parameter.value
 			@colorInputJ.popover( title: @parameter.label, container: 'body', placement: 'auto', content: @constructor.popoverContent, html: true )
 
 			@colorInputJ.addClass("color-input")
 			@enableCheckboxJ = $('<input type="checkbox">')
 			@enableCheckboxJ.insertBefore(@colorInputJ)
-			@enableCheckboxJ[0].checked = @parameter.value or @parameter.defaultCheck
 
 			@colorInputJ.on 'show.bs.popover', @popoverOnShow
 			@colorInputJ.on 'shown.bs.popover', @popoverOnShown
 			@colorInputJ.on 'hide.bs.popover', @popoverOnHide
 			@colorInputJ.on 'hide.bs.popover', @popoverOnHidden
-			@setPopoverOnHide()
 
 			@enableCheckboxJ.change(@enableCheckboxChanged)
 
+			@setColor(value, false)
 			return
 
 		popoverOnShow: (event)=>
@@ -1046,12 +1039,8 @@ define [
 		popoverOnHidden: ()->
 			return
 
-		setPopoverOnHide: (onHide=@popoverOnHide)->
-			@colorInputJ.on 'hide.bs.popover', onHide
-			return
-
 		onChange: (value) =>
-			if value.gradient?
+			if value?.gradient?
 				@gradient = value
 			else
 				@gradient = null
@@ -1059,11 +1048,12 @@ define [
 			return
 
 		onColorPickerChange: (container, color)->
-			if @ignoreNextColorChange then return
+			# if @ignoreNextColorCounter > 0
+			# 	@ignoreNextColorCounter--
+			# 	return
 			color = color.tiny.toRgbString()
 
-			@colorInputJ.css 'background-color': color
-			@colorInputJ.val(color)
+			@setColor(color, false)
 
 			if @gradient?
 				@gradientTool.colorChange(color, @)
@@ -1093,37 +1083,58 @@ define [
 			else
 				return null
 
-		setValue: (value, updateGradientTool=true)->
+		setValue: (value, updateTool=true)->
 			super(value)
+
 			if value?.gradient?
 				@gradient = value
 			else
 				@gradient = null
+
 			@setColor(value)
-			@enableCheckboxJ[0].checked = value?
-			if updateGradientTool
-				@gradientTool.controller = @
-				@gradientTool.initialize(false)
+
+			if updateTool
+				if @gradient?
+					@gradientTool.controller = @
+					@gradientTool.select(false, false)
+				else
+					@selectTool.select(false, false)
 			return
 
-		setColor: (color)->
+		setColor: (color, updateColorPicker=true)->
+			@enableCheckboxJ[0].checked = color?
+
 			if @gradient
+				@colorInputJ.val('Gradient')
+				colors = ''
+				for stop in @gradient.gradient.stops
+					c = new Color(if stop.color? then stop.color else stop[0])
+					colors += ', ' + c.toCSS()
+				@colorInputJ.css 'background-color': ''
+				@colorInputJ.css 'background-image': 'linear-gradient( to right' + colors + ')'
 				if @gradient.gradient?.radial
 					@constructor.colorTypeSelectorJ.find('[value="radial-gradient"]').prop('selected', true)
 				else
 					@constructor.colorTypeSelectorJ.find('[value="linear-gradient"]').prop('selected', true)
 			else
+				@colorInputJ.val(color)
+				@colorInputJ.css 'background-image': ''
+				@colorInputJ.css 'background-color': (color or 'transparent')
 				@constructor.colorTypeSelectorJ.find('[value="flat-color"]').prop('selected', true)
-			@ignoreNextColorChange = true
-			@constructor.colorPickerJ.trigger("colorpickersliders.updateColor", color)
-			@ignoreNextColorChange = false
+
+			if updateColorPicker
+				# @ignoreNextColorCounter++
+				@constructor.colorPickerJ.trigger("colorpickersliders.updateColor", [color, true])
 			return
 
 		enableCheckboxChanged: (event)=>
-			@onChange(@getValue())
+			value = @getValue()
+			@onChange(value)
+			@setColor(value, false)
 			return
 
 		remove: ()->
+			@onChange = ()->return
 			@colorInputJ.popover('destroy')
 			super()
 			return

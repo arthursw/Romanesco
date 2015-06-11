@@ -68,8 +68,8 @@ logger = logging.getLogger(__name__)
 with open('/data/secret_github.txt') as f:
 	PASSWORD = base64.b64decode(f.read().strip())
 
-#github = Github("arthurpub.sw@gmail.com", PASSWORD)
-#romanescoOrg = github.get_organization('RomanescoModules')
+github = Github("arthurpub.sw@gmail.com", PASSWORD)
+romanescoOrg = github.get_organization('RomanescoModules')
 
 try:
 	romanescoCity = City.objects.get(name='Romanesco', owner='RomanescoOrg', public=True)

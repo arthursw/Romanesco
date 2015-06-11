@@ -13,6 +13,8 @@
     g.initializeGlobalParameters = function() {
       var colorName, colorRGBstring, hueRange, i, minHue, step, _i;
       g.defaultColors = [];
+      g.polygonMode = false;
+      g.selectionBlue = '#2fa1d6';
       hueRange = g.random(10, 180);
       minHue = g.random(0, 360 - hueRange);
       step = hueRange / 10;
@@ -621,10 +623,7 @@
             opacity: 'Opacity'
           },
           onchange: this.onColorPickerChange,
-          swatches: false,
-          getThis: function() {
-            return this;
-          }
+          swatches: false
         };
         this.colorPickerJ = this.colorPickerJ.ColorPickerSliders(this.options);
         this.colorTypeSelectorJ.change(this.onColorTypeChange);
@@ -659,32 +658,21 @@
         this.popoverOnHide = __bind(this.popoverOnHide, this);
         this.popoverOnShown = __bind(this.popoverOnShown, this);
         this.popoverOnShow = __bind(this.popoverOnShow, this);
-        ColorController.__super__.constructor.call(this, this.name, this.parameter, this.folder);
         this.gradientTool = g.tools['Gradient'];
         this.selectTool = g.tools['Select'];
+        ColorController.__super__.constructor.call(this, this.name, this.parameter, this.folder);
         return;
       }
 
       ColorController.prototype.initialize = function() {
-        var color, firstStop, _ref;
-        if ((this.parameter.value != null) && (this.parameter.value.gradient != null)) {
-          this.gradient = this.parameter.value;
-          firstStop = (_ref = this.parameter.value.gradient.stops) != null ? _ref[0] : void 0;
-          if (firstStop != null) {
-            console.log(firstStop.color != null);
-            color = firstStop.color || new Color(firstStop[0]);
-            this.parameter.value = color.toCSS();
-          } else {
-            this.parameter.value = 'black';
-          }
-        } else {
-          this.gradient = null;
+        var value;
+        value = this.parameter.value;
+        if ((value != null ? value.gradient : void 0) != null) {
+          this.gradient = value;
+          this.parameter.value = 'black';
         }
         ColorController.__super__.initialize.call(this);
         this.colorInputJ = $(this.datController.domElement).find('input');
-        this.colorInputJ.css({
-          'background-color': this.parameter.value
-        });
         this.colorInputJ.popover({
           title: this.parameter.label,
           container: 'body',
@@ -695,13 +683,12 @@
         this.colorInputJ.addClass("color-input");
         this.enableCheckboxJ = $('<input type="checkbox">');
         this.enableCheckboxJ.insertBefore(this.colorInputJ);
-        this.enableCheckboxJ[0].checked = this.parameter.value || this.parameter.defaultCheck;
         this.colorInputJ.on('show.bs.popover', this.popoverOnShow);
         this.colorInputJ.on('shown.bs.popover', this.popoverOnShown);
         this.colorInputJ.on('hide.bs.popover', this.popoverOnHide);
         this.colorInputJ.on('hide.bs.popover', this.popoverOnHidden);
-        this.setPopoverOnHide();
         this.enableCheckboxJ.change(this.enableCheckboxChanged);
+        this.setColor(value, false);
       };
 
       ColorController.prototype.popoverOnShow = function(event) {
@@ -736,15 +723,8 @@
 
       ColorController.prototype.popoverOnHidden = function() {};
 
-      ColorController.prototype.setPopoverOnHide = function(onHide) {
-        if (onHide == null) {
-          onHide = this.popoverOnHide;
-        }
-        this.colorInputJ.on('hide.bs.popover', onHide);
-      };
-
       ColorController.prototype.onChange = function(value) {
-        if (value.gradient != null) {
+        if ((value != null ? value.gradient : void 0) != null) {
           this.gradient = value;
         } else {
           this.gradient = null;
@@ -753,14 +733,8 @@
       };
 
       ColorController.prototype.onColorPickerChange = function(container, color) {
-        if (this.ignoreNextColorChange) {
-          return;
-        }
         color = color.tiny.toRgbString();
-        this.colorInputJ.css({
-          'background-color': color
-        });
-        this.colorInputJ.val(color);
+        this.setColor(color, false);
         if (this.gradient != null) {
           this.gradientTool.colorChange(color, this);
         } else {
@@ -794,9 +768,9 @@
         }
       };
 
-      ColorController.prototype.setValue = function(value, updateGradientTool) {
-        if (updateGradientTool == null) {
-          updateGradientTool = true;
+      ColorController.prototype.setValue = function(value, updateTool) {
+        if (updateTool == null) {
+          updateTool = true;
         }
         ColorController.__super__.setValue.call(this, value);
         if ((value != null ? value.gradient : void 0) != null) {
@@ -805,34 +779,66 @@
           this.gradient = null;
         }
         this.setColor(value);
-        this.enableCheckboxJ[0].checked = value != null;
-        if (updateGradientTool) {
-          this.gradientTool.controller = this;
-          this.gradientTool.initialize(false);
+        if (updateTool) {
+          if (this.gradient != null) {
+            this.gradientTool.controller = this;
+            this.gradientTool.select(false, false);
+          } else {
+            this.selectTool.select(false, false);
+          }
         }
       };
 
-      ColorController.prototype.setColor = function(color) {
-        var _ref;
+      ColorController.prototype.setColor = function(color, updateColorPicker) {
+        var c, colors, stop, _i, _len, _ref, _ref1;
+        if (updateColorPicker == null) {
+          updateColorPicker = true;
+        }
+        this.enableCheckboxJ[0].checked = color != null;
         if (this.gradient) {
-          if ((_ref = this.gradient.gradient) != null ? _ref.radial : void 0) {
+          this.colorInputJ.val('Gradient');
+          colors = '';
+          _ref = this.gradient.gradient.stops;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            stop = _ref[_i];
+            c = new Color(stop.color != null ? stop.color : stop[0]);
+            colors += ', ' + c.toCSS();
+          }
+          this.colorInputJ.css({
+            'background-color': ''
+          });
+          this.colorInputJ.css({
+            'background-image': 'linear-gradient( to right' + colors + ')'
+          });
+          if ((_ref1 = this.gradient.gradient) != null ? _ref1.radial : void 0) {
             this.constructor.colorTypeSelectorJ.find('[value="radial-gradient"]').prop('selected', true);
           } else {
             this.constructor.colorTypeSelectorJ.find('[value="linear-gradient"]').prop('selected', true);
           }
         } else {
+          this.colorInputJ.val(color);
+          this.colorInputJ.css({
+            'background-image': ''
+          });
+          this.colorInputJ.css({
+            'background-color': color || 'transparent'
+          });
           this.constructor.colorTypeSelectorJ.find('[value="flat-color"]').prop('selected', true);
         }
-        this.ignoreNextColorChange = true;
-        this.constructor.colorPickerJ.trigger("colorpickersliders.updateColor", color);
-        this.ignoreNextColorChange = false;
+        if (updateColorPicker) {
+          this.constructor.colorPickerJ.trigger("colorpickersliders.updateColor", [color, true]);
+        }
       };
 
       ColorController.prototype.enableCheckboxChanged = function(event) {
-        this.onChange(this.getValue());
+        var value;
+        value = this.getValue();
+        this.onChange(value);
+        this.setColor(value, false);
       };
 
       ColorController.prototype.remove = function() {
+        this.onChange = function() {};
         this.colorInputJ.popover('destroy');
         ColorController.__super__.remove.call(this);
       };

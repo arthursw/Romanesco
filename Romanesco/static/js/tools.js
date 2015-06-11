@@ -94,14 +94,18 @@
         return null;
       };
 
-      RTool.prototype.select = function(deselectItems) {
+      RTool.prototype.select = function(deselectItems, updateParameters) {
         var _ref;
         if (deselectItems == null) {
           deselectItems = true;
         }
-        if (this !== g.selectedTool) {
-          g.previousTool = g.selectedTool;
+        if (updateParameters == null) {
+          updateParameters = true;
         }
+        if (g.selectedTool === this) {
+          return;
+        }
+        g.previousTool = g.selectedTool;
         if ((_ref = g.selectedTool) != null) {
           _ref.deselect();
         }
@@ -110,7 +114,9 @@
         if (deselectItems) {
           g.deselectAll();
         }
-        this.updateParameters();
+        if (updateParameters) {
+          this.updateParameters();
+        }
       };
 
       RTool.prototype.updateParameters = function() {
@@ -153,8 +159,14 @@
         return;
       }
 
-      CodeTool.prototype.select = function() {
-        CodeTool.__super__.select.call(this);
+      CodeTool.prototype.select = function(deselectItems, updateParameters) {
+        if (deselectItems == null) {
+          deselectItems = true;
+        }
+        if (updateParameters == null) {
+          updateParameters = true;
+        }
+        CodeTool.__super__.select.apply(this, arguments);
         g.showEditor();
       };
 
@@ -178,9 +190,15 @@
         return;
       }
 
-      MoveTool.prototype.select = function() {
+      MoveTool.prototype.select = function(deselectItems, updateParameters) {
         var div, _i, _len, _ref;
-        MoveTool.__super__.select.call(this, false);
+        if (deselectItems == null) {
+          deselectItems = false;
+        }
+        if (updateParameters == null) {
+          updateParameters = true;
+        }
+        MoveTool.__super__.select.call(this, deselectItems, updateParameters);
         g.stageJ.addClass("moveTool");
         _ref = g.divs;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -286,8 +304,14 @@
         return;
       }
 
-      CarTool.prototype.select = function() {
-        CarTool.__super__.select.call(this);
+      CarTool.prototype.select = function(deselectItems, updateParameters) {
+        if (deselectItems == null) {
+          deselectItems = true;
+        }
+        if (updateParameters == null) {
+          updateParameters = true;
+        }
+        CarTool.__super__.select.apply(this, arguments);
         this.car = new Raster("/static/images/car.png");
         g.carLayer.addChild(this.car);
         this.car.position = view.center;
@@ -392,8 +416,14 @@
         return;
       }
 
-      SelectTool.prototype.select = function() {
-        SelectTool.__super__.select.call(this, false);
+      SelectTool.prototype.select = function(deselectItems, updateParameters) {
+        if (deselectItems == null) {
+          deselectItems = false;
+        }
+        if (updateParameters == null) {
+          updateParameters = true;
+        }
+        SelectTool.__super__.select.call(this, false, updateParameters);
       };
 
       SelectTool.prototype.updateParameters = function() {
@@ -657,9 +687,15 @@
         this.btnJ.remove();
       };
 
-      PathTool.prototype.select = function() {
+      PathTool.prototype.select = function(deselectItems, updateParameters) {
+        if (deselectItems == null) {
+          deselectItems = true;
+        }
+        if (updateParameters == null) {
+          updateParameters = true;
+        }
         g.rasterizer.drawItems();
-        PathTool.__super__.select.call(this);
+        PathTool.__super__.select.apply(this, arguments);
         g.tool.onMouseMove = this.move;
       };
 
@@ -807,9 +843,15 @@
         return;
       }
 
-      ItemTool.prototype.select = function() {
+      ItemTool.prototype.select = function(deselectItems, updateParameters) {
+        if (deselectItems == null) {
+          deselectItems = true;
+        }
+        if (updateParameters == null) {
+          updateParameters = true;
+        }
         g.rasterizer.drawItems();
-        ItemTool.__super__.select.call(this);
+        ItemTool.__super__.select.apply(this, arguments);
       };
 
       ItemTool.prototype.begin = function(event, from) {
@@ -1345,10 +1387,13 @@
         return gradient;
       };
 
-      GradientTool.prototype.initialize = function(updateGradient) {
+      GradientTool.prototype.initialize = function(updateGradient, updateParameters) {
         var color, delta, destination, handle, location, origin, position, stop, value, _i, _len, _ref, _ref1, _ref2;
         if (updateGradient == null) {
           updateGradient = true;
+        }
+        if (updateParameters == null) {
+          updateParameters = true;
         }
         value = this.controller.getValue();
         if ((value != null ? value.gradient : void 0) == null) {
@@ -1393,24 +1438,27 @@
         g.selectionLayer.addChild(this.group);
         this.selectHandle(this.startHandle);
         if (updateGradient) {
-          this.updateGradient();
+          this.updateGradient(updateParameters);
         }
       };
 
-      GradientTool.prototype.select = function() {
-        var differentTool, _ref;
+      GradientTool.prototype.select = function(deselectItems, updateParameters) {
+        var _ref;
+        if (deselectItems == null) {
+          deselectItems = true;
+        }
+        if (updateParameters == null) {
+          updateParameters = true;
+        }
         if (g.selectedTool === this) {
           return;
         }
-        differentTool = g.previousTool !== g.selectedTool;
-        if (this !== g.selectedTool) {
-          g.previousTool = g.selectedTool;
-        }
+        g.previousTool = g.selectedTool;
         if ((_ref = g.selectedTool) != null) {
           _ref.deselect();
         }
         g.selectedTool = this;
-        this.initialize();
+        this.initialize(true, updateParameters);
       };
 
       GradientTool.prototype.remove = function() {
@@ -1450,8 +1498,11 @@
         this.updateGradient();
       };
 
-      GradientTool.prototype.updateGradient = function() {
+      GradientTool.prototype.updateGradient = function(updateParameters) {
         var gradient, handle, stops, _i, _len, _ref;
+        if (updateParameters == null) {
+          updateParameters = true;
+        }
         if ((this.startHandle == null) || (this.endHandle == null)) {
           return;
         }
@@ -1470,7 +1521,9 @@
           }
         };
         console.log(JSON.stringify(gradient));
-        this.controller.onChange(gradient);
+        if (updateParameters) {
+          this.controller.onChange(gradient);
+        }
       };
 
       GradientTool.prototype.createHandle = function(position, location, color, initialization) {

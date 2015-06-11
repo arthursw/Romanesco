@@ -1,6 +1,20 @@
 define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 	g = utils.g()
 
+	class Module
+
+		constructor: (@name, @category, @type, @owner)->
+			return
+
+		accept: ()->
+			return
+
+		update: ()->
+			return
+
+		delete: ()->
+			return
+
 	# init tool typeahead
 	initModuleTypeahead = (modules)->
 		g.typeaheadModuleEngine = new Bloodhound({
@@ -258,6 +272,8 @@ define ['utils', 'editor', 'jquery', 'typeahead'], (utils) ->
 			if not g.checkError(results) then return
 			console.log results.message
 			return
+
+		# name, repoName, source, compiledSource
 		Dajaxice.draw.acceptModule( g.checkError, module )
 		return
 

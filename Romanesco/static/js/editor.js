@@ -119,7 +119,9 @@
             g.codeEditor.setSource({
               name: moduleName,
               source: source,
-              githubURL: data.html_url
+              githubURL: data.html_url,
+              repoName: moduleName,
+              owner: g.me
             }, false);
           }
         });

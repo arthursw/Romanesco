@@ -27,6 +27,7 @@ define [
 	'typeahead'
 	'modal'
 	'ace'
+	'jqtree'
 ], (utils, paper, CoffeeScript) ->
 
 	g = utils.g()
@@ -539,9 +540,6 @@ define [
 
 		g.me = null 							# g.me is the username of the user (sent by the server in each ajax "load")
 		g.selectionLayer = null					# paper layer containing all selected paper items
-		g.polygonMode = false					# whether to draw in polygon mode or not (in polygon mode: each time the user clicks a point
-												# will be created, in default mode: each time the user moves the mouse a point will be created)
-		g.selectionBlue = '#2fa1d6'
 		g.updateTimeout = {} 					# map of id -> timeout id to clear the timeouts
 		g.requestedCallbacks = {} 				# map of id -> request id to clear the requestAnimationFrame
 		g.restrictedArea = null 				# area in which the user position will be constrained (in a website with restrictedArea == true)

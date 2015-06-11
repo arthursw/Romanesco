@@ -184,7 +184,7 @@
         }
       }
 
-      function updateColor(newcolor, disableinputupdate, ignoreCallback) {
+      function updateColor(newcolor, disableinputupdate) {
         var updatedcolor = tinycolor(newcolor);
 
         if (updatedcolor.isValid()) {
@@ -194,7 +194,7 @@
           color.hsv = updatedcolor.toHsv();
 
           if (settings.flat || visible) {
-            _updateAllElements(disableinputupdate, ignoreCallback);
+            _updateAllElements(disableinputupdate);
           }
           else {
             if (!disableinputupdate) {
@@ -438,8 +438,8 @@
       }
 
       function _bindEvents() {
-        triggerelement.on('colorpickersliders.updateColor', function(e, newcolor, ignoreCallback) {
-          updateColor(newcolor, false, ignoreCallback);
+        triggerelement.on('colorpickersliders.updateColor', function(e, newcolor) {
+          updateColor(newcolor);
         });
 
         triggerelement.on('colorpickersliders.show', function() {
@@ -1138,13 +1138,13 @@
 
       var updateAllElementsTimeout;
 
-      function _updateAllElementsTimer(disableinputupdate, ignoreCallback) {
+      function _updateAllElementsTimer(disableinputupdate) {
         updateAllElementsTimeout = setTimeout(function() {
-          _updateAllElements(disableinputupdate, ignoreCallback);
+          _updateAllElements(disableinputupdate);
         }, settings.updateinterval);
       }
 
-      function _updateAllElements(disableinputupdate, ignoreCallback) {
+      function _updateAllElements(disableinputupdate) {
         clearTimeout(updateAllElementsTimeout);
 
         Date.now = Date.now || function() {
@@ -1152,7 +1152,7 @@
         };
 
         if (Date.now() - lastUpdateTime < settings.updateinterval) {
-          _updateAllElementsTimer(disableinputupdate, ignoreCallback);
+          _updateAllElementsTimer(disableinputupdate);
           return;
         }
 
@@ -1211,9 +1211,7 @@
           _findActualColorsSwatch();
         }
 
-        if(!ignoreCallback) {
-          settings.onchange(container, color);
-        }
+        settings.onchange(container, color);
 
         triggerelement.data('color', color);
       }

@@ -351,6 +351,7 @@ define [
 			delta = position.subtract(@rectangle.center)
 			@rectangle.center = position
 			@group.translate(delta)
+
 			if not @socketAction
 				if update then @update('position')
 				g.chatSocket.emit "bounce", itemPk: @pk, function: "moveTo", arguments: [position, false]
@@ -588,11 +589,7 @@ define [
 			@liJ = $("<li>")
 			@setZindexLabel()
 			@liJ.attr("data-pk", @pk)
-			@liJ.click (event)=>
-				if not event.shiftKey
-					g.deselectAll()
-				@select()
-				return
+			@liJ.click(@onLiClick)
 			@liJ.mouseover (event)=>
 				@highlight()
 				return
@@ -606,6 +603,15 @@ define [
 			if @pk?
 				@updateZIndex()
 
+			return
+
+		onLiClick: (event)=>
+			if not event.shiftKey
+				g.deselectAll()
+				bounds = @getBounds()
+				if not view.bounds.intersects(bounds)
+					g.RMoveTo(bounds.center, 1000)
+			@select()
 			return
 
 		# addToParent: ()->

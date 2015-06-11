@@ -129,7 +129,7 @@ define [
 			jqxhr = $.get "https://api.github.com/repos/" + owner + "/" + moduleName + "/contents/main.coffee", (data)->
 				if data.content?
 					source = atob(data.content)
-					g.codeEditor.setSource( { name: moduleName, source: source, githubURL: data.html_url }, false)
+					g.codeEditor.setSource( { name: moduleName, source: source, githubURL: data.html_url, repoName: moduleName, owner: g.me }, false)
 				return
 		g.RModal.hide()
 		return

@@ -112,10 +112,10 @@ define [
 		# @param [RTool constructor] the constructor used to update gui parameters (@constructor.parameters)
 		# @param [RItem] selected item to update gui parameters
 		# @param [Boolean] deselected selected items (false when selecting MoveTool or SelectTool)
-		select: (deselectItems=true)->
-			if @ != g.selectedTool
-				g.previousTool = g.selectedTool
+		select: (deselectItems=true, updateParameters=true)->
+			if g.selectedTool == @ then return
 
+			g.previousTool = g.selectedTool
 			g.selectedTool?.deselect()
 			g.selectedTool = @
 
@@ -124,7 +124,8 @@ define [
 			if deselectItems
 				g.deselectAll()
 
-			@updateParameters()
+			if updateParameters
+				@updateParameters()
 			return
 
 		updateParameters: ()->
@@ -175,8 +176,8 @@ define [
 			return
 
 		# show code editor on select
-		select: ()->
-			super()
+		select: (deselectItems=true, updateParameters=true)->
+			super
 			g.showEditor()
 			return
 
@@ -194,8 +195,8 @@ define [
 			return
 
 		# Select tool and disable RDiv interactions (to be able to scroll even when user clicks on them, for exmaple disable textarea default behaviour)
-		select: ()->
-			super(false)
+		select: (deselectItems=false, updateParameters=true)->
+			super(deselectItems, updateParameters)
 			g.stageJ.addClass("moveTool")
 			for div in g.divs
 				div.disableInteraction()
@@ -287,8 +288,8 @@ define [
 
 		# Select car tool
 		# load the car image, and initialize the car and the sound
-		select: ()->
-			super()
+		select: (deselectItems=true, updateParameters=true)->
+			super
 
 			# create Paper raster and initialize car parameters
 			@car = new Raster("/static/images/car.png")
@@ -423,9 +424,9 @@ define [
 			@selectedItem = null 		# should be deprecated
 			return
 
-		select: ()->
+		select: (deselectItems=false, updateParameters=true)->
 			# g.rasterizer.drawItems() 		# must not draw all items here since user can just wish to use an RMedia
-			super(false)
+			super(false, updateParameters)
 			return
 
 		updateParameters: ()->
@@ -713,11 +714,11 @@ define [
 
 		# Select: add the mouse move listener on the tool (userful when creating a path in polygon mode)
 		# todo: move this to main, have a global onMouseMove handler like other handlers
-		select: ()->
+		select: (deselectItems=true, updateParameters=true)->
 
 			g.rasterizer.drawItems()
 
-			super()
+			super
 
 			g.tool.onMouseMove = @move
 			return
@@ -874,9 +875,9 @@ define [
 			# test: @isDiv = true
 			return
 
-		select: ()->
+		select: (deselectItems=true, updateParameters=true)->
 			g.rasterizer.drawItems()
-			super()
+			super
 			return
 
 		# Begin div action:
@@ -1466,7 +1467,7 @@ define [
 					radial: false
 			return gradient
 
-		initialize: (updateGradient=true)->
+		initialize: (updateGradient=true, updateParameters=true)->
 			value = @controller.getValue()
 
 			if not value?.gradient?
@@ -1508,22 +1509,17 @@ define [
 
 			@selectHandle(@startHandle)
 			if updateGradient
-				@updateGradient()
+				@updateGradient(updateParameters)
 			return
 
-		select: ()->
+		select: (deselectItems=true, updateParameters=true)->
 			if g.selectedTool == @ then return
 
-			# check if new tool is defferent from previous
-			differentTool = g.previousTool != g.selectedTool
-
-			if @ != g.selectedTool
-				g.previousTool = g.selectedTool
-
+			g.previousTool = g.selectedTool
 			g.selectedTool?.deselect()
 			g.selectedTool = @
 
-			@initialize()
+			@initialize(true, updateParameters)
 			return
 
 		remove: ()->
@@ -1557,7 +1553,7 @@ define [
 			@updateGradient()
 			return
 
-		updateGradient: ()->
+		updateGradient: (updateParameters=true)->
 			if not @startHandle? or not @endHandle? then return
 			stops = []
 			for handle in @handles
@@ -1572,7 +1568,8 @@ define [
 
 			console.log JSON.stringify(gradient)
 
-			@controller.onChange(gradient)
+			if updateParameters
+				@controller.onChange(gradient)
 
 			# @controller.setGradient(gradient)
 
