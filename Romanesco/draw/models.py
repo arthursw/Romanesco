@@ -30,7 +30,7 @@ class UserProfile(Document):
 
         user = User.objects.get(username=self.username)
 
-        socialAccount = SocialAccount.objects.filter(user_id=user.id)[:1].get()        # get first item only http://stackoverflow.com/a/5162274/719276
+        socialAccount = SocialAccount.objects.filter(user_id=user.id).first()
 
         if socialAccount:
             if socialAccount.provider == 'facebook':

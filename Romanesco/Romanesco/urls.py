@@ -10,7 +10,7 @@ from dajaxice.core import dajaxice_autodiscover, dajaxice_config
 admin.autodiscover()
 
 urlpatterns = patterns('',
-	
+
     # prevent the extra are-you-sure-you-want-to-logout step on logout
     (r'^accounts/logout/$', 'django.contrib.auth.views.logout', {'next_page': '/'}),
 
@@ -30,4 +30,3 @@ if settings.DEBUG:
 urlpatterns += staticfiles_urlpatterns()
 
 dajaxice_autodiscover()
-

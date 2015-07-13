@@ -153,6 +153,7 @@ INSTALLED_APPS = (
     'allauth.socialaccount',
     'allauth.socialaccount.providers.facebook',
     'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
     'paypal.standard.ipn',
     # 'django_extensions',
     'south',
@@ -238,9 +239,9 @@ SOCIALACCOUNT_PROVIDERS = {
         'SCOPE': ['email', 'publish_stream'],
         'METHOD': 'js_sdk'  # instead of 'oauth2'
     },
-    'google': { 
+    'google': {
         'SCOPE': ['https://www.googleapis.com/auth/userinfo.profile'],
-        'AUTH_PARAMS': { 'access_type': 'online' } 
+        'AUTH_PARAMS': { 'access_type': 'online' }
     }
 }
 

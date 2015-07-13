@@ -14,17 +14,27 @@ from models import *
 def index(request, site=None, owner=None, city=None, x=0, y=0):
 
 	profileImageURL = ''
+
 	try:
 		profileImageURL = UserProfile.objects.get(username=request.user.username).profile_image_url
 	except UserProfile.DoesNotExist:
 		print 'user profile does not exist.'
 
+	connectedToGithub = False
+	try:
+		socialAccount = SocialAccount.objects.filter(user_id=request.user.id, provider='github')[:1].get()
+		if socialAccount:
+			connectedToGithub = True
+	except:
+		print 'can not load social account.'
+
+	result = {}
 	if site:
 		result = loadSite(request, site)
-		result['profileImageURL'] = profileImageURL
-		return render_to_response(	"index.html", result, RequestContext(request) )
-	else:
-		return render_to_response(	"index.html", { 'profileImageURL': profileImageURL }, RequestContext(request) )
+
+	result['profileImageURL'] = profileImageURL
+	result['connectedToGithub'] = connectedToGithub
+	return render_to_response(	"index.html", result, RequestContext(request) )
 
 def rasterizer(request, sitename=None):
 	if sitename:

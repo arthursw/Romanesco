@@ -30,12 +30,15 @@ from PIL import Image
 import cStringIO
 import StringIO
 import traceback
+import requests
+from Romanesco import settings
+from allauth.socialaccount.models import SocialToken
+# import collaboration
 
 import base64
-from Romanesco import settings
-from github import Github
-from git import Repo
 
+
+from github3 import authorize
 
 # from wand.image import Image
 
@@ -44,6 +47,8 @@ import functools
 debugMode = False
 
 if settings.DEBUG:
+	import pdb
+
 	def checkDebug(func):
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
@@ -65,17 +70,23 @@ def isAdmin(user):
 
 logger = logging.getLogger(__name__)
 
-with open('/data/secret_github.txt') as f:
-	PASSWORD = base64.b64decode(f.read().strip())
-
-github = Github("arthurpub.sw@gmail.com", PASSWORD)
-romanescoOrg = github.get_organization('RomanescoModules')
-
 try:
 	romanescoCity = City.objects.get(name='Romanesco', owner='RomanescoOrg', public=True)
 except City.DoesNotExist:
 	romanescoCity = City(name='Romanesco', owner='RomanescoOrg', public=True)
 	romanescoCity.save()
+
+
+logger = logging.getLogger(__name__)
+
+with open('/data/secret_github.txt') as f:
+	PASSWORD = base64.b64decode(f.read().strip())
+
+with open('/data/client_secret_github.txt') as f:
+	CLIENT_SECRET = f.read().strip()
+
+with open('/data/accesstoken_github.txt') as f:
+	ACCESS_TOKEN = f.read().strip()
 
 # pprint(vars(object))
 # import pdb; pdb.set_trace()
@@ -113,6 +124,40 @@ def multipleCalls(request, functionsAndArguments):
 	for fa in functionsAndArguments:
 		results.append(json.loads(globals()[fa['function']](request=request, **fa['arguments'])))
 	return json.dumps(results)
+
+@dajaxice_register
+@checkDebug
+def githubRequest(request, githubRequest, method='get', params=None, headers=None):
+	token = ACCESS_TOKEN
+
+	try:
+		socialAccount = SocialAccount.objects.get(user_id=request.user.id, provider='github')
+		userToken = SocialToken.objects.get(account__user=socialAccount.id, account__provider='github')
+		if userToken:
+			token = userToken
+	except:
+		pass
+
+	if not headers:
+		headers = {}
+	headers['Authorization'] = 'token ' + str(token)
+	r = getattr(requests, method)(githubRequest, params=params, headers=headers)
+	return json.dumps(r.json())
+
+# r = requests.post(githubRequest, headers={'Authorization': 'token ' + ACCESS_TOKEN})
+
+@dajaxice_register
+@checkDebug
+def getGithubAuthToken(request):
+	client_id = None
+	try:
+		socialAccount = SocialAccount.objects.get(user_id=request.user.id, provider='github')
+		token = SocialToken.objects.get(account__user=socialAccount.id, account__provider='github')
+		r = requests.put('https://api.github.com/authorizations/clients/'+str(client_id), params={'client_secret': CLIENT_SECRET})
+	except:
+		return json.dumps({"state": "error", "message": "success"})
+	return
+
 
 @dajaxice_register
 @checkDebug

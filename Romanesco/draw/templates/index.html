@@ -125,7 +125,9 @@
           </ul>
         </div> -->
         <div id="fb-root"></div>
+
         <!-- Sidebar -->
+
         <div id="sidebar" class="sidebar">
 
           <button type="button" class="sidebar-handle btn btn-default">
@@ -162,7 +164,7 @@
 
                               <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
                                 {% if request.user.first_name or request.user.last_name %}
-                                  {{ request.user.first_name }} {{ request.usxer.last_name }}
+                                  {{ request.user.first_name }} {{ request.user.last_name }}
                                 {% else %}
                                   {{ request.user.username }}
                                 {% endif %} <span class="caret"></span>
@@ -199,6 +201,7 @@
                     </button>
                     <ul class="dropdown-menu" role="menu">
                       <li><a href="{% provider_login_url "google" %}">Google</a></li>
+                      <li><a href="{% provider_login_url "github" %}">Github</a></li>
                       <li><a href="/accounts/facebook/login/"><div class="fb">Facebook</div></a></li>
                       <li><a href="{% url 'account_login' %}">Romanesco</a></li>
                       <li><a href="{% url 'account_signup' %}">Sign up</a></li>
@@ -229,7 +232,7 @@
                   </div>
 
                 </div>
-
+<!--
                 <div class="panel panel-default in">
                   <div class="panel-heading">
                     <h4 class="panel-title main-tools" data-toggle="collapse" data-target="#GeneralTools">
@@ -238,7 +241,8 @@
                       </a>
                     </h4>
                   </div>
-
+ -->
+                <!--
                   <div id="GeneralTools" class="panel-collapse collapse in">
                     <div class="panel-body">
 
@@ -246,7 +250,7 @@
                         <ul class="edit-list">
                           <li data-name="Move" data-cursor="hand"><img src="{% static 'images/icons/inverted/hand.png' %}" alt="hand"></li>
                           <li data-name="Select"><img src="{% static 'images/icons/inverted/cursor.png' %}" alt="cursor"></li>
-                          <!-- <li data-name="editCurve"><img src="{% static 'images/icons/inverted/editCurve.png' %}" alt="editCurve"></li> -->
+                          !- <li data-name="editCurve"><img src="{% static 'images/icons/inverted/editCurve.png' %}" alt="editCurve"></li> -
                           <li data-name="Screenshot"><img src="{% static 'images/icons/inverted/screenshot.png' %}" alt="screenshot"></li>
                           <li data-name="Script"><img src="{% static 'images/icons/inverted/coffeeMaker.png' %}" alt="plus"></li>
                         </ul>
@@ -254,15 +258,16 @@
                           <li data-name="Text"><img src="{% static 'images/icons/inverted/text.png' %}" alt="text"></li>
                           <li data-name="Media"><img src="{% static 'images/icons/inverted/image.png' %}" alt="image"></li>
                           <li data-name="Lock" data-cursor="key"><img src="{% static 'images/icons/inverted/lock.png' %}" alt="key"></li>
-                          <!-- <li data-name="Link" data-cursor="link"><img src="{% static 'images/icons/inverted/link.png' %}" alt="link"></li> -->
+                          !- <li data-name="Link" data-cursor="link"><img src="{% static 'images/icons/inverted/link.png' %}" alt="link"></li> -
                           <li data-name="Car"><img src="{% static 'images/icons/inverted/car.png' %}" alt="car"></li>
                         </ul>
                       </ul>
 
                     </div>
                   </div>
-
-                </div>
+                 -->
+<!--
+                </div> -->
 
                 <div class="panel panel-default in">
                   <div class="panel-heading">
@@ -292,7 +297,7 @@
                   <div class="panel-heading">
                     <h4 class="panel-title collapsed" data-toggle="collapse" data-target="#AllTools">
                       <a>
-                        Other tools
+                        All tools
                       </a>
                     </h4>
                   </div>
@@ -374,12 +379,41 @@
                   </div>
 
                   <div id="Code" class="panel-collapse collapse">
-                    <div class="panel-body">
+                    <div class="panel-body romanesco-ui">
+
+                      <div class="btn-group repository">
+                        <button type="button" class="btn btn-primary main-repository">Main repository</button>
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          <span class="caret"></span>
+                          <span class="sr-only">Toggle Dropdown</span>
+                        </button>
+                        <ul class="dropdown-menu">
+
+                          <li class='list-repositories'><a href="#"><span class="glyphicon glyphicon-list"></span>List forks...</a></li>
+                          <li class='custom-repository'><a href="#"><span class="glyphicon glyphicon-import"></span>Load from URL...</a></li>
+
+                          {% if connectedToGithub %}
+                            <li class='user-repository'><a href="#"><span class="glyphicon glyphicon-open"></span>My fork</a></li>
+                            <li class='create-fork'><a href="#"><span class="glyphicon glyphicon-export"></span>Create fork</a></li>
+                          {% else %}
+                            <li class='log-github'><a href="{% provider_login_url "github" %}"><span class="glyphicon glyphicon-cloud"></span>Log with Github</a></li>
+                          {% endif %}
+
+                        </ul>
+                      </div>
+
                       <div class="mCustomScrollbar code tree">
 
-                        <div class="files"></div>
+                        <div class="files romanesco-ui"></div>
 
                       </div>
+
+                      <div class="footer">
+                        <button class="btn btn-success submit run" type="button"><span class="glyphicon glyphicon-play"></span>Run</button>
+                        <button class="btn btn-info request" type="button"><span class="glyphicon glyphicon-plus"></span>Commit</button>
+                        <button class="btn btn-primary request" type="button"><span class="glyphicon glyphicon-ok"></span>Push request</button>
+                      </div>
+
                     </div>
                   </div>
 
@@ -482,7 +516,7 @@
           <div class="handle editor-handle"></div>
           <div class="container">
             <div class='header item'>
-              <div class="search"><input type="text" class="form-control" placeholder="Search or create..."></div>
+              <div class="fileName"><input type="text" class="form-control" placeholder="Search or create..."></div>
               <button class="btn btn-default open-modal"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
               <button class="btn btn-default link-file"><span class="glyphicon glyphicon-floppy-open" aria-hidden="true"></span><input type="file" class="link-file form-control"/></button>
               <button class="btn btn-default hide"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>
@@ -562,8 +596,8 @@
     </div>
 
     <!-- <div id="loadingBar"><img src="static/images/loader.GIF"></div> -->
-    <div id="loadingBar">Drawing...</div>
-    <div id="loadingMask">Loading...</div>
+    <div id="drawingBar">Drawing...</div>
+    <div id="loadingBar">Loading...</div>
     <!-- <canvas id="loadingBar"></canvas> -->
 
     <div id="templates">
@@ -894,8 +928,9 @@
     <!-- static for offine -->
 
     <script src="//ajax.googleapis.com/ajax/libs/webfont/1.5.10/webfont.js"></script>
-    <script>WEB_SOCKET_SWF_LOCATION="{{ STATIC_URL }}flashsocket/WebSocketMain.swf"; window.room = "0";</script>
-    <script data-main="{% static 'js/app' %}" src="{% static 'libs/require.js' %}"></script>
+    <script src="{% static 'libs/js.cookie.js' %}"></script>
+    <script>WEB_SOCKET_SWF_LOCATION="{% static 'flashsocket/WebSocketMain.swf' %}"; window.room = "0";</script>
+    <script data-main="{% static 'romanesco-client-code/js/app' %}" src="{% static 'libs/require.js' %}"></script>
 
 
     <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/ace/1.1.3/ace.js"></script> -->

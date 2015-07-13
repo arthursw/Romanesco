@@ -2,41 +2,104 @@ body {
   background-color: white;
   overflow: hidden;
 }
-.romanesco-ui input,
-.romanesco-ui button,
-.romanesco-ui .dropdown-menu {
-  background: transparent;
-  border-radius: 0;
-  color: #eeeeee;
-  border-color: rgba(255, 255, 255, 0.2);
+.romanesco-ui,
+.romanesco-ui.open {
+  background-color: #33383e;
   font-family: 'Lucida Grande', sans-serif;
   font-size: 11px;
+  color: #eeeeee;
+}
+.romanesco-ui input,
+.romanesco-ui.open input,
+.romanesco-ui button,
+.romanesco-ui.open button {
+  background: transparent;
+}
+.romanesco-ui input,
+.romanesco-ui.open input,
+.romanesco-ui button,
+.romanesco-ui.open button,
+.romanesco-ui .dropdown-menu,
+.romanesco-ui.open .dropdown-menu {
+  font-size: 11px;
+  color: #eeeeee;
+  border-radius: 0;
+  border-color: rgba(255, 255, 255, 0.2);
   border-width: 1px;
   border-style: solid;
-  padding: 6px;
+  padding: 5px;
 }
 .romanesco-ui input .btn .caret,
+.romanesco-ui.open input .btn .caret,
 .romanesco-ui button .btn .caret,
-.romanesco-ui .dropdown-menu .btn .caret {
+.romanesco-ui.open button .btn .caret,
+.romanesco-ui .dropdown-menu .btn .caret,
+.romanesco-ui.open .dropdown-menu .btn .caret {
   margin-left: 3px;
 }
 .romanesco-ui input:focus,
+.romanesco-ui.open input:focus,
 .romanesco-ui button:focus,
-.romanesco-ui .dropdown-menu:focus {
+.romanesco-ui.open button:focus,
+.romanesco-ui .dropdown-menu:focus,
+.romanesco-ui.open .dropdown-menu:focus {
   outline: none;
 }
 .romanesco-ui input:hover,
+.romanesco-ui.open input:hover,
 .romanesco-ui button:hover,
-.romanesco-ui .dropdown-menu:hover {
+.romanesco-ui.open button:hover,
+.romanesco-ui .dropdown-menu:hover,
+.romanesco-ui.open .dropdown-menu:hover {
   border-color: rgba(255, 255, 255, 0.6);
 }
-.romanesco-ui .dropdown-menu a {
+.romanesco-ui input .glyphicon,
+.romanesco-ui.open input .glyphicon,
+.romanesco-ui button .glyphicon,
+.romanesco-ui.open button .glyphicon,
+.romanesco-ui .dropdown-menu .glyphicon,
+.romanesco-ui.open .dropdown-menu .glyphicon {
+  margin-right: 2px;
+}
+.romanesco-ui input li a,
+.romanesco-ui.open input li a,
+.romanesco-ui button li a,
+.romanesco-ui.open button li a,
+.romanesco-ui .dropdown-menu li a,
+.romanesco-ui.open .dropdown-menu li a {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.romanesco-ui input li a span.glyphicon,
+.romanesco-ui.open input li a span.glyphicon,
+.romanesco-ui button li a span.glyphicon,
+.romanesco-ui.open button li a span.glyphicon,
+.romanesco-ui .dropdown-menu li a span.glyphicon,
+.romanesco-ui.open .dropdown-menu li a span.glyphicon {
+  margin-right: 5px;
+}
+.romanesco-ui input li a:hover,
+.romanesco-ui.open input li a:hover,
+.romanesco-ui button li a:hover,
+.romanesco-ui.open button li a:hover,
+.romanesco-ui .dropdown-menu li a:hover,
+.romanesco-ui.open .dropdown-menu li a:hover {
+  color: white;
+}
+.romanesco-ui .dropdown-menu,
+.romanesco-ui.open .dropdown-menu {
+  background: #33383e;
+}
+.romanesco-ui .dropdown-menu a,
+.romanesco-ui.open .dropdown-menu a {
   color: #eeeeee;
 }
-.romanesco-ui .dropdown-menu a:hover {
+.romanesco-ui .dropdown-menu a:hover,
+.romanesco-ui.open .dropdown-menu a:hover {
   background-color: #2fa1d6;
 }
-.romanesco-ui input {
+.romanesco-ui input,
+.romanesco-ui.open input {
   height: 29px;
 }
 .search-add .form-control {
@@ -188,15 +251,15 @@ body {
   position: absolute;
 }
 #stage.main.moveTool {
-  cursor: url(images/hand.png) 32 32, move;
+  cursor: url(../images/cursors/hand.png) 32 32, move;
 }
 #stage.main.moveTool .custom-div {
-  cursor: url(images/hand.png) 32 32, move;
+  cursor: url(../images/cursors/hand.png) 32 32, move;
 }
 #stage.main.moveTool .custom-div textarea,
 #stage.main.moveTool .custom-div .handle,
 #stage.main.moveTool .custom-div .content {
-  cursor: url(images/hand.png) 32 32, move;
+  cursor: url(../images/cursors/hand.png) 32 32, move;
   -webkit-user-select: text;
   -khtml-user-select: text;
   -moz-user-select: text;
@@ -388,7 +451,7 @@ body {
   background-color: inherit;
 }
 #stage.main .custom-div.website {
-  cursor: url(images/hand.png) 32 32, move;
+  cursor: url(../images/cursors/hand.png) 32 32, move;
 }
 #user-profile .user-profile {
   padding: 0;
@@ -442,65 +505,60 @@ body {
 #user-profile .romanescoin .credit {
   max-width: 95px;
 }
-.romanesco-ui,
-.romanesco-ui.open {
-  background-color: #33383e;
+.mCustomScrollbar.code {
+  max-height: 400px;
+  border: 1px solid rgba(128, 128, 128, 0.61);
+  padding: 3px;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree_common {
+  margin-left: 5px;
+  padding-left: 0px;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree_common.jqtree-selected .jqtree-element {
+  background-image: none;
+  background-color: none;
+  background: none;
+  color: rgba(255, 255, 255, 0);
+  text-shadow: none;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree_common.jqtree-selected .jqtree-element:hover {
+  background-color: #6f5499;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree_common.jqtree-selected .jqtree-toggler {
+  color: rgba(255, 255, 255, 0);
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-element {
+  padding: 5px;
+  font-size: 11px;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-element:hover {
+  background-color: #6f5499;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-folder > .jqtree-element:first-child {
+  background-color: #24282d;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-folder > .jqtree-element:first-child:hover {
+  background-color: #6f5499;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-toggler {
+  background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==);
+  background-repeat: no-repeat;
+  background-position: 5px 5px;
+  color: rgba(255, 255, 255, 0);
+  text-shadow: none;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-toggler.jqtree-closed {
+  background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlGIWqMCbWAEAOw==);
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-toggler.jqtree-selected {
+  color: rgba(255, 255, 255, 0);
+  text-shadow: none;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-title {
   font-family: 'Lucida Grande', sans-serif;
   font-size: 11px;
   color: #eeeeee;
-}
-.romanesco-ui input,
-.romanesco-ui.open input,
-.romanesco-ui button,
-.romanesco-ui.open button,
-.romanesco-ui .dropdown-menu,
-.romanesco-ui.open .dropdown-menu {
-  background: transparent;
-  border-radius: 0;
-  border-color: rgba(255, 255, 255, 0.2);
-  border-width: 1px;
-  border-style: solid;
-  padding: 6px;
-}
-.romanesco-ui input .btn .caret,
-.romanesco-ui.open input .btn .caret,
-.romanesco-ui button .btn .caret,
-.romanesco-ui.open button .btn .caret,
-.romanesco-ui .dropdown-menu .btn .caret,
-.romanesco-ui.open .dropdown-menu .btn .caret {
-  margin-left: 3px;
-}
-.romanesco-ui input:focus,
-.romanesco-ui.open input:focus,
-.romanesco-ui button:focus,
-.romanesco-ui.open button:focus,
-.romanesco-ui .dropdown-menu:focus,
-.romanesco-ui.open .dropdown-menu:focus {
-  outline: none;
-}
-.romanesco-ui input:hover,
-.romanesco-ui.open input:hover,
-.romanesco-ui button:hover,
-.romanesco-ui.open button:hover,
-.romanesco-ui .dropdown-menu:hover,
-.romanesco-ui.open .dropdown-menu:hover {
-  border-color: rgba(255, 255, 255, 0.6);
-}
-.romanesco-ui .dropdown-menu a,
-.romanesco-ui.open .dropdown-menu a {
-  color: #eeeeee;
-}
-.romanesco-ui .dropdown-menu a:hover,
-.romanesco-ui.open .dropdown-menu a:hover {
-  background-color: #2fa1d6;
-}
-.romanesco-ui input,
-.romanesco-ui.open input {
-  height: 29px;
-}
-.romanesco-ui .open button.btn.btn-default.dropdown-toggle {
-  background: transparent;
-  color: #eeeeee;
+  margin-left: 5px;
 }
 .all-tools .search {
   width: 100%;
@@ -567,6 +625,7 @@ li.tool-btn .favorite-btn:hover {
   color: #eeeeee;
 }
 li.tool-btn.selected .favorite-btn {
+  color: greenyellow;
   opacity: 0.9;
 }
 .mCustomScrollbar.tree .folder {
@@ -732,15 +791,17 @@ li.tool-btn.selected .favorite-btn {
   left: -265px;
 }
 .sidebar.r-hidden .sidebar-handle {
-  right: -25px;
+  right: -20px;
 }
 .sidebar .sidebar-handle {
   position: absolute;
   height: 75px;
   top: 0;
   right: 0px;
-  width: 25px;
+  width: 20px;
   padding-top: 10px;
+  padding-left: 5px;
+  padding-right: 5px;
   color: white;
   background: #33383e;
   border: none;
@@ -759,7 +820,7 @@ li.tool-btn.selected .favorite-btn {
   outline: none;
 }
 .sidebar .sidebar-handle .glyphicon {
-  left: -8px;
+  left: -3px;
 }
 .sidebar #mCSB_1_container {
   margin-left: 4px;
@@ -834,6 +895,8 @@ li.tool-btn.selected .favorite-btn {
 .sidebar ul.tool-list {
   float: left;
   list-style-type: none;
+  display: flex;
+  flex-wrap: wrap;
   margin: 0;
   padding: 0;
   min-height: 30px;
@@ -925,6 +988,24 @@ li.tool-btn.selected .favorite-btn {
 }
 .sidebar .tt-dropdown-menu .tt-cursor {
   background-color: #1ed36f;
+}
+.sidebar #Code .repository {
+  margin-bottom: 4px;
+  width: 100%;
+}
+.sidebar #Code .repository .main-repository {
+  width: 186px;
+  text-align: left;
+}
+.sidebar #Code .repository .dropdown-menu {
+  width: 100%;
+}
+.sidebar #Code .footer {
+  margin-top: 4px;
+}
+.sidebar #Code .footer button {
+  padding: 4px;
+  padding-left: 5px;
 }
 .sidebar #chatContent {
   padding-bottom: 0px;
@@ -1087,9 +1168,9 @@ li.tool-btn.selected .favorite-btn {
 }
 .dat-gui.dg-right {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  z-index: 1001;
+  top: 0px;
+  right: 0px;
+  z-index: 998;
 }
 .dat-gui .dat-gui-toggle {
   position: absolute;
@@ -1234,16 +1315,17 @@ li.tool-btn.selected .favorite-btn {
 #codeEditor {
   right: 50%;
   position: absolute;
-  top: 5px;
-  bottom: 5px;
-  left: 270px;
+  top: 0px;
+  bottom: 0px;
+  left: 265px;
   background-color: rgba(38, 42, 47, 0.97);
   color: white;
   display: none;
   padding: 5px;
   padding-right: 0;
-  z-index: 1002;
+  z-index: 999;
   min-width: 150px;
+  overflow: hidden;
   -webkit-transition: left 0.5s ease-out;
   -khtml-transition: left 0.5s ease-out;
   -moz-transition: left 0.5s ease-out;
@@ -1277,14 +1359,15 @@ li.tool-btn.selected .favorite-btn {
   margin-left: 10px;
   margin-right: -5px;
 }
-#codeEditor .container .header .search {
+#codeEditor .container .header .fileName {
   flex: 1;
+  width: 100%;
   margin: 2px;
 }
-#codeEditor .container .header .search .twitter-typeahead {
+#codeEditor .container .header .fileName .twitter-typeahead {
   width: 100%;
 }
-#codeEditor .container .header .search .twitter-typeahead .tt-dropdown-menu {
+#codeEditor .container .header .fileName .twitter-typeahead .tt-dropdown-menu {
   color: #eeeeee;
   background-color: #24282d;
   font-size: 11px;
@@ -1292,22 +1375,24 @@ li.tool-btn.selected .favorite-btn {
   border-left: 1px lightgray solid;
   border-right: 1px lightgray solid;
 }
-#codeEditor .container .header .search .twitter-typeahead .tt-dropdown-menu .tt-suggestion {
+#codeEditor .container .header .fileName .twitter-typeahead .tt-dropdown-menu .tt-suggestion {
   border-bottom: 1px lightgray solid;
   padding: 5px;
 }
-#codeEditor .container .header .search .twitter-typeahead .tt-dropdown-menu .tt-suggestion.tt-cursor {
+#codeEditor .container .header .fileName .twitter-typeahead .tt-dropdown-menu .tt-suggestion.tt-cursor {
   background-color: #1ed36f;
 }
-#codeEditor .container .header .search .twitter-typeahead .tt-dropdown-menu .tt-suggestion p {
+#codeEditor .container .header .fileName .twitter-typeahead .tt-dropdown-menu .tt-suggestion p {
   margin: 0;
 }
 #codeEditor .container .header button {
   width: 29px;
+  height: 29px;
   margin: 2px;
 }
 #codeEditor .container .header .link-file {
   position: relative;
+  overflow: hidden;
 }
 #codeEditor .container .header .link-file input.link-file {
   position: absolute;
@@ -1322,6 +1407,7 @@ li.tool-btn.selected .favorite-btn {
 }
 #codeEditor .container .header .close-editor {
   position: relative;
+  margin-right: 8px;
 }
 #codeEditor .container .code {
   flex: 1;
@@ -1377,7 +1463,7 @@ li.tool-btn.selected .favorite-btn {
   margin: 1px;
 }
 #codeEditor.r-hidden {
-  left: 5px;
+  left: 0px;
 }
 #codeEditorBckp {
   right: 50%;
@@ -1571,15 +1657,14 @@ li.tool-btn.selected .favorite-btn {
 .pinterest-modal .modal-body {
   text-align: center;
 }
-#loadingBar {
+#drawingBar {
   position: fixed;
   bottom: 0;
   right: 0;
 }
-#loadingMask {
+#loadingBar {
   z-index: 1005;
   display: flex;
-  visibility: hidden;
   align-items: center;
   justify-content: center;
   font-family: 'Lucida Grande';
@@ -1590,6 +1675,7 @@ li.tool-btn.selected .favorite-btn {
   left: 0;
   right: 0;
   background-color: rgba(0, 0, 0, 0.3);
+  z-index: 999999;
 }
 .form-control {
   height: auto;

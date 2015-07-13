@@ -5,6 +5,11 @@ import socketio.sdjango
 socketio.sdjango.autodiscover()
 
 urlpatterns = patterns('',
+    # hack for Brackets Theseus...
+    url(r'^draw/templates/index\.html', views.index, name='index'),
+    url(r'^draw/index\.html', views.index, name='index'),
+    url(r'^index\.html', views.index, name='index'),
+
     url(r'^$', views.index, name='index'),
     # url(r'^#(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$', views.index, name='index'),
     # url(r'^(?P<owner>[\w-]+)/(?P<name>[\w-]+)/#(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$', views.index, name='index'),
