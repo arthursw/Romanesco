@@ -11,6 +11,7 @@ urlpatterns = patterns('',
     url(r'^index\.html', views.index, name='index'),
 
     url(r'^$', views.index, name='index'),
+
     # url(r'^#(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$', views.index, name='index'),
     # url(r'^(?P<owner>[\w-]+)/(?P<name>[\w-]+)/#(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$', views.index, name='index'),
     url(r'^#(?P<x>[\d.]+),(?P<y>[\d.]+)$', views.index, name='index'),

@@ -242,6 +242,9 @@ SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['https://www.googleapis.com/auth/userinfo.profile'],
         'AUTH_PARAMS': { 'access_type': 'online' }
+    },
+    'github': {
+        'SCOPE': ['public_repo']
     }
 }
 
@@ -254,5 +257,3 @@ PAYPAL_RECEIVER_EMAIL = "arthurpub.sw-facilitator@gmail.com"
 # set PAYPAL_TEST to True.  Ensure PAYPAL_RECEIVER_EMAIL is set to
 # your sandbox account email too.
 PAYPAL_TEST = True
-
-

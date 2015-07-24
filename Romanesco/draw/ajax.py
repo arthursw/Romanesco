@@ -88,6 +88,9 @@ with open('/data/client_secret_github.txt') as f:
 with open('/data/accesstoken_github.txt') as f:
 	ACCESS_TOKEN = f.read().strip()
 
+with open('/data/openaccesstoken_github.txt') as f:
+	OPEN_ACCESS_TOKEN = f.read().strip()
+
 # pprint(vars(object))
 # import pdb; pdb.set_trace()
 # import pudb; pu.db
@@ -127,22 +130,24 @@ def multipleCalls(request, functionsAndArguments):
 
 @dajaxice_register
 @checkDebug
-def githubRequest(request, githubRequest, method='get', params=None, headers=None):
+def githubRequest(request, githubRequest, method='get', data=None, params=None, headers=None):
 	token = ACCESS_TOKEN
 
 	try:
 		socialAccount = SocialAccount.objects.get(user_id=request.user.id, provider='github')
-		userToken = SocialToken.objects.get(account__user=socialAccount.id, account__provider='github')
+		userToken = SocialToken.objects.get(account_id=socialAccount.id, account__provider='github')
 		if userToken:
 			token = userToken
 	except:
 		pass
-
+	if data:
+		data = json.dumps(data)
 	if not headers:
 		headers = {}
 	headers['Authorization'] = 'token ' + str(token)
-	r = getattr(requests, method)(githubRequest, params=params, headers=headers)
-	return json.dumps(r.json())
+	r = getattr(requests, method)(githubRequest, data=data, params=params, headers=headers)
+	response = { 'content': r.json(), 'status': r.status_code }
+	return json.dumps(response)
 
 # r = requests.post(githubRequest, headers={'Authorization': 'token ' + ACCESS_TOKEN})
 
@@ -351,6 +356,18 @@ def loadCities(request):
 	userCities = City.objects(owner=request.user.username)
 	publicCities = City.objects(public=True)
 	return json.dumps( { 'userCities': userCities.to_json(), 'publicCities': publicCities.to_json() } )
+
+@dajaxice_register
+@checkDebug
+def loadPrivateCities(request):
+	userCities = City.objects(owner=request.user.username)
+	return json.dumps( { 'userCities': userCities.to_json() } )
+
+@dajaxice_register
+@checkDebug
+def loadPublicCities(request):
+	publicCities = City.objects(public=True)
+	return json.dumps( { 'publicCities': publicCities.to_json() } )
 
 @dajaxice_register
 @checkDebug

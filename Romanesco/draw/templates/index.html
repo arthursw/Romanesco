@@ -39,10 +39,13 @@
     <!-- <link href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-modal/2.2.5/css/bootstrap-modal.css" rel="stylesheet"> -->
 
     <!-- Custom styles -->
+    <link href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.8.1/bootstrap-table.min.css" rel="stylesheet">
     <link href="{% static 'libs/bootstrap-colorpickersliders/bootstrap.colorpickersliders.css' %}" rel="stylesheet">
     <link href="{% static 'libs/jqtree/jqtree.css' %}" rel="stylesheet">
     <!-- <link href="{% static 'libs/slider.css' %}" rel="stylesheet"> -->
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+    <!-- Latest compiled and minified CSS -->
+
 
     <link href='http://fonts.googleapis.com/css?family=Bitter' rel='stylesheet' type='text/css'>
 
@@ -223,9 +226,9 @@
                   <div id="CityPanel" class="panel-collapse collapse">
                     <div class="panel-body">
 
-                      <ul class="tool-list">
-                        <li data-name="Create" class="tool-btn"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></li>
-                        <li data-name="Open" class="tool-btn"><span class="glyphicon glyphicon-open" aria-hidden="true"></span></li>
+                      <ul class="city-list">
+                        <li data-name="Create" class="create-city tool-btn"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>Create city</li>
+                        <li data-name="Open" class="load-city tool-btn"><span class="glyphicon glyphicon-open" aria-hidden="true"></span>Load city...</li>
                       </ul>
 
                     </div>
@@ -382,19 +385,19 @@
                     <div class="panel-body romanesco-ui">
 
                       <div class="btn-group repository">
-                        <button type="button" class="btn btn-primary main-repository">Main repository</button>
+                        <button type="button" class="btn btn-primary run-fork">Main repository</button>
                         <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           <span class="caret"></span>
                           <span class="sr-only">Toggle Dropdown</span>
                         </button>
                         <ul class="dropdown-menu">
 
-                          <li class='list-repositories'><a href="#"><span class="glyphicon glyphicon-list"></span>List forks...</a></li>
-                          <li class='custom-repository'><a href="#"><span class="glyphicon glyphicon-import"></span>Load from URL...</a></li>
+                          <li class='list-forks'><a><span class="glyphicon glyphicon-list"></span>List forks...</a></li>
+                          <li class='custom-fork'><a><span class="glyphicon glyphicon-import"></span>Load from URL...</a></li>
 
                           {% if connectedToGithub %}
-                            <li class='user-repository'><a href="#"><span class="glyphicon glyphicon-open"></span>My fork</a></li>
-                            <li class='create-fork'><a href="#"><span class="glyphicon glyphicon-export"></span>Create fork</a></li>
+                            <li class='user-fork'><a><span class="glyphicon glyphicon-open"></span>My fork</a></li>
+                            <li class='create-fork'><a><span class="glyphicon glyphicon-export"></span>Create fork</a></li>
                           {% else %}
                             <li class='log-github'><a href="{% provider_login_url "github" %}"><span class="glyphicon glyphicon-cloud"></span>Log with Github</a></li>
                           {% endif %}
@@ -402,16 +405,30 @@
                         </ul>
                       </div>
 
+                      <div class="btn-group create-file">
+                        <button class="btn btn-success dropdown-toggle create" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-plus"></span>
+                          Create <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li class="create-file"><a href="#">New script</a></li>
+                          <li class="create-directory"><a href="#">New directory</a></li>
+                        </ul>
+                      </div>
+
                       <div class="mCustomScrollbar code tree">
 
                         <div class="files romanesco-ui"></div>
 
+                        <!-- <button class="btn btn-info create-file" type="button"><span class="glyphicon glyphicon-plus"></span>Create file</button>
+                        <button class="btn btn-info create-directory" type="button"><span class="glyphicon glyphicon-plus"></span>Create directory</button> -->
+
                       </div>
 
                       <div class="footer">
-                        <button class="btn btn-success submit run" type="button"><span class="glyphicon glyphicon-play"></span>Run</button>
-                        <button class="btn btn-info request" type="button"><span class="glyphicon glyphicon-plus"></span>Commit</button>
-                        <button class="btn btn-primary request" type="button"><span class="glyphicon glyphicon-ok"></span>Push request</button>
+                        <button class="btn btn-danger undo-changes" type="button"><span class="glyphicon glyphicon-floppy-remove"></span>Undo changes</button>
+                        <button class="btn btn-success run" type="button"><span class="glyphicon glyphicon-play"></span>Run</button>
+                        <button class="btn btn-info commit" type="button"><span class="glyphicon glyphicon-plus"></span>Commit</button>
+                        <button class="btn btn-primary pull-request" type="button"><span class="glyphicon glyphicon-ok"></span>Create pull request</button>
                       </div>
 
                     </div>
@@ -507,13 +524,20 @@
           <div class="hidden text-separator"></div>
 
           <!-- <canvas id="background-canvas" resize hidpi="off"></canvas> -->
-          <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message="{{ message }}" data-load-entire-area="{{ loadEntireArea }}" data-city="{{ city }}" data-owner="{{ owner }}"></canvas>
+          <canvas id="canvas" resize hidpi="off" data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message="{{ message }}" data-load-entire-area="{{ loadEntireArea }}" data-city="{{ city }}" data-owner="{{ owner }}" data-github-login="{{ githubLogin }}"></canvas>
           <div id="rasters"></div>
 
         </div>
 
         <div id="codeEditor" class="romanesco-ui">
-          <div class="handle editor-handle"></div>
+          <div class="handle editor-handle">
+            <button type="button" class="handle-left btn btn-default">
+              <span class="glyphicon glyphicon-chevron-left"></span>
+            </button>
+            <button type="button" class="handle-right btn btn-default">
+              <span class="glyphicon glyphicon-chevron-right"></span>
+            </button>
+          </div>
           <div class="container">
             <div class='header item'>
               <div class="fileName"><input type="text" class="form-control" placeholder="Search or create..."></div>
@@ -524,9 +548,13 @@
               <!-- <button type="button" class="close close-editor"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button> -->
             </div>
 
-            <div class='code extend item'>
-              <div class="content">
-              </div>
+            <div class="code extend item">
+            </div>
+
+            <div id="aceDiff" class="acediff">
+              <div><div id="acediff-left-editor"></div></div>
+              <div id="acediff-gutter"></div>
+              <div><div id="acediff-right-editor"></div></div>
             </div>
 
             <div class='console resizable item closed'>
@@ -540,9 +568,16 @@
             </div>
 
             <div class='footer item'>
+              <div class='diff'>
+                <button class="btn btn-default previous" type="button"><span class="glyphicon glyphicon-chevron-left"></span></button>
+                <button class="btn btn-default next" type="button"><span class="glyphicon glyphicon-chevron-right"></span></button>
+                <button class="btn btn-default copy-main" type="button"><span class="glyphicon glyphicon-chevron-copy"></span>Copy main file</button>
+                <button class="btn btn-info commit" type="button"><span class="glyphicon glyphicon-plus"></span>Commit changes</button>
+                <button class="btn btn-success pull-request" type="button"><span class="glyphicon glyphicon-ok"></span>Create pull request</button>
+              </div>
               <button class="btn btn-info submit run" type="button"><span class="glyphicon glyphicon-play"></span>Run</button>
-              <button class="btn btn-success request" type="button"><span class="glyphicon glyphicon-plus"></span>Push request</button>
-              <button class="btn btn-success accept hidden" type="button"></span>Accept</button>
+              <!-- <button class="btn btn-success request" type="button"><span class="glyphicon glyphicon-plus"></span>Push request</button> -->
+              <!-- <button class="btn btn-success accept hidden" type="button"></span>Accept</button> -->
             </div>
           </div>
         </div>

@@ -21,10 +21,12 @@ def index(request, site=None, owner=None, city=None, x=0, y=0):
 		print 'user profile does not exist.'
 
 	connectedToGithub = False
+	githubLogin = ''
 	try:
 		socialAccount = SocialAccount.objects.filter(user_id=request.user.id, provider='github')[:1].get()
 		if socialAccount:
 			connectedToGithub = True
+			githubLogin = socialAccount.extra_data['login']
 	except:
 		print 'can not load social account.'
 
@@ -34,6 +36,7 @@ def index(request, site=None, owner=None, city=None, x=0, y=0):
 
 	result['profileImageURL'] = profileImageURL
 	result['connectedToGithub'] = connectedToGithub
+	result['githubLogin'] = githubLogin
 	return render_to_response(	"index.html", result, RequestContext(request) )
 
 def rasterizer(request, sitename=None):
