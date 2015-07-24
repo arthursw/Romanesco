@@ -54,7 +54,11 @@ target/
 
 # ---- CUSTOM ---- #
 
+# the databases
+*.db
+
 # Distribution / packaging
+
 bin/
 include/
 Romanesco/static/images/sources/
