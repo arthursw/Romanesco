@@ -37,14 +37,6 @@ body {
 .romanesco-ui.open .dropdown-menu .btn .caret {
   margin-left: 3px;
 }
-.romanesco-ui input:focus,
-.romanesco-ui.open input:focus,
-.romanesco-ui button:focus,
-.romanesco-ui.open button:focus,
-.romanesco-ui .dropdown-menu:focus,
-.romanesco-ui.open .dropdown-menu:focus {
-  outline: none;
-}
 .romanesco-ui input:hover,
 .romanesco-ui.open input:hover,
 .romanesco-ui button:hover,
@@ -53,6 +45,27 @@ body {
 .romanesco-ui.open .dropdown-menu:hover {
   color: #eeeeee;
   border-color: rgba(255, 255, 255, 0.6);
+}
+.romanesco-ui input:focus,
+.romanesco-ui.open input:focus,
+.romanesco-ui button:focus,
+.romanesco-ui.open button:focus,
+.romanesco-ui .dropdown-menu:focus,
+.romanesco-ui.open .dropdown-menu:focus {
+  outline: none;
+  background-color: inherit;
+  color: inherit;
+  border-color: inherit;
+}
+.romanesco-ui input:active,
+.romanesco-ui.open input:active,
+.romanesco-ui button:active,
+.romanesco-ui.open button:active,
+.romanesco-ui .dropdown-menu:active,
+.romanesco-ui.open .dropdown-menu:active {
+  background-color: inherit;
+  color: inherit;
+  border-color: inherit;
 }
 .romanesco-ui input .glyphicon,
 .romanesco-ui.open input .glyphicon,
@@ -86,6 +99,43 @@ body {
 .romanesco-ui .dropdown-menu li a:hover,
 .romanesco-ui.open .dropdown-menu li a:hover {
   color: white;
+}
+.romanesco-ui button:hover,
+.romanesco-ui.open button:hover {
+  color: #eeeeee;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.romanesco-ui button.btn-default:hover,
+.romanesco-ui.open button.btn-default:hover {
+  color: #333;
+}
+.romanesco-ui button:focus,
+.romanesco-ui.open button:focus {
+  outline: none;
+  background-color: inherit;
+  color: inherit;
+  border-color: inherit;
+}
+.romanesco-ui button:active,
+.romanesco-ui.open button:active {
+  background-color: inherit;
+  color: inherit;
+  border-color: inherit;
+}
+.romanesco-ui button:active:hover,
+.romanesco-ui.open button:active:hover,
+.romanesco-ui button:focus:hover,
+.romanesco-ui.open button:focus:hover {
+  color: #eeeeee;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.romanesco-ui button.btn-default:active:hover,
+.romanesco-ui.open button.btn-default:active:hover,
+.romanesco-ui button.btn-default:focus:hover,
+.romanesco-ui.open button.btn-default:focus:hover {
+  color: #333;
+  border-color: rgba(255, 255, 255, 0.6);
+  background-color: #e6e6e6;
 }
 .romanesco-ui .dropdown-menu,
 .romanesco-ui.open .dropdown-menu {
@@ -468,7 +518,6 @@ body {
   width: 147px;
   border-color: rgba(255, 255, 255, 0.1);
   margin-left: -4px;
-  background-color: transparent;
   height: 64px;
 }
 #user-profile .user-profile button.dropdown-toggle:hover {
@@ -509,6 +558,7 @@ body {
 .mCustomScrollbar.code {
   max-height: 400px;
   border: 1px solid rgba(128, 128, 128, 0.61);
+  border-top: 0;
   padding: 3px;
 }
 .mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree_common {
@@ -526,6 +576,9 @@ body {
 }
 .mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree_common.modified .jqtree-element {
   font-style: italic;
+}
+.mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree_common.difference .jqtree-element:first {
+  text-decoration: underline;
 }
 .mCustomScrollbar.code .files.romanesco-ui .jqtree-tree .jqtree-element {
   padding: 5px;
@@ -857,6 +910,49 @@ li.tool-btn.selected .favorite-btn {
 .sidebar #mCSB_1_scrollbar_vertical {
   width: 5px;
 }
+.sidebar #City .mCustomScrollbar {
+  max-height: 200px;
+  border: 1px solid rgba(128, 128, 128, 0.61);
+  padding: 3px;
+}
+.sidebar #City .mCustomScrollbar h6 {
+  background-color: #24282d;
+  padding: 6px;
+}
+.sidebar #City .mCustomScrollbar .city-list {
+  list-style: none;
+  padding-left: 0;
+}
+.sidebar #City .mCustomScrollbar .city-list li {
+  cursor: pointer;
+  position: relative;
+  padding: 5px;
+}
+.sidebar #City .mCustomScrollbar .city-list li button {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 25px;
+  height: 25px;
+  padding: 2px;
+}
+.sidebar #City .mCustomScrollbar .city-list li button .glyphicon {
+  margin-right: 0;
+}
+.sidebar #City .mCustomScrollbar .city-list li:hover {
+  background-color: #6f5499;
+}
+.sidebar #City .mCustomScrollbar .city-list li:hover button {
+  display: block;
+}
+.sidebar #City .footer button.btn {
+  padding: 4px;
+  padding-left: 5px;
+  width: 100%;
+  margin-top: 5px;
+  text-align: left;
+}
 .sidebar .mCustomScrollbar.history,
 .sidebar .mCustomScrollbar.rItems {
   max-height: 200px;
@@ -882,7 +978,7 @@ li.tool-btn.selected .favorite-btn {
   cursor: pointer;
   padding: 5px;
   font-weight: normal;
-  font-style: italic;
+  /* font-style: italic; */
 }
 .sidebar .mCustomScrollbar.history ul.command-list li.done,
 .sidebar .mCustomScrollbar.rItems ul.command-list li.done,
@@ -1461,7 +1557,7 @@ li.tool-btn.selected .favorite-btn {
 }
 #codeEditor .container .header .close-editor {
   position: relative;
-  margin-right: 8px;
+  margin-right: 5px;
 }
 #codeEditor .container .code {
   flex: 1;
@@ -1512,8 +1608,12 @@ li.tool-btn.selected .favorite-btn {
 #codeEditor .container .console.closed .content {
   overflow: hidden;
 }
+#codeEditor .container .footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
 #codeEditor .container .footer button {
-  float: right;
   margin: 1px;
 }
 #codeEditor.r-hidden {
@@ -1688,6 +1788,9 @@ li.tool-btn.selected .favorite-btn {
 .pinterest-modal .twitter-share-button {
   padding: 0;
 }
+#customModal .modal-footer button[name="cancel"] {
+  margin-right: -4px;
+}
 #screenshotModal .modal-footer {
   padding-top: 4px;
 }
@@ -1833,7 +1936,6 @@ body.allauth .container.allauth .checkbox {
   display: flex;
   display: -webkit-flex;
   flex-direction: row;
-  position: absolute;
   bottom: 0;
   top: 0;
   left: 0;
@@ -1841,6 +1943,17 @@ body.allauth .container.allauth .checkbox {
   height: 100%;
   width: 100%;
   overflow: auto;
+  background-color: #2F3129;
+}
+#aceDiff h6.repository-name {
+  height: 30px;
+  padding: 8px;
+  margin: 0;
+  padding-left: 15px;
+  display: inline-block;
+}
+#aceDiff .btn.close-diffing {
+  float: right;
 }
 #aceDiff > div {
   flex-grow: 1;
@@ -1854,24 +1967,25 @@ body.allauth .container.allauth .checkbox {
   border-right: 1px solid #999999;
   background-color: #efefef;
   overflow: hidden;
+  margin-top: 30px;
 }
 #acediff-gutter svg {
-  background-color: #efefef;
+  background-color: #2F3129;
 }
 #acediff-left-editor {
   position: absolute;
-  top: 0;
+  top: 30px;
   bottom: 0;
   width: 100%;
 }
 #acediff-right-editor {
   position: absolute;
-  top: 0;
+  top: 30px;
   bottom: 0;
   width: 100%;
 }
 .acediff-diff {
-  background-color: #d8f2ff;
+  background-color: rgba(216, 242, 255, 0.2);
   border-top: 1px solid #a2d7f2;
   border-bottom: 1px solid #a2d7f2;
   position: absolute;
@@ -1884,7 +1998,7 @@ body.allauth .container.allauth .checkbox {
   position: absolute;
 }
 .acediff-connector {
-  fill: #d8f2ff;
+  fill: rgba(216, 242, 255, 0.2);
   stroke: #a2d7f2;
 }
 .acediff-copy-left {
@@ -1895,8 +2009,7 @@ body.allauth .container.allauth .checkbox {
   position: relative;
 }
 .acediff-copy-right div {
-  color: #000000;
-  text-shadow: 1px 1px #ffffff;
+  color: white;
   position: absolute;
   margin: 2px 3px;
   cursor: pointer;
@@ -1905,8 +2018,7 @@ body.allauth .container.allauth .checkbox {
   color: #004ea0;
 }
 .acediff-copy-left div {
-  color: #000000;
-  text-shadow: 1px 1px #ffffff;
+  color: white;
   position: absolute;
   right: 0px;
   margin: 2px 3px;

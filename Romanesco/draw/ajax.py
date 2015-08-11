@@ -147,6 +147,8 @@ def githubRequest(request, githubRequest, method='get', data=None, params=None, 
 	headers['Authorization'] = 'token ' + str(token)
 	r = getattr(requests, method)(githubRequest, data=data, params=params, headers=headers)
 	response = { 'content': r.json(), 'status': r.status_code }
+	if 'link' in r.headers:
+		response['headers'] = { 'link': r.headers['link'] }
 	return json.dumps(response)
 
 # r = requests.post(githubRequest, headers={'Authorization': 'token ' + ACCESS_TOKEN})
@@ -324,11 +326,14 @@ def deleteCity(request, name):
 	models = ['Path', 'Div', 'Box', 'AreaToUpdate']
 
 	for model in models:
-		globals()[model].objects(city=city).delete()
+		globals()[model].objects(city=city.pk).delete()
 
-	shutil.rmtree('media/rasters/' + city)
+	try:
+		shutil.rmtree('media/rasters/' + str(city.pk))
+	except Exception:
+		pass
 
-	return json.dumps( { 'state': 'succes', 'city': city.to_json() } )
+	return json.dumps( { 'state': 'succes', 'cityPk': str(city.pk) } )
 
 @dajaxice_register
 @checkDebug
@@ -359,7 +364,7 @@ def loadCities(request):
 
 @dajaxice_register
 @checkDebug
-def loadPrivateCities(request):
+def loadUserCities(request):
 	userCities = City.objects(owner=request.user.username)
 	return json.dumps( { 'userCities': userCities.to_json() } )
 
@@ -390,20 +395,22 @@ def getCity(request, cityObject=None):
 			return None
 	return str(city.pk)
 
-@dajaxice_register
-@checkDebug
-def load(request, rectangle, areasToLoad, qZoom, city=None):
+def checkAddItem(item, items, itemsDates=None):
+	if not item.pk in items:
+		items[item.pk] = item.to_json()
+	return
 
+def checkAddItemRasterizer(item, items, itemsDates):
+	pk = item.pk
+	itemLastUpdate = unix_time_millis(item.lastUpdate)
+	if not pk in items and (not pk in itemsDates or itemsDates[pk]<itemLastUpdate):
+		items[pk] = item.to_json()
+		if pk in itemsDates:
+			del itemsDates[pk]
+	return
+
+def getItems(models, areasToLoad, qZoom, city, checkAddItemFunction, itemDates=None):
 	items = {}
-
-	start = time.time()
-
-	models = ['Path', 'Div', 'Box', 'AreaToUpdate']
-
-	city = getCity(request, city)
-	if not city:
-		return json.dumps( { 'state': 'error', 'message': 'The city does not exist.' } )
-
 	for area in areasToLoad:
 
 		tlX = area['pos']['x']
@@ -418,27 +425,22 @@ def load(request, rectangle, areasToLoad, qZoom, city=None):
 			itemsQuerySet = globals()[model].objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
 
 			for item in itemsQuerySet:
-				if not item.pk in items:
-					items[item.pk] = item.to_json()
+				checkAddItemFunction(item, items, itemDates)
 
-		# # load items
-		# p = Path.objects(planetX=planetX, planetY=planetY, points__geo_intersects=geometry)
-		# d = Div.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
-		# b = Box.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
-		# a = AreaToUpdate.objects(planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
+	return items
 
-		# for path in p:
-		# 	if not items.has_key(path.pk):
-		# 		items[path.pk] = path.to_json()
-		# for div in d:
-		# 	if not items.has_key(div.pk):
-		# 		items[div.pk] = div.to_json()
-		# for box in b:
-		# 	if not items.has_key(box.pk):
-		# 		items[box.pk] = box.to_json()
-		# for area in a:
-		# 	if not items.has_key(area.pk):
-		# 		items[area.pk] = area.to_json()
+@dajaxice_register
+@checkDebug
+def load(request, rectangle, areasToLoad, qZoom, city=None):
+
+	start = time.time()
+
+	cityPk = getCity(request, city)
+	if not cityPk:
+		return json.dumps( { 'state': 'error', 'message': 'The city does not exist.', 'code': 'CITY_DOES_NOT_EXIST' } )
+
+	models = ['Path', 'Div', 'Box', 'AreaToUpdate']
+	items = getItems(models, areasToLoad, qZoom, cityPk, checkAddItem)
 
 	# load rasters
 	rasters = []
@@ -461,13 +463,13 @@ def load(request, rectangle, areasToLoad, qZoom, city=None):
 
 			if qZoom < 5:
 				position = { 'x': x1, 'y': y1 }
-				rasterPath = 'media/rasters/' + city + '/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
+				rasterPath = 'media/rasters/' + cityPk + '/zoom100/' + str(x25) + ',' + str(y25) + '/' + str(x5) + ',' + str(y5) + '/'
 			elif qZoom < 25:
 				position = { 'x': x5, 'y': y5 }
-				rasterPath = 'media/rasters/' + city + '/zoom20/' + str(x25) + ',' + str(y25) + '/'
+				rasterPath = 'media/rasters/' + cityPk + '/zoom20/' + str(x25) + ',' + str(y25) + '/'
 			else:
 				position = { 'x': x25, 'y': y25 }
-				rasterPath = 'media/rasters/' + city + '/zoom4/'
+				rasterPath = 'media/rasters/' + cityPk + '/zoom4/'
 
 			rasterName = rasterPath + str(position['x']) + "," + str(position['y']) + ".png"
 
@@ -490,41 +492,16 @@ def load(request, rectangle, areasToLoad, qZoom, city=None):
 
 @dajaxice_register
 @checkDebug
-def loadRasterizer(request, areasToLoad, itemsDates, cityPk=None):
-
-	items = {}
+def loadRasterizer(request, areasToLoad, itemsDates, city):
 
 	start = time.time()
 
-	try:
-		c = City.objects.get(pk=cityPk)
-		city = str(c.pk)
-	except City.DoesNotExist:
-		return json.dumps( { 'status': 'error', 'message': 'City ' + cityPk + ' does not exist.' } )
+	city = getCity(request, city)
+	if not city:
+		return json.dumps( { 'state': 'error', 'message': 'The city does not exist.' } )
 
 	models = ['Path', 'Box']
-
-	for area in areasToLoad:
-
-		tlX = area['pos']['x']
-		tlY = area['pos']['y']
-
-		planetX = area['planet']['x']
-		planetY = area['planet']['y']
-
-		geometry = makeBox(tlX, tlY, tlX+1, tlY+1)
-		# geometry = makeBox(tlX, tlY, tlX+0.2, tlY+0.2)
-
-		for model in models:
-			itemsQuerySet = globals()[model].objects(city=city, planetX=planetX, planetY=planetY, box__geo_intersects=geometry)
-
-			for item in itemsQuerySet:
-				pk = str(item.pk)
-				itemLastUpdate = unix_time_millis(item.lastUpdate)
-				if not pk in items and (not pk in itemsDates or itemsDates[pk]<itemLastUpdate):
-					items[pk] = item.to_json()
-					if pk in itemsDates:
-						del itemsDates[pk]
+	items = getItems(models, areasToLoad, 1, city, checkAddItemRasterizer, itemsDates)
 
 	# add items to update which are not on the loading area (to update items which have been moved out of the area to load)
 	for model in models:

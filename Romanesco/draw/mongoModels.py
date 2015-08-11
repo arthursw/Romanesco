@@ -36,11 +36,12 @@ class Box(Document):
     restrictedArea = BooleanField(default=False)
     disableToolbar = BooleanField(default=False)
     loadEntireArea = BooleanField(default=False)
-    module = ReferenceField('Module')
+    name = StringField()
+    # module = ReferenceField('Module')
 
     # deprecated: put in data
     # url = URLField(verify_exists=True, required=False)
-    name = StringField()
+
     # message = StringField()
     # areas = ListField(ReferenceField('Area'))
 

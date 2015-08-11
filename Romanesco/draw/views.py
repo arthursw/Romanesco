@@ -37,14 +37,9 @@ def index(request, site=None, owner=None, city=None, x=0, y=0):
 	result['profileImageURL'] = profileImageURL
 	result['connectedToGithub'] = connectedToGithub
 	result['githubLogin'] = githubLogin
-	return render_to_response(	"index.html", result, RequestContext(request) )
+	response = render_to_response(	"index.html", result, RequestContext(request) )
+	return response
 
-def rasterizer(request, sitename=None):
-	if sitename:
-		result = loadSite(request, sitename)
-		return render_to_response(	"rasterizer.html", result, RequestContext(request) )
-	else:
-		return render_to_response(	"rasterizer.html", RequestContext(request) )
 
 # socketio_manage(request.environ, {'': BaseNamespace, '/chat': ChatNamespace, '/draw': DrawNamespace}, request)
 

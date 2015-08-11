@@ -216,21 +216,28 @@
 
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <h4 class="panel-title collapsed file" data-toggle="collapse" data-target="#CityPanel">
+                    <h4 class="panel-title collapsed file" data-toggle="collapse" data-target="#City">
                       <a>
                         City
                       </a>
                     </h4>
                   </div>
 
-                  <div id="CityPanel" class="panel-collapse collapse">
-                    <div class="panel-body">
+                  <div id="City" class="panel-collapse collapse">
+                    <div class="panel-body romanesco-ui">
 
-                      <ul class="city-list">
-                        <li data-name="Create" class="create-city tool-btn"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>Create city</li>
-                        <li data-name="Open" class="load-city tool-btn"><span class="glyphicon glyphicon-open" aria-hidden="true"></span>Load city...</li>
-                      </ul>
-
+                      <div class="mCustomScrollbar cities romanesco-ui">
+                        <h6>Your cities</h6>
+                        <ul class="city-list user-cities">
+                        </ul>
+                        <h6>Public cities</h6>
+                        <ul class="city-list public-cities ">
+                        </ul>
+                      </div>
+                      <div class='footer'>
+                        <!-- <button class="btn btn-success open" type="button"><span class="glyphicon glyphicon-open" aria-hidden="true"></span>List cities</button> -->
+                        <button class="btn btn-success create-city" type="button"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span>Create city</button>
+                      </div>
                     </div>
                   </div>
 
@@ -392,15 +399,17 @@
                         </button>
                         <ul class="dropdown-menu">
 
-                          <li class='list-forks'><a><span class="glyphicon glyphicon-list"></span>List forks...</a></li>
-                          <li class='custom-fork'><a><span class="glyphicon glyphicon-import"></span>Load from URL...</a></li>
+                          <li class='list-forks'><a><span class="glyphicon glyphicon-list"></span>List forks</a></li>
+                          <li class='main-repository'><a><span class="glyphicon glyphicon-save"></span>Load main repository</a></li>
+                          <li class='custom-fork'><a><span class="glyphicon glyphicon-import"></span>Load a fork</a></li>
 
                           {% if connectedToGithub %}
-                            <li class='user-fork'><a><span class="glyphicon glyphicon-open"></span>My fork</a></li>
+                            <li class='user-fork'><a><span class="glyphicon glyphicon-save"></span>Load my fork</a></li>
                             <li class='create-fork'><a><span class="glyphicon glyphicon-export"></span>Create fork</a></li>
                           {% else %}
                             <li class='log-github'><a href="{% provider_login_url "github" %}"><span class="glyphicon glyphicon-cloud"></span>Log with Github</a></li>
                           {% endif %}
+                          <li class='diffing'><a><span class="glyphicon glyphicon-transfer"></span>Diffing</a></li>
 
                         </ul>
                       </div>
@@ -415,6 +424,8 @@
                         </ul>
                       </div>
 
+                      <div class="search-file"><input type="text" class="form-control search-file" placeholder="Find a file..."></div>
+
                       <div class="mCustomScrollbar code tree">
 
                         <div class="files romanesco-ui"></div>
@@ -425,10 +436,11 @@
                       </div>
 
                       <div class="footer">
-                        <button class="btn btn-danger undo-changes" type="button"><span class="glyphicon glyphicon-floppy-remove"></span>Undo changes</button>
                         <button class="btn btn-success run" type="button"><span class="glyphicon glyphicon-play"></span>Run</button>
+                        <button class="btn btn-danger undo-changes" type="button"><span class="glyphicon glyphicon-floppy-remove"></span>Undo changes</button>
                         <button class="btn btn-info commit" type="button"><span class="glyphicon glyphicon-plus"></span>Commit</button>
-                        <button class="btn btn-primary pull-request" type="button"><span class="glyphicon glyphicon-ok"></span>Create pull request</button>
+                        <!-- <button class="btn btn-primary validate-changes" type="button"><span class="glyphicon glyphicon-ok"></span>Validate changes</button> -->
+                        <button class="btn btn-primary pull-request" type="button"><span class="glyphicon glyphicon-ok"></span><span class="text">Validate to create pull request</span></button>
                       </div>
 
                     </div>
@@ -552,9 +564,16 @@
             </div>
 
             <div id="aceDiff" class="acediff">
-              <div><div id="acediff-left-editor"></div></div>
+              <div>
+                <h6 class='repository-name left-repository-name'>Main</h6>
+                <div id="acediff-left-editor"></div>
+              </div>
               <div id="acediff-gutter"></div>
-              <div><div id="acediff-right-editor"></div></div>
+              <div>
+                <h6 class='repository-name right-repository-name'>Fork</h6>
+                <button class="btn btn-default close-diffing"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
+                <div id="acediff-right-editor"></div>
+              </div>
             </div>
 
             <div class='console resizable item closed'>
@@ -571,9 +590,9 @@
               <div class='diff'>
                 <button class="btn btn-default previous" type="button"><span class="glyphicon glyphicon-chevron-left"></span></button>
                 <button class="btn btn-default next" type="button"><span class="glyphicon glyphicon-chevron-right"></span></button>
-                <button class="btn btn-default copy-main" type="button"><span class="glyphicon glyphicon-chevron-copy"></span>Copy main file</button>
-                <button class="btn btn-info commit" type="button"><span class="glyphicon glyphicon-plus"></span>Commit changes</button>
-                <button class="btn btn-success pull-request" type="button"><span class="glyphicon glyphicon-ok"></span>Create pull request</button>
+                <button class="btn btn-default copy-main" type="button"><span class="glyphicon glyphicon-copy"></span><span class="text">Copy main file</span></button>
+                <!-- <button class="btn btn-info commit" type="button"><span class="glyphicon glyphicon-plus"></span>Commit changes</button> -->
+                <!-- <button class="btn btn-success pull-request" type="button"><span class="glyphicon glyphicon-ok"></span>Create pull request</button> -->
               </div>
               <button class="btn btn-info submit run" type="button"><span class="glyphicon glyphicon-play"></span>Run</button>
               <!-- <button class="btn btn-success request" type="button"><span class="glyphicon glyphicon-plus"></span>Push request</button> -->
@@ -961,7 +980,13 @@
     <!-- <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>-->
     <!-- <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>-->
     <!-- static for offine -->
-
+    <!-- data-pos-x="{{ x }}" data-pos-y="{{ y }}" data-points="{{ points }}" data-box="{{ box }}" data-site="{{ site }}" data-message="{{ message }}" data-load-entire-area="{{ loadEntireArea }}" data-city="{{ city }}" data-owner="{{ owner }}" data-github-login="{{ githubLogin }} -->
+    <script>
+        var R = {};
+        R.city = { owner: '{{ owner }}', name: '{{ city }}', site: '{{ site }}' };
+        R.loadEntireArea = '{{ loadEntireArea }}' === 'True';
+        R.loadedBox = '{{ box }}'.length>0?JSON.parse('{{ box }}'):null;
+    </script>
     <script src="//ajax.googleapis.com/ajax/libs/webfont/1.5.10/webfont.js"></script>
     <script src="{% static 'libs/js.cookie.js' %}"></script>
     <script>WEB_SOCKET_SWF_LOCATION="{% static 'flashsocket/WebSocketMain.swf' %}"; window.room = "0";</script>
