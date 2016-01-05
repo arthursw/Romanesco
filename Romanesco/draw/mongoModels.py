@@ -33,10 +33,11 @@ class Box(Document):
     lastUpdate = DateTimeField(default=datetime.datetime.now)
     object_type = StringField()
 
+    url = URLField(required=True, unique=True)
     restrictedArea = BooleanField(default=False)
     disableToolbar = BooleanField(default=False)
     loadEntireArea = BooleanField(default=False)
-    name = StringField()
+
     # module = ReferenceField('Module')
 
     # deprecated: put in data
@@ -48,7 +49,7 @@ class Box(Document):
     data = StringField(default='')
 
     meta = {
-        'indexes': [ [ ("city", 1), ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ], [ ("name", 1) ] ]
+        'indexes': [ [ ("city", 1), ("planetX", 1), ("planetY", 1), ("box", "2dsphere") ] , [ ("siteName", 1) ] ]
     }
 
 class AreaToUpdate(Document):

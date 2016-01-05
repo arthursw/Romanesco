@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 
 {% load static %}
-{% load dajaxice_templatetags %}
 
 {# --- allauth --- #}
 
@@ -42,9 +41,7 @@
     <![endif]-->
     <script>
       window.rasterizerMode = true;
-      window.RXMLHttpRequest = XMLHttpRequest; // dajaxice modifies the XMLHttpRequest object and some of its default functionnalities do not work afterwards (no onload event sent), so we store the default version in RXMLHttpRequest
     </script>
-  	{% dajaxice_js_import %}
 
   </head>
 

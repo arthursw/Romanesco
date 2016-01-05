@@ -6,6 +6,8 @@ from draw import ajax
 from math import floor
 from django.views.decorators.csrf import csrf_exempt
 from models import *
+# from django.http import JsonResponse
+import json
 
 # from socketio.namespace import BaseNamespace
 # from sockets import ChatNamespace, DrawNamespace
@@ -22,24 +24,41 @@ def index(request, site=None, owner=None, city=None, x=0, y=0):
 
 	connectedToGithub = False
 	githubLogin = ''
-	try:
-		socialAccount = SocialAccount.objects.filter(user_id=request.user.id, provider='github')[:1].get()
-		if socialAccount:
-			connectedToGithub = True
-			githubLogin = socialAccount.extra_data['login']
-	except:
-		print 'can not load social account.'
+	# try:
+	# 	socialAccount = SocialAccount.objects.filter(user_id=request.user.id, provider='github')[:1].get()
+	# 	if socialAccount:
+	# 		connectedToGithub = True
+	# 		githubLogin = socialAccount.extra_data['login']
+	# except:
+	# 	print 'can not load social account.'
 
 	result = {}
 	if site:
 		result = loadSite(request, site)
 
-	result['profileImageURL'] = profileImageURL
+	result['profileImageURL'] = 'static/images/face.png'
+	# result['profileImageURL'] = profileImageURL
 	result['connectedToGithub'] = connectedToGithub
 	result['githubLogin'] = githubLogin
 	response = render_to_response(	"index.html", result, RequestContext(request) )
 	return response
 
+def ajaxCall(request):
+	# import pdb; pdb.set_trace()
+	if request.is_ajax():
+		data = json.loads(request.POST.get('data'))
+		function = data["function"]
+		args = data["args"]
+		print "ajaxCall"
+		print function
+		if args is None:
+			args = {}
+		args['request'] = request
+		result = getattr(ajax, function)(**args)
+		return HttpResponse(result, content_type="application/json")
+		# return JsonResponse(result)
+	else:
+		return HttpResponse("Fail")
 
 # socketio_manage(request.environ, {'': BaseNamespace, '/chat': ChatNamespace, '/draw': DrawNamespace}, request)
 

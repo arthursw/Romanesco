@@ -6,9 +6,9 @@ import os.path
 import errno
 import json
 # from django.utils import json
-from dajaxice.decorators import dajaxice_register
+# from dajaxice.decorators import dajaxice_register
 from django.core import serializers
-from dajaxice.core import dajaxice_functions
+# from dajaxice.core import dajaxice_functions
 from django.contrib.auth.models import User
 from django.db.models import F
 from models import *
@@ -26,7 +26,7 @@ from mongoengine.base import ValidationError
 from mongoengine.queryset import Q
 import time
 
-from PIL import Image
+# from PIL import Image
 import cStringIO
 import StringIO
 import traceback
@@ -38,7 +38,7 @@ from allauth.socialaccount.models import SocialToken
 import base64
 
 
-from github3 import authorize
+# from github3 import authorize
 
 # from wand.image import Image
 
@@ -114,13 +114,13 @@ isUpdatingRasters = False
 # defaultPathTools = ["Checkpoint", "EllipseShape", "FaceShape", "GeometricLines", "GridPath", "Meander", "PrecisePath", "RectangleShape", "ShapePath", "SpiralShape", "StarShape", "ThicknessPath"]
 defaultPathTools = ["Precise path", "Thickness path", "Meander", "Grid path", "Geometric lines", "Shape path", "Rectangle", "Ellipse", "Star", "Spiral", "Face generator", "Checkpoint"]
 
-@dajaxice_register
+# @dajaxice_register
 def setDebugMode(request, debug):
 	global debugMode
 	debugMode = debug
 	return json.dumps({"message": "success"})
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def multipleCalls(request, functionsAndArguments):
 	results = []
@@ -128,7 +128,7 @@ def multipleCalls(request, functionsAndArguments):
 		results.append(json.loads(globals()[fa['function']](request=request, **fa['arguments'])))
 	return json.dumps(results)
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def githubRequest(request, githubRequest, method='get', data=None, params=None, headers=None):
 	token = ACCESS_TOKEN
@@ -153,7 +153,7 @@ def githubRequest(request, githubRequest, method='get', data=None, params=None, 
 
 # r = requests.post(githubRequest, headers={'Authorization': 'token ' + ACCESS_TOKEN})
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def getGithubAuthToken(request):
 	client_id = None
@@ -166,7 +166,7 @@ def getGithubAuthToken(request):
 	return
 
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def benchmarkLoad(request, areasToLoad):
 
@@ -217,7 +217,7 @@ def benchmarkLoad(request, areasToLoad):
 
 	return json.dumps({"message": "success"})
 
-# @dajaxice_register
+# # @dajaxice_register
 # @checkDebug
 # def quick_load(request, box, boxes, zoom):
 
@@ -299,7 +299,7 @@ def benchmarkLoad(request, areasToLoad):
 
 # 	return json.dumps( { 'items': items.values(), 'rasters': rasters, 'zoom': zoom, 'user': user } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def createCity(request, name, public=None):
 	try:
@@ -313,7 +313,7 @@ def createCity(request, name, public=None):
 
 	return json.dumps( { 'state': 'succes', 'city': city.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def deleteCity(request, name):
 	try:
@@ -335,7 +335,7 @@ def deleteCity(request, name):
 
 	return json.dumps( { 'state': 'succes', 'cityPk': str(city.pk) } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def updateCity(request, pk, name, public=None):
 	try:
@@ -355,26 +355,26 @@ def updateCity(request, pk, name, public=None):
 
 	return json.dumps( { 'state': 'succes', 'city': city.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def loadCities(request):
 	userCities = City.objects(owner=request.user.username)
 	publicCities = City.objects(public=True)
 	return json.dumps( { 'userCities': userCities.to_json(), 'publicCities': publicCities.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def loadUserCities(request):
 	userCities = City.objects(owner=request.user.username)
 	return json.dumps( { 'userCities': userCities.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def loadPublicCities(request):
 	publicCities = City.objects(public=True)
 	return json.dumps( { 'publicCities': publicCities.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def loadCity(request, pk):
 	try:
@@ -429,7 +429,7 @@ def getItems(models, areasToLoad, qZoom, city, checkAddItemFunction, itemDates=N
 
 	return items
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def load(request, rectangle, areasToLoad, qZoom, city=None):
 
@@ -490,7 +490,7 @@ def load(request, rectangle, areasToLoad, qZoom, city=None):
 	# return json.dumps( { 'paths': paths, 'boxes': boxes, 'divs': divs, 'user': user, 'rasters': rasters, 'areasToUpdate': areas, 'zoom': zoom } )
 	return json.dumps( { 'items': items.values(), 'user': user, 'rasters': rasters, 'qZoom': qZoom } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def loadRasterizer(request, areasToLoad, itemsDates, city):
 
@@ -766,7 +766,7 @@ def getAreas(bounds):
 
 # 	return
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def savePath(request, points, object_type, box, date, data=None, city=None):
 # def savePath(request, points, pID, planet, object_type, data=None, rasterData=None, rasterPosition=None, areasNotRasterized=None):
@@ -808,7 +808,7 @@ def savePath(request, points, object_type, box, date, data=None, city=None):
 	# return json.dumps( {'state': rasterResult['state'], 'pID': pID, 'pk': str(p.pk), 'message': rasterResult['message'] if 'message' in rasterResult else '' } )
 	return json.dumps( {'state': 'success', 'pk': str(p.pk) } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def updatePath(request, pk, points=None, box=None, data=None, date=None):
 
@@ -859,7 +859,7 @@ def updatePath(request, pk, points=None, box=None, data=None, date=None):
 
 	return json.dumps( {'state': 'success'} )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def deletePath(request, pk):
 
@@ -877,9 +877,9 @@ def deletePath(request, pk):
 
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
-def saveBox(request, box, object_type, data=None, siteData=None, name=None, city=None):
+def saveBox(request, box, object_type, data=None, siteData=None, siteName=None, city=None):
 	if not request.user.is_authenticated():
 		return json.dumps({'state': 'not_logged_in'})
 
@@ -897,12 +897,10 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None, city
 	if lockedAreas.count()>0:
 		return json.dumps( {'state': 'error', 'message': 'This area intersects with another locked area'} )
 
-	loadEntireArea = object_type == 'video-game'
-
 	# todo: warning: website is not defined in Box model...
 	try:
 		data = json.dumps( { 'loadEntireArea': loadEntireArea } )
-		b = Box(city=city, planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, data=data) # , website=website
+		b = Box(city=city, planetX=planetX, planetY=planetY, box=[points], owner=request.user.username, object_type=object_type, siteName=siteName, data=data)
 		b.save()
 		addAreaToUpdate( points, planetX, planetY, city )
 	except ValidationError:
@@ -924,7 +922,7 @@ def saveBox(request, box, object_type, data=None, siteData=None, name=None, city
 
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(b.pk), 'box':box } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def updateBox(request, pk, box=None, data=None, name=None, updateType=None, modulePk=None):
 	if not request.user.is_authenticated():
@@ -1040,7 +1038,7 @@ def updateBox(request, pk, box=None, data=None, name=None, updateType=None, modu
 
 	return json.dumps( {'state': 'success' } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def deleteBox(request, pk):
 	if not request.user.is_authenticated():
@@ -1068,7 +1066,7 @@ def deleteBox(request, pk):
 
 	return json.dumps( { 'state': 'success', 'pk': pk } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def saveDiv(request, box, object_type, date=None, data=None, lock=None, city=None):
 
@@ -1097,7 +1095,7 @@ def saveDiv(request, box, object_type, date=None, data=None, lock=None, city=Non
 
 	return json.dumps( {'state': 'success', 'object_type':object_type, 'owner': request.user.username, 'pk':str(d.pk), 'box': box } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, lock=None):
 
@@ -1143,7 +1141,7 @@ def updateDiv(request, pk, object_type=None, box=None, date=None, data=None, loc
 
 	return json.dumps( {'state': 'success' } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def deleteDiv(request, pk):
 
@@ -1241,7 +1239,7 @@ def posOnPlanetToProject(xp, yp, planetX, planetY):
 	y *= scale
 	return (x,y)
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def batchUpdateRasters(request, args):
 	results = []
@@ -1249,7 +1247,7 @@ def batchUpdateRasters(request, args):
 		results.append(updateRastersJson(arg['data'], arg['position'], arg['areasNotRasterized'], arg['areaToDeletePk']))
 	return json.dumps(results)
 
-# @dajaxice_register
+# # @dajaxice_register
 # @checkDebug
 # def updateRasters(request, data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
 # 	result = updateRastersJson(data, position, areasNotRasterized, areaToDeletePk)
@@ -1262,7 +1260,7 @@ def floorToMultiple(x, m):
 def ceilToMultiple(x, m):
 	return int(ceil(x/float(m))*m)
 
-# # @dajaxice_register
+# # # @dajaxice_register
 # @checkDebug
 # def updateRastersJson(data=None, position=None, areasNotRasterized=None, areaToDeletePk=None):
 # 	print "updateRastersJson"
@@ -1909,7 +1907,7 @@ def ceilToMultiple(x, m):
 
 # 	return { 'state': 'success', 'areasToUpdate': areasToUpdate, 'areasDeleted': areasDeleted }
 
-# @dajaxice_register
+# # @dajaxice_register
 # @checkDebug
 # def loadRasters(request, areasToLoad):
 
@@ -1933,13 +1931,13 @@ def ceilToMultiple(x, m):
 
 # 	return json.dumps( { 'images': images } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def getAreasToUpdate(request):
 	areas = AreaToUpdate.objects()
 	return areas.to_json()
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def deleteAreaToUpdate(request, pk):
 	try:
@@ -1949,7 +1947,7 @@ def deleteAreaToUpdate(request, pk):
 	area.delete()
 	return
 
-# @dajaxice_register
+# # @dajaxice_register
 # @checkDebug
 # def updateAreasToUpdate(request, pk, newAreas):
 
@@ -1975,7 +1973,7 @@ def deleteAreaToUpdate(request, pk):
 
 # --- images --- #
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def saveImage(request, image):
 
@@ -2005,6 +2003,11 @@ def saveImage(request, image):
 	return json.dumps( { 'url': imageName } )
 
 # --- modules --- #
+
+
+'''
+# requires github3 to work
+# from github3 import authorize
 
 def createCommitAndPush(repoName, source, localRepository, commitDescription):
 
@@ -2083,7 +2086,7 @@ def updateModule(user, module, name, repoName, source, compiledSource, commitDes
 
 	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.', 'githubURL': githubURL, 'modulePk': str(module.pk) } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def addOrUpdateModule(request, name, source, compiledSource, type=None, description=None, commitDescription=None, githubURL=None, iconURL=None, category=None):
 	try:
@@ -2094,7 +2097,9 @@ def addOrUpdateModule(request, name, source, compiledSource, type=None, descript
 
 	return result
 
-# @dajaxice_register
+'''
+
+# # @dajaxice_register
 # @checkDebug
 # def addModule(request, name, className, source, compiledSource, isTool, description, iconURL=None):
 
@@ -2124,7 +2129,7 @@ def addOrUpdateModule(request, name, source, compiledSource, type=None, descript
 
 # 	return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.', 'cloneURL': githubRepository.clone_url } )
 
-# @dajaxice_register
+# # @dajaxice_register
 # @checkDebug
 # def updateModule(request, name, source):
 # 	try:
@@ -2146,19 +2151,19 @@ def addOrUpdateModule(request, name, source, compiledSource, type=None, descript
 
 # 	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def getModules(request):
 	modules = Module.objects(accepted=True).only('name', 'iconURL', 'githubURL', 'category', 'pk')
 	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def getModuleList(request):
 	modules = Module.objects().only('name', 'iconURL', 'githubURL', 'thumbnailURL', 'description', 'owner', 'accepted', 'category', 'lastUpdate', 'pk')
 	return json.dumps( { 'state': 'success', 'modules': modules.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def getModuleSource(request, name=None, pk=None, accepted=None):
 	if name:
@@ -2182,7 +2187,7 @@ def getModuleSource(request, name=None, pk=None, accepted=None):
 
 	return json.dumps( { 'state': 'success', 'module': module.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def getWaitingModules(request):
 	if not isAdmin(request.user):
@@ -2236,7 +2241,7 @@ def getWaitingModules(request):
 
 	return json.dumps( { 'state': 'success', 'modules': latestModules } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def acceptModule(request, name, repoName, source, compiledSource, description=None, owner=None, githubURL=None, iconURL=None):
 	if not isAdmin(request.user):
@@ -2257,7 +2262,7 @@ def acceptModule(request, name, repoName, source, compiledSource, description=No
 
 	return json.dumps( { 'state': 'success', 'message': 'The module ' + module.name + ' was accepted.' } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def deleteModule(request, name=None, pk=None, repoName=None):
 
@@ -2281,7 +2286,7 @@ def deleteModule(request, name=None, pk=None, repoName=None):
 
 # --- tools --- #
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def addTool(request, name, className, source, compiledSource, isTool):
 
@@ -2292,7 +2297,7 @@ def addTool(request, name, className, source, compiledSource, isTool):
 	tool.save()
 	return json.dumps( { 'state': 'success', 'message': 'Request for adding ' + name + ' successfully sent.' } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def updateTool(request, name, className, source, compiledSource):
 
@@ -2310,7 +2315,7 @@ def updateTool(request, name, className, source, compiledSource):
 
 	return json.dumps( { 'state': 'success', 'message': 'Request for updating ' + name + ' successfully sent.' } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def getTools(request):
 	tools = Tool.objects(accepted=True)
@@ -2318,7 +2323,7 @@ def getTools(request):
 
 # --- admin --- #
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def getWaitingTools(request):
 	if not isAdmin(request.user):
@@ -2326,7 +2331,7 @@ def getWaitingTools(request):
 	tools = Tool.objects(accepted=False)
 	return json.dumps( { 'state': 'success', 'tools': tools.to_json() } )
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def acceptTool(request, name):
 	if not isAdmin(request.user):
@@ -2351,7 +2356,7 @@ def acceptTool(request, name):
 
 # --- loadSite --- #
 
-@dajaxice_register
+# @dajaxice_register
 @checkDebug
 def loadSite(request, siteName):
 	try:
