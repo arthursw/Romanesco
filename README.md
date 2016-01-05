@@ -10,11 +10,11 @@ virtualenv RomanescoProject
 
 pip install ...
 
-Django
-django-allauth
-django-paypal
-gevent-socketio
-mongoengine
+ - Django
+ - django-allauth
+ - django-paypal
+ - gevent-socketio
+ - mongoengine
 
 Replaced
 
