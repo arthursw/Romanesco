@@ -22,7 +22,7 @@ import re
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 
-from mongoengine.base import ValidationError
+from mongoengine import ValidationError
 from mongoengine.queryset import Q
 import time
 

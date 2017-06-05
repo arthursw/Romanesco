@@ -10,7 +10,7 @@ virtualenv RomanescoProject
 
 pip install ...
 
- - Django
+ - Django==1.9.13
  - django-allauth
  - django-paypal
  - gevent-socketio
