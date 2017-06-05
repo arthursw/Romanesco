@@ -16,6 +16,8 @@ import os
 from mongoengine import *
 connect('Romanesco')
 
+SITE_ID = 2
+
 PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))

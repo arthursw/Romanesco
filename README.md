@@ -16,7 +16,9 @@ pip install ...
  - gevent-socketio
  - mongoengine
 
--------
+
+## Fix gevent-socketio
+
 gevent-socketio is a bit out-of-date:
 
 Replace
@@ -35,25 +37,31 @@ in
 
 lib/python2.7/site-packages/socketio/sdjango.py (line 6)
 
--------
 
-Migrate
+## Migrate
 
-python manage.py migrate
+`python manage.py migrate`
 
--------
 
-Creating an admin user
+## Creating an admin user
 
-python manage.py createsuperuser
+`python manage.py createsuperuser`
 
--------
+## Create site
 
-Site does not exists:
+If the site does not exists, you will have the following error: `Site matching query does not exist`
 
-from django.contrib.sites.models import Site
-new_site = Site.objects.create(domain='localhost:8000', name='localhost:8000')
-print new_site.id
+in python shell:
+
+`python manage.py shell`
+
+
+`from django.contrib.sites.models import Site`
+
+`new_site = Site.objects.create(domain='localhost:8000', name='localhost:8000')`
+`print new_site.id`
+
+Now set that site ID in your settings.py to SITE_ID
 
 http://stackoverflow.com/questions/11814059/site-matching-query-does-not-exist
 
